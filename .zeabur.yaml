@@ -30,8 +30,5 @@ services:
             value: production
           - key: PORT
             value: "8080"
-    # 端口配置
-    ports:
-      - port: 8080
-        type: http
-        expose: true
+          - key: NIXPACKS_PORT
+            value: "8080"
