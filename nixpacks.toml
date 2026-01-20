@@ -1,5 +1,10 @@
 [phases.build]
-cmds = ["pnpm build"]
+cmds = [
+    "pnpm build",
+    "cp -r public .next/standalone/public || true",
+    "mkdir -p .next/standalone/.next",
+    "cp -r .next/static .next/standalone/.next/static"
+]
 
 [variables]
 HOSTNAME = "0.0.0.0"

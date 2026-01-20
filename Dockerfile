@@ -15,6 +15,14 @@ ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
 ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
 
 RUN pnpm build
+
+# 关键修复：Standalone 模式必须手动复制静态资源
+# 1. 复制 public 目录（如果存在）
+RUN cp -r public .next/standalone/public || true
+# 2. 复制 .next/static 目录到 standalone/.next/static
+RUN mkdir -p .next/standalone/.next
+RUN cp -r .next/static .next/standalone/.next/static
+
 ENV HOSTNAME="0.0.0.0"
 EXPOSE 8080
 CMD ["node", ".next/standalone/server.js"]

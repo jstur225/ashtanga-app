@@ -148,6 +148,28 @@ CMD ["pnpm", "start"]
 
 ---
 
+## 404 静态资源丢失问题 (2026-01-20 修复)
+
+**现象**：
+- 部署成功且页面能访问，但所有 JS/CSS/图片 均报 404 错误。
+- 页面样式丢失，交互失效。
+
+**原因**：
+- Next.js 的 `output: 'standalone'` 模式**不会自动复制** `public` 文件夹和 `.next/static` 文件夹到 standalone 构建目录中。
+- 官方文档明确指出这两个目录需要手动复制或通过 CDN 托管。
+- 由于 Zeabur 容器直接运行 `node .next/standalone/server.js`，Node 服务在 standalone 目录下找不到这些静态资源，导致 404。
+
+**修复方案**：
+- 修改 `Dockerfile`，在 `pnpm build` 之后增加手动复制命令：
+  ```dockerfile
+  RUN cp -r public .next/standalone/public || true
+  RUN mkdir -p .next/standalone/.next
+  RUN cp -r .next/static .next/standalone/.next/static
+  ```
+- 这样 `server.js` 就能在相对路径下正确找到静态文件。
+
+---
+
 ## 最新部署后问题：Zeabur 坚持使用 standalone 启动 (2026-01-20 更新)
 
 **现象**：
