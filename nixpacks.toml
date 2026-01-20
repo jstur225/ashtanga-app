@@ -1,12 +1,17 @@
 [phases.build]
-cmds = ["pnpm build"]
+cmds = [
+    "pnpm build",
+    "cp -r public .next/standalone/public || true",
+    "mkdir -p .next/standalone/.next",
+    "cp -r .next/static .next/standalone/.next/static"
+]
 
 [variables]
 HOSTNAME = "0.0.0.0"
 PORT = "8080"
 
 [phases.start]
-cmd = "pnpm start"
+cmd = "node .next/standalone/server.js"
 
 [start]
-cmd = "pnpm start"
+cmd = "node .next/standalone/server.js"

@@ -15,8 +15,8 @@ const nextConfig = {
   experimental: {
     optimizePackageImports: ['@radix-ui', 'lucide-react', 'framer-motion'], // 优化导入
   },
-  // 禁用 standalone 模式，回归标准构建以解决静态资源 404 问题
-  // output: 'standalone',
+  // 恢复 standalone 模式，Zeabur 环境强依赖此模式
+  output: 'standalone',
 }
 
 export default nextConfig

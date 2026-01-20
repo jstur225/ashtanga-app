@@ -193,6 +193,23 @@ CMD ["pnpm", "start"]
   - `pnpm start` 会执行 `next start`，这是 Next.js 的完整生产服务器，内置了完善的静态资源服务逻辑，不需要手动管理文件路径。
 - **代价**：镜像体积会稍大（包含 node_modules），但换取了绝对的稳定性和静态资源的可访问性。
 
+## 启动崩溃问题修复：恢复 Standalone 模式 (2026-01-20 最终)
+
+**问题**：
+- 上一步禁用 `standalone` 模式后，部署直接失败，报错 `Error: Cannot find module '/src/.next/standalone/server.js'`。
+- 原因：**Zeabur 似乎强行锁定了启动命令**为 `node .next/standalone/server.js`，即使我们在 `Dockerfile` 和 `nixpacks.toml` 中修改为 `pnpm start`，Zeabur 依然尝试执行旧命令。
+- 由于我们禁用了 `standalone` 输出，该文件不存在，导致容器无限重启。
+
+**最终解决方案**：
+1.  **必须恢复 Standalone**：修改 `next.config.mjs` 恢复 `output: 'standalone'`，以满足 Zeabur 的启动要求。
+2.  **重新应用静态资源修复**：
+    - 在 `Dockerfile` 和 `nixpacks.toml` 中重新加入手动复制 `public` 和 `.next/static` 的命令。
+    - 这样既能满足启动命令的文件需求，又能解决静态资源 404 问题。
+
+**如果部署后依然 404**：
+- 请检查 Zeabur 控制台的日志，确认启动命令是否确实是 `node .next/standalone/server.js`。
+- 如果是，目前的修复应该能生效。
+
 ---
 
 ## 最新部署后问题：Zeabur 坚持使用 standalone 启动 (2026-01-20 更新)
