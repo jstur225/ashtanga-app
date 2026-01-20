@@ -180,6 +180,19 @@ CMD ["pnpm", "start"]
   - **nixpacks.toml**: `cmd = "cd .next/standalone && node server.js"`
 - 这样确保 `server.js` 运行时以 standalone 目录为根，能够正确加载同级目录下的 `public` 和 `.next` 资源。
 
+## 最终决策：放弃 Standalone 模式，回归标准模式 (2026-01-20)
+
+**背景**：
+- 尝试了手动复制静态资源和修改启动目录，Zeabur 环境下仍然持续报 404 错误。
+- 这表明 Zeabur 的运行环境或路径映射与 Next.js Standalone 模式存在深层次的兼容性问题，或者构建产物在容器中的位置仍然不符合 `server.js` 的预期。
+
+**解决方案**：
+- **禁用 Standalone**：在 `next.config.mjs` 中注释掉 `output: 'standalone'`。
+- **使用标准启动**：
+  - Dockerfile 和 nixpacks.toml 改回使用 `pnpm start`。
+  - `pnpm start` 会执行 `next start`，这是 Next.js 的完整生产服务器，内置了完善的静态资源服务逻辑，不需要手动管理文件路径。
+- **代价**：镜像体积会稍大（包含 node_modules），但换取了绝对的稳定性和静态资源的可访问性。
+
 ---
 
 ## 最新部署后问题：Zeabur 坚持使用 standalone 启动 (2026-01-20 更新)
