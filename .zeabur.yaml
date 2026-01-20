@@ -15,9 +15,13 @@ services:
         nodeVersion: "20"
         # 包管理器
         packageManager: pnpm
+        # 构建缓存配置
+        buildCache:
+          - node_modules
+          - .next/cache
         # 安装命令
         install:
-          - pnpm install
+          - pnpm install --frozen-lockfile
         # 构建命令
         build:
           - pnpm build
