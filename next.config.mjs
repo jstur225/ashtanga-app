@@ -6,8 +6,7 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  // 构建优化
-  swcMinify: true, // 使用SWC压缩，更快
+  // SWC压缩已是Next.js 16默认选项
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production', // 生产环境移除console
   },
@@ -15,8 +14,6 @@ const nextConfig = {
   experimental: {
     optimizePackageImports: ['@radix-ui', 'lucide-react', 'framer-motion'], // 优化导入
   },
-  // 禁用 standalone，使用标准 pnpm start 启动
-  // output: 'standalone',
 }
 
 export default nextConfig
