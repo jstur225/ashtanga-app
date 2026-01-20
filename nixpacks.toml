@@ -1,0 +1,8 @@
+[phases.build]
+cmds = ["pnpm build"]
+
+[phases.start]
+cmd = "node .next/standalone/server.js"
+
+[start]
+cmd = "node .next/standalone/server.js"
