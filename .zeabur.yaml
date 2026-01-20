@@ -24,11 +24,3 @@ services:
         # 启动命令
         start:
           - pnpm start
-        # 环境变量
-        env:
-          - key: NODE_ENV
-            value: production
-          - key: PORT
-            value: "8080"
-          - key: NIXPACKS_PORT
-            value: "8080"
