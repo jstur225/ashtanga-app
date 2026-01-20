@@ -7,4 +7,4 @@ COPY . .
 RUN pnpm install
 RUN pnpm build
 EXPOSE 8080
-CMD ["node", ".next/standalone/server.mjs"]
+CMD ["pnpm", "start"]
