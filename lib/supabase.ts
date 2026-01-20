@@ -1,11 +1,38 @@
 import { createClient } from '@supabase/supabase-js'
 
 // Environment variables
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+const getSupabaseUrl = () => {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  if (!url) {
+    throw new Error('Missing env.NEXT_PUBLIC_SUPABASE_URL')
+  }
+  return url
+}
 
-// Create Supabase client
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+const getSupabaseAnonKey = () => {
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  if (!key) {
+    throw new Error('Missing env.NEXT_PUBLIC_SUPABASE_ANON_KEY')
+  }
+  return key
+}
+
+// Create Supabase client (lazy initialization using Proxy)
+let supabaseInstance: ReturnType<typeof createClient> | null = null
+
+const getSupabaseInstance = () => {
+  if (!supabaseInstance) {
+    supabaseInstance = createClient(getSupabaseUrl(), getSupabaseAnonKey())
+  }
+  return supabaseInstance
+}
+
+// Export a Proxy that defers client creation until first use
+export const supabase = new Proxy({} as ReturnType<typeof createClient>, {
+  get(target, prop) {
+    return getSupabaseInstance()[prop as keyof ReturnType<typeof createClient>]
+  }
+})
 
 // Database types
 export interface PracticeRecord {
