@@ -5,7 +5,7 @@ cmds = ["pnpm build"]
 HOSTNAME = "0.0.0.0"
 
 [phases.start]
-cmd = "node .next/standalone/server.js"
+cmd = "pnpm start"
 
 [start]
-cmd = "node .next/standalone/server.js"
+cmd = "pnpm start"

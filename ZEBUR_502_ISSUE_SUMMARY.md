@@ -130,6 +130,24 @@ CMD ["pnpm", "start"]
 
 ---
 
+## 最新部署后问题：启动失败 (MODULE_NOT_FOUND) (2026-01-20 更新)
+
+**现象**：
+- 部署失败，日志报错：`Error: Cannot find module '/src/.next/standalone/server.js'`
+- 应用不断重启（BackOff）。
+
+**原因定位**：
+- **配置文件不一致**。
+- 上一步我们修改了 `next.config.mjs` 关闭了 `standalone` 模式。
+- 但是 `nixpacks.toml` 中仍然指定启动命令为 `node .next/standalone/server.js`。
+- 此时 `pnpm build` 不再生成 standalone 目录，导致启动命令找不到文件。
+
+**修复方案**：
+- 修改 `nixpacks.toml`，将启动命令改为 `pnpm start`。
+- 这样与 `package.json` 中的 `start` 脚本保持一致（`next start -p $PORT -H 0.0.0.0`）。
+
+---
+
 ## 根本原因（已定位）
 
 **Next.js默认只监听localhost（127.0.0.1）**
