@@ -148,6 +148,19 @@ CMD ["pnpm", "start"]
 
 ---
 
+## 最新部署后问题：Zeabur 坚持使用 standalone 启动 (2026-01-20 更新)
+
+**现象**：
+- 即使修改了 `nixpacks.toml` 和 `Dockerfile` 为 `pnpm start`，Zeabur 依然报错 `Cannot find module '/src/.next/standalone/server.js'`。
+- 说明 Zeabur 平台可能锁定了启动命令，或者构建缓存极其顽固。
+
+**修复方案（最终决策）**：
+- **顺势而为**：恢复 `output: 'standalone'` 模式。
+- **配置统一**：将 `Dockerfile` 和 `nixpacks.toml` 的启动命令全部改回 `node .next/standalone/server.js`。
+- **环境保障**：由于之前已经添加了 `.dockerignore` 排除本地干扰，现在开启 standalone 模式是安全的（不会再出现 404 问题）。
+
+---
+
 ## 根本原因（已定位）
 
 **Next.js默认只监听localhost（127.0.0.1）**

@@ -17,4 +17,4 @@ ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
 RUN pnpm build
 ENV HOSTNAME="0.0.0.0"
 EXPOSE 8080
-CMD ["pnpm", "start"]
+CMD ["node", ".next/standalone/server.js"]
