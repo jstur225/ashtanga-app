@@ -15,8 +15,8 @@ const nextConfig = {
   experimental: {
     optimizePackageImports: ['@radix-ui', 'lucide-react', 'framer-motion'], // 优化导入
   },
-  // 恢复 standalone 模式，Zeabur 环境强依赖此模式
-  output: 'standalone',
+  // 禁用 standalone，使用标准 pnpm start 启动
+  // output: 'standalone',
 }
 
 export default nextConfig

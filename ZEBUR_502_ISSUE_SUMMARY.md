@@ -206,9 +206,25 @@ CMD ["pnpm", "start"]
     - 在 `Dockerfile` 和 `nixpacks.toml` 中重新加入手动复制 `public` 和 `.next/static` 的命令。
     - 这样既能满足启动命令的文件需求，又能解决静态资源 404 问题。
 
-**如果部署后依然 404**：
-- 请检查 Zeabur 控制台的日志，确认启动命令是否确实是 `node .next/standalone/server.js`。
-- 如果是，目前的修复应该能生效。
+## 再次反转：Zeabur 官方/用户反馈建议 (2026-01-20)
+
+**情况**：
+- 用户反馈 `standalone` 模式下 `server.js` 缺失（可能是配置反复修改导致的不一致）。
+- 明确建议使用 `pnpm start` 标准启动模式，并给出了修正后的 `Dockerfile`。
+
+**最终修正**：
+- **Dockerfile**：
+  - 移除所有手动复制命令。
+  - 移除 `standalone` 相关配置。
+  - 改为 `CMD ["pnpm", "start"]`。
+  - **关键保留**：Supabase 的 ARG/ENV 注入必须保留，否则构建时页面会空白。
+- **next.config.mjs**：再次禁用 `output: 'standalone'`。
+- **nixpacks.toml**：同步修改启动命令为 `pnpm start`。
+
+**预期**：
+- 使用 Next.js 内置的生产服务器启动。
+- 自动处理所有静态资源路径（彻底根除 404）。
+- Zeabur 将执行 `pnpm start` 而非寻找不存在的 `server.js`。
 
 ---
 
