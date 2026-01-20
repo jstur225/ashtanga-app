@@ -16,7 +16,7 @@ const nextConfig = {
     optimizePackageImports: ['@radix-ui', 'lucide-react', 'framer-motion'], // 优化导入
   },
   // 启用standalone模式（容器部署必需）
-  output: 'standalone',
+  // output: 'standalone',
 }
 
 export default nextConfig

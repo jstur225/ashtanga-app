@@ -78,6 +78,58 @@ CMD ["pnpm", "start"]
 
 ---
 
+## 最新部署后问题：页面空白/UI未加载 (2026-01-20 更新)
+
+**现象**：
+- 页面可以打开 (200 OK)，502 错误已解决。
+- 但页面一片空白或没有任何样式，无法点击任何按钮。
+
+**原因定位**：
+- **Supabase 环境变量构建时缺失**。
+- Next.js 的 `NEXT_PUBLIC_` 环境变量必须在 **Build Time (构建时)** 存在，才能被打包进前端 JS 代码中。
+- Docker 构建过程 (`RUN pnpm build`) 默认不会读取 Zeabur 控制台配置的环境变量，除非显式使用 `ARG` 传递。
+- 由于前端代码 (`lib/supabase.ts`) 使用了非空断言 (`!`)，环境变量缺失导致 JS 在加载时抛出错误，整个应用崩溃。
+
+**修复方案**：
+1. **修改 Dockerfile**：
+   - 添加 `ARG` 声明以接收 Zeabur 注入的构建参数。
+   - 添加 `ENV` 将参数传递给 Next.js 构建过程。
+   ```dockerfile
+   ARG NEXT_PUBLIC_SUPABASE_URL
+   ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
+   ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
+   ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
+   ```
+
+2. **验证步骤**：
+   - 推送代码后，Zeabur 会自动重新构建。
+   - 构建过程中应该能看到 Supabase 相关的变量被注入。
+   - 部署完成后，前端 JS 应该能正常初始化 Supabase 客户端。
+
+---
+
+## 最新部署后问题：资源404 (2026-01-20 更新)
+
+**现象**：
+- 页面能打开，但所有 CSS、JS、字体文件均返回 404。
+- 控制台出现 `turbopack-...js` 404 错误。
+
+**原因定位**：
+- **缺失 `.dockerignore` 文件**。
+- `Dockerfile` 中的 `COPY . .` 指令将本地开发环境的 `node_modules` (Windows版) 和 `.next` (包含 Turbopack 缓存) 复制到了 Docker 镜像中。
+- 这导致容器内的构建环境被污染，Next.js 尝试加载本地开发的构建产物，而不是容器内新构建的产物。
+- 另外，暂时关闭了 `output: 'standalone'`，因为当前使用 `pnpm start` 启动，不需要 standalone 模式。
+
+**修复方案**：
+1. **创建 `.dockerignore`**：
+   - 排除 `node_modules`, `.next`, `.git` 等目录。
+   - 确保 Docker 构建环境是纯净的。
+
+2. **修改 `next.config.mjs`**：
+   - 注释掉 `output: 'standalone'`，恢复默认构建模式。
+
+---
+
 ## 根本原因（已定位）
 
 **Next.js默认只监听localhost（127.0.0.1）**
