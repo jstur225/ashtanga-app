@@ -25,6 +25,6 @@ services:
         # 构建命令
         build:
           - pnpm build
-        # 启动命令
+        # 启动命令（standalone模式）
         start:
-          - pnpm start
+          - node .next/standalone/server.js
