@@ -25,4 +25,7 @@ RUN cp -r .next/static .next/standalone/.next/static
 
 ENV HOSTNAME="0.0.0.0"
 EXPOSE 8080
-CMD ["node", ".next/standalone/server.js"]
+
+# 切换工作目录到 standalone，确保 server.js 能正确找到相对路径的静态资源
+WORKDIR /src/.next/standalone
+CMD ["node", "server.js"]

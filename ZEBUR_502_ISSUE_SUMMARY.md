@@ -168,6 +168,18 @@ CMD ["pnpm", "start"]
   ```
 - 这样 `server.js` 就能在相对路径下正确找到静态文件。
 
+## 404 问题补充修复：启动目录修正 (2026-01-20)
+
+**现象**：
+- 即使复制了静态资源，如果启动命令是 `node .next/standalone/server.js`，Node 进程的工作目录（CWD）仍然是项目根目录。
+- 这可能导致 `server.js` 仍然尝试从根目录的 `.next` 查找资源，或者路径解析逻辑与 standalone 目录结构不匹配。
+
+**修复**：
+- 修改启动命令，先进入 standalone 目录再运行：
+  - **Dockerfile**: `WORKDIR /src/.next/standalone` 然后 `CMD ["node", "server.js"]`
+  - **nixpacks.toml**: `cmd = "cd .next/standalone && node server.js"`
+- 这样确保 `server.js` 运行时以 standalone 目录为根，能够正确加载同级目录下的 `public` 和 `.next` 资源。
+
 ---
 
 ## 最新部署后问题：Zeabur 坚持使用 standalone 启动 (2026-01-20 更新)
