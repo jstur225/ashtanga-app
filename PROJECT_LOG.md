@@ -573,6 +573,139 @@
 
 ---
 
+### 2026-01-21 Tab1 交互优化 + 数据持久化修复 ✅
+
+**阶段**: 从功能完善到用户体验优化
+
+**新增功能**:
+1. ✅ Header 滚动整合（可被截断）
+2. ✅ 标题颜色渐变（熬汤日记·呼吸·觉察）
+3. ✅ 选项按钮宽度优化（支持长文本）
+4. ✅ 自定义选项保存到 localStorage
+
+**核心改动**:
+
+#### 1. Header 滚动优化
+**文件**: `app/page.tsx`
+- **Header 整合到滚动区域**：不再是固定定位，随内容一起滚动
+- **可被截断**：向下滚动时 header 可以移出屏幕，最大化内容展示区域
+- **响应式布局**：改用 `h-screen flex flex-col`，不使用 `overflow-hidden`
+- **沉浸式体验**：用户专注于打卡内容，不被固定 header 干扰
+
+**技术实现**:
+```tsx
+// 之前：header 固定在外层
+<div className="h-screen overflow-hidden">
+  <header className="flex-shrink-0">...</header>
+  <main className="flex-1 overflow-y-auto">...</main>
+</div>
+
+// 现在：header 在滚动区域
+<div className="h-screen flex flex-col">
+  <main className="flex-1 overflow-y-auto">
+    <header>...</header>  // header 随内容一起滚
+    <div>选项内容</div>
+  </main>
+</div>
+```
+
+#### 2. 标题颜色渐变
+**文件**: `app/page.tsx`
+- **主标题**：熬汤日记（纯黑，`text-foreground`）
+- **副标题1**：·呼吸（中灰，`text-muted-foreground/50`）
+- **副标题2**：·觉察（浅灰，`text-muted-foreground/70`）
+- **视觉层次**：形成从深到浅的渐变效果
+
+**代码**:
+```tsx
+<h1 className="text-lg font-serif text-foreground tracking-wide font-semibold">
+  熬汤日记
+  <span className="text-muted-foreground/50 font-normal">·呼吸</span>
+  <span className="text-muted-foreground/70 font-normal">·觉察</span>
+</h1>
+```
+
+#### 3. Header 布局横向排列
+**文件**: `app/page.tsx`
+- **Logo 缩小**：`w-12 h-12` → `w-8 h-8`（48px → 32px）
+- **横向布局**：`flex-col` → `flex-row`，logo 和标题左右排列
+- **间距优化**：`gap-3`，适当间距
+- **标题缩小**：`text-xl` → `text-lg`
+- **减少 padding**：`pt-14 pb-6` → `pt-12 pb-4`
+
+#### 4. 选项按钮宽度优化
+**文件**: `app/page.tsx`
+- **增加 padding**：`px-2` → `px-4`
+- **设置最小宽度**：`min-w-[100px]`，保证文字显示
+- **文字换行**：添加 `break-words w-full`，自动换行
+- **备注字号**：`text-xs` → `text-[10px]`
+
+#### 5. 自定义选项持久化
+**文件**: `app/page.tsx`, `hooks/usePracticeData.ts`
+
+**问题根因**:
+- `handleCustomConfirm` 只更新本地 `practiceOptions` state
+- 没有调用 `addOption` 保存到 localStorage
+- 刷新页面后丢失
+
+**解决方案**:
+```tsx
+// 添加自定义选项时保存到 localStorage
+const handleCustomConfirm = (name: string, notes: string) => {
+  // 保存到 localStorage
+  const newOption = addOption(name, name)
+  if (notes) {
+    updateOption(newOption.id, name, name, notes)
+  }
+  // 本地 state 会通过 useEffect 自动同步
+  toast.success('已添加自定义选项')
+}
+```
+
+#### 6. 选项字符限制
+**文件**: `app/page.tsx`
+
+**新建选项弹窗**:
+- 练习名称：最多 **10 个字**（两行，每行5字）
+- 备注：最多 **14 个字**（两行，每行7字）
+- 计数器：x/10 和 x/14
+
+**编辑选项弹窗**:
+- 同样限制为 **10 + 14** 字符
+- 保存时自动截断超出部分
+
+**输入验证**:
+```tsx
+onChange={(e) => setPracticeName(e.target.value.slice(0, 10))}
+onChange={(e) => setNotes(e.target.value.slice(0, 14))}
+```
+
+**Git 提交**:
+- `09363d9` - style: 调整header布局为横向排列，logo缩小
+- `7bd5d95` - style: header整合到滚动区域，可被截断；标题改为'熬汤日记·呼吸·觉察'
+- `7d1dbca` - style: 标题颜色渐变；选项字符限制调整为5+7
+- `b3448fa` - fix: 修复新建自定义选项刷新后丢失的问题
+- `3fe6ac8` - fix: 修复刷新页面后自定义选项被重置的问题 - 检查localStorage而非options变量
+- `9a6e32d` - style: 调整选项按钮宽度支持两行每行5个字
+- `31267a8` - style: 调整选项字符限制为10+14（名称两行+备注两行）
+
+**用户体验改进**:
+- Header 随内容滚动，最大化内容展示区域
+- 标题颜色渐变形成视觉层次
+- 选项按钮宽度支持长文本，自动换行
+- 自定义选项正确保存到 localStorage
+- 刷新页面后所有设置保持不变
+- 字符限制合理，避免按钮过宽
+
+**下一步计划**:
+- **P0**: 继续使用和测试，发现其他问题
+- **P1**: 照片上传功能（Supabase Storage）
+- **P2**: 数据备份提醒功能
+
+**产品里程碑**: Tab1 练习打卡功能达到稳定可用标准 🎉
+
+---
+
 ### 2026-01-21 Tab3 数据管理功能完善 ✅
 
 **阶段**: 从基础功能到用户体验优化
