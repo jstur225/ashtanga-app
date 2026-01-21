@@ -1884,7 +1884,7 @@ function StatsTab({
   onOpenSettings: () => void
   onOpenFakeDoor: () => void
 }) {
-  const [viewMode, setViewMode] = useState<'month' | 'quarter' | 'year'>('month')
+  const [viewMode, setViewMode] = useState<'quarter' | 'half' | 'year'>('quarter')
   const [dateOffset, setDateOffset] = useState(0)
   const [hasVotedPro] = useLocalStorage('has_voted_pro', false)
   
@@ -1943,8 +1943,8 @@ function StatsTab({
 
   // Generate flowing dots based on view mode
   const flowingDots = useMemo(() => {
-    const daysCount = viewMode === 'month' ? 30 : viewMode === 'quarter' ? 90 : 365
-    const daysOffset = viewMode === 'month' ? dateOffset * 30 : viewMode === 'quarter' ? dateOffset * 90 : dateOffset * 365
+    const daysCount = viewMode === 'quarter' ? 90 : viewMode === 'half' ? 180 : 365
+    const daysOffset = viewMode === 'quarter' ? dateOffset * 90 : viewMode === 'half' ? dateOffset * 180 : dateOffset * 365
     const result: string[] = []
 
     for (let i = 0; i < daysCount; i++) {
@@ -1958,8 +1958,8 @@ function StatsTab({
   // Dynamic text based on view
   const dynamicText = useMemo(() => {
     switch (viewMode) {
-      case 'month': return '觉察每个当下'
-      case 'quarter': return '呼吸串联身体'
+      case 'quarter': return '觉察每个当下'
+      case 'half': return '呼吸串联身体'
       case 'year': return '练习是连贯的珍珠'
     }
   }, [viewMode])
@@ -1967,8 +1967,8 @@ function StatsTab({
   // Dot sizes based on view
   const dotConfig = useMemo(() => {
     switch (viewMode) {
-      case 'month': return { size: 'w-8 h-8', gap: 'gap-3', rounded: 'rounded-xl', cols: 'grid-cols-7' }
-      case 'quarter': return { size: 'w-4 h-4', gap: 'gap-2', rounded: 'rounded-lg', cols: 'grid-cols-12' }
+      case 'quarter': return { size: 'w-6 h-6', gap: 'gap-2', rounded: 'rounded-xl', cols: 'grid-cols-10' }
+      case 'half': return { size: 'w-5 h-5', gap: 'gap-2', rounded: 'rounded-lg', cols: 'grid-cols-12' }
       case 'year': return { size: 'w-4 h-4', gap: 'gap-2', rounded: 'rounded-full', cols: 'grid-cols-12' }
     }
   }, [viewMode])
@@ -2043,7 +2043,7 @@ function StatsTab({
             
             {/* Right: Compact View Toggles - Monospace numbers for "Data" feel */}
             <div className="flex bg-transparent rounded-full">
-              {(['month', 'quarter', 'year'] as const).map((mode) => (
+              {(['quarter', 'half', 'year'] as const).map((mode) => (
                 <button
                   key={mode}
                   onClick={() => { setViewMode(mode); setDateOffset(0) }}
@@ -2053,7 +2053,7 @@ function StatsTab({
                       : 'text-stone-400 hover:text-stone-600'
                   }`}
                 >
-                  {mode === 'month' ? '30' : mode === 'quarter' ? '90' : '365'}
+                  {mode === 'quarter' ? '90' : mode === 'half' ? '180' : '365'}
                 </button>
               ))}
             </div>
