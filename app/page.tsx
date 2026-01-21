@@ -7,6 +7,7 @@ import { usePracticeData, type PracticeRecord, type PracticeOption, type UserPro
 import { BookOpen, BarChart3, Calendar, X, Camera, Pause, Play, Trash2, User, Settings, ChevronLeft, ChevronRight, ChevronUp, Cloud, Download, Upload, Plus, Share2, Sparkles, Check, Copy, ClipboardPaste } from "lucide-react"
 import { FakeDoorModal } from "@/components/FakeDoorModal"
 import { ImportModal } from "@/components/ImportModal"
+import { ExportModal } from "@/components/ExportModal"
 import { toast } from 'sonner'
 
 // Helper functions
@@ -1028,22 +1029,20 @@ function SettingsModal({
   onClose,
   profile,
   onSave,
-  onExport,
+  onOpenExport,
   onOpenImport,
 }: {
   isOpen: boolean
   onClose: () => void
   profile: UserProfile
   onSave: (profile: UserProfile) => void
-  onExport: () => string
+  onOpenExport: () => void
   onOpenImport: () => void
 }) {
   const [name, setName] = useState(profile.name)
   const [signature, setSignature] = useState(profile.signature)
   const [avatar, setAvatar] = useState<string | null>(profile.avatar)
   const [activeSection, setActiveSection] = useState<'profile' | 'data'>('profile')
-  const [exportedData, setExportedData] = useState<string>('')
-  const [showExportData, setShowExportData] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -1181,70 +1180,7 @@ function SettingsModal({
 
                   {/* 导出按钮 */}
                   <button
-                    onClick={async () => {
-                      const data = onExport()
-                      setExportedData(data)
-                      console.log('导出数据长度:', data.length)
-
-                      let success = false
-                      let errorMessage = ''
-
-                      // 方法1: 尝试使用现代clipboard API
-                      if (navigator.clipboard && navigator.clipboard.writeText) {
-                        try {
-                          await navigator.clipboard.writeText(data)
-                          success = true
-                          console.log('clipboard API 成功')
-                        } catch (err) {
-                          console.warn('clipboard API 失败，尝试降级方案:', err)
-                          errorMessage = String(err)
-                        }
-                      }
-
-                      // 方法2: 降级方案 - 使用传统的execCommand
-                      if (!success) {
-                        try {
-                          const textArea = document.createElement('textarea')
-                          textArea.value = data
-                          textArea.style.position = 'fixed'
-                          textArea.style.left = '-999999px'
-                          textArea.style.top = '-999999px'
-                          document.body.appendChild(textArea)
-                          textArea.focus()
-                          textArea.select()
-
-                          const successful = document.execCommand('copy')
-                          document.body.removeChild(textArea)
-
-                          if (successful) {
-                            success = true
-                            console.log('execCommand 成功')
-                          } else {
-                            errorMessage = 'execCommand returned false'
-                          }
-                        } catch (err) {
-                          console.error('execCommand 也失败:', err)
-                          errorMessage = String(err)
-                        }
-                      }
-
-                      // 无论成功失败，都显示手动复制区域
-                      setShowExportData(true)
-
-                      // 显示结果提示
-                      if (success) {
-                        toast.success('✅ 数据胶囊已复制（如失败请手动复制下方）', {
-                          duration: 4000,
-                          position: 'top-center'
-                        })
-                      } else {
-                        console.error('所有复制方法都失败:', errorMessage)
-                        toast.error('❌ 自动复制失败，请手动复制下方数据', {
-                          duration: 5000,
-                          position: 'top-center'
-                        })
-                      }
-                    }}
+                    onClick={onOpenExport}
                     className="w-full flex items-center justify-between p-4 rounded-2xl bg-secondary hover:bg-secondary/80 transition-all group"
                   >
                     <div className="flex items-center gap-3">
@@ -1275,35 +1211,6 @@ function SettingsModal({
                     </div>
                     <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
                   </button>
-
-                  {/* 导出数据显示区域 */}
-                  {showExportData && exportedData && (
-                    <div className="mt-4 p-4 rounded-2xl bg-blue-50 border border-blue-200">
-                      <div className="flex items-center justify-between mb-2">
-                        <p className="text-xs text-blue-600 font-serif">
-                          📋 数据胶囊（可长按手动复制）
-                        </p>
-                        <button
-                          onClick={() => setShowExportData(false)}
-                          className="text-xs text-blue-500 hover:text-blue-700 font-serif"
-                        >
-                          收起
-                        </button>
-                      </div>
-                      <textarea
-                        readOnly
-                        value={exportedData}
-                        className="w-full h-32 px-3 py-2 rounded-xl bg-white border border-blue-200 text-[10px] font-mono text-blue-900 resize-none focus:outline-none"
-                        onClick={(e) => {
-                          const target = e.target as HTMLTextAreaElement
-                          target.select()
-                        }}
-                      />
-                      <p className="text-[10px] text-blue-500 font-serif mt-2">
-                        💡 提示：点击文本可全选，长按可复制
-                      </p>
-                    </div>
-                  )}
                 </div>
               )}
 
@@ -2168,6 +2075,8 @@ export default function AshtangaTracker() {
   const [showSettings, setShowSettings] = useState(false)
   const [showFakeDoor, setShowFakeDoor] = useState<{ type: 'cloud' | 'pro', isOpen: boolean }>({ type: 'cloud', isOpen: false })
   const [showImportModal, setShowImportModal] = useState(false)
+  const [showExportModal, setShowExportModal] = useState(false)
+  const [exportedData, setExportedData] = useState('')
   const [votedCloud] = useLocalStorage('voted_cloud_sync', false)
   const [isSaving, setIsSaving] = useState(false)
 
@@ -2686,10 +2595,11 @@ export default function AshtangaTracker() {
         onClose={() => setShowSettings(false)}
         profile={userProfile}
         onSave={updateProfile}
-        onExport={() => {
+        onOpenExport={() => {
           const data = exportData()
+          setExportedData(data)
+          setShowExportModal(true)
           trackEvent('export_data')
-          return data
         }}
         onOpenImport={() => setShowImportModal(true)}
       />
@@ -2707,6 +2617,13 @@ export default function AshtangaTracker() {
             toast.error('❌ 导入失败，请检查文件格式')
           }
         }}
+      />
+
+      {/* Export Modal */}
+      <ExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        data={exportedData}
       />
 
       {/* Completion Sheet */}

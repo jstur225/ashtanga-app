@@ -97,7 +97,7 @@ export function ImportModal({ isOpen, onClose, onImport }: ImportModalProps) {
                 {/* 一键粘贴按钮 */}
                 <button
                   onClick={handlePaste}
-                  className="w-full flex items-center justify-center gap-2 p-3 rounded-2xl bg-gradient-to-br from-red-500 to-red-600 text-white font-serif transition-all hover:opacity-90 mb-3"
+                  className="w-full flex items-center justify-center gap-2 p-3 rounded-2xl bg-gradient-to-br from-green-500 to-green-600 text-white font-serif transition-all hover:opacity-90 mb-3"
                 >
                   <ClipboardPaste className="w-4 h-4" />
                   <span className="text-sm">一键粘贴</span>
