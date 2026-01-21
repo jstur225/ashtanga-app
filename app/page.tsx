@@ -1202,7 +1202,7 @@ function SettingsModal({
                   >
                     <div className="flex items-center gap-3">
                       <div className="p-2 rounded-xl bg-red-50 text-red-500">
-                        <Upload className="w-5 h-5" />
+                        <Download className="w-5 h-5" />
                       </div>
                       <div className="text-left">
                         <div className="text-sm font-serif text-foreground">导入数据胶囊</div>

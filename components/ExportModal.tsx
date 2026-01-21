@@ -94,17 +94,14 @@ export function ExportModal({ isOpen, onClose, data }: ExportModalProps) {
 
               <div className="flex flex-col">
                 {/* 标题 */}
-                <h2 className="text-xl font-serif text-foreground mb-1">
+                <h2 className="text-xl font-serif text-foreground mb-4">
                   导出数据胶囊
                 </h2>
-                <p className="text-xs text-muted-foreground font-serif mb-4">
-                  长按复制所有文本，请保存好
-                </p>
 
                 {/* 提示信息 */}
                 <div className="p-3 rounded-2xl bg-blue-50 border border-blue-100 mb-4">
                   <p className="text-xs text-blue-600 font-serif leading-relaxed">
-                    这是你的完整数据，请妥善保管。建议定期备份。
+                    长按复制所有文本，请保存好。这是你的完整数据，请妥善保管。建议定期备份。
                   </p>
                 </div>
 
@@ -128,7 +125,7 @@ export function ExportModal({ isOpen, onClose, data }: ExportModalProps) {
                 {/* 一键复制按钮 */}
                 <button
                   onClick={handleCopy}
-                  className="w-full flex items-center justify-center gap-2 p-3 rounded-2xl bg-gradient-to-br from-green-500 to-green-600 text-white font-serif transition-all hover:opacity-90"
+                  className="w-full flex items-center justify-center gap-2 p-3 rounded-2xl bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] text-white font-serif transition-all hover:opacity-90"
                 >
                   {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                   <span className="text-sm">{copied ? '已复制！' : '一键复制'}</span>
