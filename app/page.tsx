@@ -1,68 +1,23 @@
 "use client"
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react"
-import { BookOpen, BarChart3, Calendar, X, Camera, Pause, Play, Trash2, User, Settings, ChevronLeft, ChevronRight, ChevronUp, Cloud, Phone, Mail, Download, Upload, Plus, Share2, Sparkles } from "lucide-react"
+import { BookOpen, BarChart3, Calendar, X, Camera, Pause, Play, Trash2, User, Settings, ChevronLeft, ChevronRight, ChevronUp, Cloud, Download, Upload, Plus, Share2, Sparkles, Check } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
-import { getAllPracticeRecords, createPracticeRecord, updatePracticeRecord, deletePracticeRecord, getUserProfile, getPracticeStatistics } from '../lib/database'
-import { uploadPhoto, validatePhotoFile } from '../lib/storage'
+import { useLocalStorage, useInterval } from 'react-use'
+import { usePracticeData, PracticeRecord, PracticeOption, UserProfile } from '@/hooks/usePracticeData'
+import { trackEvent } from '@/lib/analytics'
+import { toast } from 'sonner'
+import { FakeDoorModal } from '@/components/FakeDoorModal'
 
-// Type definitions
-interface PracticeOption {
-  id: string
-  label: string
-  labelZh: string
-  notes?: string
-  isCustom?: boolean
-}
-
-interface PracticeRecord {
-  id: number
-  date: string
-  type: string
-  duration: number
-  notes: string
-  photos: string[]
-  breakthrough?: string // Optional breakthrough/unlock title (max 20 chars)
-}
-
-interface UserProfile {
-  name: string
-  signature: string
-  avatar: string | null
-  phone?: string
-  email?: string
-  isPro?: boolean
-}
-
-// Default practice options - replaced 月亮日 with 简单练习
-const defaultPracticeOptions: PracticeOption[] = [
-  { id: "primary-mysore", label: "Primary Mysore", labelZh: "一序列Mysore", notes: "自主练习" },
-  { id: "primary-led", label: "Primary Led", labelZh: "一序列口令课", notes: "跟随口令" },
-  { id: "intermediate-mysore", label: "Intermediate Mysore", labelZh: "二序列Mysore", notes: "进阶练习" },
-  { id: "intermediate-led", label: "Intermediate Led", labelZh: "二序列口令课", notes: "进阶口令" },
-  { id: "simple-practice", label: "Simple Practice", labelZh: "简单练习", notes: "轻柔练习" },
-]
-
-// Mock practice data for Journal and Stats - with placeholder photo colors
-const mockPracticeHistory: PracticeRecord[] = [
-  { id: 1, date: "2026-01-18", type: "Primary Mysore", duration: 5400, notes: "感觉身体很轻盈，呼吸很顺畅。今天的练习让我感受到了内在的平静。", photos: ["#2D5A27", "#E8D5B7", "#D1D5DB"], breakthrough: "马里奇D终于扣上了" },
-  { id: 2, date: "2026-01-17", type: "Primary Led", duration: 4800, notes: "跟着口令练习，专注力很好。", photos: ["#2D5A27"] },
-  { id: 3, date: "2026-01-15", type: "Primary Mysore", duration: 5100, notes: "早晨5点起床练习，身体有些僵硬但逐渐打开。", photos: [], breakthrough: "头倒立稳定5分钟" },
-  { id: 4, date: "2026-01-14", type: "简单练习", duration: 1800, notes: "轻柔地伸展。", photos: ["#E8D5B7", "#D1D5DB"] },
-  { id: 5, date: "2026-01-12", type: "Intermediate Mysore", duration: 6000, notes: "尝试了一些二序列的体式，很有挑战性。", photos: [], breakthrough: "Pasasana双侧完成" },
-  { id: 6, date: "2026-01-10", type: "Primary Mysore", duration: 5400, notes: "稳定的练习日。", photos: ["#2D5A27", "#E8D5B7"] },
-  { id: 7, date: "2026-01-08", type: "Primary Led", duration: 4500, notes: "呼吸节奏很好。", photos: [] },
-  { id: 8, date: "2026-01-05", type: "Primary Mysore", duration: 5700, notes: "深度练习，感受到了身心的连接。", photos: ["#D1D5DB"] },
-  { id: 9, date: "2026-01-03", type: "简单练习", duration: 1200, notes: "休息日简单活动", photos: [] },
-  { id: 10, date: "2025-12-28", type: "Primary Mysore", duration: 5200, notes: "年末练习。", photos: [] },
-  { id: 11, date: "2025-12-25", type: "Primary Led", duration: 4600, notes: "圣诞节特别课程。", photos: [] },
-  { id: 12, date: "2025-12-20", type: "Intermediate Mysore", duration: 5800, notes: "冬至前的深度练习。", photos: [] },
-]
-
-// Format minutes for timer display (e.g., "15 min")
+// Helper functions
 function formatMinutes(seconds: number): string {
   const minutes = Math.floor(seconds / 60)
   return `${minutes}`
+}
+
+function formatSeconds(seconds: number): string {
+  const remainingSeconds = seconds % 60
+  return `${remainingSeconds.toString().padStart(2, '0')}`
 }
 
 function formatDuration(seconds: number): string {
@@ -481,23 +436,17 @@ function EditRecordModal({
   isOpen: boolean
   onClose: () => void
   record: PracticeRecord | null
-  onSave: (id: number, notes: string, photos: string[], breakthrough?: string) => void
-  onDelete: (id: number) => void
+  onSave: (id: string, notes: string, photos: string[], breakthrough?: string) => void
+  onDelete: (id: string) => void
 }) {
   const [notes, setNotes] = useState("")
-  const [photos, setPhotos] = useState<string[]>([])
   const [breakthroughEnabled, setBreakthroughEnabled] = useState(false)
   const [breakthroughText, setBreakthroughText] = useState("")
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-  const [uploading, setUploading] = useState(false)
-  const [uploadError, setUploadError] = useState<string | null>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (record) {
       setNotes(record.notes)
-      // 过滤掉blob URL，只保留Supabase URL
-      setPhotos(record.photos.filter(photo => !photo.startsWith('blob:')))
       setBreakthroughEnabled(!!record.breakthrough)
       setBreakthroughText(record.breakthrough || "")
     }
@@ -505,7 +454,7 @@ function EditRecordModal({
 
   const handleSave = () => {
     if (record) {
-      onSave(record.id, notes, photos, breakthroughEnabled ? breakthroughText : undefined)
+      onSave(record.id, notes, [], breakthroughEnabled ? breakthroughText : undefined)
       onClose()
     }
   }
@@ -520,71 +469,6 @@ function EditRecordModal({
       setShowDeleteConfirm(false)
       onClose()
     }
-  }
-
-  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files
-    if (!files || photos.length >= 3) return
-
-    const filesArray = Array.from(files).slice(0, 3 - photos.length)
-    console.log('[EditRecordModal] 📸 开始上传照片...', filesArray.map(f => ({ name: f.name, size: (f.size / 1024 / 1024).toFixed(2) + 'MB' })))
-
-    // 验证所有文件
-    const validationResults = filesArray.map(file => validatePhotoFile(file))
-    const firstError = validationResults.find(r => !r.valid)
-
-    if (firstError) {
-      console.error('[EditRecordModal] ❌ 文件验证失败:', firstError.error)
-      setUploadError(firstError.error || '文件验证失败')
-      setTimeout(() => setUploadError(null), 3000)
-      return
-    }
-
-    setUploading(true)
-    setUploadError(null)
-
-    try {
-      // 生成文件夹路径（年-月/年-月-日格式）
-      const now = new Date()
-      const year = now.getFullYear()
-      const month = String(now.getMonth() + 1).padStart(2, '0')
-      const day = String(now.getDate()).padStart(2, '0')
-      const folderPath = `${year}-${month}/${year}-${month}-${day}`
-
-      console.log('[EditRecordModal] 📁 目标路径:', folderPath)
-
-      // 上传所有文件
-      const uploadPromises = filesArray.map(file => uploadPhoto(file, folderPath))
-      const results = await Promise.all(uploadPromises)
-
-      console.log('[EditRecordModal] ✅ 上传结果:', results)
-
-      // 过滤掉上传失败的，只保留成功的URL
-      const successfulUrls = results.filter(r => r !== null).map(r => r!.url)
-
-      if (successfulUrls.length > 0) {
-        console.log('[EditRecordModal] 🎉 成功上传', successfulUrls.length, '张照片')
-        setPhotos([...photos, ...successfulUrls])
-      } else {
-        console.error('[EditRecordModal] ❌ 所有照片上传失败')
-        setUploadError('上传失败，请重试')
-        setTimeout(() => setUploadError(null), 3000)
-      }
-    } catch (error) {
-      console.error('[EditRecordModal] ❌ 上传异常:', error)
-      setUploadError('上传失败，请检查网络连接')
-      setTimeout(() => setUploadError(null), 3000)
-    } finally {
-      setUploading(false)
-      console.log('[EditRecordModal] ✓ 上传流程结束')
-      if (fileInputRef.current) {
-        fileInputRef.current.value = ''
-      }
-    }
-  }
-
-  const removePhoto = (index: number) => {
-    setPhotos(photos.filter((_, i) => i !== index))
   }
 
   return (
@@ -644,49 +528,50 @@ function EditRecordModal({
                     <div className="px-4 py-3 rounded-2xl bg-secondary text-foreground font-serif">{record.type}</div>
                   </div>
                 </div>
-                <div>
-                  <label className="block text-xs font-serif text-muted-foreground mb-1.5">时长</label>
-                  <div className="px-4 py-3 rounded-2xl bg-secondary text-foreground font-serif">{formatDuration(record.duration)}</div>
+                
+                {/* Duration & Breakthrough Toggle */}
+                <div className="flex items-center gap-4">
+                  <div className="flex-1">
+                    <label className="block text-xs font-serif text-muted-foreground mb-1.5">时长</label>
+                    <div className="px-4 py-3 rounded-2xl bg-secondary text-foreground font-serif">{formatDuration(record.duration)}</div>
+                  </div>
+                  <div className="pt-5">
+                    <button
+                      type="button"
+                      onClick={() => setBreakthroughEnabled(!breakthroughEnabled)}
+                      className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full font-serif text-xs transition-all ${
+                        breakthroughEnabled
+                          ? 'bg-gradient-to-r from-[#e67e22] to-[#f39c12] text-white shadow-[0_4px_15px_rgba(230,126,34,0.3)]'
+                          : 'bg-secondary text-muted-foreground hover:bg-secondary/80'
+                      }`}
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      解锁/突破
+                    </button>
+                  </div>
                 </div>
-
-                {/* Breakthrough Toggle */}
-                <div>
-                  <button
-                    type="button"
-                    onClick={() => setBreakthroughEnabled(!breakthroughEnabled)}
-                    className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full font-serif text-sm transition-all ${
-                      breakthroughEnabled
-                        ? 'bg-gradient-to-r from-[#e67e22] to-[#f39c12] text-white shadow-[0_4px_15px_rgba(230,126,34,0.3)]'
-                        : 'bg-secondary text-muted-foreground hover:bg-secondary/80'
-                    }`}
-                  >
-                    <Sparkles className="w-4 h-4" />
-                    解锁/突破
-                  </button>
-                  
-                  <AnimatePresence>
-                    {breakthroughEnabled && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.2 }}
-                        className="overflow-hidden"
-                      >
-                        <div className="mt-3">
-                          <input
-                            type="text"
-                            value={breakthroughText}
-                            onChange={(e) => setBreakthroughText(e.target.value.slice(0, 20))}
-                            placeholder="记录这天的成就"
-                            className="w-full px-4 py-3 rounded-2xl bg-[#fef3e2] border border-[#e67e22]/30 text-foreground placeholder:text-[#e67e22]/50 focus:outline-none focus:ring-2 focus:ring-[#e67e22]/30 transition-all font-serif"
-                          />
-                          <div className="text-right text-xs text-[#e67e22]/70 mt-1">{breakthroughText.length}/20</div>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
+                
+                <AnimatePresence>
+                  {breakthroughEnabled && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="mt-1">
+                        <input
+                          type="text"
+                          value={breakthroughText}
+                          onChange={(e) => setBreakthroughText(e.target.value.slice(0, 20))}
+                          placeholder="记录这天的成就"
+                          className="w-full px-4 py-3 rounded-2xl bg-[#fef3e2] border border-[#e67e22]/30 text-foreground placeholder:text-[#e67e22]/50 focus:outline-none focus:ring-2 focus:ring-[#e67e22]/30 transition-all font-serif text-sm"
+                        />
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
                 {/* Editable notes */}
                 <div>
@@ -698,84 +583,8 @@ function EditRecordModal({
                     onChange={(e) => setNotes(e.target.value.slice(0, 2000))}
                     placeholder="今天的练习感受如何？"
                     rows={4}
-                    className="w-full px-4 py-3 rounded-2xl bg-secondary text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-none font-serif"
+                    className="w-full px-4 py-3 rounded-2xl bg-secondary text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-none font-serif text-sm"
                   />
-                  <div className="text-right text-xs text-muted-foreground mt-1">{notes.length}/2000</div>
-                </div>
-
-                {/* Photos */}
-                <div>
-                  <label className="block text-xs font-serif text-muted-foreground mb-1.5">照片（最多3张）</label>
-                  <div className="flex gap-3">
-                    {photos.map((photo, index) => (
-                      <div key={index} className="relative w-20 h-20 rounded-2xl overflow-hidden">
-                        <img
-                          src={photo || "/placeholder.svg"}
-                          alt={`照片 ${index + 1}`}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            console.error('Failed to load photo:', photo)
-                            e.currentTarget.style.display = 'none'
-                          }}
-                        />
-                        <button
-                          onClick={() => removePhoto(index)}
-                          className="absolute top-1 right-1 w-5 h-5 bg-black/50 rounded-full flex items-center justify-center"
-                        >
-                          <X className="w-3 h-3 text-white" />
-                        </button>
-                      </div>
-                    ))}
-                    {photos.length < 3 && (
-                      <button
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={uploading}
-                        className={`w-20 h-20 rounded-2xl border-2 border-dashed flex items-center justify-center transition-colors ${
-                          uploading
-                            ? 'bg-muted/50 border-muted-foreground/20 cursor-not-allowed'
-                            : 'bg-secondary border-muted-foreground/30 text-muted-foreground hover:border-muted-foreground/50'
-                        }`}
-                      >
-                        {uploading ? (
-                          <div className="w-6 h-6 border-2 border-muted-foreground/30 border-t-muted-foreground rounded-full animate-spin" />
-                        ) : (
-                          <Camera className="w-6 h-6" />
-                        )}
-                      </button>
-                    )}
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      className="hidden"
-                      onChange={handlePhotoUpload}
-                      disabled={uploading}
-                    />
-                  </div>
-                  {/* 上传状态提示 */}
-                  <AnimatePresence>
-                    {uploading && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="mt-2 text-xs text-muted-foreground"
-                      >
-                        正在上传照片...
-                      </motion.div>
-                    )}
-                    {uploadError && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="mt-2 text-xs text-red-500"
-                      >
-                        {uploadError}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
                 </div>
 
                 <button
@@ -830,10 +639,6 @@ function ShareCardModal({
 
   if (!record) return null
 
-  // 过滤掉blob URL，只保留Supabase URL
-  const validPhotos = record.photos.filter(photo => !photo.startsWith('blob:'))
-  const hasPhoto = validPhotos.length > 0
-  const heroPhotoUrl = hasPhoto ? validPhotos[0] : null
   const formattedDate = new Date(record.date).toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '.')
   const durationMinutes = Math.floor(record.duration / 60)
 
@@ -879,30 +684,15 @@ function ShareCardModal({
                 )}
               </div>
 
-              {/* Hero Image - Only first photo, centered, flexible aspect ratio */}
-              {heroPhotoUrl && (
-                <div className="px-5 pt-4">
-                  <img
-                    src={heroPhotoUrl}
-                    alt="练习照片"
-                    className="w-full aspect-[4/3] rounded-2xl object-cover"
-                    onError={(e) => {
-                      console.error('Failed to load hero photo:', heroPhotoUrl)
-                      e.currentTarget.style.display = 'none'
-                    }}
-                  />
-                </div>
-              )}
-
               {/* Reflection Text - Editable Notes with elegant serif font */}
-              <div className="px-5 py-4">
+              <div className="px-5 py-6">
                 {isEditingNotes ? (
                   <textarea
                     value={editableNotes}
                     onChange={(e) => setEditableNotes(e.target.value)}
                     onBlur={() => setIsEditingNotes(false)}
                     autoFocus
-                    rows={3}
+                    rows={4}
                     className="w-full text-sm text-foreground font-serif leading-relaxed bg-transparent focus:outline-none resize-none"
                   />
                 ) : (
@@ -1062,24 +852,20 @@ function AddRecordModal({
 }: {
   isOpen: boolean
   onClose: () => void
-  onSave: (record: Omit<PracticeRecord, 'id'>) => void
+  onSave: (record: Omit<PracticeRecord, 'id' | 'created_at' | 'photos'>) => void
   practiceOptions: PracticeOption[]
 }) {
   const [date, setDate] = useState(() => new Date().toISOString().split('T')[0])
   const [type, setType] = useState("")
   const [duration, setDuration] = useState(60)
   const [notes, setNotes] = useState("")
-  const [photos, setPhotos] = useState<string[]>([])
   const [breakthroughEnabled, setBreakthroughEnabled] = useState(false)
   const [breakthroughText, setBreakthroughText] = useState("")
-  const [uploading, setUploading] = useState(false)
-  const [uploadError, setUploadError] = useState<string | null>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const typeOptions = useMemo(() => {
     return practiceOptions
       .filter(o => o.id !== "custom")
-      .map(o => ({ value: o.labelZh, label: o.labelZh }))
+      .map(o => ({ value: o.labelZh || o.label, label: o.labelZh || o.label }))
   }, [practiceOptions])
 
   const handleSave = () => {
@@ -1088,8 +874,7 @@ function AddRecordModal({
         date,
         type,
         duration: duration * 60, // Convert to seconds
-        notes,
-        photos,
+        notes: notes || "今日练习完成",
         breakthrough: breakthroughEnabled ? breakthroughText : undefined,
       })
       // Reset form
@@ -1097,76 +882,10 @@ function AddRecordModal({
       setType("")
       setDuration(60)
       setNotes("")
-      setPhotos([])
       setBreakthroughEnabled(false)
       setBreakthroughText("")
       onClose()
     }
-  }
-
-  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files
-    if (!files || photos.length >= 3) return
-
-    const filesArray = Array.from(files).slice(0, 3 - photos.length)
-    console.log('[AddRecordModal] 📸 开始上传照片...', filesArray.map(f => ({ name: f.name, size: (f.size / 1024 / 1024).toFixed(2) + 'MB' })))
-
-    // 验证所有文件
-    const validationResults = filesArray.map(file => validatePhotoFile(file))
-    const firstError = validationResults.find(r => !r.valid)
-
-    if (firstError) {
-      console.error('[AddRecordModal] ❌ 文件验证失败:', firstError.error)
-      setUploadError(firstError.error || '文件验证失败')
-      setTimeout(() => setUploadError(null), 3000)
-      return
-    }
-
-    setUploading(true)
-    setUploadError(null)
-
-    try {
-      // 生成文件夹路径（年-月/年-月-日格式）
-      const now = new Date()
-      const year = now.getFullYear()
-      const month = String(now.getMonth() + 1).padStart(2, '0')
-      const day = String(now.getDate()).padStart(2, '0')
-      const folderPath = `${year}-${month}/${year}-${month}-${day}`
-
-      console.log('[AddRecordModal] 📁 目标路径:', folderPath)
-
-      // 上传所有文件
-      const uploadPromises = filesArray.map(file => uploadPhoto(file, folderPath))
-      const results = await Promise.all(uploadPromises)
-
-      console.log('[AddRecordModal] ✅ 上传结果:', results)
-
-      // 过滤掉上传失败的，只保留成功的URL
-      const successfulUrls = results.filter(r => r !== null).map(r => r!.url)
-
-      if (successfulUrls.length > 0) {
-        console.log('[AddRecordModal] 🎉 成功上传', successfulUrls.length, '张照片')
-        setPhotos([...photos, ...successfulUrls])
-      } else {
-        console.error('[AddRecordModal] ❌ 所有照片上传失败')
-        setUploadError('上传失败，请重试')
-        setTimeout(() => setUploadError(null), 3000)
-      }
-    } catch (error) {
-      console.error('[AddRecordModal] ❌ 上传异常:', error)
-      setUploadError('上传失败，请检查网络连接')
-      setTimeout(() => setUploadError(null), 3000)
-    } finally {
-      setUploading(false)
-      console.log('[AddRecordModal] ✓ 上传流程结束')
-      if (fileInputRef.current) {
-        fileInputRef.current.value = ''
-      }
-    }
-  }
-
-  const removePhoto = (index: number) => {
-    setPhotos(photos.filter((_, i) => i !== index))
   }
 
   return (
@@ -1177,7 +896,7 @@ function AddRecordModal({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/30 z-40"
+            className="fixed inset-0 bg-black/30 z-[60]"
             onClick={onClose}
           />
           <motion.div
@@ -1185,179 +904,107 @@ function AddRecordModal({
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 bg-card rounded-t-[24px] z-50 p-6 pb-10 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] max-h-[85vh] overflow-y-auto"
+            className="fixed bottom-0 left-0 right-0 bg-card rounded-t-[24px] z-[70] p-6 pb-10 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] max-h-[90vh] overflow-y-auto"
           >
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-serif text-foreground">补录练习</h2>
+              <h2 className="text-lg font-serif text-foreground font-semibold">补录练习</h2>
               <button onClick={onClose} className="p-2 -mr-2 text-muted-foreground hover:text-foreground transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="space-y-4">
-              {/* Custom Zen Date picker */}
-              <div>
-                <label className="block text-xs font-serif text-muted-foreground mb-1.5">练习日期</label>
-                <ZenDatePicker
-                  value={date}
-                  onChange={setDate}
-                  maxDate={new Date().toISOString().split('T')[0]}
-                />
+            <div className="space-y-6">
+              {/* Date & Type */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-serif text-muted-foreground mb-2">日期</label>
+                  <ZenDatePicker value={date} onChange={setDate} maxDate={new Date().toISOString().split('T')[0]} />
+                </div>
+                <div>
+                  <label className="block text-xs font-serif text-muted-foreground mb-2">练习类型</label>
+                  <select
+                    value={type}
+                    onChange={(e) => setType(e.target.value)}
+                    className="w-full px-4 py-3 rounded-2xl bg-secondary text-foreground font-serif focus:outline-none focus:ring-2 focus:ring-primary/20 appearance-none transition-all"
+                  >
+                    <option value="" disabled>选择类型</option>
+                    {typeOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
-              {/* Practice type - Custom Select Component */}
-              <div>
-                <label className="block text-xs font-serif text-muted-foreground mb-1.5">练习类型</label>
-                <ZenSelect
-                  value={type}
-                  onChange={setType}
-                  options={typeOptions}
-                  placeholder="选择类型"
-                />
+              {/* Duration & Breakthrough Toggle */}
+              <div className="flex items-end gap-4">
+                <div className="flex-1">
+                  <label className="block text-xs font-serif text-muted-foreground mb-2">练习时长 (分钟)</label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      value={duration}
+                      onChange={(e) => setDuration(Number(e.target.value))}
+                      className="w-full px-4 py-3 rounded-2xl bg-secondary text-foreground font-serif focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 pb-3 px-2">
+                  <button
+                    onClick={() => setBreakthroughEnabled(!breakthroughEnabled)}
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-full border transition-all ${
+                      breakthroughEnabled 
+                        ? 'bg-orange-50 border-orange-200 text-orange-600 shadow-sm' 
+                        : 'bg-secondary border-transparent text-muted-foreground'
+                    }`}
+                  >
+                    <Sparkles className={`w-4 h-4 ${breakthroughEnabled ? 'text-orange-500' : 'text-muted-foreground'}`} />
+                    <span className="text-sm font-serif">解锁突破</span>
+                  </button>
+                </div>
               </div>
 
-              {/* Duration - Clean input without spinners */}
-              <div>
-                <label className="block text-xs font-serif text-muted-foreground mb-1.5">练习时长（分钟）</label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  value={duration}
-                  onChange={(e) => {
-                    const val = e.target.value.replace(/\D/g, '')
-                    setDuration(Math.min(300, parseInt(val) || 0))
-                  }}
-                  className="w-full px-4 py-3 rounded-2xl bg-secondary text-foreground text-center focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-serif"
-                />
-              </div>
-
-              {/* Breakthrough Toggle */}
-              <div>
-                <button
-                  type="button"
-                  onClick={() => setBreakthroughEnabled(!breakthroughEnabled)}
-                  className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full font-serif text-sm transition-all ${
-                    breakthroughEnabled
-                      ? 'bg-gradient-to-r from-[#e67e22] to-[#f39c12] text-white shadow-[0_4px_15px_rgba(230,126,34,0.3)]'
-                      : 'bg-secondary text-muted-foreground hover:bg-secondary/80'
-                  }`}
-                >
-                  <Sparkles className="w-4 h-4" />
-                  解锁/突破
-                </button>
-                
-                <AnimatePresence>
-                  {breakthroughEnabled && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.2 }}
-                      className="overflow-hidden"
-                    >
-                      <div className="mt-3">
-                        <input
-                          type="text"
-                          value={breakthroughText}
-                          onChange={(e) => setBreakthroughText(e.target.value.slice(0, 20))}
-                          placeholder="记录这天的成就"
-                          className="w-full px-4 py-3 rounded-2xl bg-[#fef3e2] border border-[#e67e22]/30 text-foreground placeholder:text-[#e67e22]/50 focus:outline-none focus:ring-2 focus:ring-[#e67e22]/30 transition-all font-serif"
-                        />
-                        <div className="text-right text-xs text-[#e67e22]/70 mt-1">{breakthroughText.length}/20</div>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
+              {/* Breakthrough Input - Expandable */}
+              <AnimatePresence>
+                {breakthroughEnabled && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="pt-2">
+                      <label className="block text-xs font-serif text-muted-foreground mb-2">突破内容</label>
+                      <input
+                        type="text"
+                        value={breakthroughText}
+                        onChange={(e) => setBreakthroughText(e.target.value)}
+                        placeholder="记录今天的里程碑..."
+                        maxLength={20}
+                        className="w-full px-4 py-3 rounded-2xl bg-secondary text-foreground font-serif focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all border-orange-100 border text-sm"
+                      />
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* Notes */}
               <div>
-                <label className="block text-xs font-serif text-muted-foreground mb-1.5">
-                  笔记 <span className="text-muted-foreground/60">（可选）</span>
-                </label>
+                <label className="block text-xs font-serif text-muted-foreground mb-2">练习心得</label>
                 <textarea
                   value={notes}
-                  onChange={(e) => setNotes(e.target.value.slice(0, 2000))}
-                  placeholder="今天的练习感受如何？"
-                  rows={3}
-                  className="w-full px-4 py-3 rounded-2xl bg-secondary text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-none font-serif"
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="记录呼吸、体感和觉察..."
+                  rows={4}
+                  className="w-full px-4 py-3 rounded-2xl bg-secondary text-foreground font-serif focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-none text-sm"
                 />
-              </div>
-
-              {/* Photos */}
-              <div>
-                <label className="block text-xs font-serif text-muted-foreground mb-1.5">照片（最多3张）</label>
-                <div className="flex gap-3">
-                  {photos.map((photo, index) => (
-                    <div key={index} className="relative w-20 h-20 rounded-2xl overflow-hidden">
-                      <img src={photo || "/placeholder.svg"} alt={`照片 ${index + 1}`} className="w-full h-full object-cover" />
-                      <button
-                        onClick={() => removePhoto(index)}
-                        className="absolute top-1 right-1 w-5 h-5 bg-black/50 rounded-full flex items-center justify-center"
-                      >
-                        <X className="w-3 h-3 text-white" />
-                      </button>
-                    </div>
-                  ))}
-                  {photos.length < 3 && (
-                    <button
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={uploading}
-                      className={`w-20 h-20 rounded-2xl border-2 border-dashed flex items-center justify-center transition-colors ${
-                        uploading
-                          ? 'bg-muted/50 border-muted-foreground/20 cursor-not-allowed'
-                          : 'bg-secondary border-muted-foreground/30 text-muted-foreground hover:border-muted-foreground/50'
-                      }`}
-                    >
-                      {uploading ? (
-                        <div className="w-6 h-6 border-2 border-muted-foreground/30 border-t-muted-foreground rounded-full animate-spin" />
-                      ) : (
-                        <Camera className="w-6 h-6" />
-                      )}
-                    </button>
-                  )}
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    className="hidden"
-                    onChange={handlePhotoUpload}
-                    disabled={uploading}
-                  />
-                </div>
-                {/* 上传状态提示 */}
-                <AnimatePresence>
-                  {uploading && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="mt-2 text-xs text-muted-foreground"
-                    >
-                      正在上传照片...
-                    </motion.div>
-                  )}
-                  {uploadError && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="mt-2 text-xs text-red-500"
-                    >
-                      {uploadError}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
               </div>
 
               <button
                 onClick={handleSave}
                 disabled={!date || !type}
-                className="w-full py-4 rounded-full bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white font-serif transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.98]"
+                className="w-full py-4 rounded-full bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white font-serif transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-50"
               >
-                保存记录
+                保存补录
               </button>
             </div>
           </motion.div>
@@ -1373,33 +1020,37 @@ function SettingsModal({
   onClose,
   profile,
   onSave,
+  onExport,
+  onImport,
 }: {
   isOpen: boolean
   onClose: () => void
   profile: UserProfile
   onSave: (profile: UserProfile) => void
+  onExport: () => void
+  onImport: (json: string) => void
 }) {
   const [name, setName] = useState(profile.name)
   const [signature, setSignature] = useState(profile.signature)
   const [avatar, setAvatar] = useState<string | null>(profile.avatar)
-  const [phone, setPhone] = useState(profile.phone || "")
-  const [email, setEmail] = useState(profile.email || "")
-  const [activeSection, setActiveSection] = useState<'profile' | 'account' | 'data'>('profile')
+  const [activeSection, setActiveSection] = useState<'profile' | 'data'>('profile')
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const importFileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     setName(profile.name)
     setSignature(profile.signature)
     setAvatar(profile.avatar)
-    setPhone(profile.phone || "")
-    setEmail(profile.email || "")
   }, [profile])
 
   const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      const url = URL.createObjectURL(file)
-      setAvatar(url)
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setAvatar(reader.result as string)
+      }
+      reader.readAsDataURL(file)
     }
   }
 
@@ -1408,9 +1059,22 @@ function SettingsModal({
     onClose()
   }
 
-  const handleExport = () => {
-    // Simulate export
-    alert("数据导出功能开发中...")
+  const handleImportClick = () => {
+    importFileInputRef.current?.click()
+  }
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        const content = event.target?.result as string
+        onImport(content)
+      }
+      reader.readAsText(file)
+    }
+    // Reset input
+    if (e.target) e.target.value = ""
   }
 
   return (
@@ -1448,17 +1112,7 @@ function SettingsModal({
                     : 'bg-secondary text-foreground'
                 }`}
               >
-                编辑资料
-              </button>
-              <button
-                onClick={() => setActiveSection('account')}
-                className={`flex-1 py-2 rounded-full text-sm font-serif transition-all ${
-                  activeSection === 'account' 
-                    ? 'bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white' 
-                    : 'bg-secondary text-foreground'
-                }`}
-              >
-                账号绑定
+                个人资料
               </button>
               <button
                 onClick={() => setActiveSection('data')}
@@ -1472,175 +1126,118 @@ function SettingsModal({
               </button>
             </div>
 
-            {/* Profile Section */}
-            {activeSection === 'profile' && (
-              <div className="space-y-6">
-                {/* Avatar */}
-                <div className="flex flex-col items-center">
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="relative w-20 h-20 rounded-full overflow-hidden bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] flex items-center justify-center"
-                  >
-                    {avatar ? (
-                      <img src={avatar || "/placeholder.svg"} alt="头像" className="w-full h-full object-cover" />
-                    ) : (
-                      <User className="w-10 h-10 text-white" />
-                    )}
-                    <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                      <Camera className="w-6 h-6 text-white" />
+            <div className="space-y-6">
+              {activeSection === 'profile' && (
+                <>
+                  {/* Avatar Upload */}
+                  <div className="flex flex-col items-center mb-6">
+                    <div className="relative group">
+                      <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-primary/20 bg-secondary">
+                        {avatar ? (
+                          <img src={avatar} alt="Avatar" className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                            <User className="w-10 h-10" />
+                          </div>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => fileInputRef.current?.click()}
+                        className="absolute bottom-0 right-0 p-2 bg-primary text-white rounded-full shadow-lg hover:scale-110 transition-transform"
+                      >
+                        <Camera className="w-4 h-4" />
+                      </button>
                     </div>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleAvatarUpload}
+                    />
+                  </div>
+
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-xs font-serif text-muted-foreground mb-1.5">昵称</label>
+                      <input
+                        type="text"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        className="w-full px-4 py-3 rounded-2xl bg-secondary text-foreground font-serif focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-serif text-muted-foreground mb-1.5">个人签名</label>
+                      <input
+                        type="text"
+                        value={signature}
+                        onChange={(e) => setSignature(e.target.value)}
+                        className="w-full px-4 py-3 rounded-2xl bg-secondary text-foreground font-serif focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {activeSection === 'data' && (
+                <div className="space-y-4">
+                  <div className="p-4 rounded-2xl bg-orange-50 border border-orange-100 mb-2">
+                    <p className="text-xs text-orange-600 font-serif leading-relaxed">
+                      ⚠️ MVP 阶段所有数据均存储在浏览器本地。为了防止数据丢失（如清除缓存），请定期使用导出功能备份您的数据。
+                    </p>
+                  </div>
+                  
+                  <button
+                    onClick={onExport}
+                    className="w-full flex items-center justify-between p-4 rounded-2xl bg-secondary hover:bg-secondary/80 transition-all group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-xl bg-blue-50 text-blue-500">
+                        <Download className="w-5 h-5" />
+                      </div>
+                      <div className="text-left">
+                        <div className="text-sm font-serif text-foreground">导出所有数据</div>
+                        <div className="text-[10px] text-muted-foreground font-serif">下载备份 JSON 文件</div>
+                      </div>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
                   </button>
-                  <span className="text-xs text-muted-foreground font-serif mt-2">点击更换头像</span>
+
+                  <button
+                    onClick={handleImportClick}
+                    className="w-full flex items-center justify-between p-4 rounded-2xl bg-secondary hover:bg-secondary/80 transition-all group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-xl bg-purple-50 text-purple-500">
+                        <Upload className="w-5 h-5" />
+                      </div>
+                      <div className="text-left">
+                        <div className="text-sm font-serif text-foreground">导入备份数据</div>
+                        <div className="text-[10px] text-muted-foreground font-serif">从 JSON 文件恢复数据</div>
+                      </div>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+                  </button>
                   <input
-                    ref={fileInputRef}
+                    ref={importFileInputRef}
                     type="file"
-                    accept="image/*"
+                    accept=".json"
                     className="hidden"
-                    onChange={handleAvatarUpload}
+                    onChange={handleFileChange}
                   />
                 </div>
+              )}
 
-                {/* Name */}
-                <div>
-                  <label className="block text-sm font-serif text-foreground mb-2">昵称</label>
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="输入昵称..."
-                    className="w-full px-4 py-3 rounded-2xl bg-secondary text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-serif"
-                  />
-                </div>
-
-                {/* Signature */}
-                <div>
-                  <label className="block text-sm font-serif text-foreground mb-2">个性签名</label>
-                  <input
-                    type="text"
-                    value={signature}
-                    onChange={(e) => setSignature(e.target.value)}
-                    placeholder="例如：练习阿斯汤加 3 年"
-                    className="w-full px-4 py-3 rounded-2xl bg-secondary text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-serif"
-                  />
-                </div>
-
+              <div className="pt-4">
                 <button
                   onClick={handleSave}
-                  className="w-full py-4 rounded-full bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white font-serif transition-all hover:opacity-90 active:scale-[0.98]"
+                  className="w-full py-4 rounded-full bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] text-white font-serif shadow-lg hover:opacity-90 active:scale-[0.98] transition-all"
                 >
                   保存设置
                 </button>
               </div>
-            )}
-
-            {/* Account Binding Section */}
-            {activeSection === 'account' && (
-              <div className="space-y-4">
-                {/* Phone Binding */}
-                <div className="bg-secondary rounded-2xl p-4">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Phone className="w-5 h-5 text-primary" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="text-sm font-serif text-foreground">手机号绑定</div>
-                      <div className="text-xs text-muted-foreground font-serif">
-                        {phone ? `已绑定: ${phone}` : '未绑定'}
-                      </div>
-                    </div>
-                  </div>
-                  <input
-                    type="tel"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="输入手机号..."
-                    className="w-full px-4 py-3 rounded-xl bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-serif"
-                  />
-                </div>
-
-                {/* Email Binding */}
-                <div className="bg-secondary rounded-2xl p-4">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Mail className="w-5 h-5 text-primary" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="text-sm font-serif text-foreground">邮箱绑定</div>
-                      <div className="text-xs text-muted-foreground font-serif">
-                        {email ? `已绑定: ${email}` : '未绑定'}
-                      </div>
-                    </div>
-                  </div>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="输入邮箱..."
-                    className="w-full px-4 py-3 rounded-xl bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-serif"
-                  />
-                </div>
-
-                <button
-                  onClick={handleSave}
-                  className="w-full py-4 rounded-full bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white font-serif transition-all hover:opacity-90 active:scale-[0.98]"
-                >
-                  保存绑定
-                </button>
-              </div>
-            )}
-
-            {/* Data Management Section */}
-            {activeSection === 'data' && (
-              <div className="space-y-4">
-                {/* Export */}
-                <div className="bg-secondary rounded-2xl p-4">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] flex items-center justify-center">
-                      <Upload className="w-5 h-5 text-white" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="text-sm font-serif text-foreground">导出记录</div>
-                      <div className="text-xs text-muted-foreground font-serif">
-                        导出所有练习记录为文件
-                      </div>
-                    </div>
-                  </div>
-                  <button
-                    onClick={handleExport}
-                    className="w-full py-3 rounded-xl bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white font-serif transition-all hover:shadow-[0_4px_20px_rgba(45,90,39,0.35)] active:scale-[0.98] flex items-center justify-center gap-2"
-                  >
-                    <Upload className="w-4 h-4" />
-                    导出数据
-                  </button>
-                </div>
-
-                {/* Import */}
-                <div className="bg-secondary rounded-2xl p-4">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] flex items-center justify-center">
-                      <Download className="w-5 h-5 text-white" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="text-sm font-serif text-foreground">导入记录</div>
-                      <div className="text-xs text-muted-foreground font-serif">
-                        从文件恢复练习记录
-                      </div>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => alert('导入功能开发中...')}
-                    className="w-full py-3 rounded-xl bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white font-serif transition-all hover:shadow-[0_4px_20px_rgba(45,90,39,0.35)] active:scale-[0.98] flex items-center justify-center gap-2"
-                  >
-                    <Download className="w-4 h-4" />
-                    导入数据
-                  </button>
-                </div>
-
-                <p className="text-xs text-muted-foreground font-serif text-center px-4">
-                  仅包含练习记录、文字和图片，不含统计数据
-                </p>
-              </div>
-            )}
+            </div>
           </motion.div>
         </>
       )}
@@ -1713,84 +1310,12 @@ function CompletionSheet({
   onSave: (notes: string, photos: string[], breakthrough?: string) => void
 }) {
   const [notes, setNotes] = useState("")
-  const [photos, setPhotos] = useState<string[]>([])
   const [breakthroughEnabled, setBreakthroughEnabled] = useState(false)
   const [breakthroughText, setBreakthroughText] = useState("")
-  const [uploading, setUploading] = useState(false)
-  const [uploadError, setUploadError] = useState<string | null>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
-
-  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files
-    if (!files || photos.length >= 3) return
-
-    const filesArray = Array.from(files).slice(0, 3 - photos.length)
-    console.log('📸 开始上传照片...', filesArray.map(f => ({ name: f.name, size: (f.size / 1024 / 1024).toFixed(2) + 'MB' })))
-
-    // 验证所有文件
-    const validationResults = filesArray.map(file => validatePhotoFile(file))
-    const firstError = validationResults.find(r => !r.valid)
-
-    if (firstError) {
-      console.error('❌ 文件验证失败:', firstError.error)
-      setUploadError(firstError.error || '文件验证失败')
-      // 3秒后自动清除错误提示
-      setTimeout(() => setUploadError(null), 3000)
-      return
-    }
-
-    setUploading(true)
-    setUploadError(null)
-
-    try {
-      // 生成文件夹路径（年-月/年-月-日格式）
-      const now = new Date()
-      const year = now.getFullYear()
-      const month = String(now.getMonth() + 1).padStart(2, '0')
-      const day = String(now.getDate()).padStart(2, '0')
-      const folderPath = `${year}-${month}/${year}-${month}-${day}`
-
-      console.log('📁 目标路径:', folderPath)
-
-      // 上传所有文件
-      const uploadPromises = filesArray.map(file => uploadPhoto(file, folderPath))
-      const results = await Promise.all(uploadPromises)
-
-      console.log('✅ 上传结果:', results)
-
-      // 过滤掉上传失败的，只保留成功的URL
-      const successfulUrls = results.filter(r => r !== null).map(r => r!.url)
-
-      if (successfulUrls.length > 0) {
-        console.log('🎉 成功上传', successfulUrls.length, '张照片')
-        setPhotos([...photos, ...successfulUrls])
-      } else {
-        console.error('❌ 所有照片上传失败')
-        setUploadError('上传失败，请重试')
-        setTimeout(() => setUploadError(null), 3000)
-      }
-    } catch (error) {
-      console.error('❌ 上传异常:', error)
-      setUploadError('上传失败，请检查网络连接')
-      setTimeout(() => setUploadError(null), 3000)
-    } finally {
-      setUploading(false)
-      console.log('✓ 上传流程结束')
-      // 清空文件输入，允许重复上传同一文件
-      if (fileInputRef.current) {
-        fileInputRef.current.value = ''
-      }
-    }
-  }
-
-  const removePhoto = (index: number) => {
-    setPhotos(photos.filter((_, i) => i !== index))
-  }
 
   const handleSave = () => {
-    onSave(notes, photos, breakthroughEnabled ? breakthroughText : undefined)
+    onSave(notes, [], breakthroughEnabled ? breakthroughText : undefined)
     setNotes("")
-    setPhotos([])
     setBreakthroughEnabled(false)
     setBreakthroughText("")
   }
@@ -1879,72 +1404,6 @@ function CompletionSheet({
                 <div className="text-right text-xs text-muted-foreground mt-1">{notes.length}/2000</div>
               </div>
 
-              <div>
-                <label className="block text-xs font-serif text-muted-foreground mb-1.5">上传照片（最多3张）</label>
-                <div className="flex gap-3">
-                  {photos.map((photo, index) => (
-                    <div key={index} className="relative w-20 h-20 rounded-2xl overflow-hidden">
-                      <img src={photo || "/placeholder.svg"} alt={`练习照片 ${index + 1}`} className="w-full h-full object-cover" />
-                      <button
-                        onClick={() => removePhoto(index)}
-                        className="absolute top-1 right-1 w-5 h-5 bg-black/50 rounded-full flex items-center justify-center"
-                      >
-                        <X className="w-3 h-3 text-white" />
-                      </button>
-                    </div>
-                  ))}
-                  {photos.length < 3 && (
-                    <button
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={uploading}
-                      className={`w-20 h-20 rounded-2xl border-2 border-dashed flex items-center justify-center transition-colors ${
-                        uploading
-                          ? 'bg-muted/50 border-muted-foreground/20 cursor-not-allowed'
-                          : 'bg-secondary border-muted-foreground/30 text-muted-foreground hover:border-muted-foreground/50'
-                      }`}
-                    >
-                      {uploading ? (
-                        <div className="w-6 h-6 border-2 border-muted-foreground/30 border-t-muted-foreground rounded-full animate-spin" />
-                      ) : (
-                        <Camera className="w-6 h-6" />
-                      )}
-                    </button>
-                  )}
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    className="hidden"
-                    onChange={handlePhotoUpload}
-                    disabled={uploading}
-                  />
-                </div>
-                {/* 上传状态提示 */}
-                <AnimatePresence>
-                  {uploading && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="mt-2 text-xs text-muted-foreground"
-                    >
-                      正在上传照片...
-                    </motion.div>
-                  )}
-                  {uploadError && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="mt-2 text-xs text-red-500"
-                    >
-                      {uploadError}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-
               <button
                 onClick={handleSave}
                 className="w-full py-4 rounded-full bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white font-serif transition-all hover:opacity-90 active:scale-[0.98]"
@@ -1960,53 +1419,19 @@ function CompletionSheet({
 }
 
 // Color Block Fullscreen Viewer (simulates photo viewer)
-function ColorBlockViewer({
-  isOpen,
-  color,
-  onClose,
-}: {
-  isOpen: boolean
-  color: string
-  onClose: () => void
-}) {
-  return (
-    <AnimatePresence>
-      {isOpen && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[80] flex items-center justify-center"
-          style={{ backgroundColor: color }}
-          onClick={onClose}
-        >
-          <button
-            onClick={onClose}
-            className="absolute top-4 right-4 p-2 text-white/80 hover:text-white transition-colors z-10 bg-black/20 rounded-full"
-          >
-            <X className="w-6 h-6" />
-          </button>
-          <p className="text-white/60 font-serif text-sm">点击任意位置关闭</p>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  )
-}
-
 // Monthly Heatmap for Journal - Now with CIRCLES instead of squares
 function MonthlyHeatmap({ 
   practiceHistory, 
   onDayClick,
-  isSynced,
-  onSync,
+  onOpenFakeDoor,
   onAddRecord
 }: { 
   practiceHistory: PracticeRecord[]
   onDayClick: (dateStr: string) => void
-  isSynced: boolean
-  onSync: () => void
+  onOpenFakeDoor: () => void
   onAddRecord: () => void
 }) {
+  const [votedCloud] = useLocalStorage('voted_cloud_sync', false)
   const today = new Date('2026-01-18')
   const [viewDate, setViewDate] = useState(today)
   
@@ -2070,7 +1495,7 @@ function MonthlyHeatmap({
       <div className="flex items-center justify-between px-4 py-3 border-b border-stone-100 bg-lime-50">
         {/* Left: Sync Status - aligned with calendar first column */}
         <div className="w-[calc((100%-12px)/7)] flex justify-center">
-          <SyncStatusIcon isSynced={isSynced} onSync={onSync} />
+          <SyncButton onOpenFakeDoor={onOpenFakeDoor} hasVoted={votedCloud || false} />
         </div>
         
         {/* Center: Month Navigation - takes remaining space */}
@@ -2139,36 +1564,34 @@ function MonthlyHeatmap({
 }
 
 // Sync Button - Cream cloud icon with colored status dot below
-function SyncButton({ isSynced, onSync }: { isSynced: boolean; onSync: () => void }) {
+function SyncButton({ onOpenFakeDoor, hasVoted }: { onOpenFakeDoor: () => void; hasVoted: boolean }) {
   const [isSpinning, setIsSpinning] = useState(false)
   
   const handleClick = () => {
     setIsSpinning(true)
-    onSync()
+    onOpenFakeDoor()
     setTimeout(() => setIsSpinning(false), 800)
   }
   
   return (
     <button
       onClick={handleClick}
-      className="relative w-8 h-8 rounded-full bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] backdrop-blur-md border border-white/20 shadow-[0_2px_8px_rgba(45,90,39,0.2)] flex items-center justify-center"
+      className={`relative w-8 h-8 rounded-full backdrop-blur-md border border-white/20 shadow-[0_2px_8px_rgba(45,90,39,0.2)] flex items-center justify-center transition-all ${
+        hasVoted 
+          ? 'bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)]' 
+          : 'bg-stone-400'
+      }`}
     >
-      {/* Cloud icon - cream colored, spins on click */}
       <motion.div
         animate={isSpinning ? { rotate: 360 } : { rotate: 0 }}
         transition={{ duration: 0.8, ease: "easeInOut" }}
       >
-        <Cloud className="w-4 h-4 text-[#FAF7F2]" />
+        <Cloud className={`w-4 h-4 ${hasVoted ? 'text-[#FAF7F2]' : 'text-stone-200'}`} />
       </motion.div>
-      {/* Status dot - small, inside button at bottom center */}
-      <div className={`absolute bottom-1 left-1/2 -translate-x-1/2 rounded-full w-1 h-1 ${isSynced ? 'bg-green-400' : 'bg-red-400'}`} />
+      {/* Status dot */}
+      <div className={`absolute bottom-1 left-1/2 -translate-x-1/2 rounded-full w-1 h-1 ${hasVoted ? 'bg-green-400' : 'bg-red-400'}`} />
     </button>
   )
-}
-
-// Legacy Sync Status Icon (kept for compatibility)
-function SyncStatusIcon({ isSynced, onSync }: { isSynced: boolean; onSync: () => void }) {
-  return <SyncButton isSynced={isSynced} onSync={onSync} />
 }
 
 // Journal Tab Component with Timeline - Split interaction zones
@@ -2179,17 +1602,16 @@ function JournalTab({
   onEditRecord,
   onDeleteRecord,
   onAddRecord,
+  onOpenFakeDoor,
 }: {
   practiceHistory: PracticeRecord[]
   practiceOptions: PracticeOption[]
   profile: UserProfile
-  onEditRecord: (id: number, notes: string, photos: string[], breakthrough?: string) => void
-  onDeleteRecord: (id: number) => void
-  onAddRecord: (record: Omit<PracticeRecord, 'id'>) => void
+  onEditRecord: (id: string, notes: string, photos: string[], breakthrough?: string) => void
+  onDeleteRecord: (id: string) => void
+  onAddRecord: (record: Omit<PracticeRecord, 'id' | 'created_at' | 'photos'>) => void
+  onOpenFakeDoor: () => void
 }) {
-  const [viewerOpen, setViewerOpen] = useState(false)
-  const [viewerColor, setViewerColor] = useState("")
-  const [isSynced, setIsSynced] = useState(true)
   const [editingRecord, setEditingRecord] = useState<PracticeRecord | null>(null)
   const [sharingRecord, setSharingRecord] = useState<PracticeRecord | null>(null)
   const [showAddModal, setShowAddModal] = useState(false)
@@ -2230,16 +1652,6 @@ function JournalTab({
     return Math.round(practiceHistory.reduce((acc, r) => acc + r.duration, 0) / 3600)
   }, [practiceHistory])
 
-  const openColorViewer = (color: string, e: React.MouseEvent) => {
-    e.stopPropagation()
-    setViewerColor(color)
-    setViewerOpen(true)
-  }
-
-  const handleSync = () => {
-    setIsSynced(!isSynced)
-  }
-
   const handleDayClick = (dateStr: string) => {
     const ref = recordRefs.current[dateStr]
     if (ref) {
@@ -2275,8 +1687,7 @@ function JournalTab({
         <MonthlyHeatmap 
           practiceHistory={practiceHistory} 
           onDayClick={handleDayClick}
-          isSynced={isSynced}
-          onSync={handleSync}
+          onOpenFakeDoor={onOpenFakeDoor}
           onAddRecord={() => setShowAddModal(true)}
         />
       </div>
@@ -2313,78 +1724,45 @@ function JournalTab({
               {/* Left Column: 3-line stack (Date, Duration, Type) - Right-aligned with breathing room */}
               <button
                 onClick={(e) => handleLeftClick(practice, e)}
-                className="w-[85px] flex-shrink-0 pr-4 pt-3 pb-3 text-right hover:bg-secondary/30 rounded-l-lg transition-colors"
+                className="w-[70px] flex-shrink-0 pr-3 pt-1 pb-1 text-right hover:bg-secondary/30 rounded-l-lg transition-colors"
                 style={{ borderRadius: '0.5rem 0 0 0.5rem' }}
               >
-                <div className="text-xl font-serif font-bold text-foreground leading-none">{formatDate(practice.date)}</div>
+                <div className="text-sm font-serif font-bold text-foreground leading-none">{formatDate(practice.date)}</div>
                 {practice.duration > 0 && (
-                  <div className="text-sm text-muted-foreground font-serif mt-1">{formatDuration(practice.duration)}</div>
+                  <div className="text-[10px] text-muted-foreground font-serif mt-1">{formatDuration(practice.duration)}</div>
                 )}
-                <div className="text-sm text-muted-foreground/70 font-serif mt-0.5">{practice.type}</div>
+                <div className="text-[10px] text-muted-foreground/70 font-serif mt-0.5">{practice.type}</div>
               </button>
               
               {/* Center: Vertical line with Dot - balanced whitespace on both sides */}
               <div className="w-[1px] bg-border flex-shrink-0 self-stretch relative">
-                <div className={`absolute mt-[16px] left-1/2 -translate-x-1/2 w-2.5 h-2.5 rounded-full ${practice.breakthrough ? 'bg-gradient-to-br from-[#e67e22] to-[#f39c12] shadow-[0_2px_8px_rgba(230,126,34,0.4)]' : 'bg-gradient-to-br from-[rgba(45,90,39,0.9)] to-[rgba(74,122,68,0.8)] shadow-[0_2px_8px_rgba(45,90,39,0.4)]'}`} />
+                <div className={`absolute mt-[12px] left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full ${practice.breakthrough ? 'bg-gradient-to-br from-[#e67e22] to-[#f39c12]' : 'bg-gradient-to-br from-[rgba(45,90,39,0.9)] to-[rgba(74,122,68,0.8)]'}`} />
               </div>
               
               {/* Right Column: Content - Left-aligned with matching breathing room */}
-              <div className="flex-1 pl-4 pt-3 pb-3">
+              <div className="flex-1 pl-3 pt-1 pb-1">
                 {/* First line: Breakthrough OR Notes - must align with Date */}
                 {practice.breakthrough ? (
-                  <div className="flex items-center gap-1.5 leading-none">
-                    <Sparkles className="w-4 h-4 text-[#e67e22]" />
-                    <span className="text-base font-serif font-bold text-[#e67e22] leading-none">{practice.breakthrough}</span>
+                  <div className="flex items-center gap-1 leading-none mb-1">
+                    <Sparkles className="w-3 h-3 text-[#e67e22]" />
+                    <span className="text-[11px] font-serif font-bold text-[#e67e22] leading-none">{practice.breakthrough}</span>
                   </div>
                 ) : null}
                 {/* Notes area - Click for Share Card */}
                 <button
                   onClick={(e) => handleRightClick(practice, e)}
-                  className={`w-full text-left hover:bg-secondary/30 rounded-lg transition-colors ${practice.breakthrough ? 'mt-1.5' : ''}`}
+                  className="w-full text-left hover:bg-secondary/30 rounded-lg transition-colors"
                   style={{ borderRadius: '0 0.5rem 0.5rem 0' }}
                 >
-                  <p className={`text-base text-foreground font-serif leading-relaxed line-clamp-4 ${!practice.breakthrough ? 'leading-none first-line:leading-none' : ''}`}>
+                  <p className="text-xs text-foreground font-serif leading-snug line-clamp-3">
                     {practice.notes}
                   </p>
                 </button>
-                {/* Photos - Click to view */}
-                {practice.photos.length > 0 && (
-                  <div className="flex gap-2 mt-2 overflow-x-auto hide-scrollbar">
-                    {practice.photos
-                      .filter(photo => !photo.startsWith('blob:')) // 过滤掉blob URL
-                      .map((photo, idx) => (
-                        <button
-                          key={idx}
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            window.open(photo, '_blank')
-                          }}
-                          className="flex-shrink-0 w-14 h-14 rounded-lg overflow-hidden border border-border"
-                        >
-                          <img
-                            src={photo}
-                            alt={`练习照片 ${idx + 1}`}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              console.error('Failed to load photo:', photo)
-                              e.currentTarget.style.display = 'none'
-                            }}
-                          />
-                        </button>
-                      ))}
-                  </div>
-                )}
               </div>
             </div>
           </motion.div>
         ))}
       </div>
-
-      <ColorBlockViewer
-        isOpen={viewerOpen}
-        color={viewerColor}
-        onClose={() => setViewerOpen(false)}
-      />
 
       <EditRecordModal
         isOpen={!!editingRecord}
@@ -2447,14 +1825,17 @@ function ProBadge({ isPro }: { isPro: boolean }) {
 function StatsTab({ 
   practiceHistory, 
   profile, 
-  onOpenSettings 
+  onOpenSettings,
+  onOpenFakeDoor
 }: { 
   practiceHistory: PracticeRecord[]
   profile: UserProfile
   onOpenSettings: () => void
+  onOpenFakeDoor: () => void
 }) {
   const [viewMode, setViewMode] = useState<'month' | 'quarter' | 'year'>('month')
   const [dateOffset, setDateOffset] = useState(0)
+  const [hasVotedPro] = useLocalStorage('has_voted_pro', false)
   
   const today = new Date('2026-01-19')
 
@@ -2464,15 +1845,6 @@ function StatsTab({
     practiceHistory.forEach((p) => {
       data[p.date] = true
     })
-    // Add some random historical data for demo
-    const startDate = new Date('2025-01-01')
-    const endDate = new Date('2026-01-19')
-    for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-      const dateStr = d.toISOString().split('T')[0]
-      if (!data[dateStr] && Math.random() > 0.7) {
-        data[dateStr] = true
-      }
-    }
     return data
   }, [practiceHistory])
   
@@ -2574,10 +1946,12 @@ function StatsTab({
           </div>
           <div className="flex items-center">
             <h2 className="text-xl font-serif text-[#e67e22]">{profile.name}</h2>
-            <ProBadge isPro={profile.isPro || false} />
+            <button onClick={onOpenFakeDoor}>
+              <ProBadge isPro={hasVotedPro} />
+            </button>
           </div>
-          <p className="text-xs font-mono text-gray-400">UID: 00000001</p>
-          <p className="text-sm text-muted-foreground font-serif">{profile.signature}</p>
+          <p className="text-[10px] font-mono text-gray-400 mt-1">ID: {profile.id?.slice(0, 8) || 'ANONYMOUS'}</p>
+          <p className="text-sm text-muted-foreground font-serif mt-1">{profile.signature}</p>
         </div>
 
         {/* Stats Cards - NOW SECOND */}
@@ -2681,15 +2055,27 @@ function BreathingRipples({ isPaused }: { isPaused: boolean }) {
 }
 
 export default function AshtangaTracker() {
-  const [practiceOptions, setPracticeOptions] = useState<PracticeOption[]>(() => {
-    // Initialize with default options plus custom "自定义" option
-    return [...defaultPracticeOptions, { id: "custom", label: "Custom", labelZh: "自定义" }]
-  })
-  const [practiceHistory, setPracticeHistory] = useState<PracticeRecord[]>([])
+  const {
+    records: practiceHistory,
+    options: practiceOptionsData,
+    profile: userProfile,
+    addRecord,
+    updateRecord,
+    deleteRecord,
+    updateProfile,
+    addOption,
+    exportData,
+    importData
+  } = usePracticeData()
+
+  const [practiceOptions, setPracticeOptions] = useState<PracticeOption[]>([])
   const [selectedOption, setSelectedOption] = useState<string | null>(null)
   const [customPracticeName, setCustomPracticeName] = useState("")
-  const [isPracticing, setIsPracticing] = useState(false)
-  const [isPaused, setIsPaused] = useState(false)
+  const [isPracticing, setIsPracticing] = useLocalStorage('ashtanga_is_practicing', false)
+  const [isPaused, setIsPaused] = useLocalStorage('ashtanga_is_paused', false)
+  const [startTime, setStartTime] = useLocalStorage<number | null>('ashtanga_start_time', null)
+  const [pauseStartTime, setPauseStartTime] = useLocalStorage<number | null>('ashtanga_pause_start_time', null)
+  const [totalPausedTime, setTotalPausedTime] = useLocalStorage<number>('ashtanga_total_paused_time', 0)
   const [elapsedTime, setElapsedTime] = useState(0)
   const [showCustomModal, setShowCustomModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
@@ -2699,38 +2085,26 @@ export default function AshtangaTracker() {
   const [finalDuration, setFinalDuration] = useState("")
   const [activeTab, setActiveTab] = useState<'practice' | 'journal' | 'stats'>('practice')
   const [showSettings, setShowSettings] = useState(false)
-  const [userProfile, setUserProfile] = useState<UserProfile>({
-    name: "瑜伽练习者",
-    signature: "练习阿斯汤加 3 年",
-    avatar: null,
-    isPro: false,
-  })
+  const [showFakeDoor, setShowFakeDoor] = useState<{ type: 'cloud' | 'pro', isOpen: boolean }>({ type: 'cloud', isOpen: false })
+  const [votedCloud] = useLocalStorage('voted_cloud_sync', false)
+  const [isSaving, setIsSaving] = useState(false)
+
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
   const lastTapRef = useRef<{ id: string; time: number } | null>(null)
 
-  // Load data from Supabase on mount
+  // Initialize practice options from hook data
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        // Load practice records
-        const records = await getAllPracticeRecords()
-        if (records.length > 0) {
-          setPracticeHistory(records)
-        }
-
-        // Load user profile
-        const profile = await getUserProfile()
-        if (profile) {
-          setUserProfile(profile)
-        }
-      } catch (error) {
-        // Silently handle network errors - app will work with local state
-        console.warn('Failed to load data from Supabase, using local state:', error)
-      }
-    }
-
-    loadData()
-  }, [])
+    setPracticeOptions([
+      ...practiceOptionsData.map(o => ({
+        id: o.id,
+        label: o.label,
+        labelZh: o.label_zh,
+        notes: o.notes,
+        isCustom: o.is_custom
+      })),
+      { id: "custom", label: "Custom", labelZh: "自定义" }
+    ])
+  }, [practiceOptionsData])
 
   // Keep screen awake during practice
   useEffect(() => {
@@ -2757,23 +2131,25 @@ export default function AshtangaTracker() {
     }
   }, [isPracticing])
 
-  // Timer logic
+  // Timer logic - Timestamp based for background/lock screen support
+  useInterval(() => {
+    if (isPracticing && !isPaused && startTime) {
+      const now = Date.now()
+      const diff = Math.floor((now - startTime - (totalPausedTime || 0)) / 1000)
+      setElapsedTime(Math.max(0, diff))
+    }
+  }, isPracticing && !isPaused ? 1000 : null)
+
+  // Sync elapsed time on resume/mount
   useEffect(() => {
-    if (isPracticing && !isPaused) {
-      intervalRef.current = setInterval(() => {
-        setElapsedTime((prev) => prev + 1)
-      }, 1000)
-    } else {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current)
-      }
+    if (isPracticing && startTime) {
+      const now = Date.now()
+      const pausedAt = isPaused ? (pauseStartTime || now) : now
+      const currentTotalPaused = (totalPausedTime || 0) + (isPaused ? (now - (pauseStartTime || now)) : 0)
+      const diff = Math.floor((pausedAt - startTime - (totalPausedTime || 0)) / 1000)
+      setElapsedTime(Math.max(0, diff))
     }
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current)
-      }
-    }
-  }, [isPracticing, isPaused])
+  }, [])
 
   const handleOptionTap = (option: PracticeOption) => {
     const now = Date.now()
@@ -2855,43 +2231,26 @@ export default function AshtangaTracker() {
     }
   }
 
-const handleEditRecord = async (id: number, notes: string, photos: string[], breakthrough?: string) => {
-  // Update in Supabase
-  const updated = await updatePracticeRecord(id, { notes, photos, breakthrough })
-
-  if (updated) {
-    // Update local state
-    setPracticeHistory(prev => prev.map(r =>
-      r.id === id ? updated : r
-    ))
-  } else {
-    alert('更新失败，请检查网络连接')
-  }
+  const handleEditRecord = (id: string, notes: string, photos: string[], breakthrough?: string) => {
+    updateRecord(id, { notes, breakthrough })
+    toast.success('更新成功')
   }
 
-  const handleDeleteRecord = async (id: number) => {
-  // Confirm before deleting
-  if (!confirm('确定要删除这条记录吗？')) return
-
-  // Delete from Supabase
-  const success = await deletePracticeRecord(id)
-
-  if (success) {
-    // Update local state
-    setPracticeHistory(prev => prev.filter(r => r.id !== id))
-  } else {
-    alert('删除失败，请检查网络连接')
-  }
+  const handleDeleteRecord = (id: string) => {
+    // Confirm before deleting
+    if (!confirm('确定要删除这条记录吗？')) return
+    deleteRecord(id)
+    toast.success('已删除记录')
   }
 
-  const handleAddRecord = (record: Omit<PracticeRecord, 'id'>) => {
-    const newId = Math.max(...practiceHistory.map(r => r.id), 0) + 1
-    const newRecord: PracticeRecord = { ...record, id: newId }
-    // Insert in chronological order (newest first)
-    const updated = [newRecord, ...practiceHistory].sort((a, b) => 
-      new Date(b.date).getTime() - new Date(a.date).getTime()
-    )
-    setPracticeHistory(updated)
+  const handleAddRecord = (record: Omit<PracticeRecord, 'id' | 'created_at' | 'photos'>) => {
+    addRecord(record)
+    trackEvent('finish_practice', { 
+      type: record.type, 
+      duration: record.duration,
+      is_patch: true
+    })
+    toast.success('补卡成功！')
   }
 
   const canDeleteOption = useMemo(() => {
@@ -2906,14 +2265,32 @@ const handleEditRecord = async (id: number, notes: string, photos: string[], bre
 
   const handleStartPractice = () => {
     if (selectedOption) {
+      const now = Date.now()
+      setStartTime(now)
       setIsPracticing(true)
       setIsPaused(false)
+      setTotalPausedTime(0)
+      setPauseStartTime(null)
       setElapsedTime(0)
+      trackEvent('start_practice', { type: getSelectedLabel() })
     }
   }
 
   const handlePauseResume = () => {
+    const now = Date.now()
+    if (!isPaused) {
+      // Pause
+      setPauseStartTime(now)
+    } else {
+      // Resume
+      if (pauseStartTime) {
+        const pausedDuration = now - pauseStartTime
+        setTotalPausedTime((totalPausedTime || 0) + pausedDuration)
+      }
+      setPauseStartTime(null)
+    }
     setIsPaused(!isPaused)
+    trackEvent(isPaused ? 'resume_practice' : 'pause_practice')
   }
 
   const getSelectedLabel = useCallback(() => {
@@ -2933,25 +2310,31 @@ const handleEditRecord = async (id: number, notes: string, photos: string[], bre
     setFinalDuration(formatMinutes(elapsedTime))
     setShowCompletion(true)
     setIsPracticing(false)
+    // Clear timer persistence
+    setStartTime(null)
+    setPauseStartTime(null)
+    setTotalPausedTime(0)
   }
 
-  const handleSavePractice = useCallback(async (notes: string, photos: string[], breakthrough?: string) => {
-    // Create new practice record
-    const newRecord: Omit<PracticeRecord, 'id' | 'created_at'> = {
-      date: new Date().toISOString().split('T')[0],
-      type: getSelectedLabel(),
-      duration: elapsedTime,
-      notes: notes || "今日练习完成",
-      photos,
-      breakthrough,
-    }
+  const handleSavePractice = useCallback((notes: string, photos: string[], breakthrough?: string) => {
+    if (isSaving) return
+    setIsSaving(true)
 
-    // Save to Supabase
-    const savedRecord = await createPracticeRecord(newRecord)
+    try {
+      // Create new practice record
+      const record = addRecord({
+        date: new Date().toISOString().split('T')[0],
+        type: getSelectedLabel(),
+        duration: elapsedTime,
+        notes: notes || "今日练习完成",
+        breakthrough,
+      })
 
-    if (savedRecord) {
-      // Add to local state
-      setPracticeHistory(prev => [savedRecord, ...prev])
+      trackEvent('finish_practice', { 
+        type: record.type, 
+        duration: record.duration,
+        is_patch: false
+      })
 
       // Reset UI and switch to journal tab
       setShowCompletion(false)
@@ -2960,11 +2343,11 @@ const handleEditRecord = async (id: number, notes: string, photos: string[], bre
       setElapsedTime(0)
       setIsPaused(false)
       setActiveTab('journal') // Switch to 觉察日记 tab
-    } else {
-      // Handle error - show alert
-      alert('保存失败，请检查网络连接')
+      toast.success('打卡成功！')
+    } finally {
+      setIsSaving(false)
     }
-  }, [elapsedTime, getSelectedLabel])
+  }, [elapsedTime, getSelectedLabel, addRecord, isSaving])
 
   // Full-screen Timer View with Hero Transition
   if (isPracticing) {
@@ -2987,24 +2370,29 @@ const handleEditRecord = async (id: number, notes: string, photos: string[], bre
               <BreathingRipples isPaused={isPaused} />
             </div>
             
-            {/* Main circle with glassmorphism gradient border */}
-            <div className={`w-72 h-72 sm:w-80 sm:h-80 rounded-full bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] p-[2px] shadow-[0_12px_48px_rgba(45,90,39,0.45)] ${!isPaused ? 'animate-breathe' : ''}`}>
-              <div className="w-full h-full rounded-full bg-background/95 backdrop-blur-[16px] flex flex-col items-center justify-center border border-white/30">
+            {/* Main circle with glassmorphism gradient border - scaled down 30% */}
+            <div className={`w-[200px] h-[200px] sm:w-[220px] sm:h-[220px] rounded-full bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] p-[2px] shadow-[0_12px_48px_rgba(45,90,39,0.45)] ${!isPaused ? 'animate-breathe' : ''}`}>
+              <div className="w-full h-full rounded-full bg-background/95 backdrop-blur-[16px] flex flex-col items-center justify-center border border-white/30 relative">
                 {/* Timer display - Minutes only, using serif font */}
-                <span className="text-6xl sm:text-7xl font-light text-foreground tracking-wider font-serif">
-                  {formatMinutes(elapsedTime)}
-                </span>
-                <span className="text-muted-foreground text-xs font-serif mt-1">分钟</span>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-5xl sm:text-6xl font-light text-foreground tracking-wider font-serif">
+                    {formatMinutes(elapsedTime)}
+                  </span>
+                  <span className="text-muted-foreground text-[10px] font-serif absolute bottom-12 right-12">
+                    {formatSeconds(elapsedTime)}s
+                  </span>
+                </div>
+                <span className="text-muted-foreground text-[10px] font-serif mt-1">分钟</span>
 
                 {/* Practice type below */}
-                <span className="text-muted-foreground text-sm font-serif mt-4">{getSelectedLabel()}</span>
+                <span className="text-muted-foreground text-xs font-serif mt-4">{getSelectedLabel()}</span>
               </div>
             </div>
           </motion.div>
         </main>
 
-        {/* Control buttons */}
-        <div className="px-6 pb-12">
+        {/* Control buttons - moved up 30% to avoid clipping on mobile */}
+        <div className="px-6 pb-32">
           <div className="flex gap-4 justify-center">
             <motion.button
               whileTap={{ scale: 0.95 }}
@@ -3026,7 +2414,7 @@ const handleEditRecord = async (id: number, notes: string, photos: string[], bre
             <motion.button
               whileTap={{ scale: 0.95 }}
               onClick={handleEndRequest}
-              className="px-8 py-4 rounded-full bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white font-serif shadow-[0_4px_20px_rgba(45,90,39,0.2)] hover:opacity-90 transition-opacity backdrop-blur-sm border border-white/10"
+              className="px-8 py-4 rounded-full bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white font-serif shadow-[0_4px_20px_rgba(45,90,39,0.2)] hover:opacity-90 transition-opacity"
             >
               结束
             </motion.button>
@@ -3050,11 +2438,15 @@ const handleEditRecord = async (id: number, notes: string, photos: string[], bre
     <div className="h-screen bg-background flex flex-col overflow-hidden">
       {/* Header - only show on practice tab */}
       {activeTab === 'practice' && (
-        <header className="pt-14 pb-6 px-6 flex-shrink-0">
-          <div className="flex items-center justify-center gap-2">
+        <header className="pt-14 pb-6 px-6 flex-shrink-0 flex items-center justify-between">
+          <div className="flex items-center gap-2">
             <img src="/icon.png" alt="熬汤日记" className="w-8 h-8 rounded-lg" />
-            <h1 className="text-2xl font-serif text-foreground tracking-wide">熬汤日记·觉察呼吸</h1>
+            <h1 className="text-xl font-serif text-foreground tracking-wide">熬汤日记·觉察呼吸</h1>
           </div>
+          <SyncButton 
+            onOpenFakeDoor={() => setShowFakeDoor({ type: 'cloud', isOpen: true })} 
+            hasVoted={votedCloud || false} 
+          />
         </header>
       )}
 
@@ -3075,13 +2467,13 @@ const handleEditRecord = async (id: number, notes: string, photos: string[], bre
                   className={`
                     py-3 px-2 rounded-[20px] text-center font-serif transition-all duration-200
                     min-h-[72px] flex flex-col items-center justify-center
-${
-                                      isSelected
-                                        ? "bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] text-primary-foreground backdrop-blur-[16px] border border-white/30 shadow-[0_8px_32px_rgba(45,90,39,0.4)]"
-                                        : isCustomButton
-                                          ? "bg-background text-muted-foreground border-2 border-dashed border-muted-foreground/30 shadow-[0_4px_20px_rgba(0,0,0,0.05)]"
-                                          : "bg-background text-foreground shadow-[0_4px_20px_rgba(0,0,0,0.05)]"
-                                    }
+                    ${
+                      isSelected
+                        ? "bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] text-primary-foreground backdrop-blur-[16px] border border-white/30 shadow-[0_8px_32px_rgba(45,90,39,0.4)]"
+                        : isCustomButton
+                          ? "bg-background text-muted-foreground border-2 border-dashed border-muted-foreground/30 shadow-[0_4px_20px_rgba(0,0,0,0.05)]"
+                          : "bg-background text-foreground shadow-[0_4px_20px_rgba(0,0,0,0.05)]"
+                    }
                   `}
                 >
                   <span className="text-sm leading-tight">{isCustomButton ? "+ 自定义" : option.labelZh}</span>
@@ -3117,10 +2509,10 @@ ${
               className={`
                 w-36 h-36 rounded-full flex items-center justify-center relative overflow-hidden
                 transition-colors duration-500
-${selectedOption
-                                  ? "bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] cursor-pointer backdrop-blur-[16px] border border-white/30 shadow-[0_12px_48px_rgba(45,90,39,0.45)]"
-                                  : "bg-muted/50 backdrop-blur-sm"
-                                }
+                ${selectedOption
+                  ? "bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] cursor-pointer backdrop-blur-[16px] border border-white/30 shadow-[0_12px_48px_rgba(45,90,39,0.45)]"
+                  : "bg-muted/50 backdrop-blur-sm"
+                }
               `}
               onClick={selectedOption ? handleStartPractice : undefined}
               whileTap={selectedOption ? { scale: 0.95 } : {}}
@@ -3150,6 +2542,7 @@ ${selectedOption
           onEditRecord={handleEditRecord}
           onDeleteRecord={handleDeleteRecord}
           onAddRecord={handleAddRecord}
+          onOpenFakeDoor={() => setShowFakeDoor({ type: 'cloud', isOpen: true })}
         />
       )}
       {activeTab === 'stats' && (
@@ -3157,6 +2550,7 @@ ${selectedOption
           practiceHistory={practiceHistory} 
           profile={userProfile}
           onOpenSettings={() => setShowSettings(true)}
+          onOpenFakeDoor={() => setShowFakeDoor({ type: 'pro', isOpen: true })}
         />
       )}
 
@@ -3213,7 +2607,27 @@ ${selectedOption
         isOpen={showSettings}
         onClose={() => setShowSettings(false)}
         profile={userProfile}
-        onSave={setUserProfile}
+        onSave={updateProfile}
+        onExport={() => {
+          const data = exportData()
+          trackEvent('export_data')
+          const blob = new Blob([data], { type: 'application/json' })
+          const url = URL.createObjectURL(blob)
+          const a = document.createElement('a')
+          a.href = url
+          a.download = `ashtanga-backup-${new Date().toISOString().split('T')[0]}.json`
+          a.click()
+          toast.success('数据已导出')
+        }}
+        onImport={(json) => {
+          if (importData(json)) {
+            trackEvent('import_data')
+            toast.success('数据已恢复')
+            setShowSettings(false)
+          } else {
+            toast.error('导入失败，请检查文件格式')
+          }
+        }}
       />
 
       {/* Completion Sheet */}
@@ -3222,6 +2636,13 @@ ${selectedOption
         practiceType={getSelectedLabel()}
         duration={finalDuration}
         onSave={handleSavePractice}
+      />
+
+      {/* Fake Door Modal */}
+      <FakeDoorModal
+        type={showFakeDoor.type}
+        isOpen={showFakeDoor.isOpen}
+        onClose={() => setShowFakeDoor({ ...showFakeDoor, isOpen: false })}
       />
     </div>
   )

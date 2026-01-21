@@ -1,0 +1,131 @@
+timestamp,message
+2026-01-20 06:07:33,"[Zeabur] Pod/service-696e31b180817a3f9d9af7f6-fbfdf58db-lbfdd - Pulling: Pulling image ""registry-oci.zeabur.cloud/e-696e069fa7aaff0c1152f670/s-696e31b180817a3f9d9af7f6:d-696f1ab78c3f077bbf935160"""
+2026-01-20 06:08:22,"[Zeabur] Pod/service-696e31b180817a3f9d9af7f6-fbfdf58db-lbfdd - Pulled: Successfully pulled image ""registry-oci.zeabur.cloud/e-696e069fa7aaff0c1152f670/s-696e31b180817a3f9d9af7f6:d-696f1ab78c3f077bbf935160"" in 49.019s (49.019s including waiting). Image size: 467132799 bytes."
+2026-01-20 06:08:23,[Zeabur] Pod/service-696e31b180817a3f9d9af7f6-fbfdf58db-lbfdd - Created: Created container: ashtanga-app
+2026-01-20 06:08:23,[Zeabur] Pod/service-696e31b180817a3f9d9af7f6-fbfdf58db-lbfdd - Started: Started container ashtanga-app
+2026-01-20 06:08:24,"[Zeabur] Pod/service-696e31b180817a3f9d9af7f6-fbfdf58db-lbfdd - Pulling: Pulling image ""registry-oci.zeabur.cloud/e-696e069fa7aaff0c1152f670/s-696e31b180817a3f9d9af7f6:d-696f1ab78c3f077bbf935160"""
+2026-01-20 06:08:24,"[Zeabur] Pod/service-696e31b180817a3f9d9af7f6-fbfdf58db-lbfdd - Pulled: Successfully pulled image ""registry-oci.zeabur.cloud/e-696e069fa7aaff0c1152f670/s-696e31b180817a3f9d9af7f6:d-696f1ab78c3f077bbf935160"" in 221ms (221ms including waiting). Image size: 467132799 bytes."
+2026-01-20 06:08:24,[Zeabur] Pod/service-696e31b180817a3f9d9af7f6-fbfdf58db-lbfdd - Created: Created container: ashtanga-app
+2026-01-20 06:08:24,[Zeabur] Pod/service-696e31b180817a3f9d9af7f6-fbfdf58db-lbfdd - Started: Started container ashtanga-app
+2026-01-20 06:08:24,node:internal/modules/cjs/loader:1386
+2026-01-20 06:08:24,"  throw err;"
+2026-01-20 06:08:24,"  ^"
+2026-01-20 06:08:24,
+2026-01-20 06:08:24,Error: Cannot find module '/src/.next/standalone/server.js'
+2026-01-20 06:08:24,"    at Function._resolveFilename (node:internal/modules/cjs/loader:1383:15)"
+2026-01-20 06:08:24,"    at defaultResolveImpl (node:internal/modules/cjs/loader:1025:19)"
+2026-01-20 06:08:24,"    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1030:22)"
+2026-01-20 06:08:24,"    at Function._load (node:internal/modules/cjs/loader:1192:37)"
+2026-01-20 06:08:24,"    at TracingChannel.traceSync (node:diagnostics_channel:328:14)"
+2026-01-20 06:08:24,"    at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)"
+2026-01-20 06:08:24,"    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)"
+2026-01-20 06:08:24,"    at node:internal/main/run_main_module:36:49 {"
+2026-01-20 06:08:24,"  code: 'MODULE_NOT_FOUND',"
+2026-01-20 06:08:24,"  requireStack: []"
+2026-01-20 06:08:24,}
+2026-01-20 06:08:24,
+2026-01-20 06:08:24,Node.js v22.22.0
+2026-01-20 06:08:25,[Zeabur] Pod/service-696e31b180817a3f9d9af7f6-fbfdf58db-lbfdd - BackOff: Back-off restarting failed container ashtanga-app in pod service-696e31b180817a3f9d9af7f6-fbfdf58db-lbfdd_environment-696e069fa7aaff0c1152f670(68a47839-c0ea-458e-86ef-3e15fb047450)
+2026-01-20 06:08:26,[Zeabur] Pod/service-696e31b180817a3f9d9af7f6-fbfdf58db-lbfdd - BackOff: Back-off restarting failed container ashtanga-app in pod service-696e31b180817a3f9d9af7f6-fbfdf58db-lbfdd_environment-696e069fa7aaff0c1152f670(68a47839-c0ea-458e-86ef-3e15fb047450)
+2026-01-20 06:08:40,"[Zeabur] Pod/service-696e31b180817a3f9d9af7f6-fbfdf58db-lbfdd - Pulling: Pulling image ""registry-oci.zeabur.cloud/e-696e069fa7aaff0c1152f670/s-696e31b180817a3f9d9af7f6:d-696f1ab78c3f077bbf935160"""
+2026-01-20 06:08:40,"[Zeabur] Pod/service-696e31b180817a3f9d9af7f6-fbfdf58db-lbfdd - Pulled: Successfully pulled image ""registry-oci.zeabur.cloud/e-696e069fa7aaff0c1152f670/s-696e31b180817a3f9d9af7f6:d-696f1ab78c3f077bbf935160"" in 237ms (237ms including waiting). Image size: 467132799 bytes."
+2026-01-20 06:08:40,[Zeabur] Pod/service-696e31b180817a3f9d9af7f6-fbfdf58db-lbfdd - Created: Created container: ashtanga-app
+2026-01-20 06:08:40,[Zeabur] Pod/service-696e31b180817a3f9d9af7f6-fbfdf58db-lbfdd - Started: Started container ashtanga-app
+2026-01-20 06:08:40,[Zeabur] Pod/service-696e31b180817a3f9d9af7f6-fbfdf58db-lbfdd - BackOff: Back-off restarting failed container ashtanga-app in pod service-696e31b180817a3f9d9af7f6-fbfdf58db-lbfdd_environment-696e069fa7aaff0c1152f670(68a47839-c0ea-458e-86ef-3e15fb047450)
+2026-01-20 06:08:40,node:internal/modules/cjs/loader:1386
+2026-01-20 06:08:40,"  throw err;"
+2026-01-20 06:08:40,"  ^"
+2026-01-20 06:08:40,
+2026-01-20 06:08:40,Error: Cannot find module '/src/.next/standalone/server.js'
+2026-01-20 06:08:40,"    at Function._resolveFilename (node:internal/modules/cjs/loader:1383:15)"
+2026-01-20 06:08:40,"    at defaultResolveImpl (node:internal/modules/cjs/loader:1025:19)"
+2026-01-20 06:08:40,"    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1030:22)"
+2026-01-20 06:08:40,"    at Function._load (node:internal/modules/cjs/loader:1192:37)"
+2026-01-20 06:08:40,"    at TracingChannel.traceSync (node:diagnostics_channel:328:14)"
+2026-01-20 06:08:40,"    at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)"
+2026-01-20 06:08:40,"    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)"
+2026-01-20 06:08:40,"    at node:internal/main/run_main_module:36:49 {"
+2026-01-20 06:08:40,"  code: 'MODULE_NOT_FOUND',"
+2026-01-20 06:08:40,"  requireStack: []"
+2026-01-20 06:08:40,}
+2026-01-20 06:08:40,
+2026-01-20 06:08:40,Node.js v22.22.0
+2026-01-20 06:08:52,[Zeabur] Pod/service-696e31b180817a3f9d9af7f6-fbfdf58db-lbfdd - BackOff: Back-off restarting failed container ashtanga-app in pod service-696e31b180817a3f9d9af7f6-fbfdf58db-lbfdd_environment-696e069fa7aaff0c1152f670(68a47839-c0ea-458e-86ef-3e15fb047450)
+2026-01-20 06:09:03,"[Zeabur] Pod/service-696e31b180817a3f9d9af7f6-fbfdf58db-lbfdd - Pulling: Pulling image ""registry-oci.zeabur.cloud/e-696e069fa7aaff0c1152f670/s-696e31b180817a3f9d9af7f6:d-696f1ab78c3f077bbf935160"""
+2026-01-20 06:09:03,"[Zeabur] Pod/service-696e31b180817a3f9d9af7f6-fbfdf58db-lbfdd - Pulled: Successfully pulled image ""registry-oci.zeabur.cloud/e-696e069fa7aaff0c1152f670/s-696e31b180817a3f9d9af7f6:d-696f1ab78c3f077bbf935160"" in 222ms (222ms including waiting). Image size: 467132799 bytes."
+2026-01-20 06:09:03,[Zeabur] Pod/service-696e31b180817a3f9d9af7f6-fbfdf58db-lbfdd - Created: Created container: ashtanga-app
+2026-01-20 06:09:03,[Zeabur] Pod/service-696e31b180817a3f9d9af7f6-fbfdf58db-lbfdd - Started: Started container ashtanga-app
+2026-01-20 06:09:03,node:internal/modules/cjs/loader:1386
+2026-01-20 06:09:03,"  throw err;"
+2026-01-20 06:09:03,"  ^"
+2026-01-20 06:09:03,
+2026-01-20 06:09:03,Error: Cannot find module '/src/.next/standalone/server.js'
+2026-01-20 06:09:03,"    at Function._resolveFilename (node:internal/modules/cjs/loader:1383:15)"
+2026-01-20 06:09:03,"    at defaultResolveImpl (node:internal/modules/cjs/loader:1025:19)"
+2026-01-20 06:09:03,"    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1030:22)"
+2026-01-20 06:09:03,"    at Function._load (node:internal/modules/cjs/loader:1192:37)"
+2026-01-20 06:09:03,"    at TracingChannel.traceSync (node:diagnostics_channel:328:14)"
+2026-01-20 06:09:03,"    at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)"
+2026-01-20 06:09:03,"    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)"
+2026-01-20 06:09:03,"    at node:internal/main/run_main_module:36:49 {"
+2026-01-20 06:09:03,"  code: 'MODULE_NOT_FOUND',"
+2026-01-20 06:09:03,"  requireStack: []"
+2026-01-20 06:09:03,}
+2026-01-20 06:09:03,
+2026-01-20 06:09:03,Node.js v22.22.0
+2026-01-20 06:09:04,[Zeabur] Pod/service-696e31b180817a3f9d9af7f6-fbfdf58db-lbfdd - BackOff: Back-off restarting failed container ashtanga-app in pod service-696e31b180817a3f9d9af7f6-fbfdf58db-lbfdd_environment-696e069fa7aaff0c1152f670(68a47839-c0ea-458e-86ef-3e15fb047450)
+2026-01-20 06:09:18,[Zeabur] Pod/service-696e31b180817a3f9d9af7f6-fbfdf58db-lbfdd - BackOff: Back-off restarting failed container ashtanga-app in pod service-696e31b180817a3f9d9af7f6-fbfdf58db-lbfdd_environment-696e069fa7aaff0c1152f670(68a47839-c0ea-458e-86ef-3e15fb047450)
+2026-01-20 06:09:32,[Zeabur] Pod/service-696e31b180817a3f9d9af7f6-fbfdf58db-lbfdd - BackOff: Back-off restarting failed container ashtanga-app in pod service-696e31b180817a3f9d9af7f6-fbfdf58db-lbfdd_environment-696e069fa7aaff0c1152f670(68a47839-c0ea-458e-86ef-3e15fb047450)
+2026-01-20 06:09:44,"[Zeabur] Pod/service-696e31b180817a3f9d9af7f6-fbfdf58db-lbfdd - Pulling: Pulling image ""registry-oci.zeabur.cloud/e-696e069fa7aaff0c1152f670/s-696e31b180817a3f9d9af7f6:d-696f1ab78c3f077bbf935160"""
+2026-01-20 06:09:44,"[Zeabur] Pod/service-696e31b180817a3f9d9af7f6-fbfdf58db-lbfdd - Pulled: Successfully pulled image ""registry-oci.zeabur.cloud/e-696e069fa7aaff0c1152f670/s-696e31b180817a3f9d9af7f6:d-696f1ab78c3f077bbf935160"" in 229ms (229ms including waiting). Image size: 467132799 bytes."
+2026-01-20 06:09:44,[Zeabur] Pod/service-696e31b180817a3f9d9af7f6-fbfdf58db-lbfdd - Created: Created container: ashtanga-app
+2026-01-20 06:09:44,[Zeabur] Pod/service-696e31b180817a3f9d9af7f6-fbfdf58db-lbfdd - Started: Started container ashtanga-app
+2026-01-20 06:09:44,node:internal/modules/cjs/loader:1386
+2026-01-20 06:09:44,"  throw err;"
+2026-01-20 06:09:44,"  ^"
+2026-01-20 06:09:44,
+2026-01-20 06:09:44,Error: Cannot find module '/src/.next/standalone/server.js'
+2026-01-20 06:09:44,"    at Function._resolveFilename (node:internal/modules/cjs/loader:1383:15)"
+2026-01-20 06:09:44,"    at defaultResolveImpl (node:internal/modules/cjs/loader:1025:19)"
+2026-01-20 06:09:44,"    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1030:22)"
+2026-01-20 06:09:44,"    at Function._load (node:internal/modules/cjs/loader:1192:37)"
+2026-01-20 06:09:44,"    at TracingChannel.traceSync (node:diagnostics_channel:328:14)"
+2026-01-20 06:09:44,"    at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)"
+2026-01-20 06:09:44,"    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)"
+2026-01-20 06:09:44,"    at node:internal/main/run_main_module:36:49 {"
+2026-01-20 06:09:44,"  code: 'MODULE_NOT_FOUND',"
+2026-01-20 06:09:44,"  requireStack: []"
+2026-01-20 06:09:44,}
+2026-01-20 06:09:44,
+2026-01-20 06:09:44,Node.js v22.22.0
+2026-01-20 06:09:45,[Zeabur] Pod/service-696e31b180817a3f9d9af7f6-fbfdf58db-lbfdd - BackOff: Back-off restarting failed container ashtanga-app in pod service-696e31b180817a3f9d9af7f6-fbfdf58db-lbfdd_environment-696e069fa7aaff0c1152f670(68a47839-c0ea-458e-86ef-3e15fb047450)
+2026-01-20 06:09:58,[Zeabur] Pod/service-696e31b180817a3f9d9af7f6-fbfdf58db-lbfdd - BackOff: Back-off restarting failed container ashtanga-app in pod service-696e31b180817a3f9d9af7f6-fbfdf58db-lbfdd_environment-696e069fa7aaff0c1152f670(68a47839-c0ea-458e-86ef-3e15fb047450)
+2026-01-20 06:10:10,[Zeabur] Pod/service-696e31b180817a3f9d9af7f6-fbfdf58db-lbfdd - BackOff: Back-off restarting failed container ashtanga-app in pod service-696e31b180817a3f9d9af7f6-fbfdf58db-lbfdd_environment-696e069fa7aaff0c1152f670(68a47839-c0ea-458e-86ef-3e15fb047450)
+2026-01-20 06:10:21,[Zeabur] Pod/service-696e31b180817a3f9d9af7f6-fbfdf58db-lbfdd - BackOff: Back-off restarting failed container ashtanga-app in pod service-696e31b180817a3f9d9af7f6-fbfdf58db-lbfdd_environment-696e069fa7aaff0c1152f670(68a47839-c0ea-458e-86ef-3e15fb047450)
+2026-01-20 06:10:33,[Zeabur] Pod/service-696e31b180817a3f9d9af7f6-fbfdf58db-lbfdd - BackOff: Back-off restarting failed container ashtanga-app in pod service-696e31b180817a3f9d9af7f6-fbfdf58db-lbfdd_environment-696e069fa7aaff0c1152f670(68a47839-c0ea-458e-86ef-3e15fb047450)
+2026-01-20 06:10:44,[Zeabur] Pod/service-696e31b180817a3f9d9af7f6-fbfdf58db-lbfdd - BackOff: Back-off restarting failed container ashtanga-app in pod service-696e31b180817a3f9d9af7f6-fbfdf58db-lbfdd_environment-696e069fa7aaff0c1152f670(68a47839-c0ea-458e-86ef-3e15fb047450)
+2026-01-20 06:10:59,[Zeabur] Pod/service-696e31b180817a3f9d9af7f6-fbfdf58db-lbfdd - BackOff: Back-off restarting failed container ashtanga-app in pod service-696e31b180817a3f9d9af7f6-fbfdf58db-lbfdd_environment-696e069fa7aaff0c1152f670(68a47839-c0ea-458e-86ef-3e15fb047450)
+2026-01-20 06:11:12,"[Zeabur] Pod/service-696e31b180817a3f9d9af7f6-fbfdf58db-lbfdd - Pulling: Pulling image ""registry-oci.zeabur.cloud/e-696e069fa7aaff0c1152f670/s-696e31b180817a3f9d9af7f6:d-696f1ab78c3f077bbf935160"""
+2026-01-20 06:11:12,"[Zeabur] Pod/service-696e31b180817a3f9d9af7f6-fbfdf58db-lbfdd - Pulled: Successfully pulled image ""registry-oci.zeabur.cloud/e-696e069fa7aaff0c1152f670/s-696e31b180817a3f9d9af7f6:d-696f1ab78c3f077bbf935160"" in 231ms (231ms including waiting). Image size: 467132799 bytes."
+2026-01-20 06:11:12,[Zeabur] Pod/service-696e31b180817a3f9d9af7f6-fbfdf58db-lbfdd - Created: Created container: ashtanga-app
+2026-01-20 06:11:12,[Zeabur] Pod/service-696e31b180817a3f9d9af7f6-fbfdf58db-lbfdd - Started: Started container ashtanga-app
+2026-01-20 06:11:12,[Zeabur] Pod/service-696e31b180817a3f9d9af7f6-fbfdf58db-lbfdd - BackOff: Back-off restarting failed container ashtanga-app in pod service-696e31b180817a3f9d9af7f6-fbfdf58db-lbfdd_environment-696e069fa7aaff0c1152f670(68a47839-c0ea-458e-86ef-3e15fb047450)
+2026-01-20 06:11:12,node:internal/modules/cjs/loader:1386
+2026-01-20 06:11:12,"  throw err;"
+2026-01-20 06:11:12,"  ^"
+2026-01-20 06:11:12,
+2026-01-20 06:11:12,Error: Cannot find module '/src/.next/standalone/server.js'
+2026-01-20 06:11:12,"    at Function._resolveFilename (node:internal/modules/cjs/loader:1383:15)"
+2026-01-20 06:11:12,"    at defaultResolveImpl (node:internal/modules/cjs/loader:1025:19)"
+2026-01-20 06:11:12,"    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1030:22)"
+2026-01-20 06:11:12,"    at Function._load (node:internal/modules/cjs/loader:1192:37)"
+2026-01-20 06:11:12,"    at TracingChannel.traceSync (node:diagnostics_channel:328:14)"
+2026-01-20 06:11:12,"    at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)"
+2026-01-20 06:11:12,"    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)"
+2026-01-20 06:11:12,"    at node:internal/main/run_main_module:36:49 {"
+2026-01-20 06:11:12,"  code: 'MODULE_NOT_FOUND',"
+2026-01-20 06:11:12,"  requireStack: []"
+2026-01-20 06:11:12,}
+2026-01-20 06:11:12,
+2026-01-20 06:11:12,Node.js v22.22.0
+2026-01-20 06:11:26,[Zeabur] Pod/service-696e31b180817a3f9d9af7f6-fbfdf58db-lbfdd - BackOff: Back-off restarting failed container ashtanga-app in pod service-696e31b180817a3f9d9af7f6-fbfdf58db-lbfdd_environment-696e069fa7aaff0c1152f670(68a47839-c0ea-458e-86ef-3e15fb047450)

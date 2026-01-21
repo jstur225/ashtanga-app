@@ -2,6 +2,8 @@ import React from "react"
 import type { Metadata } from 'next'
 import { Inter, JetBrains_Mono, Noto_Serif_SC } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
+import { Toaster } from 'sonner'
+import { AnalyticsInitializer } from '@/components/AnalyticsInitializer'
 import './globals.css'
 
 const _inter = Inter({ subsets: ["latin"] });
@@ -32,7 +34,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`font-sans antialiased`}>
+        <AnalyticsInitializer />
         {children}
+        <Toaster position="top-center" />
         <Analytics />
       </body>
     </html>
