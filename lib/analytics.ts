@@ -5,7 +5,7 @@ const MIXPANEL_TOKEN = process.env.NEXT_PUBLIC_MIXPANEL_TOKEN || '5268a97b486c11
 export const initAnalytics = () => {
   if (typeof window !== 'undefined') {
     mixpanel.init(MIXPANEL_TOKEN, {
-      debug: process.env.NODE_ENV === 'development',
+      debug: true, // Force debug mode to see logs in production console
       track_pageview: true,
       persistence: 'localStorage',
       autocapture: true,
