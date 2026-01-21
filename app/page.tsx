@@ -1967,8 +1967,8 @@ function StatsTab({
   // Dot sizes based on view
   const dotConfig = useMemo(() => {
     switch (viewMode) {
-      case 'month': return { size: 'w-10 h-10', gap: 'gap-4', rounded: 'rounded-xl', cols: 'grid-cols-7' }
-      case 'quarter': return { size: 'w-6 h-6', gap: 'gap-2', rounded: 'rounded-lg', cols: 'grid-cols-10' }
+      case 'month': return { size: 'w-8 h-8', gap: 'gap-3', rounded: 'rounded-xl', cols: 'grid-cols-7' }
+      case 'quarter': return { size: 'w-4 h-4', gap: 'gap-2', rounded: 'rounded-lg', cols: 'grid-cols-12' }
       case 'year': return { size: 'w-4 h-4', gap: 'gap-2', rounded: 'rounded-full', cols: 'grid-cols-12' }
     }
   }, [viewMode])
