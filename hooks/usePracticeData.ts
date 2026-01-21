@@ -36,14 +36,12 @@ export interface UserProfile {
 }
 
 const DEFAULT_OPTIONS: PracticeOption[] = [
-  { id: '1', created_at: new Date().toISOString(), label: 'Primary Series', label_zh: '一序列', is_custom: false },
+  { id: '1', created_at: new Date().toISOString(), label: 'Primary Series', label_zh: '一序列', notes: '可拆分：半序列、站立+结束体式', is_custom: false },
   { id: '2', created_at: new Date().toISOString(), label: 'Mysore Style', label_zh: 'Mysore', is_custom: false },
   { id: '3', created_at: new Date().toISOString(), label: 'Led Class', label_zh: '一序列口令课', is_custom: false },
   { id: '4', created_at: new Date().toISOString(), label: 'Intermediate Series', label_zh: '二序列', is_custom: false },
   { id: '5', created_at: new Date().toISOString(), label: 'Mysore Style A', label_zh: 'Mysore二序列', is_custom: false },
   { id: '6', created_at: new Date().toISOString(), label: 'Led Class B', label_zh: '二序列口令课', is_custom: false },
-  { id: '7', created_at: new Date().toISOString(), label: 'Half Primary', label_zh: '半序列', is_custom: false },
-  { id: '8', created_at: new Date().toISOString(), label: 'Standing & Finishing', label_zh: '站立+结束体式', is_custom: false },
 ];
 
 export const usePracticeData = () => {
