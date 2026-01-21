@@ -2615,7 +2615,11 @@ export default function AshtangaTracker() {
 
           if (result) {
             trackEvent('import_data')
-            setShowSettings(false)
+            // 不要立即关闭设置弹窗，让ImportModal显示成功提示
+            // ImportModal会在2.5秒后自动关闭自己，然后我们再关闭设置弹窗
+            setTimeout(() => {
+              setShowSettings(false)
+            }, 2600)
           }
 
           return result

@@ -32,17 +32,26 @@ export function ImportModal({ isOpen, onClose, onImport }: ImportModalProps) {
       return
     }
 
+    console.log('=== ImportModal handleConfirmImport ===')
+    console.log('importText length:', importText.length)
+    console.log('Calling onImport...')
+
     const success = onImport(importText)
 
+    console.log('onImport returned:', success)
+
     if (success) {
+      console.log('Setting status to success')
       setImportStatus('success')
-      // 2秒后自动关闭
+      // 2.5秒后自动关闭
       setTimeout(() => {
+        console.log('Closing modal after success')
         setImportText('')
         setImportStatus('idle')
         onClose()
-      }, 2000)
+      }, 2500)
     } else {
+      console.log('Setting status to error')
       setImportStatus('error')
       setErrorMessage('数据格式不正确，请检查是否完整')
     }
