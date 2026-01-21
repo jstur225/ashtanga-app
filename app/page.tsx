@@ -1,15 +1,17 @@
 "use client"
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react"
-import { BookOpen, BarChart3, Calendar, X, Camera, Pause, Play, Trash2, User, Settings, ChevronLeft, ChevronRight, ChevronUp, Cloud, Download, Upload, Plus, Share2, Sparkles, Check } from "lucide-react"
-import { motion, AnimatePresence } from "framer-motion"
-import { useLocalStorage, useInterval } from 'react-use'
-import { usePracticeData, PracticeRecord, PracticeOption, UserProfile } from '@/hooks/usePracticeData'
-import { trackEvent } from '@/lib/analytics'
-import { toast } from 'sonner'
-import { FakeDoorModal } from '@/components/FakeDoorModal'
+import { BookOpen, BarChart3, Calendar, X, Camera, Pause, Play, Trash2, User, Settings, ChevronLeft, ChevronRight, ChevronUp, Cloud, Download, Upload, Plus, Share2, Sparkles, Check, Copy, ClipboardPaste } from "lucide-react"
 
 // Helper functions
+function getLocalDateStr() {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 function formatMinutes(seconds: number): string {
   const minutes = Math.floor(seconds / 60)
   return `${minutes}`
@@ -1027,7 +1029,7 @@ function SettingsModal({
   onClose: () => void
   profile: UserProfile
   onSave: (profile: UserProfile) => void
-  onExport: () => void
+  onExport: () => string
   onImport: (json: string) => void
 }) {
   const [name, setName] = useState(profile.name)
@@ -1184,48 +1186,63 @@ function SettingsModal({
                 <div className="space-y-4">
                   <div className="p-4 rounded-2xl bg-orange-50 border border-orange-100 mb-2">
                     <p className="text-xs text-orange-600 font-serif leading-relaxed">
-                      ⚠️ MVP 阶段所有数据均存储在浏览器本地。为了防止数据丢失（如清除缓存），请定期使用导出功能备份您的数据。
+                      这是你的数据胶囊，请妥善保管。
                     </p>
                   </div>
                   
                   <button
-                    onClick={onExport}
+                    onClick={async () => {
+                      const data = onExport()
+                      try {
+                        await navigator.clipboard.writeText(data)
+                        toast.success('数据胶囊已复制，请妥善保管')
+                      } catch (err) {
+                        toast.error('复制失败，请手动导出')
+                      }
+                    }}
                     className="w-full flex items-center justify-between p-4 rounded-2xl bg-secondary hover:bg-secondary/80 transition-all group"
                   >
                     <div className="flex items-center gap-3">
                       <div className="p-2 rounded-xl bg-blue-50 text-blue-500">
-                        <Download className="w-5 h-5" />
+                        <Copy className="w-5 h-5" />
                       </div>
                       <div className="text-left">
-                        <div className="text-sm font-serif text-foreground">导出所有数据</div>
-                        <div className="text-[10px] text-muted-foreground font-serif">下载备份 JSON 文件</div>
+                        <div className="text-sm font-serif text-foreground">复制数据胶囊</div>
+                        <div className="text-[10px] text-muted-foreground font-serif">将所有数据复制到剪贴板</div>
                       </div>
                     </div>
                     <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
                   </button>
 
                   <button
-                    onClick={handleImportClick}
+                    onClick={async () => {
+                      try {
+                        const text = await navigator.clipboard.readText()
+                        if (text) {
+                          onImport(text)
+                        } else {
+                          // toast handled by parent or here?
+                          // Let's assume onImport handles empty or invalid
+                        }
+                      } catch (err) {
+                        // Fallback or error
+                        alert('无法访问剪贴板，请手动粘贴')
+                        // Could toggle a textarea visibility here if needed, but for now simple alert
+                      }
+                    }}
                     className="w-full flex items-center justify-between p-4 rounded-2xl bg-secondary hover:bg-secondary/80 transition-all group"
                   >
                     <div className="flex items-center gap-3">
                       <div className="p-2 rounded-xl bg-purple-50 text-purple-500">
-                        <Upload className="w-5 h-5" />
+                        <ClipboardPaste className="w-5 h-5" />
                       </div>
                       <div className="text-left">
-                        <div className="text-sm font-serif text-foreground">导入备份数据</div>
-                        <div className="text-[10px] text-muted-foreground font-serif">从 JSON 文件恢复数据</div>
+                        <div className="text-sm font-serif text-foreground">粘贴数据胶囊</div>
+                        <div className="text-[10px] text-muted-foreground font-serif">从剪贴板恢复数据</div>
                       </div>
                     </div>
                     <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
                   </button>
-                  <input
-                    ref={importFileInputRef}
-                    type="file"
-                    accept=".json"
-                    className="hidden"
-                    onChange={handleFileChange}
-                  />
                 </div>
               )}
 
@@ -1432,7 +1449,8 @@ function MonthlyHeatmap({
   onAddRecord: () => void
 }) {
   const [votedCloud] = useLocalStorage('voted_cloud_sync', false)
-  const today = new Date('2026-01-18')
+  const today = new Date()
+  const todayStr = getLocalDateStr()
   const [viewDate, setViewDate] = useState(today)
   
   const currentMonth = viewDate.getMonth()
@@ -1537,7 +1555,7 @@ function MonthlyHeatmap({
         {calendarDays.map((day, idx) => {
           const dateStr = day ? `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}` : ''
           const practiced = day ? practiceMap[dateStr] : false
-          const isPast = day ? new Date(dateStr) <= today : false
+          const isPast = day ? dateStr <= todayStr : false
           
           return (
             <button
@@ -1639,7 +1657,7 @@ function JournalTab({
 
   // Calculate vanity metrics for share card
   const totalPracticeCount = practiceHistory.length
-  const today = new Date('2026-01-18')
+  const today = new Date()
   const thisMonthDays = useMemo(() => {
     const currentMonth = today.getMonth()
     const currentYear = today.getFullYear()
@@ -1754,7 +1772,7 @@ function JournalTab({
                   className="w-full text-left hover:bg-secondary/30 rounded-lg transition-colors"
                   style={{ borderRadius: '0 0.5rem 0.5rem 0' }}
                 >
-                  <p className="text-xs text-foreground font-serif leading-snug line-clamp-3">
+                  <p className="text-base text-foreground font-serif leading-snug line-clamp-3">
                     {practice.notes}
                   </p>
                 </button>
@@ -1837,7 +1855,8 @@ function StatsTab({
   const [dateOffset, setDateOffset] = useState(0)
   const [hasVotedPro] = useLocalStorage('has_voted_pro', false)
   
-  const today = new Date('2026-01-19')
+  const today = new Date()
+  const todayStr = getLocalDateStr()
 
   // Generate heatmap data for the year
   const heatmapData = useMemo(() => {
@@ -1857,7 +1876,8 @@ function StatsTab({
     
     practiceHistory.forEach((record) => {
       const date = new Date(record.date)
-      if (date.getMonth() === currentMonth && date.getFullYear() === currentYear && date <= today) {
+      // Check if record is in current month and year, and not in future (by string comparison for safety)
+      if (date.getMonth() === currentMonth && date.getFullYear() === currentYear && record.date <= todayStr) {
         if (record.duration > 0) {
           practiceDays++
           totalMinutes += Math.floor(record.duration / 60)
@@ -1868,7 +1888,7 @@ function StatsTab({
     const avgDuration = practiceDays > 0 ? Math.round(totalMinutes / practiceDays) : 0
     
     return { practiceDays, totalMinutes, avgDuration }
-  }, [practiceHistory, today])
+  }, [practiceHistory, today, todayStr])
 
   // Total stats (all time)
   const totalStats = useMemo(() => {
@@ -1934,7 +1954,7 @@ function StatsTab({
         </button>
       </div>
 
-      <div className="px-6">
+      <div className="px-6 pb-48">
         {/* Profile Section with PRO Badge - NOW FIRST */}
         <div className="flex flex-col items-center mb-6">
           <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] flex items-center justify-center mb-3 overflow-hidden">
@@ -2438,15 +2458,11 @@ export default function AshtangaTracker() {
     <div className="h-screen bg-background flex flex-col overflow-hidden">
       {/* Header - only show on practice tab */}
       {activeTab === 'practice' && (
-        <header className="pt-14 pb-6 px-6 flex-shrink-0 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <img src="/icon.png" alt="熬汤日记" className="w-8 h-8 rounded-lg" />
-            <h1 className="text-xl font-serif text-foreground tracking-wide">熬汤日记·觉察呼吸</h1>
+        <header className="pt-14 pb-6 px-6 flex-shrink-0 flex flex-col items-center justify-center">
+          <div className="flex flex-col items-center gap-2">
+            <img src="/icon.png" alt="熬汤日记" className="w-12 h-12 rounded-xl shadow-sm" />
+            <h1 className="text-xl font-serif text-foreground tracking-wide font-semibold">熬汤日记 · 觉察呼吸</h1>
           </div>
-          <SyncButton 
-            onOpenFakeDoor={() => setShowFakeDoor({ type: 'cloud', isOpen: true })} 
-            hasVoted={votedCloud || false} 
-          />
         </header>
       )}
 
@@ -2454,7 +2470,7 @@ export default function AshtangaTracker() {
       {activeTab === 'practice' && (
         <main className="flex-1 px-6 flex flex-col pb-32 overflow-y-auto">
           {/* Selection Grid - Glassmorphism on selected */}
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 gap-3 p-4">
             {practiceOptions.map((option) => {
               const isSelected = selectedOption === option.id
               const isCustomButton = option.id === "custom"
@@ -2465,14 +2481,14 @@ export default function AshtangaTracker() {
                   whileTap={{ scale: 0.97 }}
                   onClick={() => handleOptionTap(option)}
                   className={`
-                    py-3 px-2 rounded-[20px] text-center font-serif transition-all duration-200
+                    py-3 px-2 rounded-[20px] text-center font-serif transition-all duration-300
                     min-h-[72px] flex flex-col items-center justify-center
                     ${
                       isSelected
-                        ? "bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] text-primary-foreground backdrop-blur-[16px] border border-white/30 shadow-[0_8px_32px_rgba(45,90,39,0.4)]"
+                        ? "bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] text-primary-foreground backdrop-blur-[16px] border border-white/30 shadow-[0_8px_24px_rgba(45,90,39,0.3)]"
                         : isCustomButton
-                          ? "bg-background text-muted-foreground border-2 border-dashed border-muted-foreground/30 shadow-[0_4px_20px_rgba(0,0,0,0.05)]"
-                          : "bg-background text-foreground shadow-[0_4px_20px_rgba(0,0,0,0.05)]"
+                          ? "bg-background text-muted-foreground border-2 border-dashed border-muted-foreground/30 shadow-[0_2px_12px_rgba(0,0,0,0.03)]"
+                          : "bg-background text-foreground shadow-[0_4px_16px_rgba(0,0,0,0.06)] border border-stone-100/50"
                     }
                   `}
                 >
@@ -2611,13 +2627,7 @@ export default function AshtangaTracker() {
         onExport={() => {
           const data = exportData()
           trackEvent('export_data')
-          const blob = new Blob([data], { type: 'application/json' })
-          const url = URL.createObjectURL(blob)
-          const a = document.createElement('a')
-          a.href = url
-          a.download = `ashtanga-backup-${new Date().toISOString().split('T')[0]}.json`
-          a.click()
-          toast.success('数据已导出')
+          return data
         }}
         onImport={(json) => {
           if (importData(json)) {
