@@ -56,12 +56,13 @@ export const usePracticeData = () => {
     is_pro: false,
   });
 
-  // Ensure options always has defaults
+  // 只在第一次初始化时设置默认值（如果 localStorage 为空）
   useEffect(() => {
-    if (!options || options.length === 0) {
+    const stored = localStorage.getItem('ashtanga_options');
+    if (!stored) {
       setOptions(DEFAULT_OPTIONS);
     }
-  }, [options, setOptions]);
+  }, []); // 只在组件挂载时执行一次
 
   const addRecord = (record: Omit<PracticeRecord, 'id' | 'created_at' | 'photos'>) => {
     const newRecord: PracticeRecord = {
@@ -96,6 +97,16 @@ export const usePracticeData = () => {
     };
     setOptions([...(options || []), newOption]);
     return newOption;
+  };
+
+  const updateOption = (id: string, label: string, label_zh: string, notes?: string) => {
+    setOptions((options || []).map(o =>
+      o.id === id ? { ...o, label, label_zh, notes } : o
+    ));
+  };
+
+  const deleteOption = (id: string) => {
+    setOptions((options || []).filter(o => o.id !== id));
   };
 
   const exportData = () => {
@@ -140,6 +151,8 @@ export const usePracticeData = () => {
     deleteRecord,
     updateProfile,
     addOption,
+    updateOption,
+    deleteOption,
     exportData,
     importData,
   };

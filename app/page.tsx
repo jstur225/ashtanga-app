@@ -2052,6 +2052,8 @@ export default function AshtangaTracker() {
     deleteRecord,
     updateProfile,
     addOption,
+    updateOption,
+    deleteOption,
     exportData,
     importData
   } = usePracticeData()
@@ -2204,22 +2206,35 @@ export default function AshtangaTracker() {
   }
 
   const handleEditSave = (id: string, name: string, notes: string) => {
-    setPracticeOptions(prev => prev.map(o => 
+    // Update localStorage
+    updateOption(id, name, name, notes)
+
+    // Update local state
+    setPracticeOptions(prev => prev.map(o =>
       o.id === id ? { ...o, labelZh: name, label: name, notes } : o
     ))
+
+    toast.success('已保存修改')
   }
 
   const handleEditDelete = (id: string) => {
     // Cannot delete if only 2 non-custom options remain
     const nonCustomOptions = practiceOptions.filter(o => o.id !== "custom")
     if (nonCustomOptions.length <= 2) {
+      toast.error('至少需要保留2个练习选项')
       return
     }
-    
+
+    // Update localStorage
+    deleteOption(id)
+
+    // Update local state
     setPracticeOptions(prev => prev.filter(o => o.id !== id))
     if (selectedOption === id) {
       setSelectedOption(null)
     }
+
+    toast.success('已删除选项')
   }
 
   const handleEditRecord = (id: string, notes: string, photos: string[], breakthrough?: string) => {
