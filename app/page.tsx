@@ -2465,7 +2465,7 @@ export default function AshtangaTracker() {
                 >
                   <span className="text-sm leading-tight">{isCustomButton ? "+ 自定义" : option.labelZh}</span>
                   {!isCustomButton && option.notes && (
-                    <span className={`text-xs mt-1 leading-tight ${isSelected ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
+                    <span className={`text-[10px] mt-1 leading-tight ${isSelected ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
                       {option.notes}
                     </span>
                   )}
@@ -2609,20 +2609,24 @@ export default function AshtangaTracker() {
         isOpen={showImportModal}
         onClose={() => setShowImportModal(false)}
         onImport={(json) => {
-          console.log('Import called with data length:', json.length)
           const result = importData(json)
-          console.log('Import result:', result)
 
           if (result) {
+            toast.success('✅ 数据导入成功！', {
+              duration: 3000,
+              position: 'top-center'
+            })
             trackEvent('import_data')
-            // 不要立即关闭设置弹窗，让ImportModal显示成功提示
-            // ImportModal会在2.5秒后自动关闭自己，然后我们再关闭设置弹窗
             setTimeout(() => {
+              setShowImportModal(false)
               setShowSettings(false)
-            }, 2600)
+            }, 500)
+          } else {
+            toast.error('❌ 数据导入失败，请检查格式', {
+              duration: 3000,
+              position: 'top-center'
+            })
           }
-
-          return result
         }}
       />
 
