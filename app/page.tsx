@@ -1772,7 +1772,7 @@ function JournalTab({
                   className="w-full text-left hover:bg-secondary/30 rounded-lg transition-colors"
                   style={{ borderRadius: '0 0.5rem 0.5rem 0' }}
                 >
-                  <p className="text-base text-foreground font-serif leading-snug line-clamp-3">
+                  <p className="text-lg text-foreground font-serif leading-snug line-clamp-3">
                     {practice.notes}
                   </p>
                 </button>
