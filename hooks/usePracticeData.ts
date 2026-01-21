@@ -57,9 +57,10 @@ export const usePracticeData = () => {
     is_pro: false,
   });
 
-  // 只在第一次初始化时设置默认值（如果 options 为空）
+  // 只在第一次初始化时设置默认值（如果 localStorage 为空）
   useEffect(() => {
-    if (!options || options.length === 0) {
+    const stored = localStorage.getItem('ashtanga_options');
+    if (!stored || stored === '[]') {
       setOptions(DEFAULT_OPTIONS);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
