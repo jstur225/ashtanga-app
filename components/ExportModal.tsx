@@ -101,7 +101,7 @@ export function ExportModal({ isOpen, onClose, data }: ExportModalProps) {
                 {/* 提示信息 */}
                 <div className="p-3 rounded-2xl bg-blue-50 border border-blue-100 mb-4">
                   <p className="text-xs text-blue-600 font-serif leading-relaxed">
-                    长按复制所有文本，请保存好。这是你的完整数据，请妥善保管。建议定期备份。
+                    这是你的完整数据，请妥善保存好。建议定期备份。
                   </p>
                 </div>
 

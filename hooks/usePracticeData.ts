@@ -109,9 +109,18 @@ export const usePracticeData = () => {
   const importData = (jsonString: string) => {
     try {
       const data = JSON.parse(jsonString);
+
+      // 验证数据结构
+      if (!data.records && !data.options && !data.profile) {
+        console.error('Invalid data structure: missing required fields');
+        return false;
+      }
+
       if (data.records) setRecords(data.records);
       if (data.options) setOptions(data.options);
       if (data.profile) setProfile(data.profile);
+
+      console.log('Data imported successfully');
       return true;
     } catch (e) {
       console.error('Failed to import data:', e);

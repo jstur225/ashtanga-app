@@ -1174,7 +1174,7 @@ function SettingsModal({
                 <div className="space-y-4">
                   <div className="p-4 rounded-2xl bg-orange-50 border border-orange-100 mb-2">
                     <p className="text-xs text-orange-600 font-serif leading-relaxed">
-                      这是你的数据胶囊，请妥善保管。
+                      隐私安全原因，所有数据保存在本地。卸载浏览器或清除缓存前，一定要备份。
                     </p>
                   </div>
 
@@ -1995,7 +1995,7 @@ function StatsTab({
           </div>
 
           {/* Flowing Dots Grid - Breathing Fade animation */}
-          <div className="p-4 pt-2">
+          <div className="p-4 pt-0">
             <AnimatePresence mode="wait">
               <motion.div
                 key={viewMode}
@@ -2609,12 +2609,22 @@ export default function AshtangaTracker() {
         isOpen={showImportModal}
         onClose={() => setShowImportModal(false)}
         onImport={(json) => {
-          if (importData(json)) {
+          console.log('Import called with data length:', json.length)
+          const result = importData(json)
+          console.log('Import result:', result)
+
+          if (result) {
             trackEvent('import_data')
-            toast.success('✅ 数据已恢复')
+            toast.success('✅ 数据已恢复', {
+              duration: 3000,
+              position: 'top-center'
+            })
             setShowSettings(false)
           } else {
-            toast.error('❌ 导入失败，请检查文件格式')
+            toast.error('❌ 导入失败，请检查数据格式是否正确', {
+              duration: 4000,
+              position: 'top-center'
+            })
           }
         }}
       />
