@@ -46,7 +46,8 @@ const DEFAULT_OPTIONS: PracticeOption[] = [
 
 export const usePracticeData = () => {
   const [records, setRecords] = useLocalStorage<PracticeRecord[]>('ashtanga_records', []);
-  const [options, setOptions] = useLocalStorage<PracticeOption[]>('ashtanga_options', DEFAULT_OPTIONS);
+  // 使用空数组作为默认值，然后在 useEffect 中初始化
+  const [options, setOptions] = useLocalStorage<PracticeOption[]>('ashtanga_options', []);
   const [profile, setProfile] = useLocalStorage<UserProfile>('ashtanga_profile', {
     id: '',
     created_at: new Date().toISOString(),
@@ -56,12 +57,12 @@ export const usePracticeData = () => {
     is_pro: false,
   });
 
-  // 只在第一次初始化时设置默认值（如果 localStorage 为空）
+  // 只在第一次初始化时设置默认值（如果 options 为空）
   useEffect(() => {
-    const stored = localStorage.getItem('ashtanga_options');
-    if (!stored) {
+    if (!options || options.length === 0) {
       setOptions(DEFAULT_OPTIONS);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // 只在组件挂载时执行一次
 
   const addRecord = (record: Omit<PracticeRecord, 'id' | 'created_at' | 'photos'>) => {
