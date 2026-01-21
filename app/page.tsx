@@ -2433,20 +2433,20 @@ export default function AshtangaTracker() {
 
   // Dashboard View
   return (
-    <div className="h-screen bg-background flex flex-col overflow-hidden">
-      {/* Header - only show on practice tab */}
-      {activeTab === 'practice' && (
-        <header className="pt-12 pb-4 px-6 flex-shrink-0 flex items-center justify-center">
-          <div className="flex flex-row items-center gap-3">
-            <img src="/icon.png" alt="熬汤日记" className="w-8 h-8 rounded-lg shadow-sm" />
-            <h1 className="text-lg font-serif text-foreground tracking-wide font-semibold">熬汤日记 · 觉察呼吸</h1>
-          </div>
-        </header>
-      )}
-
-      {/* Tab Content */}
+    <div className="h-screen bg-background flex flex-col">
+      {/* Tab Content - includes header in scroll */}
       {activeTab === 'practice' && (
         <main className="flex-1 px-6 flex flex-col pb-32 overflow-y-auto">
+          {/* Header - scrolls with content, can be clipped */}
+          <header className="pt-12 pb-4 flex items-center justify-center">
+            <div className="flex flex-row items-center gap-3">
+              <img src="/icon.png" alt="熬汤日记" className="w-8 h-8 rounded-lg shadow-sm" />
+              <h1 className="text-lg font-serif text-foreground tracking-wide font-semibold">
+                熬汤日记
+                <span className="text-muted-foreground/70 font-normal">·呼吸·觉察</span>
+              </h1>
+            </div>
+          </header>
           {/* Selection Grid - Glassmorphism on selected */}
           <div className="grid grid-cols-3 gap-3 p-4">
             {practiceOptions.map((option) => {
