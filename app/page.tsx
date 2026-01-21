@@ -1180,49 +1180,69 @@ function SettingsModal({
                   {/* 导出按钮 */}
                   <button
                     onClick={async () => {
-                      try {
-                        const data = onExport()
-                        console.log('导出数据长度:', data.length)
+                      const data = onExport()
+                      console.log('导出数据长度:', data.length)
 
-                        // 尝试使用现代clipboard API
-                        if (navigator.clipboard && navigator.clipboard.writeText) {
+                      let success = false
+                      let errorMessage = ''
+
+                      // 方法1: 尝试使用现代clipboard API
+                      if (navigator.clipboard && navigator.clipboard.writeText) {
+                        try {
                           await navigator.clipboard.writeText(data)
-                          toast.success('✅ 数据胶囊已复制到剪贴板', {
-                            duration: 3000,
-                            position: 'top-center'
-                          })
-                        } else {
-                          // 降级方案：使用传统的execCommand
+                          success = true
+                          console.log('clipboard API 成功')
+                        } catch (err) {
+                          console.warn('clipboard API 失败，尝试降级方案:', err)
+                          errorMessage = String(err)
+                        }
+                      }
+
+                      // 方法2: 降级方案 - 使用传统的execCommand
+                      if (!success) {
+                        try {
                           const textArea = document.createElement('textarea')
                           textArea.value = data
                           textArea.style.position = 'fixed'
-                          textArea.style.left = '-9999px'
+                          textArea.style.left = '-999999px'
+                          textArea.style.top = '-999999px'
                           document.body.appendChild(textArea)
                           textArea.focus()
                           textArea.select()
 
-                          try {
-                            const successful = document.execCommand('copy')
-                            document.body.removeChild(textArea)
+                          const successful = document.execCommand('copy')
+                          document.body.removeChild(textArea)
 
-                            if (successful) {
-                              toast.success('✅ 数据胶囊已复制到剪贴板', {
-                                duration: 3000,
-                                position: 'top-center'
-                              })
-                            } else {
-                              throw new Error('execCommand failed')
-                            }
-                          } catch (err) {
-                            document.body.removeChild(textArea)
-                            throw err
+                          if (successful) {
+                            success = true
+                            console.log('execCommand 成功')
+                          } else {
+                            errorMessage = 'execCommand returned false'
                           }
+                        } catch (err) {
+                          console.error('execCommand 也失败:', err)
+                          errorMessage = String(err)
                         }
-                      } catch (err) {
-                        console.error('复制失败:', err)
-                        toast.error('❌ 复制失败，请长按数据手动复制', {
-                          duration: 4000,
+                      }
+
+                      // 显示结果
+                      if (success) {
+                        toast.success('✅ 数据胶囊已复制到剪贴板', {
+                          duration: 3000,
                           position: 'top-center'
+                        })
+                      } else {
+                        console.error('所有复制方法都失败:', errorMessage)
+                        toast.error('❌ 复制失败，请长按下方数据手动复制', {
+                          duration: 5000,
+                          position: 'top-center',
+                          action: {
+                            label: '查看数据',
+                            onClick: () => {
+                              console.log('数据内容:', data)
+                              alert('数据已输出到控制台，可以手动复制')
+                            }
+                          }
                         })
                       }
                     }}
@@ -1949,7 +1969,7 @@ function StatsTab({
     switch (viewMode) {
       case 'month': return { size: 'w-10 h-10', gap: 'gap-4', rounded: 'rounded-xl', cols: 'grid-cols-7' }
       case 'quarter': return { size: 'w-6 h-6', gap: 'gap-2', rounded: 'rounded-lg', cols: 'grid-cols-10' }
-      case 'year': return { size: 'w-3.5 h-3.5', gap: 'gap-1.5', rounded: 'rounded-full', cols: 'grid-cols-[repeat(53,minmax(0,1fr))]' }
+      case 'year': return { size: 'w-3 h-3', gap: 'gap-1', rounded: 'rounded-full', cols: 'grid-cols-12' }
     }
   }, [viewMode])
 
