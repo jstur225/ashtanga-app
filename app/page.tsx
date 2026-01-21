@@ -1042,6 +1042,8 @@ function SettingsModal({
   const [signature, setSignature] = useState(profile.signature)
   const [avatar, setAvatar] = useState<string | null>(profile.avatar)
   const [activeSection, setActiveSection] = useState<'profile' | 'data'>('profile')
+  const [exportedData, setExportedData] = useState<string>('')
+  const [showExportData, setShowExportData] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -1181,6 +1183,7 @@ function SettingsModal({
                   <button
                     onClick={async () => {
                       const data = onExport()
+                      setExportedData(data)
                       console.log('导出数据长度:', data.length)
 
                       let success = false
@@ -1233,16 +1236,10 @@ function SettingsModal({
                         })
                       } else {
                         console.error('所有复制方法都失败:', errorMessage)
-                        toast.error('❌ 复制失败，请长按下方数据手动复制', {
+                        setShowExportData(true)
+                        toast('⚠️ 自动复制失败，请手动复制下方数据', {
                           duration: 5000,
-                          position: 'top-center',
-                          action: {
-                            label: '查看数据',
-                            onClick: () => {
-                              console.log('数据内容:', data)
-                              alert('数据已输出到控制台，可以手动复制')
-                            }
-                          }
+                          position: 'top-center'
                         })
                       }
                     }}
@@ -1276,6 +1273,35 @@ function SettingsModal({
                     </div>
                     <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
                   </button>
+
+                  {/* 导出数据显示区域（自动复制失败时显示） */}
+                  {showExportData && exportedData && (
+                    <div className="mt-4 p-4 rounded-2xl bg-red-50 border border-red-200">
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-xs text-red-600 font-serif">
+                          ⚠️ 自动复制失败，请长选下方数据手动复制
+                        </p>
+                        <button
+                          onClick={() => setShowExportData(false)}
+                          className="text-xs text-red-500 hover:text-red-700 font-serif"
+                        >
+                          收起
+                        </button>
+                      </div>
+                      <textarea
+                        readOnly
+                        value={exportedData}
+                        className="w-full h-32 px-3 py-2 rounded-xl bg-white border border-red-200 text-[10px] font-mono text-red-900 resize-none focus:outline-none"
+                        onClick={(e) => {
+                          const target = e.target as HTMLTextAreaElement
+                          target.select()
+                        }}
+                      />
+                      <p className="text-[10px] text-red-500 font-serif mt-2">
+                        💡 提示：长按文本可全选，然后复制
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -1968,7 +1994,7 @@ function StatsTab({
   const dotConfig = useMemo(() => {
     switch (viewMode) {
       case 'quarter': return { size: 'w-6 h-6', gap: 'gap-2', rounded: 'rounded-xl', cols: 'grid-cols-10' }
-      case 'half': return { size: 'w-5 h-5', gap: 'gap-2', rounded: 'rounded-lg', cols: 'grid-cols-12' }
+      case 'half': return { size: 'w-5 h-5', gap: 'gap-2', rounded: 'rounded-lg', cols: 'grid-cols-11' }
       case 'year': return { size: 'w-4 h-4', gap: 'gap-2', rounded: 'rounded-full', cols: 'grid-cols-12' }
     }
   }, [viewMode])

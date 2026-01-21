@@ -74,8 +74,8 @@ export function ImportModal({ isOpen, onClose, onImport }: ImportModalProps) {
                 </p>
 
                 {/* 提示信息 */}
-                <div className="p-3 rounded-2xl bg-purple-50 border border-purple-100 mb-4">
-                  <p className="text-xs text-purple-600 font-serif leading-relaxed">
+                <div className="p-3 rounded-2xl bg-red-50 border border-red-100 mb-4">
+                  <p className="text-xs text-red-600 font-serif leading-relaxed">
                     请粘贴之前复制的数据胶囊内容。
                   </p>
                 </div>
@@ -97,7 +97,7 @@ export function ImportModal({ isOpen, onClose, onImport }: ImportModalProps) {
                 {/* 一键粘贴按钮 */}
                 <button
                   onClick={handlePaste}
-                  className="w-full flex items-center justify-center gap-2 p-3 rounded-2xl bg-gradient-to-br from-purple-500 to-purple-600 text-white font-serif transition-all hover:opacity-90 mb-3"
+                  className="w-full flex items-center justify-center gap-2 p-3 rounded-2xl bg-gradient-to-br from-red-500 to-red-600 text-white font-serif transition-all hover:opacity-90 mb-3"
                 >
                   <ClipboardPaste className="w-4 h-4" />
                   <span className="text-sm">一键粘贴</span>
