@@ -2615,17 +2615,10 @@ export default function AshtangaTracker() {
 
           if (result) {
             trackEvent('import_data')
-            toast.success('✅ 数据已恢复', {
-              duration: 3000,
-              position: 'top-center'
-            })
             setShowSettings(false)
-          } else {
-            toast.error('❌ 导入失败，请检查数据格式是否正确', {
-              duration: 4000,
-              position: 'top-center'
-            })
           }
+
+          return result
         }}
       />
 
