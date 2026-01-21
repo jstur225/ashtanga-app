@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { usePracticeData, type PracticeRecord, type PracticeOption, type UserProfile } from "@/hooks/usePracticeData"
 import { BookOpen, BarChart3, Calendar, X, Camera, Pause, Play, Trash2, User, Settings, ChevronLeft, ChevronRight, ChevronUp, Cloud, Download, Upload, Plus, Share2, Sparkles, Check, Copy, ClipboardPaste } from "lucide-react"
 import { FakeDoorModal } from "@/components/FakeDoorModal"
+import { ImportModal } from "@/components/ImportModal"
 import { toast } from 'sonner'
 
 // Helper functions
@@ -1028,22 +1029,20 @@ function SettingsModal({
   profile,
   onSave,
   onExport,
-  onImport,
+  onOpenImport,
 }: {
   isOpen: boolean
   onClose: () => void
   profile: UserProfile
   onSave: (profile: UserProfile) => void
   onExport: () => string
-  onImport: (json: string) => void
+  onOpenImport: () => void
 }) {
   const [name, setName] = useState(profile.name)
   const [signature, setSignature] = useState(profile.signature)
   const [avatar, setAvatar] = useState<string | null>(profile.avatar)
-  const [activeSection, setActiveSection] = useState<'profile' | 'data' | 'import'>('profile')
-  const [importText, setImportText] = useState('')
+  const [activeSection, setActiveSection] = useState<'profile' | 'data'>('profile')
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const importFileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     setName(profile.name)
@@ -1063,26 +1062,8 @@ function SettingsModal({
   }
 
   const handleSave = () => {
-    onSave({ ...profile, name, signature, avatar, phone, email })
+    onSave({ ...profile, name, signature, avatar })
     onClose()
-  }
-
-  const handleImportClick = () => {
-    importFileInputRef.current?.click()
-  }
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      const reader = new FileReader()
-      reader.onload = (event) => {
-        const content = event.target?.result as string
-        onImport(content)
-      }
-      reader.readAsText(file)
-    }
-    // Reset input
-    if (e.target) e.target.value = ""
   }
 
   return (
@@ -1199,12 +1180,50 @@ function SettingsModal({
                   {/* 导出按钮 */}
                   <button
                     onClick={async () => {
-                      const data = onExport()
                       try {
-                        await navigator.clipboard.writeText(data)
-                        toast.success('数据胶囊已复制到剪贴板')
+                        const data = onExport()
+                        console.log('导出数据长度:', data.length)
+
+                        // 尝试使用现代clipboard API
+                        if (navigator.clipboard && navigator.clipboard.writeText) {
+                          await navigator.clipboard.writeText(data)
+                          toast.success('✅ 数据胶囊已复制到剪贴板', {
+                            duration: 3000,
+                            position: 'top-center'
+                          })
+                        } else {
+                          // 降级方案：使用传统的execCommand
+                          const textArea = document.createElement('textarea')
+                          textArea.value = data
+                          textArea.style.position = 'fixed'
+                          textArea.style.left = '-9999px'
+                          document.body.appendChild(textArea)
+                          textArea.focus()
+                          textArea.select()
+
+                          try {
+                            const successful = document.execCommand('copy')
+                            document.body.removeChild(textArea)
+
+                            if (successful) {
+                              toast.success('✅ 数据胶囊已复制到剪贴板', {
+                                duration: 3000,
+                                position: 'top-center'
+                              })
+                            } else {
+                              throw new Error('execCommand failed')
+                            }
+                          } catch (err) {
+                            document.body.removeChild(textArea)
+                            throw err
+                          }
+                        }
                       } catch (err) {
-                        toast.error('复制失败，请手动导出')
+                        console.error('复制失败:', err)
+                        toast.error('❌ 复制失败，请长按数据手动复制', {
+                          duration: 4000,
+                          position: 'top-center'
+                        })
                       }
                     }}
                     className="w-full flex items-center justify-between p-4 rounded-2xl bg-secondary hover:bg-secondary/80 transition-all group"
@@ -1223,7 +1242,7 @@ function SettingsModal({
 
                   {/* 导入按钮 */}
                   <button
-                    onClick={() => setActiveSection('import')}
+                    onClick={onOpenImport}
                     className="w-full flex items-center justify-between p-4 rounded-2xl bg-secondary hover:bg-secondary/80 transition-all group"
                   >
                     <div className="flex items-center gap-3">
@@ -1236,71 +1255,6 @@ function SettingsModal({
                       </div>
                     </div>
                     <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
-                  </button>
-                </div>
-              )}
-
-              {activeSection === 'import' && (
-                <div className="space-y-4">
-                  {/* 返回按钮 */}
-                  <button
-                    onClick={() => setActiveSection('data')}
-                    className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-4"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                    <span className="text-sm font-serif">返回数据管理</span>
-                  </button>
-
-                  <div className="p-4 rounded-2xl bg-purple-50 border border-purple-100 mb-2">
-                    <p className="text-xs text-purple-600 font-serif leading-relaxed">
-                      请粘贴之前复制的数据胶囊。
-                    </p>
-                  </div>
-
-                  {/* 输入框 */}
-                  <div>
-                    <label className="block text-xs font-serif text-muted-foreground mb-1.5">数据胶囊</label>
-                    <textarea
-                      value={importText}
-                      onChange={(e) => setImportText(e.target.value)}
-                      placeholder="在此粘贴数据胶囊..."
-                      rows={6}
-                      className="w-full px-4 py-3 rounded-2xl bg-secondary text-foreground font-serif focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-none text-xs"
-                    />
-                  </div>
-
-                  {/* 一键粘贴按钮 */}
-                  <button
-                    onClick={async () => {
-                      try {
-                        const text = await navigator.clipboard.readText()
-                        setImportText(text)
-                        toast.success('已粘贴到输入框')
-                      } catch (err) {
-                        toast.error('无法访问剪贴板，请手动粘贴')
-                      }
-                    }}
-                    className="w-full flex items-center justify-center gap-2 p-4 rounded-2xl bg-gradient-to-br from-purple-500 to-purple-600 text-white font-serif transition-all hover:opacity-90"
-                  >
-                    <ClipboardPaste className="w-4 h-4" />
-                    <span className="text-sm">一键粘贴</span>
-                  </button>
-
-                  {/* 确认导入按钮 */}
-                  <button
-                    onClick={() => {
-                      if (importText.trim()) {
-                        onImport(importText)
-                        setImportText('')
-                        setActiveSection('data')
-                      } else {
-                        toast.error('请先粘贴数据胶囊')
-                      }
-                    }}
-                    className="w-full flex items-center justify-center gap-2 p-4 rounded-2xl bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] text-white font-serif transition-all hover:opacity-90"
-                  >
-                    <Check className="w-4 h-4" />
-                    <span className="text-sm">确认导入</span>
                   </button>
                 </div>
               )}
@@ -1995,7 +1949,7 @@ function StatsTab({
     switch (viewMode) {
       case 'month': return { size: 'w-10 h-10', gap: 'gap-4', rounded: 'rounded-xl', cols: 'grid-cols-7' }
       case 'quarter': return { size: 'w-6 h-6', gap: 'gap-2', rounded: 'rounded-lg', cols: 'grid-cols-10' }
-      case 'year': return { size: 'w-3 h-3', gap: 'gap-1.5', rounded: 'rounded-sm', cols: 'grid-cols-[repeat(52,minmax(0,1fr))]' }
+      case 'year': return { size: 'w-3.5 h-3.5', gap: 'gap-1.5', rounded: 'rounded-full', cols: 'grid-cols-[repeat(53,minmax(0,1fr))]' }
     }
   }, [viewMode])
 
@@ -2165,6 +2119,7 @@ export default function AshtangaTracker() {
   const [activeTab, setActiveTab] = useState<'practice' | 'journal' | 'stats'>('practice')
   const [showSettings, setShowSettings] = useState(false)
   const [showFakeDoor, setShowFakeDoor] = useState<{ type: 'cloud' | 'pro', isOpen: boolean }>({ type: 'cloud', isOpen: false })
+  const [showImportModal, setShowImportModal] = useState(false)
   const [votedCloud] = useLocalStorage('voted_cloud_sync', false)
   const [isSaving, setIsSaving] = useState(false)
 
@@ -2688,13 +2643,20 @@ export default function AshtangaTracker() {
           trackEvent('export_data')
           return data
         }}
+        onOpenImport={() => setShowImportModal(true)}
+      />
+
+      {/* Import Modal */}
+      <ImportModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
         onImport={(json) => {
           if (importData(json)) {
             trackEvent('import_data')
-            toast.success('数据已恢复')
+            toast.success('✅ 数据已恢复')
             setShowSettings(false)
           } else {
-            toast.error('导入失败，请检查文件格式')
+            toast.error('❌ 导入失败，请检查文件格式')
           }
         }}
       />
