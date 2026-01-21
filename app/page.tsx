@@ -208,7 +208,7 @@ function CustomPracticeModal({
 
   const handleConfirm = () => {
     if (practiceName.trim()) {
-      onConfirm(practiceName.slice(0, 5), notes.slice(0, 7))
+      onConfirm(practiceName.slice(0, 10), notes.slice(0, 14))
       setPracticeName("")
       setNotes("")
     }
@@ -248,30 +248,30 @@ function CustomPracticeModal({
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-serif text-foreground mb-2">
-                    练习名称 <span className="text-muted-foreground text-xs">（最多5字）</span>
+                    练习名称 <span className="text-muted-foreground text-xs">（最多10字）</span>
                   </label>
                   <input
                     type="text"
                     value={practiceName}
-                    onChange={(e) => setPracticeName(e.target.value.slice(0, 5))}
+                    onChange={(e) => setPracticeName(e.target.value.slice(0, 10))}
                     placeholder="例如：三序列、恢复性..."
                     className="w-full px-4 py-3 rounded-2xl bg-secondary text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-serif"
                   />
-                  <div className="text-right text-xs text-muted-foreground mt-1">{practiceName.length}/5</div>
+                  <div className="text-right text-xs text-muted-foreground mt-1">{practiceName.length}/10</div>
                 </div>
 
                 <div>
                   <label className="block text-sm font-serif text-foreground mb-2">
-                    备注 <span className="text-muted-foreground text-xs">（最多7字）</span>
+                    备注 <span className="text-muted-foreground text-xs">（最多14字）</span>
                   </label>
                   <input
                     type="text"
                     value={notes}
-                    onChange={(e) => setNotes(e.target.value.slice(0, 7))}
+                    onChange={(e) => setNotes(e.target.value.slice(0, 14))}
                     placeholder="简短描述..."
                     className="w-full px-4 py-3 rounded-2xl bg-secondary text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-serif"
                   />
-                  <div className="text-right text-xs text-muted-foreground mt-1">{notes.length}/7</div>
+                  <div className="text-right text-xs text-muted-foreground mt-1">{notes.length}/14</div>
                 </div>
 
                 <button
@@ -319,7 +319,7 @@ function EditOptionModal({
 
   const handleSave = () => {
     if (option && name.trim()) {
-      onSave(option.id, name.slice(0, 5), notes.slice(0, 7))
+      onSave(option.id, name.slice(0, 10), notes.slice(0, 14))
       onClose()
     }
   }
@@ -383,29 +383,29 @@ function EditOptionModal({
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-serif text-foreground mb-2">
-                    名称 <span className="text-muted-foreground text-xs">（最多5字）</span>
+                    名称 <span className="text-muted-foreground text-xs">（最多10字）</span>
                   </label>
                   <input
                     type="text"
                     value={name}
-                    onChange={(e) => setName(e.target.value.slice(0, 5))}
+                    onChange={(e) => setName(e.target.value.slice(0, 10))}
                     className="w-full px-4 py-3 rounded-2xl bg-secondary text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-serif"
                   />
-                  <div className="text-right text-xs text-muted-foreground mt-1">{name.length}/5</div>
+                  <div className="text-right text-xs text-muted-foreground mt-1">{name.length}/10</div>
                 </div>
 
                 <div>
                   <label className="block text-sm font-serif text-foreground mb-2">
-                    备注 <span className="text-muted-foreground text-xs">（最多7字）</span>
+                    备注 <span className="text-muted-foreground text-xs">（最多14字）</span>
                   </label>
                   <input
                     type="text"
                     value={notes}
-                    onChange={(e) => setNotes(e.target.value.slice(0, 7))}
+                    onChange={(e) => setNotes(e.target.value.slice(0, 14))}
                     placeholder="简短描述..."
                     className="w-full px-4 py-3 rounded-2xl bg-secondary text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-serif"
                   />
-                  <div className="text-right text-xs text-muted-foreground mt-1">{notes.length}/7</div>
+                  <div className="text-right text-xs text-muted-foreground mt-1">{notes.length}/14</div>
                 </div>
 
                 <button
