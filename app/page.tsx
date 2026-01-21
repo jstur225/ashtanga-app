@@ -2183,26 +2183,18 @@ export default function AshtangaTracker() {
       setShowCustomModal(false)
       return
     }
-    
-    // Create a new permanent custom option
-    const newOption: PracticeOption = {
-      id: `custom-${Date.now()}`,
-      label: name,
-      labelZh: name,
-      notes: notes,
-      isCustom: true,
+
+    // Create a new permanent custom option and save to localStorage
+    const newOption = addOption(name, name)
+    if (notes) {
+      updateOption(newOption.id, name, name, notes)
     }
-    
-    // Insert before the "custom" button
-    const updatedOptions = [...practiceOptions]
-    const customIndex = updatedOptions.findIndex(o => o.id === "custom")
-    updatedOptions.splice(customIndex, 0, newOption)
-    setPracticeOptions(updatedOptions)
-    
-    // Select the new option
-    setSelectedOption(newOption.id)
+
+    // Update local state will be handled by useEffect when practiceOptionsData changes
     setCustomPracticeName(name)
     setShowCustomModal(false)
+
+    toast.success('已添加自定义选项')
   }
 
   const handleEditSave = (id: string, name: string, notes: string) => {
