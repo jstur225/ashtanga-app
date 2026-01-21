@@ -2436,10 +2436,10 @@ export default function AshtangaTracker() {
     <div className="h-screen bg-background flex flex-col overflow-hidden">
       {/* Header - only show on practice tab */}
       {activeTab === 'practice' && (
-        <header className="pt-14 pb-6 px-6 flex-shrink-0 flex flex-col items-center justify-center">
-          <div className="flex flex-col items-center gap-2">
-            <img src="/icon.png" alt="熬汤日记" className="w-12 h-12 rounded-xl shadow-sm" />
-            <h1 className="text-xl font-serif text-foreground tracking-wide font-semibold">熬汤日记 · 觉察呼吸</h1>
+        <header className="pt-12 pb-4 px-6 flex-shrink-0 flex items-center justify-center">
+          <div className="flex flex-row items-center gap-3">
+            <img src="/icon.png" alt="熬汤日记" className="w-8 h-8 rounded-lg shadow-sm" />
+            <h1 className="text-lg font-serif text-foreground tracking-wide font-semibold">熬汤日记 · 觉察呼吸</h1>
           </div>
         </header>
       )}
