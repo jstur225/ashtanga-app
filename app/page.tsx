@@ -1228,16 +1228,18 @@ function SettingsModal({
                         }
                       }
 
-                      // 显示结果
+                      // 无论成功失败，都显示手动复制区域
+                      setShowExportData(true)
+
+                      // 显示结果提示
                       if (success) {
-                        toast.success('✅ 数据胶囊已复制到剪贴板', {
-                          duration: 3000,
+                        toast.success('✅ 数据胶囊已复制（如失败请手动复制下方）', {
+                          duration: 4000,
                           position: 'top-center'
                         })
                       } else {
                         console.error('所有复制方法都失败:', errorMessage)
-                        setShowExportData(true)
-                        toast('⚠️ 自动复制失败，请手动复制下方数据', {
+                        toast.error('❌ 自动复制失败，请手动复制下方数据', {
                           duration: 5000,
                           position: 'top-center'
                         })
@@ -1263,7 +1265,7 @@ function SettingsModal({
                     className="w-full flex items-center justify-between p-4 rounded-2xl bg-secondary hover:bg-secondary/80 transition-all group"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-xl bg-purple-50 text-purple-500">
+                      <div className="p-2 rounded-xl bg-red-50 text-red-500">
                         <Upload className="w-5 h-5" />
                       </div>
                       <div className="text-left">
@@ -1274,16 +1276,16 @@ function SettingsModal({
                     <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
                   </button>
 
-                  {/* 导出数据显示区域（自动复制失败时显示） */}
+                  {/* 导出数据显示区域 */}
                   {showExportData && exportedData && (
-                    <div className="mt-4 p-4 rounded-2xl bg-red-50 border border-red-200">
+                    <div className="mt-4 p-4 rounded-2xl bg-blue-50 border border-blue-200">
                       <div className="flex items-center justify-between mb-2">
-                        <p className="text-xs text-red-600 font-serif">
-                          ⚠️ 自动复制失败，请长选下方数据手动复制
+                        <p className="text-xs text-blue-600 font-serif">
+                          📋 数据胶囊（可长按手动复制）
                         </p>
                         <button
                           onClick={() => setShowExportData(false)}
-                          className="text-xs text-red-500 hover:text-red-700 font-serif"
+                          className="text-xs text-blue-500 hover:text-blue-700 font-serif"
                         >
                           收起
                         </button>
@@ -1291,14 +1293,14 @@ function SettingsModal({
                       <textarea
                         readOnly
                         value={exportedData}
-                        className="w-full h-32 px-3 py-2 rounded-xl bg-white border border-red-200 text-[10px] font-mono text-red-900 resize-none focus:outline-none"
+                        className="w-full h-32 px-3 py-2 rounded-xl bg-white border border-blue-200 text-[10px] font-mono text-blue-900 resize-none focus:outline-none"
                         onClick={(e) => {
                           const target = e.target as HTMLTextAreaElement
                           target.select()
                         }}
                       />
-                      <p className="text-[10px] text-red-500 font-serif mt-2">
-                        💡 提示：长按文本可全选，然后复制
+                      <p className="text-[10px] text-blue-500 font-serif mt-2">
+                        💡 提示：点击文本可全选，长按可复制
                       </p>
                     </div>
                   )}
