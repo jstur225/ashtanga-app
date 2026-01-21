@@ -1039,7 +1039,8 @@ function SettingsModal({
   const [name, setName] = useState(profile.name)
   const [signature, setSignature] = useState(profile.signature)
   const [avatar, setAvatar] = useState<string | null>(profile.avatar)
-  const [activeSection, setActiveSection] = useState<'profile' | 'data'>('profile')
+  const [activeSection, setActiveSection] = useState<'profile' | 'data' | 'import'>('profile')
+  const [importText, setImportText] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
   const importFileInputRef = useRef<HTMLInputElement>(null)
 
@@ -1193,13 +1194,14 @@ function SettingsModal({
                       这是你的数据胶囊，请妥善保管。
                     </p>
                   </div>
-                  
+
+                  {/* 导出按钮 */}
                   <button
                     onClick={async () => {
                       const data = onExport()
                       try {
                         await navigator.clipboard.writeText(data)
-                        toast.success('数据胶囊已复制，请妥善保管')
+                        toast.success('数据胶囊已复制到剪贴板')
                       } catch (err) {
                         toast.error('复制失败，请手动导出')
                       }
@@ -1212,40 +1214,92 @@ function SettingsModal({
                       </div>
                       <div className="text-left">
                         <div className="text-sm font-serif text-foreground">复制数据胶囊</div>
-                        <div className="text-[10px] text-muted-foreground font-serif">将所有数据复制到剪贴板</div>
+                        <div className="text-[10px] text-muted-foreground font-serif">一键复制到剪贴板</div>
                       </div>
                     </div>
                     <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
                   </button>
 
+                  {/* 导入按钮 */}
                   <button
-                    onClick={async () => {
-                      try {
-                        const text = await navigator.clipboard.readText()
-                        if (text) {
-                          onImport(text)
-                        } else {
-                          // toast handled by parent or here?
-                          // Let's assume onImport handles empty or invalid
-                        }
-                      } catch (err) {
-                        // Fallback or error
-                        alert('无法访问剪贴板，请手动粘贴')
-                        // Could toggle a textarea visibility here if needed, but for now simple alert
-                      }
-                    }}
+                    onClick={() => setActiveSection('import')}
                     className="w-full flex items-center justify-between p-4 rounded-2xl bg-secondary hover:bg-secondary/80 transition-all group"
                   >
                     <div className="flex items-center gap-3">
                       <div className="p-2 rounded-xl bg-purple-50 text-purple-500">
-                        <ClipboardPaste className="w-5 h-5" />
+                        <Upload className="w-5 h-5" />
                       </div>
                       <div className="text-left">
-                        <div className="text-sm font-serif text-foreground">粘贴数据胶囊</div>
+                        <div className="text-sm font-serif text-foreground">导入数据胶囊</div>
                         <div className="text-[10px] text-muted-foreground font-serif">从剪贴板恢复数据</div>
                       </div>
                     </div>
                     <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+                  </button>
+                </div>
+              )}
+
+              {activeSection === 'import' && (
+                <div className="space-y-4">
+                  {/* 返回按钮 */}
+                  <button
+                    onClick={() => setActiveSection('data')}
+                    className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-4"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                    <span className="text-sm font-serif">返回数据管理</span>
+                  </button>
+
+                  <div className="p-4 rounded-2xl bg-purple-50 border border-purple-100 mb-2">
+                    <p className="text-xs text-purple-600 font-serif leading-relaxed">
+                      请粘贴之前复制的数据胶囊。
+                    </p>
+                  </div>
+
+                  {/* 输入框 */}
+                  <div>
+                    <label className="block text-xs font-serif text-muted-foreground mb-1.5">数据胶囊</label>
+                    <textarea
+                      value={importText}
+                      onChange={(e) => setImportText(e.target.value)}
+                      placeholder="在此粘贴数据胶囊..."
+                      rows={6}
+                      className="w-full px-4 py-3 rounded-2xl bg-secondary text-foreground font-serif focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-none text-xs"
+                    />
+                  </div>
+
+                  {/* 一键粘贴按钮 */}
+                  <button
+                    onClick={async () => {
+                      try {
+                        const text = await navigator.clipboard.readText()
+                        setImportText(text)
+                        toast.success('已粘贴到输入框')
+                      } catch (err) {
+                        toast.error('无法访问剪贴板，请手动粘贴')
+                      }
+                    }}
+                    className="w-full flex items-center justify-center gap-2 p-4 rounded-2xl bg-gradient-to-br from-purple-500 to-purple-600 text-white font-serif transition-all hover:opacity-90"
+                  >
+                    <ClipboardPaste className="w-4 h-4" />
+                    <span className="text-sm">一键粘贴</span>
+                  </button>
+
+                  {/* 确认导入按钮 */}
+                  <button
+                    onClick={() => {
+                      if (importText.trim()) {
+                        onImport(importText)
+                        setImportText('')
+                        setActiveSection('data')
+                      } else {
+                        toast.error('请先粘贴数据胶囊')
+                      }
+                    }}
+                    className="w-full flex items-center justify-center gap-2 p-4 rounded-2xl bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] text-white font-serif transition-all hover:opacity-90"
+                  >
+                    <Check className="w-4 h-4" />
+                    <span className="text-sm">确认导入</span>
                   </button>
                 </div>
               )}
@@ -1917,8 +1971,8 @@ function StatsTab({
     const daysCount = viewMode === 'month' ? 30 : viewMode === 'quarter' ? 90 : 365
     const daysOffset = viewMode === 'month' ? dateOffset * 30 : viewMode === 'quarter' ? dateOffset * 90 : dateOffset * 365
     const result: string[] = []
-    
-    for (let i = daysCount - 1; i >= 0; i--) {
+
+    for (let i = 0; i < daysCount; i++) {
       const d = new Date(today)
       d.setDate(d.getDate() - i - daysOffset)
       result.push(d.toISOString().split('T')[0])
@@ -2033,16 +2087,16 @@ function StatsTab({
           {/* Flowing Dots Grid - Breathing Fade animation */}
           <div className="p-4 pt-2">
             <AnimatePresence mode="wait">
-              <motion.div 
+              <motion.div
                 key={viewMode}
                 initial={{ opacity: 0, scale: 1.05 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ 
+                transition={{
                   enter: { duration: 0.3, ease: "easeOut" },
                   exit: { duration: 0.15 }
                 }}
-                className={`flex flex-wrap justify-center ${dotConfig.gap}`}
+                className={`flex flex-wrap justify-start ${dotConfig.gap}`}
               >
                 {flowingDots.map((dateStr) => (
                   <button
