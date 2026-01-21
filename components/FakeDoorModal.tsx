@@ -77,65 +77,68 @@ export function FakeDoorModal({ type, isOpen, onClose }: FakeDoorModalProps) {
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-40px)] max-w-md bg-card rounded-[32px] p-8 z-[101] shadow-2xl border border-white/10"
+            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-32px)] max-w-md max-h-[85vh] bg-card rounded-[24px] z-[101] shadow-2xl border border-white/10 overflow-hidden"
           >
-            <button 
-              onClick={onClose}
-              className="absolute right-6 top-6 p-2 text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            {/* 滚动内容区域 */}
+            <div className="overflow-y-auto max-h-[85vh] p-6">
+              <button
+                onClick={onClose}
+                className="absolute right-4 top-4 p-2 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
 
-            <div className="flex flex-col items-center text-center">
-              <div className="mb-6 p-4 rounded-full bg-primary/5">
-                {activeContent.icon}
-              </div>
-              
-              <h2 className="text-2xl font-serif text-foreground mb-2">
-                {activeContent.title}
-              </h2>
-              <p className="text-primary font-serif text-sm mb-6">
-                {activeContent.subtitle}
-              </p>
-
-              {type === 'cloud' ? (
-                <div 
-                  className="text-muted-foreground font-serif leading-relaxed mb-8"
-                  dangerouslySetInnerHTML={{ __html: activeContent.desc || '' }}
-                />
-              ) : (
-                <div className="w-full space-y-4 mb-8">
-                  {activeContent.features?.map((f, i) => (
-                    <div key={i} className="flex items-center gap-3 text-left p-3 rounded-2xl bg-secondary/50 border border-white/5">
-                      <div className="text-primary">{f.icon}</div>
-                      <span className="text-sm font-serif text-foreground/80">{f.text}</span>
-                      <CheckCircle2 className="w-4 h-4 text-primary ml-auto opacity-40" />
-                    </div>
-                  ))}
-                  <p className="text-xs text-muted-foreground font-serif pt-2">
-                    {activeContent.footer}
-                  </p>
+              <div className="flex flex-col items-center text-center">
+                <div className="mb-4 p-3 rounded-full bg-primary/5">
+                  {activeContent.icon}
                 </div>
-              )}
 
-              <div className="w-full flex flex-col gap-3">
-                <button
-                  onClick={handleVote}
-                  disabled={isVoted}
-                  className={`w-full py-4 rounded-full font-serif transition-all duration-300 shadow-lg ${
-                    isVoted 
-                      ? 'bg-green-500 text-white cursor-default' 
-                      : 'bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] text-white hover:opacity-90 active:scale-[0.98]'
-                  }`}
-                >
-                  {activeContent.primaryBtn}
-                </button>
-                <button
-                  onClick={onClose}
-                  className="w-full py-4 rounded-full bg-secondary text-foreground font-serif transition-all hover:bg-secondary/80 active:scale-[0.98]"
-                >
-                  暂不需要
-                </button>
+                <h2 className="text-xl font-serif text-foreground mb-1">
+                  {activeContent.title}
+                </h2>
+                <p className="text-primary font-serif text-xs mb-4">
+                  {activeContent.subtitle}
+                </p>
+
+                {type === 'cloud' ? (
+                  <div
+                    className="text-muted-foreground font-serif leading-relaxed mb-6 text-sm"
+                    dangerouslySetInnerHTML={{ __html: activeContent.desc || '' }}
+                  />
+                ) : (
+                  <div className="w-full space-y-2 mb-6">
+                    {activeContent.features?.map((f, i) => (
+                      <div key={i} className="flex items-center gap-2 text-left p-2 rounded-xl bg-secondary/50 border border-white/5">
+                        <div className="text-primary">{f.icon}</div>
+                        <span className="text-xs font-serif text-foreground/80">{f.text}</span>
+                        <CheckCircle2 className="w-3.5 h-3.5 text-primary ml-auto opacity-40" />
+                      </div>
+                    ))}
+                    <p className="text-[10px] text-muted-foreground font-serif pt-1">
+                      {activeContent.footer}
+                    </p>
+                  </div>
+                )}
+
+                <div className="w-full flex flex-col gap-2">
+                  <button
+                    onClick={handleVote}
+                    disabled={isVoted}
+                    className={`w-full py-3 rounded-full font-serif transition-all duration-300 shadow-lg text-sm ${
+                      isVoted
+                        ? 'bg-green-500 text-white cursor-default'
+                        : 'bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] text-white hover:opacity-90 active:scale-[0.98]'
+                    }`}
+                  >
+                    {activeContent.primaryBtn}
+                  </button>
+                  <button
+                    onClick={onClose}
+                    className="w-full py-3 rounded-full bg-secondary text-foreground font-serif transition-all hover:bg-secondary/80 active:scale-[0.98] text-sm"
+                  >
+                    暂不需要
+                  </button>
+                </div>
               </div>
             </div>
           </motion.div>

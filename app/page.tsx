@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { usePracticeData, type PracticeRecord, type PracticeOption, type UserProfile } from "@/hooks/usePracticeData"
 import { BookOpen, BarChart3, Calendar, X, Camera, Pause, Play, Trash2, User, Settings, ChevronLeft, ChevronRight, ChevronUp, Cloud, Download, Upload, Plus, Share2, Sparkles, Check, Copy, ClipboardPaste } from "lucide-react"
 import { FakeDoorModal } from "@/components/FakeDoorModal"
+import { toast } from 'sonner'
 
 // Helper functions
 function getLocalDateStr() {
@@ -1992,9 +1993,9 @@ function StatsTab({
   // Dot sizes based on view
   const dotConfig = useMemo(() => {
     switch (viewMode) {
-      case 'month': return { size: 'w-10 h-10', gap: 'gap-4', rounded: 'rounded-xl' }
-      case 'quarter': return { size: 'w-6 h-6', gap: 'gap-2', rounded: 'rounded-lg' }
-      case 'year': return { size: 'w-3 h-3', gap: 'gap-1.5', rounded: 'rounded-sm' }
+      case 'month': return { size: 'w-10 h-10', gap: 'gap-4', rounded: 'rounded-xl', cols: 'grid-cols-7' }
+      case 'quarter': return { size: 'w-6 h-6', gap: 'gap-2', rounded: 'rounded-lg', cols: 'grid-cols-10' }
+      case 'year': return { size: 'w-3 h-3', gap: 'gap-1.5', rounded: 'rounded-sm', cols: 'grid-cols-[repeat(52,minmax(0,1fr))]' }
     }
   }, [viewMode])
 
@@ -2096,7 +2097,7 @@ function StatsTab({
                   enter: { duration: 0.3, ease: "easeOut" },
                   exit: { duration: 0.15 }
                 }}
-                className={`flex flex-wrap justify-start ${dotConfig.gap}`}
+                className={`grid ${dotConfig.cols} ${dotConfig.gap} justify-items-center`}
               >
                 {flowingDots.map((dateStr) => (
                   <button
@@ -2105,8 +2106,8 @@ function StatsTab({
                       // Could open share card for this date
                     }}
                     className={`${dotConfig.size} ${dotConfig.rounded} transition-colors ${
-                      heatmapData[dateStr] 
-                        ? 'bg-gradient-to-br from-[rgba(45,90,39,0.9)] to-[rgba(74,122,68,0.8)] shadow-[0_2px_8px_rgba(45,90,39,0.3)]' 
+                      heatmapData[dateStr]
+                        ? 'bg-gradient-to-br from-[rgba(45,90,39,0.9)] to-[rgba(74,122,68,0.8)] shadow-[0_2px_8px_rgba(45,90,39,0.3)]'
                         : 'bg-stone-200'
                     }`}
                   />
