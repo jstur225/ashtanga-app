@@ -573,6 +573,108 @@
 
 ---
 
+### 2026-01-21 Tab3 数据管理功能完善 ✅
+
+**阶段**: 从基础功能到用户体验优化
+
+**修复问题**:
+1. ✅ 导入数据成功/失败提醒不显示
+2. ✅ 练习选项编辑和删除后不保存到 localStorage
+3. ✅ 刷新页面后自定义选项被重置
+4. ✅ 365天热力图圆点布局优化
+5. ✅ 导出功能弹窗交互优化
+
+**核心改动**:
+
+#### 1. 简化导入弹窗逻辑
+**文件**: `components/ImportModal.tsx`, `app/page.tsx`
+- 移除 ImportModal 内部的成功/失败状态显示
+- 使用 toast 从顶部弹窗显示导入结果（3秒自动消失）
+- 成功后 500ms 自动关闭导入弹窗和设置弹窗
+- 失败时保持弹窗打开，方便用户重试
+- 参考导出功能的交互模式，保持一致性
+
+#### 2. 修复练习选项持久化问题
+**文件**: `hooks/usePracticeData.ts`, `app/page.tsx`
+
+**问题根因**:
+- `handleEditSave` 和 `handleEditDelete` 只更新本地 state，没有同步到 localStorage
+- `useLocalStorage` 默认值设置为 `DEFAULT_OPTIONS`，导致每次初始化都会覆盖用户自定义选项
+
+**解决方案**:
+- 添加 `updateOption(id, label, label_zh, notes)` 方法
+- 添加 `deleteOption(id)` 方法
+- 修改 `handleEditSave` 同时更新 localStorage 和本地 state
+- 修改 `handleEditDelete` 同时更新 localStorage 和本地 state
+- 添加 toast 提示"已保存修改"和"已删除选项"
+- 将 `useLocalStorage` 默认值改为空数组 `[]`
+- 修改 useEffect 逻辑，只在 options 为空时设置默认值
+
+#### 3. 数据导出/导入验证
+**导出数据包含**:
+- ✅ `records` - 所有练习记录
+- ✅ `options` - 所有练习选项（包括用户自定义）
+- ✅ `profile` - 用户个人资料
+- ✅ `export_at` - 导出时间戳
+
+**导入验证**:
+- ✅ 验证数据结构完整性
+- ✅ 支持部分数据导入（records/options/profile 任一存在即可）
+- ✅ 成功/失败都有明确的 toast 提示
+
+#### 4. UI 优化
+**文件**: `app/page.tsx`
+- 练习按钮备注字号从 `text-xs` 改为 `text-[10px]`
+- 导入/导出弹窗按钮颜色统一为全局绿色主题
+- 导入弹窗背景提示信息调整为红色边框（与导出区分）
+
+**技术实现**:
+```typescript
+// useLocalStorage 默认值改为空数组
+const [options, setOptions] = useLocalStorage<PracticeOption[]>('ashtanga_options', []);
+
+// useEffect 只在初始化时设置默认值
+useEffect(() => {
+  if (!options || options.length === 0) {
+    setOptions(DEFAULT_OPTIONS);
+  }
+}, []);
+
+// 导入逻辑使用 toast 提示
+const result = importData(json)
+if (result) {
+  toast.success('✅ 数据导入成功！', {
+    duration: 3000,
+    position: 'top-center'
+  })
+} else {
+  toast.error('❌ 数据导入失败，请检查格式', {
+    duration: 3000,
+    position: 'top-center'
+  })
+}
+```
+
+**Git 提交**:
+- `ec6fe96` - fix: 简化导入弹窗逻辑，使用toast显示成功/失败提示
+- `1b5cbef` - fix: 修复练习选项编辑和删除后不保存到localStorage的问题
+- `1c990fb` - fix: 修复刷新页面后自定义选项被重置的问题
+
+**用户体验改进**:
+- 导入/导出操作现在都有明确的视觉反馈
+- 用户自定义的练习选项可以正确保存和恢复
+- 刷新页面不会丢失用户设置
+- Tab3（我的数据）功能完整且稳定
+
+**下一步计划**:
+- **P0**: 继续使用和测试，发现其他问题
+- **P1**: 照片上传功能（Supabase Storage）
+- **P2**: 数据备份提醒功能
+
+**产品里程碑**: Tab3 数据管理功能达到可用标准 🎉
+
+---
+
 ### 2026-01-14 初始对话
 **核心问题**:
 1. 如何验证这个需求？
