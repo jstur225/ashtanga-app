@@ -2471,7 +2471,7 @@ export default function AshtangaTracker() {
                     }
                   `}
                 >
-                  <span className="text-[20px] leading-snug break-words w-full line-clamp-2">{isCustomButton ? "+ 自定义" : option.labelZh}</span>
+                  <span className="text-[16px] leading-snug break-words w-full line-clamp-2">{isCustomButton ? "+ 自定义" : option.labelZh}</span>
                   {!isCustomButton && option.notes && (
                     <span className={`text-[11px] mt-0.5 leading-snug break-words w-full line-clamp-2 ${isSelected ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
                       {option.notes}
