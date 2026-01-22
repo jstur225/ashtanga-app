@@ -1719,7 +1719,7 @@ function JournalTab({
                   <div className="flex flex-col items-end mt-1">
                     <span className="text-xl font-bold text-foreground leading-none">{formatMinutes(practice.duration)}</span>
                     <span className="text-[10px] text-muted-foreground font-serif leading-tight">
-                      分钟{formatSeconds(practice.duration) !== '00' ? `${formatSeconds(practice.duration)}秒` : ''}
+                      分钟
                     </span>
                   </div>
                 )}
@@ -2407,13 +2407,13 @@ export default function AshtangaTracker() {
             {/* Main circle with glassmorphism gradient border - scaled down 30% */}
             <div className={`w-[200px] h-[200px] sm:w-[220px] sm:h-[220px] rounded-full bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] p-[2px] shadow-[0_12px_48px_rgba(45,90,39,0.45)] ${!isPaused ? 'animate-breathe' : ''}`}>
               <div className="w-full h-full rounded-full bg-background/95 backdrop-blur-[16px] flex flex-col items-center justify-center border border-white/30 relative">
-                {/* Timer display - Minutes large, seconds below */}
+                {/* Timer display - Minutes large, unit below */}
                 <div className="flex flex-col items-center">
                   <span className="text-5xl sm:text-6xl font-light text-foreground tracking-wider font-serif">
                     {formatMinutes(elapsedTime)}
                   </span>
                   <span className="text-muted-foreground text-lg font-serif">
-                    分钟{formatSeconds(elapsedTime) !== '00' ? `${formatSeconds(elapsedTime)}秒` : ''}
+                    分钟
                   </span>
                 </div>
 
