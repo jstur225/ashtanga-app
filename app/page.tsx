@@ -2550,7 +2550,7 @@ export default function AshtangaTracker() {
       )}
 
       {/* Fixed Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 border-t border-border bg-card px-6 py-4 pb-8 z-30">
+      <nav className="fixed bottom-0 left-0 right-0 border-t border-border bg-card px-6 py-4 pb-4 z-30">
         <div className="flex justify-around items-center">
           <button 
             onClick={() => setActiveTab('practice')}
