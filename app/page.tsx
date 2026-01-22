@@ -2299,6 +2299,11 @@ export default function AshtangaTracker() {
     return option?.labelZh || option?.label || ""
   }, [selectedOption, customPracticeName, practiceOptions])
 
+  const getSelectedNotes = useCallback(() => {
+    const option = practiceOptions.find((o) => o.id === selectedOption)
+    return option?.notes || ""
+  }, [selectedOption, practiceOptions])
+
   const handleEndRequest = () => {
     setShowConfirmEnd(true)
   }
@@ -2376,14 +2381,22 @@ export default function AshtangaTracker() {
                   <span className="text-5xl sm:text-6xl font-light text-foreground tracking-wider font-serif">
                     {formatMinutes(elapsedTime)}
                   </span>
-                  <span className="text-muted-foreground text-[10px] font-serif absolute bottom-12 right-12">
-                    {formatSeconds(elapsedTime)}s
+                  <span className="text-muted-foreground text-2xl font-serif">
+                    分钟{formatSeconds(elapsedTime) !== '00' ? ` ${formatSeconds(elapsedTime)}秒` : ''}
                   </span>
                 </div>
-                <span className="text-muted-foreground text-[10px] font-serif mt-1">分钟</span>
 
-                {/* Practice type below */}
-                <span className="text-muted-foreground text-xs font-serif mt-4">{getSelectedLabel()}</span>
+                {/* Practice type and notes below */}
+                <div className="flex flex-col items-center">
+                  <span className="text-[14px] leading-snug text-center text-foreground font-serif">
+                    {getSelectedLabel()}
+                  </span>
+                  {getSelectedNotes() && (
+                    <span className="text-[11px] leading-snug text-center text-muted-foreground/70 font-serif mt-0.5">
+                      {getSelectedNotes()}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           </motion.div>
