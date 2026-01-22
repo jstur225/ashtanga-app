@@ -2460,7 +2460,7 @@ export default function AshtangaTracker() {
                   whileTap={{ scale: 0.97 }}
                   onClick={() => handleOptionTap(option)}
                   className={`
-                    py-2 px-1 rounded-[20px] text-center font-serif transition-all duration-300
+                    py-[6px] px-1 rounded-[20px] text-center font-serif transition-all duration-300
                     min-h-[72px] w-full flex flex-col items-center justify-center
                     ${
                       isSelected
