@@ -2440,7 +2440,7 @@ export default function AshtangaTracker() {
           {/* Header - scrolls with content, can be clipped */}
           <header className="pt-12 pb-4 flex items-center justify-center">
             <div className="flex flex-row items-center gap-3">
-              <img src="/icon.png" alt="熬汤日记" className="w-8 h-8 rounded-lg shadow-sm" />
+              <img src="/icon.png" alt="熬汤日记" className="w-[34px] h-[34px] rounded-lg shadow-sm" />
               <div className="flex flex-col">
                 <h1 className="text-lg font-serif text-foreground tracking-wide font-semibold">
                   熬汤日记
