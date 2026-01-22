@@ -2488,7 +2488,7 @@ export default function AshtangaTracker() {
           </div>
 
           {/* Hint text */}
-          <p className="text-center text-xs text-muted-foreground font-serif mt-2">
+          <p className="text-center text-xs text-muted-foreground font-serif mt-[-4px]">
             单击选择·双击编辑
           </p>
 
