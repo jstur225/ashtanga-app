@@ -18,7 +18,7 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  title: '熬汤日记·觉察呼吸',
+  title: '熬汤日记·呼吸·觉察',
   description: '用宋体禅意记录你的阿斯汤加瑜伽练习',
   generator: 'v0.app',
   icons: {
