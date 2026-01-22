@@ -2,8 +2,11 @@ import mixpanel from 'mixpanel-browser';
 
 const MIXPANEL_TOKEN = process.env.NEXT_PUBLIC_MIXPANEL_TOKEN || '5268a97b486c115e4ac42757c2570f78';
 
+// 暂停数据收集 - 测试完成后再启用
+const MIXPANEL_ENABLED = false;
+
 export const initAnalytics = () => {
-  if (typeof window !== 'undefined') {
+  if (typeof window !== 'undefined' && MIXPANEL_ENABLED) {
     mixpanel.init(MIXPANEL_TOKEN, {
       debug: true, // Force debug mode to see logs in production console
       track_pageview: true,
@@ -16,13 +19,13 @@ export const initAnalytics = () => {
 };
 
 export const identifyUser = (uuid: string) => {
-  if (typeof window !== 'undefined') {
+  if (typeof window !== 'undefined' && MIXPANEL_ENABLED) {
     mixpanel.identify(uuid);
   }
 };
 
 export const trackEvent = (eventName: string, props?: Record<string, any>) => {
-  if (typeof window !== 'undefined') {
+  if (typeof window !== 'undefined' && MIXPANEL_ENABLED) {
     mixpanel.track(eventName, props);
   }
 };
