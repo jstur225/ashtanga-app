@@ -36,12 +36,12 @@ export interface UserProfile {
 }
 
 const DEFAULT_OPTIONS: PracticeOption[] = [
-  { id: '1', created_at: new Date().toISOString(), label: 'Option 1', label_zh: '一序列 Mysore', notes: 'Primary Series Mysore', is_custom: false },
-  { id: '2', created_at: new Date().toISOString(), label: 'Option 2', label_zh: '一序列 Led Class', notes: 'Primary Series Led Class', is_custom: false },
-  { id: '3', created_at: new Date().toISOString(), label: 'Option 3', label_zh: '二序列 Mysore', notes: 'Intermediate Series Mysore', is_custom: false },
-  { id: '4', created_at: new Date().toISOString(), label: 'Option 4', label_zh: '二序列 Led Class', notes: 'Intermediate Series Led Class', is_custom: false },
-  { id: '5', created_at: new Date().toISOString(), label: 'Option 5', label_zh: '半序列', notes: 'Half Sequence, 站立+休息体式', is_custom: false },
-  { id: '6', created_at: new Date().toISOString(), label: 'Option 6', label_zh: '休息日', notes: 'Rest Day, 满月/新月', is_custom: false },
+  { id: '1', created_at: new Date().toISOString(), label: 'Primary 1', label_zh: '一序列', notes: 'Mysore', is_custom: false },
+  { id: '2', created_at: new Date().toISOString(), label: 'Primary 2', label_zh: '一序列', notes: 'Ledclass', is_custom: false },
+  { id: '3', created_at: new Date().toISOString(), label: 'Intermediate 1', label_zh: '二序列', notes: 'Mysore', is_custom: false },
+  { id: '4', created_at: new Date().toISOString(), label: 'Intermediate 2', label_zh: '二序列', notes: 'Ledclass', is_custom: false },
+  { id: '5', created_at: new Date().toISOString(), label: 'Half', label_zh: '半序列', notes: '站立+休息', is_custom: false },
+  { id: '6', created_at: new Date().toISOString(), label: 'Rest', label_zh: '休息日', notes: '满月/新月', is_custom: false },
 ];
 
 export const usePracticeData = () => {

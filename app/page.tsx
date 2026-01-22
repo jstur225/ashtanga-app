@@ -2449,7 +2449,7 @@ export default function AshtangaTracker() {
             </div>
           </header>
           {/* Selection Grid - Glassmorphism on selected */}
-          <div className="grid grid-cols-3 gap-3 p-4">
+          <div className="grid grid-cols-3 gap-4 p-4">
             {practiceOptions.map((option) => {
               const isSelected = selectedOption === option.id
               const isCustomButton = option.id === "custom"
@@ -2460,8 +2460,8 @@ export default function AshtangaTracker() {
                   whileTap={{ scale: 0.97 }}
                   onClick={() => handleOptionTap(option)}
                   className={`
-                    py-3 px-4 rounded-[20px] text-center font-serif transition-all duration-300
-                    min-h-[72px] min-w-[100px] flex flex-col items-center justify-center
+                    py-2 px-1 rounded-[20px] text-center font-serif transition-all duration-300
+                    min-h-[72px] w-full flex flex-col items-center justify-center
                     ${
                       isSelected
                         ? "bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] text-primary-foreground backdrop-blur-[16px] border border-white/30 shadow-[0_8px_24px_rgba(45,90,39,0.3)]"
@@ -2471,9 +2471,9 @@ export default function AshtangaTracker() {
                     }
                   `}
                 >
-                  <span className="text-sm leading-tight break-words w-full">{isCustomButton ? "+ 自定义" : option.labelZh}</span>
+                  <span className="text-xs leading-snug break-words w-full line-clamp-2">{isCustomButton ? "+ 自定义" : option.labelZh}</span>
                   {!isCustomButton && option.notes && (
-                    <span className={`text-[10px] mt-1 leading-tight break-words w-full ${isSelected ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
+                    <span className={`text-[9px] mt-0.5 leading-snug break-words w-full line-clamp-2 ${isSelected ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
                       {option.notes}
                     </span>
                   )}
