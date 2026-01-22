@@ -3,10 +3,9 @@
 > 一个专注阿斯汤加瑜伽打卡和身体觉察的记录工具
 
 ## 项目状态
-🎉 **已部署到Zeabur（云端运行中）**
-- ✅ MVP已完成
+🎉 **MVP已完成**
 - ✅ 数据持久化完成
-- ✅ 云端部署成功
+- ✅ 云端部署成功（Vercel）
 
 **在线地址**: （待配置自定义域名）
 
@@ -14,7 +13,7 @@
 
 ## 🌐 云端部署
 
-**部署平台**: Zeabur
+**部署平台**: Vercel
 **GitHub仓库**: https://github.com/jstur225/ashtanga-app
 **部署状态**: ✅ 运行中
 
@@ -23,14 +22,6 @@
 - 环境变量：Supabase URL和ANON_KEY已配置
 - 构建工具：pnpm
 - 静态托管：Next.js内置优化
-
-**部署成果**（2026-01-19）:
-- 89个核心文件成功部署
-- Supabase数据库连接正常
-- 应用功能完整可用
-- GitHub集成实现自动化部署
-
-详见：[ZEABUR_DEPLOYMENT_GUIDE.md](./ZEABUR_DEPLOYMENT_GUIDE.md)
 
 ---
 
@@ -316,12 +307,11 @@ vs iOS：
   - `35cf58e` - feat: Supabase数据持久化完成（99个文件，16214行代码）
   - `57e7682` - docs: 更新memory.md
 
-**2026-01-19** - Zeabur云端部署成功 🚀
-- 成功部署到Zeabur平台
-- GitHub仓库自动化部署（89个核心文件）
+**2026-01-22** - Vercel云端部署
+- 成功部署到Vercel平台
+- GitHub仓库自动化部署
 - 环境变量配置完成（Supabase连接）
 - 应用成功运行在云端
-- **里程碑**：从想法到云端可用产品，只用了6天！
 
 ---
 
