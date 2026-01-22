@@ -2447,7 +2447,7 @@ export default function AshtangaTracker() {
                   <span className="text-muted-foreground/50 font-normal">·呼吸</span>
                   <span className="text-muted-foreground/70 font-normal">·觉察</span>
                 </h1>
-                <p className="text-[8px] text-muted-foreground/50 font-serif tracking-wide leading-tight">
+                <p className="text-[9px] text-muted-foreground/50 font-serif tracking-wide leading-tight">
                   Practice, practice, and all is coming.
                 </p>
               </div>
@@ -2488,8 +2488,8 @@ export default function AshtangaTracker() {
           </div>
 
           {/* Hint text */}
-          <p className="text-center text-xs text-muted-foreground font-serif mt-3">
-            单击选择，双击编辑
+          <p className="text-center text-xs text-muted-foreground font-serif mt-2">
+            单击选择·双击编辑
           </p>
 
           {/* Spacer - takes up remaining space to center the button */}
