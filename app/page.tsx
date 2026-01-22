@@ -2449,7 +2449,7 @@ export default function AshtangaTracker() {
             </div>
           </header>
           {/* Selection Grid - Glassmorphism on selected */}
-          <div className="grid grid-cols-3 gap-4 p-4">
+          <div className="grid grid-cols-3 gap-2 p-4">
             {practiceOptions.map((option) => {
               const isSelected = selectedOption === option.id
               const isCustomButton = option.id === "custom"
@@ -2471,9 +2471,9 @@ export default function AshtangaTracker() {
                     }
                   `}
                 >
-                  <span className="text-xs leading-snug break-words w-full line-clamp-2">{isCustomButton ? "+ 自定义" : option.labelZh}</span>
+                  <span className="text-[20px] leading-snug break-words w-full line-clamp-2">{isCustomButton ? "+ 自定义" : option.labelZh}</span>
                   {!isCustomButton && option.notes && (
-                    <span className={`text-[9px] mt-0.5 leading-snug break-words w-full line-clamp-2 ${isSelected ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
+                    <span className={`text-[11px] mt-0.5 leading-snug break-words w-full line-clamp-2 ${isSelected ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
                       {option.notes}
                     </span>
                   )}
