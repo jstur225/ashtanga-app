@@ -1715,7 +1715,12 @@ function JournalTab({
               >
                 <div className="text-sm font-serif font-bold text-foreground leading-none">{formatDate(practice.date)}</div>
                 {practice.duration > 0 && (
-                  <div className="text-[10px] text-muted-foreground font-serif mt-1">{formatDuration(practice.duration)}</div>
+                  <div className="flex flex-col items-end mt-1">
+                    <span className="text-xl font-bold text-foreground leading-none">{formatMinutes(practice.duration)}</span>
+                    <span className="text-[10px] text-muted-foreground font-serif leading-tight">
+                      分钟{formatSeconds(practice.duration) !== '00' ? `${formatSeconds(practice.duration)}秒` : ''}
+                    </span>
+                  </div>
                 )}
                 <div className="text-[10px] text-muted-foreground/70 font-serif mt-0.5">{practice.type}</div>
               </button>
