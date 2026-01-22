@@ -2325,18 +2325,28 @@ export default function AshtangaTracker() {
   }
 
   const handleSavePractice = useCallback((notes: string, photos: string[], breakthrough?: string) => {
-    if (isSaving) return
+    console.log('handleSavePractice called', { notes, photos, breakthrough, isSaving })
+    if (isSaving) {
+      console.log('Already saving, returning')
+      return
+    }
     setIsSaving(true)
+    console.log('setIsSaving(true) called')
 
     try {
+      const selectedLabel = getSelectedLabel()
+      console.log('getSelectedLabel returned:', selectedLabel)
+      console.log('elapsedTime:', elapsedTime)
+
       // Create new practice record
       const record = addRecord({
         date: new Date().toISOString().split('T')[0],
-        type: getSelectedLabel(),
+        type: selectedLabel,
         duration: elapsedTime,
         notes: notes || "今日练习完成",
         breakthrough,
       })
+      console.log('Record added:', record)
 
       trackEvent('finish_practice', {
         type: record.type,
@@ -2345,14 +2355,17 @@ export default function AshtangaTracker() {
       })
 
       // Reset UI and switch to journal tab
+      console.log('Resetting UI and switching to journal tab')
       setShowCompletion(false)
       setSelectedOption(null)
       setCustomPracticeName("")
       setElapsedTime(0)
       setIsPaused(false)
       setActiveTab('journal') // Switch to 觉察日记 tab
+      console.log('UI reset complete')
 
       // Show success toast
+      console.log('Showing success toast')
       toast.success('✅ 打卡成功！', {
         duration: 2000,
         position: 'top-center'
@@ -2365,6 +2378,7 @@ export default function AshtangaTracker() {
       })
     } finally {
       setIsSaving(false)
+      console.log('setIsSaving(false) called')
     }
   }, [elapsedTime, getSelectedLabel, addRecord, isSaving])
 
