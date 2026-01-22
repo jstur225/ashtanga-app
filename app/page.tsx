@@ -9,6 +9,7 @@ import { FakeDoorModal } from "@/components/FakeDoorModal"
 import { ImportModal } from "@/components/ImportModal"
 import { ExportModal } from "@/components/ExportModal"
 import { toast } from 'sonner'
+import { trackEvent } from '@/lib/analytics'
 
 // Helper functions
 function getLocalDateStr() {
