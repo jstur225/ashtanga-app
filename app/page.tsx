@@ -2412,9 +2412,16 @@ export default function AshtangaTracker() {
                   <span className="text-5xl sm:text-6xl font-light text-foreground tracking-wider font-serif">
                     {formatMinutes(elapsedTime)}
                   </span>
-                  <span className="text-muted-foreground text-lg font-serif">
-                    分钟
-                  </span>
+                  <div className="flex items-baseline gap-0.5">
+                    <span className="text-foreground text-lg font-serif">
+                      分
+                    </span>
+                    {formatSeconds(elapsedTime) !== '00' && (
+                      <span className="text-muted-foreground text-sm font-serif">
+                        {formatSeconds(elapsedTime)}秒
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 {/* Practice type and notes below */}
