@@ -2333,8 +2333,8 @@ export default function AshtangaTracker() {
         breakthrough,
       })
 
-      trackEvent('finish_practice', { 
-        type: record.type, 
+      trackEvent('finish_practice', {
+        type: record.type,
         duration: record.duration,
         is_patch: false
       })
@@ -2346,7 +2346,18 @@ export default function AshtangaTracker() {
       setElapsedTime(0)
       setIsPaused(false)
       setActiveTab('journal') // Switch to 觉察日记 tab
-      toast.success('打卡成功！')
+
+      // Show success toast
+      toast.success('✅ 打卡成功！', {
+        duration: 2000,
+        position: 'top-center'
+      })
+    } catch (error) {
+      console.error('保存失败:', error)
+      toast.error('❌ 保存失败，请重试', {
+        duration: 3000,
+        position: 'top-center'
+      })
     } finally {
       setIsSaving(false)
     }
