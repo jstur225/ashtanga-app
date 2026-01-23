@@ -1126,11 +1126,13 @@ function AddPracticeModal({
   onClose,
   onSave,
   practiceOptions,
+  practiceHistory = [],
 }: {
   isOpen: boolean
   onClose: () => void
   onSave: (record: Omit<PracticeRecord, 'id' | 'created_at' | 'photos'>) => void
   practiceOptions: PracticeOption[]
+  practiceHistory?: PracticeRecord[]
 }) {
   const [date, setDate] = useState(() => new Date().toISOString().split('T')[0])
   const [type, setType] = useState("")
@@ -1318,7 +1320,7 @@ function AddPracticeModal({
       setShowDatePicker(false)
     }}
     maxDate={new Date().toISOString().split('T')[0]}
-    practiceHistory={[]} // 可从父组件传入
+    practiceHistory={practiceHistory}
   />
 
   {/* 子模态框：类型选择器 - z-[80] */}
@@ -2092,6 +2094,7 @@ function JournalTab({
         onClose={() => setShowAddModal(false)}
         onSave={onAddRecord}
         practiceOptions={practiceOptions}
+        practiceHistory={practiceHistory}
       />
 
 {/* Back to Top Button - Floating, Jade Glassmorphism */}
