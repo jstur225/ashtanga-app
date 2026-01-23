@@ -1177,9 +1177,15 @@ function AddPracticeModal({
 
   // 处理自定义练习确认
   const handleCustomPracticeConfirm = (name: string, notes: string) => {
+    console.log('handleCustomPracticeConfirm called with:', name, notes)
+    console.log('onAddOption function:', onAddOption)
     // 调用父组件的 addOption 方法保存到 localStorage
     if (onAddOption) {
+      console.log('calling onAddOption...')
       onAddOption(name, notes)
+      console.log('onAddOption called')
+    } else {
+      console.log('onAddOption is undefined!')
     }
     setType(name)
     setShowCustomModal(false)
@@ -2421,7 +2427,6 @@ export default function AshtangaTracker() {
   } = usePracticeData()
 
   const [practiceOptions, setPracticeOptions] = useState<PracticeOption[]>([])
-  const [selectedOption, setSelectedOption] = useState<string | null>(null)
   const [customPracticeName, setCustomPracticeName] = useState("")
   const [isPracticing, setIsPracticing] = useLocalStorage('ashtanga_is_practicing', false)
   const [isPaused, setIsPaused] = useLocalStorage('ashtanga_is_paused', false)
@@ -2614,10 +2619,15 @@ export default function AshtangaTracker() {
   }
 
   const handleAddOption = (name: string, notes: string) => {
+    console.log('handleAddOption called with:', name, notes)
     const newOption = addOption(name, name)
+    console.log('newOption created:', newOption)
     if (notes) {
       updateOption(newOption.id, name, name, notes)
+      console.log('updated option with notes:', notes)
     }
+    console.log('current practiceOptionsData after add:', practiceOptionsData)
+    toast.success('已添加自定义选项')
   }
 
   const canDeleteOption = useMemo(() => {
