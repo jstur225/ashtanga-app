@@ -1717,13 +1717,13 @@ function JournalTab({
                 <div className="text-sm font-serif font-normal text-foreground leading-none">{formatDate(practice.date)}</div>
                 {practice.duration > 0 && (
                   <div className="flex items-center justify-end mt-1">
-                    <span className="text-sm text-foreground leading-none">{formatMinutes(practice.duration)}</span>
-                    <span className="text-[10px] text-muted-foreground ml-0.5">
+                    <span className="text-xs font-serif text-muted-foreground leading-none">{formatMinutes(practice.duration)}</span>
+                    <span className="text-[10px] font-serif text-muted-foreground ml-0.5">
                       分钟
                     </span>
                   </div>
                 )}
-                <div className="text-[10px] text-muted-foreground/70 font-sans mt-0.5">{practice.type}</div>
+                <div className="text-[10px] font-serif text-muted-foreground mt-0.5">{practice.type}</div>
               </button>
               
               {/* Center: Vertical line with Dot - balanced whitespace on both sides */}
@@ -1746,7 +1746,7 @@ function JournalTab({
                   className="w-full text-left hover:bg-secondary/30 rounded-lg transition-colors overflow-hidden"
                   style={{ borderRadius: '0 0.5rem 0.5rem 0' }}
                 >
-                  <p className="text-base text-foreground font-serif leading-relaxed whitespace-pre-wrap break-words w-full">
+                  <p className="text-sm text-foreground font-serif leading-relaxed whitespace-pre-wrap break-words w-full">
                     {practice.notes}
                   </p>
                 </button>
