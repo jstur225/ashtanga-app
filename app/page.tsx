@@ -2463,7 +2463,8 @@ export default function AshtangaTracker() {
   const [showImportModal, setShowImportModal] = useState(false)
   const [showExportModal, setShowExportModal] = useState(false)
   const [exportedData, setExportedData] = useState('')
-  const [votedCloud] = useLocalStorage('voted_cloud_sync', false)
+  const [votedCloud, setVotedCloud] = useLocalStorage('voted_cloud_sync', false)
+  const [refreshKey, setRefreshKey] = useState(0)
   const [isSaving, setIsSaving] = useState(false)
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
@@ -2645,6 +2646,11 @@ export default function AshtangaTracker() {
     }
     console.log('current practiceOptionsData after add:', practiceOptionsData)
     toast.success('已添加自定义选项')
+  }
+
+  const handleVoteCloud = () => {
+    // Force re-render by updating refresh key
+    setRefreshKey(prev => prev + 1)
   }
 
   const canDeleteOption = useMemo(() => {
@@ -2977,6 +2983,7 @@ export default function AshtangaTracker() {
 
       {activeTab === 'journal' && (
         <JournalTab
+          key={refreshKey}
           practiceHistory={practiceHistory}
           practiceOptions={practiceOptions}
           profile={userProfile}
@@ -3106,6 +3113,7 @@ export default function AshtangaTracker() {
         type={showFakeDoor.type}
         isOpen={showFakeDoor.isOpen}
         onClose={() => setShowFakeDoor({ ...showFakeDoor, isOpen: false })}
+        onVote={handleVoteCloud}
       />
     </div>
   )

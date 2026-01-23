@@ -11,9 +11,10 @@ interface FakeDoorModalProps {
   type: 'cloud' | 'pro'
   isOpen: boolean
   onClose: () => void
+  onVote?: () => void
 }
 
-export function FakeDoorModal({ type, isOpen, onClose }: FakeDoorModalProps) {
+export function FakeDoorModal({ type, isOpen, onClose, onVote }: FakeDoorModalProps) {
   const [votedCloud, setVotedCloud] = useLocalStorage('voted_cloud_sync', false)
   const [votedPro, setVotedPro] = useLocalStorage('voted_pro_features', false)
   const [proVotes, setProVotes] = useState(342)
@@ -28,6 +29,7 @@ export function FakeDoorModal({ type, isOpen, onClose }: FakeDoorModalProps) {
       setVotedCloud(true)
       trackEvent('vote_for_cloud_sync')
       toast.success('收到你的心意啦~')
+      onVote?.()
     } else {
       setVotedPro(true)
       trackEvent('click_vote_pro_features')
