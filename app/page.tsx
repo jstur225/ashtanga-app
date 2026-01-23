@@ -1286,14 +1286,14 @@ function AddPracticeModal({
                 <div className="flex items-end pb-0.5">
                   <button
                     onClick={() => setBreakthroughEnabled(!breakthroughEnabled)}
-                    className={`w-full flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border transition-all ${
+                    className={`w-full flex items-center justify-start gap-1.5 px-3 py-2.5 rounded-xl border transition-all ${
                       breakthroughEnabled
                         ? 'bg-orange-50 border-orange-200 text-orange-600 shadow-sm'
                         : 'bg-secondary border-transparent text-muted-foreground'
                     }`}
                   >
                     <Sparkles className={`w-3.5 h-3.5 ${breakthroughEnabled ? 'text-orange-500' : 'text-muted-foreground'}`} />
-                    <span className="text-xs font-serif">解锁突破</span>
+                    <span className="text-sm font-serif">解锁/突破</span>
                   </button>
                 </div>
               </div>
@@ -1323,14 +1323,14 @@ function AddPracticeModal({
               </AnimatePresence>
 
               {/* Notes */}
-              <div>
-                <label className="block text-xs font-serif text-muted-foreground mb-2">练习心得</label>
+              <div className="mx-[-10%]">
+                <label className="block text-xs font-serif text-muted-foreground mb-2 ml-[10%]">练习心得</label>
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="记录呼吸、体感和觉察..."
                   rows={4}
-                  className="w-full px-4 py-3 rounded-2xl bg-secondary text-foreground font-serif focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-none text-sm"
+                  className="w-[120%] ml-[10%] px-4 py-3 rounded-2xl bg-secondary text-foreground font-serif focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-none text-sm"
                 />
               </div>
 
