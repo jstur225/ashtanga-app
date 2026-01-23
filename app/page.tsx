@@ -1037,8 +1037,11 @@ function TypeSelectorModal({
       // 点击自定义按钮，通知父组件
       onClose("__custom__")
     } else {
-      // 点击普通按钮，直接返回类型
-      onClose(option.labelZh || option.label)
+      // 点击普通按钮，返回 labelZh + notes 组合以区分同名选项
+      const typeValue = option.notes
+        ? `${option.labelZh || option.label} ${option.notes}`
+        : (option.labelZh || option.label)
+      onClose(typeValue)
     }
   }
 
@@ -1078,7 +1081,11 @@ function TypeSelectorModal({
             <div className="flex-1 overflow-y-auto px-6 py-6">
               <div className="grid grid-cols-3 gap-3">
                 {practiceOptions.map((option) => {
-                  const isSelected = selectedType === (option.labelZh || option.label)
+                  // 使用 labelZh + notes 组合来精确匹配，避免同名选项同时高亮
+                  const optionTypeValue = option.notes
+                    ? `${option.labelZh || option.label} ${option.notes}`
+                    : (option.labelZh || option.label)
+                  const isSelected = selectedType === optionTypeValue
                   const isCustomButton = option.id === "custom"
 
                   return (
@@ -1134,12 +1141,14 @@ function AddPracticeModal({
   onSave,
   practiceOptions,
   practiceHistory = [],
+  onAddOption,
 }: {
   isOpen: boolean
   onClose: () => void
   onSave: (record: Omit<PracticeRecord, 'id' | 'created_at' | 'photos'>) => void
   practiceOptions: PracticeOption[]
   practiceHistory?: PracticeRecord[]
+  onAddOption?: (name: string, notes: string) => void
 }) {
   const [date, setDate] = useState(() => new Date().toISOString().split('T')[0])
   const [type, setType] = useState("")
@@ -1168,6 +1177,10 @@ function AddPracticeModal({
 
   // 处理自定义练习确认
   const handleCustomPracticeConfirm = (name: string, notes: string) => {
+    // 调用父组件的 addOption 方法保存到 localStorage
+    if (onAddOption) {
+      onAddOption(name, notes)
+    }
     setType(name)
     setShowCustomModal(false)
   }
@@ -2121,6 +2134,7 @@ function JournalTab({
         onSave={onAddRecord}
         practiceOptions={practiceOptions}
         practiceHistory={practiceHistory}
+        onAddOption={handleAddOption}
       />
 
 {/* Back to Top Button - Floating, Jade Glassmorphism */}
@@ -2589,12 +2603,19 @@ export default function AshtangaTracker() {
 
   const handleAddRecord = (record: Omit<PracticeRecord, 'id' | 'created_at' | 'photos'>) => {
     addRecord(record)
-    trackEvent('finish_practice', { 
-      type: record.type, 
+    trackEvent('finish_practice', {
+      type: record.type,
       duration: record.duration,
       is_patch: true
     })
     toast.success('补卡成功！')
+  }
+
+  const handleAddOption = (name: string, notes: string) => {
+    const newOption = addOption(name, name)
+    if (notes) {
+      updateOption(newOption.id, name, name, notes)
+    }
   }
 
   const canDeleteOption = useMemo(() => {
