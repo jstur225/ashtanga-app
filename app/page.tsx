@@ -1048,16 +1048,16 @@ function TypeSelectorModal({
             className="fixed inset-0 bg-black/30 z-[75]"
             onClick={() => onClose('')}
           />
-          {/* 全屏模态框 - z-[80] */}
+          {/* 半屏卡片 - z-[80] */}
           <motion.div
-            initial={{ x: "100%" }}
-            animate={{ x: 0 }}
-            exit={{ x: "100%" }}
-            transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className="fixed inset-0 bg-background z-[80] flex flex-col"
+            initial={{ y: "100%" }}
+            animate={{ y: 0 }}
+            exit={{ y: "100%" }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="fixed bottom-0 left-0 right-0 bg-card rounded-t-[32px] z-[80] flex flex-col max-h-[70vh] shadow-[0_-4px_20px_rgba(0,0,0,0.08)]"
           >
             {/* 标题栏 */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border flex-shrink-0">
               <h2 className="text-lg font-serif text-foreground font-semibold">选择练习类型</h2>
               <button
                 onClick={() => onClose('')}
