@@ -1400,6 +1400,7 @@ function SettingsModal({
   onSave,
   onOpenExport,
   onOpenImport,
+  onExportLog,
 }: {
   isOpen: boolean
   onClose: () => void
@@ -1407,6 +1408,7 @@ function SettingsModal({
   onSave: (profile: UserProfile) => void
   onOpenExport: () => void
   onOpenImport: () => void
+  onExportLog?: () => void
 }) {
   const [name, setName] = useState(profile.name)
   const [signature, setSignature] = useState(profile.signature)
@@ -1580,6 +1582,25 @@ function SettingsModal({
                     </div>
                     <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
                   </button>
+
+                  {/* 导出日志按钮 */}
+                  {onExportLog && (
+                    <button
+                      onClick={onExportLog}
+                      className="w-full flex items-center justify-between p-4 rounded-2xl bg-secondary hover:bg-secondary/80 transition-all group"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-xl bg-purple-50 text-purple-500">
+                          <Copy className="w-5 h-5" />
+                        </div>
+                        <div className="text-left">
+                          <div className="text-sm font-serif text-foreground">导出调试日志</div>
+                          <div className="text-[10px] text-muted-foreground font-serif">复制到剪贴板，方便反馈问题</div>
+                        </div>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+                    </button>
+                  )}
                 </div>
               )}
 
@@ -2655,6 +2676,66 @@ export default function AshtangaTracker() {
     setVotedCloud(true)
   }
 
+  const handleExportDebugLog = () => {
+    // 1. 收集环境信息
+    const environment = {
+      browser: navigator.userAgent,
+      deviceType: /mobile|tablet|android|iphone/i.test(navigator.userAgent) ? 'mobile' : 'desktop',
+      screenWidth: window.screen.width,
+      screenHeight: window.screen.height,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      exportTime: new Date().toISOString()
+    }
+
+    // 2. 收集应用状态
+    const appState = {
+      recordsCount: practiceHistory.length,
+      optionsCount: practiceOptions.length,
+      totalDuration: practiceHistory.reduce((sum, r) => sum + (r.duration || 0), 0),
+      hasCustomOptions: practiceOptions.some(o => o.is_custom)
+    }
+
+    // 3. 读取localStorage数据（只读统计）
+    const storageState = {
+      localStorageKeys: Object.keys(localStorage).filter(key =>
+        key.startsWith('ashtanga_') || key.includes('practice')
+      ),
+      estimatedSize: new Blob(Object.values(localStorage)).size
+    }
+
+    // 4. 生成日志
+    const debugLog = {
+      environment,
+      appState,
+      storageState,
+      recentActivity: practiceHistory.slice(-5).map(r => ({
+        date: r.date,
+        type: r.type,
+        duration: r.duration,
+        hasNotes: !!r.notes,
+        hasBreakthrough: !!r.breakthrough
+      }))
+    }
+
+    // 5. 转换为JSON并复制到剪贴板
+    const jsonString = JSON.stringify(debugLog, null, 2)
+    navigator.clipboard.writeText(jsonString).then(() => {
+      toast.success('✅ 日志已复制到剪贴板', {
+        duration: 3000,
+        position: 'top-center'
+      })
+    }).catch(() => {
+      // 降级方案
+      const textarea = document.createElement('textarea')
+      textarea.value = jsonString
+      document.body.appendChild(textarea)
+      textarea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textarea)
+      toast.success('✅ 日志已复制到剪贴板')
+    })
+  }
+
   const canDeleteOption = useMemo(() => {
     const nonCustomOptions = practiceOptions.filter(o => o.id !== "custom")
     return nonCustomOptions.length > 2
@@ -3066,6 +3147,7 @@ export default function AshtangaTracker() {
           trackEvent('export_data')
         }}
         onOpenImport={() => setShowImportModal(true)}
+        onExportLog={handleExportDebugLog}
       />
 
       {/* Import Modal */}
