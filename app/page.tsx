@@ -2433,6 +2433,7 @@ export default function AshtangaTracker() {
   } = usePracticeData()
 
   const [practiceOptions, setPracticeOptions] = useState<PracticeOption[]>([])
+  const [selectedOption, setSelectedOption] = useState<string | null>(null)
   const [customPracticeName, setCustomPracticeName] = useState("")
   const [isPracticing, setIsPracticing] = useLocalStorage('ashtanga_is_practicing', false)
   const [isPaused, setIsPaused] = useLocalStorage('ashtanga_is_paused', false)
