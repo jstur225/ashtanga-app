@@ -1326,7 +1326,7 @@ function AddPracticeModal({
 
               {/* Notes */}
               <div>
-                <label className="block text-xs font-serif text-muted-foreground mb-2">练习心得</label>
+                <label className="block text-xs font-serif text-muted-foreground mb-2">觉察/笔记</label>
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
