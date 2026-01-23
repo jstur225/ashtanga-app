@@ -998,17 +998,16 @@ function DatePickerModal({
                     whileTap={{ scale: 0.9 }}
                     className={`
                       aspect-square rounded-full flex items-center justify-center
-                      text-sm font-serif transition-all relative
-                      ${isFuture
-                        ? 'text-muted-foreground/30 cursor-not-allowed bg-transparent'
-                        : 'text-foreground hover:bg-secondary cursor-pointer'
+                      text-[9px] font-serif transition-all
+                      ${hasPractice && !isFuture
+                        ? 'bg-gradient-to-br from-[rgba(45,90,39,0.9)] to-[rgba(74,122,68,0.75)] backdrop-blur-sm border border-white/20 shadow-[0_2px_8px_rgba(45,90,39,0.3)] text-white cursor-pointer hover:shadow-[0_2px_12px_rgba(45,90,39,0.45)]'
+                        : isFuture
+                          ? 'bg-background text-muted-foreground/50 cursor-not-allowed'
+                          : 'bg-background text-foreground cursor-pointer hover:bg-secondary'
                       }
                     `}
                   >
-                    <span className="relative z-10">{day}</span>
-                    {hasPractice && !isFuture && (
-                      <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary" />
-                    )}
+                    {day}
                   </motion.button>
                 )
               })}
