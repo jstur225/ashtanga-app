@@ -96,32 +96,6 @@
 - **差异化**: 不做教学，只做记录
 - **目标用户**: 练了很久的人，不是新手
 
-### All-in
-- 待需求验证后再决定
-
----
-
-## 验证标准
-
-### ✅ 需求成立的信号
-- 小红书收藏 > 50
-- 10+人说"希望有app"
-- 自己能坚持记录1周
-
-### ❌ 需求不成立的信号
-- 小红书没人理
-- 自己1周都坚持不了记录
-- 反馈都是"不需要"
-
----
-
-## 下一步行动
-
-- [ ] Week 1: 小红书发帖测试
-- [ ] Week 1: 用Excel记录1周
-- [ ] Week 1: 收集用户反馈
-- [ ] Week 2: 根据反馈决定是否开发
-
 ---
 
 ## 项目对话记录
@@ -867,6 +841,385 @@ if (result) {
 - **P2**: 数据备份提醒功能
 
 **产品里程碑**: Tab3 数据管理功能达到可用标准 🎉
+
+---
+
+### 2026-01-23 Tab2 UI优化 + 云同步动画修复 ✅
+
+**阶段**: Tab2（觉察日记）体验完善
+
+**核心改动**:
+- ✅ AddPracticeModal样式全面优化
+- ✅ 练习完成和编辑记录页面样式统一
+- ✅ 云同步图标投票后立即变绿（无需刷新）
+- ✅ 时光轴练习类型显示优化（只显示名称）
+- ✅ 练习时长input和解锁突破按钮水平对齐
+- ✅ 统一所有页面文案为"觉察/笔记 (最多2000字)"
+
+#### 1. AddPracticeModal样式优化
+**文件**: `app/page.tsx` (AddPracticeModal组件)
+
+**改动内容**:
+- **解锁突破按钮文字**："解锁突破" → "解锁/突破"
+- **按钮对齐方式**：从居中（`justify-center`）改为左对齐（`justify-start`）
+- **统一字号**：解锁突破按钮从 `text-xs` 改为 `text-sm`，与其他3个元素一致
+- **练习心得文本框高度**：从4行增加到5行（增加25%）
+- **标签文案**："练习心得" → "觉察/笔记 (最多2000字)"
+
+**技术实现**:
+```tsx
+// 之前：按钮居中，字号小
+<button className="... justify-center ...">
+  <span className="text-xs">解锁突破</span>
+</button>
+
+// 现在：按钮左对齐，字号统一
+<button className="... justify-start ...">
+  <span className="text-sm">解锁/突破</span>
+</button>
+
+// 文本框高度增加
+<textarea rows={5} />  // 从 rows={4} 改为 rows={5}
+```
+
+#### 2. 练习完成和编辑记录页面样式统一
+**文件**: `app/page.tsx` (CompletionSheet、EditPracticeModal组件)
+
+**改动内容**:
+- **解锁突破按钮**：三个页面（添加练习、练习完成、编辑记录）样式完全一致
+  - 左对齐、text-sm字号、橙色主题
+  - 突破内容输入框：橙色背景（`bg-orange-50`）、橙色边框（`border-orange-200`）
+- **日期和类型布局**：EditPracticeModal改为grid布局（`grid-cols-2`），与添加练习页一致
+- **标签统一**：所有页面的"练习心得/笔记"改为"觉察/笔记"
+- **文本框高度统一**：所有页面的textarea改为5行
+
+#### 3. 云同步图标投票后立即变绿
+**文件**: `app/page.tsx`, `components/FakeDoorModal.tsx`
+
+**问题根因**:
+- FakeDoorModal内部使用 `useLocalStorage('voted_cloud_sync')` 管理投票状态
+- 主页的 `votedCloud` 状态是独立的 `useLocalStorage` 实例
+- 当FakeDoorModal更新localStorage时，主页的状态不会自动同步
+
+**解决方案**:
+1. FakeDoorModal添加 `onVote?: () => void` 回调参数
+2. 投票后调用 `onVote?.()` 通知父组件
+3. 主页添加 `handleVoteCloud` 函数，直接调用 `setVotedCloud(true)`
+4. 将 `votedCloud` 改为可变状态（从 `useLocalStorage` 解构出 setter）
+
+**技术实现**:
+```tsx
+// FakeDoorModal.tsx
+interface FakeDoorModalProps {
+  onVote?: () => void  // 新增回调
+}
+
+const handleVote = () => {
+  if (type === 'cloud') {
+    setVotedCloud(true)
+    onVote?.()  // 调用回调通知父组件
+  }
+}
+
+// app/page.tsx - 主页
+const [votedCloud, setVotedCloud] = useLocalStorage('voted_cloud_sync', false)
+
+const handleVoteCloud = () => {
+  setVotedCloud(true)  // 直接更新状态
+}
+
+<FakeDoorModal onVote={handleVoteCloud} />
+```
+
+**数据流**:
+```
+用户投票
+  ↓
+FakeDoorModal: setVotedCloud(true) // 更新 localStorage
+  ↓
+FakeDoorModal: onVote?.() // 触发回调
+  ↓
+主页: handleVoteCloud()
+  ↓
+主页: setVotedCloud(true) // 更新 React 状态
+  ↓
+React 重新渲染
+  ↓
+SyncButton 显示绿色状态 + 旋转动画
+```
+
+#### 4. 时光轴练习类型显示优化
+**文件**: `app/page.tsx` (JournalTab组件)
+
+**问题**: 时光轴左侧显示完整的type字符串（如"一序列 Mysore"），占用空间较大
+
+**解决方案**: 添加 `getTypeDisplayName` 函数，提取类型名称的第一部分
+
+**技术实现**:
+```tsx
+// 添加类型名称提取函数
+const getTypeDisplayName = (type: string) => {
+  // type格式可能是："一序列 Mysore" 或 "Primary 1 - Mysore"
+  // 提取第一部分（在空格或" - "之前）
+  return type.split(/\s+|-\s*/)[0]
+}
+
+// 使用
+<div>{getTypeDisplayName(practice.type)}</div>
+// 显示："一序列" 而不是 "一序列 Mysore"
+```
+
+#### 5. 练习时长input和解锁突破按钮对齐
+**文件**: `app/page.tsx` (AddPracticeModal组件)
+
+**问题**: 练习时长input和解锁突破按钮在水平方向上没有对齐
+
+**根本原因**:
+- 练习时长有label（"练习时长 (分钟)"），所以input位置靠下
+- 解锁突破按钮没有label，使用了 `items-end pb-0.5` 尝试对齐
+- 两个元素的垂直位置不一致
+
+**解决方案**: 给解锁突破按钮添加一个透明的label
+
+**技术实现**:
+```tsx
+// 练习时长
+<div>
+  <label>练习时长 (分钟)</label>
+  <input ... />
+</div>
+
+// 解锁突破 - 添加透明label
+<div>
+  <label className="opacity-0">解锁/突破</label>  {/* 不可见但占据空间 */}
+  <button ...>解锁/突破</button>
+</div>
+```
+
+#### 6. 修复votedCloud未定义错误
+**文件**: `app/page.tsx`
+
+**问题**: `ReferenceError: votedCloud is not defined`
+
+**根本原因**:
+- `JournalTab` 组件内部使用 `votedCloud={votedCloud}` 传递给 `MonthlyHeatmap`
+- 但 `JournalTab` 本身没有接收这个prop
+
+**解决方案**:
+1. 给 `JournalTab` 添加 `votedCloud: boolean` 参数
+2. 主页调用 `JournalTab` 时传递 `votedCloud={votedCloud}`
+
+**Git提交**:
+- `a402782` - style: 优化AddPracticeModal样式细节
+- `66ea1ab` - fix: 修正练习心得文本框高度+20%（rows: 4→5）
+- `4208666` - style: 统一练习完成和编辑页面的解锁突破按钮样式
+- `52a63db` - fix: 修复votedCloud未定义错误
+- `5af62c6` - fix: 修复云同步图标投票后状态同步问题
+- `65c5622` - fix: 正确修复云同步图标投票后状态同步问题
+- `635320f` - fix: 修复练习时长和解锁突破按钮水平对齐问题
+- `905c93d` - style: 统一添加练习页的文案为"觉察/笔记"
+- `2cdb5d5` - style: 添加练习页面的觉察/笔记标签添加字数限制提示
+
+**用户体验改进**:
+- 所有输入框和按钮完美对齐，视觉更统一
+- 云同步图标投票后立即反馈，无需刷新
+- 时光轴显示更简洁，只显示核心信息
+- 三个页面（添加、完成、编辑）的样式完全一致
+- 文案统一为"觉察/笔记"，更符合产品定位
+
+**下一步计划**:
+- **P0**: 继续使用和测试，发现其他问题
+- **P1**: 照片上传功能（Supabase Storage）
+- **P2**: 数据备份提醒功能
+
+**产品里程碑**: Tab2（觉察日记）功能达到稳定可用标准 🎉
+
+---
+
+**阶段**: UI细节打磨和交互优化
+
+**核心改动**:
+- ✅ 云端同步弹窗文案优化（更友好随意）
+- ✅ 移除Tab3的专业版投票功能（保留图标）
+- ✅ DatePicker日历圆圈样式（复用Tab2的MonthlyHeatmap）
+- ✅ TypeSelectorModal改为底部弹出半屏卡片
+- ✅ 移除标题栏横线和按钮边框
+- ✅ 添加自定义练习弹窗功能（复用CustomPracticeModal）
+- ✅ 修复z-index层级冲突导致的自定义按钮无反应
+- ✅ 修复双高亮bug（先选择选项再点自定义会有2个高亮）
+
+**技术实现**:
+
+#### 1. 云端同步弹窗文案优化
+**文件**: `components/FakeDoorModal.tsx`
+
+**改动内容**:
+- 更新cloud类型的文案为更友好的表达方式
+- 标题：☁️云端同步📷上传照片
+- 副标题：害怕日记丢失？想上传当天练习的照片？
+- 描述：考虑开发这些功能，你需要吗？请投一票~
+- 主要按钮：【我想要，投一票】/ 已投票！
+- 次要按钮：暂不需要 / 收到啦！
+- 添加toast反馈：次要按钮点击后显示"收到你的心意啦~"
+
+#### 2. DatePicker日历圆圈样式
+**文件**: `app/page.tsx` (DatePickerModal组件)
+
+**改动内容**:
+- 从底部绿点指示器改为圆圈包裹样式（与Tab2的MonthlyHeatmap保持一致）
+- 已练习日期：绿色渐变圆圈 + 白色文字
+- 未练习日期：灰色背景圆圈
+- 字号从text-sm改为text-[9px]，更精致
+- 添加hover阴影效果，提升交互反馈
+
+**代码示例**:
+```tsx
+<motion.button
+  className={`
+    aspect-square rounded-full flex items-center justify-center
+    text-[9px] font-serif transition-all
+    ${hasPractice && !isFuture
+      ? 'bg-gradient-to-br from-[rgba(45,90,39,0.9)] to-[rgba(74,122,68,0.75)] backdrop-blur-sm border border-white/20 shadow-[0_2px_8px_rgba(45,90,39,0.3)] text-white'
+      : 'bg-background text-foreground'
+    }
+  `}
+>
+  {day}
+</motion.button>
+```
+
+#### 3. TypeSelectorModal底部弹出动画
+**文件**: `app/page.tsx` (TypeSelectorModal组件)
+
+**改动内容**:
+- 动画方向：从右侧滑入（x: "100%"）改为从底部弹出（y: "100%"）
+- 尺寸变化：从全屏（inset-0）改为半屏卡片（max-h-[70vh]）
+- 添加圆角：rounded-t-[32px]，底部卡片感
+- spring动画参数：damping: 25, stiffness: 300
+
+**代码示例**:
+```tsx
+<motion.div
+  initial={{ y: "100%" }}
+  animate={{ y: 0 }}
+  exit={{ y: "100%" }}
+  transition={{ type: "spring", damping: 25, stiffness: 300 }}
+  className="fixed bottom-0 left-0 right-0 bg-card rounded-t-[32px] z-[80] flex flex-col max-h-[70vh] shadow-[0_-4px_20px_rgba(0,0,0,0.08)]"
+>
+```
+
+#### 4. 样式优化（移除边框）
+**文件**: `app/page.tsx`
+
+**改动内容**:
+- 移除标题栏横线：删除`border-b border-border`
+- 移除普通按钮边框：删除`border border-border`，保留阴影
+- 保持自定义按钮虚线边框（`border-2 border-dashed border-primary/30`）
+
+#### 5. 自定义练习弹窗集成
+**文件**: `app/page.tsx`
+
+**改动内容**:
+- TypeSelectorModal点击自定义按钮时传递特殊值"__custom__"给父组件
+- AddPracticeModal接收"__custom__"并显示CustomPracticeModal
+- CustomPracticeModal确认后更新selectedType状态
+- 解决z-index冲突：将CustomPracticeModal移到AddPracticeModal层级
+
+**关键代码**:
+```tsx
+// TypeSelectorModal - 处理自定义按钮点击
+const handleOptionTap = (option: PracticeOption) => {
+  if (option.id === "custom") {
+    onClose("__custom__")  // 传递特殊值
+  } else {
+    onClose(option.labelZh || option.label)
+  }
+}
+
+// AddPracticeModal - 接收并处理
+<TypeSelectorModal
+  onClose={(selectedType) => {
+    if (selectedType === "__custom__") {
+      setShowCustomModal(true)  // 显示自定义弹窗
+    } else if (selectedType) {
+      setType(selectedType)
+    }
+    setShowTypeSelector(false)
+  }}
+/>
+
+<CustomPracticeModal
+  isOpen={showCustomModal}
+  onClose={() => setShowCustomModal(false)}
+  onConfirm={(name, notes) => {
+    setType(name)  // 更新选中的类型
+    setShowCustomModal(false)
+  }}
+  isFull={false}
+/>
+```
+
+#### 6. Bug修复历程
+
+**Bug 1: 自定义按钮无反应（第一次）**
+- 问题：点击自定义按钮没有反应
+- 根因：CustomPracticeModal在TypeSelectorModal内部，z-index为50，被TypeSelectorModal的z-[80]遮挡
+- 临时方案：将CustomPracticeModal移到TypeSelectorModal的AnimatePresence外部
+- Git commit: cfe4da0
+
+**Bug 2: Git push超时**
+- 问题：Connection timed out after 300003 milliseconds
+- 解决：重试push命令，第二次成功
+
+**Bug 3: 自定义按钮仍无反应 + 双高亮问题**
+- 问题：
+  1. 自定义按钮还是没反应
+  2. 先选择一个选项再点击自定义，会有2个按钮被高亮
+- 根因：
+  1. CustomPracticeModal应该由AddPracticeModal控制，而不是TypeSelectorModal
+  2. handleOptionTap对于自定义按钮没有调用onClose，导致selectedType状态没有被清空
+- 最终方案：
+  1. 在AddPracticeModal中添加showCustomModal状态
+  2. TypeSelectorModal只负责传递"__custom__"字符串
+  3. AddPracticeModal接收"__custom__"并显示CustomPracticeModal
+  4. 删除TypeSelectorModal内部的CustomPracticeModal实例
+- Git commit: 9c2c3cc
+
+**技术学习**:
+1. **z-index层级管理**：子模态框的z-index必须高于父模态框，或者渲染在父模态框的AnimatePresence外部
+2. **组件通信模式**：使用特殊字符串值（如"__custom__"）在父子组件之间传递信号
+3. **状态管理**：嵌套模态框的状态应该由最外层父组件统一管理
+4. **Fragment包装器**：`<>...</>`允许在AnimatePresence外部渲染兄弟元素
+
+**Git提交**:
+- `7f5a9b8` - fix: 次要按钮添加Toast反馈
+- `96ba36e` - fix: DatePickerModal显示已有练习的小绿圆点
+- `86a454f` - style: DatePickerModal复用Tab2日历圆圈样式
+- `0dfb166` - style: TypeSelectorModal改为从底部弹出半屏卡片
+- `3499f14` - fix: TypeSelectorModal样式和功能优化
+- `cfe4da0` - fix: 修复自定义按钮无反应问题（z-index层级冲突）
+- `9c2c3cc` - fix: 修复自定义按钮和双高亮问题
+
+**用户体验改进**:
+- 补录练习流程更加流畅自然
+- 日历样式与Tab2保持一致，视觉语言统一
+- 从底部弹出的半屏卡片更符合移动端交互习惯
+- 移除多余边框后UI更简洁精致
+- 自定义练习功能完整可用
+
+**z-index层级体系**:
+- [60] AddPracticeModal backdrop
+- [70] AddPracticeModal content
+- [75] TypeSelectorModal backdrop
+- [80] TypeSelectorModal content
+- [100] CustomPracticeModal backdrop (独立在AddPracticeModal层级)
+
+**下一步计划**:
+- **P0**: 继续使用和测试，发现其他问题
+- **P1**: 照片上传功能（Supabase Storage）
+- **P2**: 数据备份提醒功能
+
+**产品里程碑**: 补录练习功能达到可用标准 🎉
 
 ---
 
