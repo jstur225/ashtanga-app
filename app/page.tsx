@@ -528,55 +528,56 @@ function EditRecordModal({
             ) : (
               <div className="space-y-4">
                 {/* Read-only info */}
-                <div className="flex gap-4">
-                  <div className="flex-1">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
                     <label className="block text-xs font-serif text-muted-foreground mb-1.5">日期</label>
-                    <div className="px-4 py-3 rounded-2xl bg-secondary text-foreground font-serif">{formatDate(record.date)}</div>
+                    <div className="px-3 py-2.5 rounded-xl bg-secondary text-foreground font-serif text-sm">{formatDate(record.date)}</div>
                   </div>
-                  <div className="flex-1">
+                  <div>
                     <label className="block text-xs font-serif text-muted-foreground mb-1.5">类型</label>
-                    <div className="px-4 py-3 rounded-2xl bg-secondary text-foreground font-serif">{record.type}</div>
+                    <div className="px-3 py-2.5 rounded-xl bg-secondary text-foreground font-serif text-sm">{record.type}</div>
                   </div>
                 </div>
                 
                 {/* Duration & Breakthrough Toggle */}
-                <div className="flex items-center gap-4">
-                  <div className="flex-1">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
                     <label className="block text-xs font-serif text-muted-foreground mb-1.5">时长</label>
-                    <div className="px-4 py-3 rounded-2xl bg-secondary text-foreground font-serif">{formatDuration(record.duration)}</div>
+                    <div className="px-3 py-2.5 rounded-xl bg-secondary text-foreground font-serif text-sm">{formatDuration(record.duration)}</div>
                   </div>
-                  <div className="pt-5">
+                  <div className="flex items-end pb-0.5">
                     <button
                       type="button"
                       onClick={() => setBreakthroughEnabled(!breakthroughEnabled)}
-                      className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full font-serif text-xs transition-all ${
+                      className={`w-full flex items-center justify-start gap-1.5 px-3 py-2.5 rounded-xl border transition-all ${
                         breakthroughEnabled
-                          ? 'bg-gradient-to-r from-[#e67e22] to-[#f39c12] text-white shadow-[0_4px_15px_rgba(230,126,34,0.3)]'
-                          : 'bg-secondary text-muted-foreground hover:bg-secondary/80'
+                          ? 'bg-orange-50 border-orange-200 text-orange-600 shadow-sm'
+                          : 'bg-secondary border-transparent text-muted-foreground'
                       }`}
                     >
-                      <Sparkles className="w-3.5 h-3.5" />
-                      解锁/突破
+                      <Sparkles className={`w-3.5 h-3.5 ${breakthroughEnabled ? 'text-orange-500' : 'text-muted-foreground'}`} />
+                      <span className="text-sm font-serif">解锁/突破</span>
                     </button>
                   </div>
                 </div>
-                
+
                 <AnimatePresence>
                   {breakthroughEnabled && (
                     <motion.div
                       initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
+                      animate={{ height: "auto", opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.2 }}
                       className="overflow-hidden"
                     >
-                      <div className="mt-1">
+                      <div className="pt-1">
+                        <label className="block text-xs font-serif text-muted-foreground mb-1.5">觉察/笔记</label>
                         <input
                           type="text"
                           value={breakthroughText}
-                          onChange={(e) => setBreakthroughText(e.target.value.slice(0, 20))}
-                          placeholder="记录这天的成就"
-                          className="w-full px-4 py-3 rounded-2xl bg-[#fef3e2] border border-[#e67e22]/30 text-foreground placeholder:text-[#e67e22]/50 focus:outline-none focus:ring-2 focus:ring-[#e67e22]/30 transition-all font-serif text-sm"
+                          onChange={(e) => setBreakthroughText(e.target.value)}
+                          placeholder="记录今天的里程碑..."
+                          maxLength={20}
+                          className="w-full px-3 py-2.5 rounded-xl bg-orange-50 text-foreground font-serif focus:outline-none focus:ring-2 focus:ring-orange-300/50 transition-all border border-orange-200 text-sm"
                         />
                       </div>
                     </motion.div>
@@ -586,13 +587,13 @@ function EditRecordModal({
                 {/* Editable notes */}
                 <div>
                   <label className="block text-xs font-serif text-muted-foreground mb-1.5">
-                    笔记 <span className="text-muted-foreground/60">（最多2000字）</span>
+                    觉察/笔记 <span className="text-muted-foreground/60">（最多2000字）</span>
                   </label>
                   <textarea
                     value={notes}
                     onChange={(e) => setNotes(e.target.value.slice(0, 2000))}
                     placeholder="今天的练习感受如何？"
-                    rows={4}
+                    rows={5}
                     className="w-full px-4 py-3 rounded-2xl bg-secondary text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-none font-serif text-sm"
                   />
                 </div>
@@ -1705,35 +1706,35 @@ function CompletionSheet({
               <div>
                 <button
                   onClick={() => setBreakthroughEnabled(!breakthroughEnabled)}
-                  className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full font-serif text-sm transition-all ${
+                  className={`w-full flex items-center justify-start gap-1.5 px-3 py-2.5 rounded-xl border transition-all ${
                     breakthroughEnabled
-                      ? 'bg-gradient-to-r from-[#e67e22] to-[#f39c12] text-white shadow-[0_4px_15px_rgba(230,126,34,0.3)]'
-                      : 'bg-secondary text-muted-foreground hover:bg-secondary/80'
+                      ? 'bg-orange-50 border-orange-200 text-orange-600 shadow-sm'
+                      : 'bg-secondary border-transparent text-muted-foreground'
                   }`}
                 >
-                  <Sparkles className="w-4 h-4" />
-                  解锁/突破
+                  <Sparkles className={`w-3.5 h-3.5 ${breakthroughEnabled ? 'text-orange-500' : 'text-muted-foreground'}`} />
+                  <span className="text-sm font-serif">解锁/突破</span>
                 </button>
-                
+
                 {/* Conditional Breakthrough Input */}
                 <AnimatePresence>
                   {breakthroughEnabled && (
                     <motion.div
                       initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
+                      animate={{ height: "auto", opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.2 }}
                       className="overflow-hidden"
                     >
-                      <div className="mt-3">
+                      <div className="pt-1">
+                        <label className="block text-xs font-serif text-muted-foreground mb-1.5">觉察/笔记</label>
                         <input
                           type="text"
                           value={breakthroughText}
-                          onChange={(e) => setBreakthroughText(e.target.value.slice(0, 20))}
-                          placeholder="记录今天的成就（如：马里奇D终于扣上了）"
-                          className="w-full px-4 py-3 rounded-2xl bg-[#fef3e2] border border-[#e67e22]/30 text-foreground placeholder:text-[#e67e22]/50 focus:outline-none focus:ring-2 focus:ring-[#e67e22]/30 transition-all font-serif"
+                          onChange={(e) => setBreakthroughText(e.target.value)}
+                          placeholder="记录今天的里程碑..."
+                          maxLength={20}
+                          className="w-full px-3 py-2.5 rounded-xl bg-orange-50 text-foreground font-serif focus:outline-none focus:ring-2 focus:ring-orange-300/50 transition-all border border-orange-200 text-sm"
                         />
-                        <div className="text-right text-xs text-[#e67e22]/70 mt-1">{breakthroughText.length}/20</div>
                       </div>
                     </motion.div>
                   )}
@@ -1742,13 +1743,13 @@ function CompletionSheet({
 
               <div>
                 <label className="block text-xs font-serif text-muted-foreground mb-1.5">
-                  觉察 / 笔记 <span className="text-muted-foreground/60">（最多2000字）</span>
+                  觉察/笔记 <span className="text-muted-foreground/60">（最多2000字）</span>
                 </label>
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value.slice(0, 2000))}
                   placeholder="今天的练习感受如何？有什么觉察或洞见..."
-                  rows={4}
+                  rows={5}
                   className="w-full px-4 py-3 rounded-2xl bg-secondary text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-none font-serif"
                 />
                 <div className="text-right text-xs text-muted-foreground mt-1">{notes.length}/2000</div>
