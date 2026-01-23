@@ -1714,7 +1714,7 @@ function JournalTab({
                 className="w-[70px] flex-shrink-0 pr-3 pt-1 pb-1 text-right hover:bg-secondary/30 rounded-l-lg transition-colors"
                 style={{ borderRadius: '0.5rem 0 0 0.5rem' }}
               >
-                <div className="text-sm font-sans font-normal text-foreground leading-none">{formatDate(practice.date)}</div>
+                <div className="text-sm font-serif font-normal text-foreground leading-none">{formatDate(practice.date)}</div>
                 {practice.duration > 0 && (
                   <div className="flex items-center justify-end mt-1">
                     <span className="text-sm text-foreground leading-none">{formatMinutes(practice.duration)}</span>

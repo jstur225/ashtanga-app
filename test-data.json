@@ -1,0 +1,69 @@
+{
+  "records": [
+    {
+      "id": "test-001",
+      "created_at": "2026-01-23T08:00:00.000Z",
+      "date": "2026-01-20",
+      "type": "一序列",
+      "duration": 5400,
+      "notes": "今天练习很流畅，站立体式感觉很稳定。\n马里奇D老师帮了一下，后面几个体式深了很多。",
+      "photos": [],
+      "breakthrough": ""
+    },
+    {
+      "id": "test-002",
+      "created_at": "2026-01-22T08:00:00.000Z",
+      "date": "2026-01-21",
+      "type": "二序列",
+      "duration": 6300,
+      "notes": "早上的练习状态很好，\n\n卡波塔式终于能抓到脚了！\n这是练了8个月以来的第一次突破，非常开心。",
+      "photos": [],
+      "breakthrough": "卡波塔式抓脚成功！"
+    },
+    {
+      "id": "test-003",
+      "created_at": "2026-01-23T08:00:00.000Z",
+      "date": "2026-01-22",
+      "type": "半序列",
+      "duration": 2700,
+      "notes": "时间不多，只练了半序列。\n\n今天身体有点僵硬，就练到船式为止。\n重点在于呼吸的配合，每个动作都保持5个呼吸。",
+      "photos": [],
+      "breakthrough": ""
+    }
+  ],
+  "options": [
+    {
+      "id": "1",
+      "created_at": "2026-01-23T00:00:00.000Z",
+      "label": "Primary 1",
+      "label_zh": "一序列",
+      "notes": "Mysore",
+      "is_custom": false
+    },
+    {
+      "id": "3",
+      "created_at": "2026-01-23T00:00:00.000Z",
+      "label": "Intermediate 1",
+      "label_zh": "二序列",
+      "notes": "Mysore",
+      "is_custom": false
+    },
+    {
+      "id": "5",
+      "created_at": "2026-01-23T00:00:00.000Z",
+      "label": "Half",
+      "label_zh": "半序列",
+      "notes": "站立+休息",
+      "is_custom": false
+    }
+  ],
+  "profile": {
+    "id": "user-test",
+    "created_at": "2026-01-23T00:00:00.000Z",
+    "name": "测试用户",
+    "signature": "熬汤日记测试",
+    "avatar": null,
+    "is_pro": false
+  },
+  "export_at": "2026-01-23T12:00:00.000Z"
+}
