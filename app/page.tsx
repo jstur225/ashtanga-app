@@ -1267,7 +1267,7 @@ function AddPracticeModal({
                       }
                     `}
                   >
-                    {type || "选择类型"}
+                    {type ? type.split(' ')[0] : "选择类型"}
                   </button>
                 </div>
               </div>
