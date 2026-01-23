@@ -1732,7 +1732,7 @@ function JournalTab({
               </div>
 
               {/* Right Column: Content - Left-aligned with matching breathing room */}
-              <div className="flex-1 pl-3 pt-1 pb-1">
+              <div className="flex-1 pl-3 pb-1">
                 {/* First line: Breakthrough OR Notes - must align with Date */}
                 {practice.breakthrough ? (
                   <div className="flex items-center gap-1 leading-none mb-1">
