@@ -1184,11 +1184,17 @@ function AddPracticeModal({
       console.log('calling onAddOption...')
       onAddOption(name, notes)
       console.log('onAddOption called')
+      // 设置选中的类型
+      setType(name)
+      // 延迟关闭弹窗，确保用户看到toast提示和选项保存完成
+      setTimeout(() => {
+        setShowCustomModal(false)
+      }, 800)
     } else {
       console.log('onAddOption is undefined!')
+      setType(name)
+      setShowCustomModal(false)
     }
-    setType(name)
-    setShowCustomModal(false)
   }
 
   const handleSave = () => {
