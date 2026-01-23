@@ -1771,18 +1771,19 @@ function CompletionSheet({
 
 // Color Block Fullscreen Viewer (simulates photo viewer)
 // Monthly Heatmap for Journal - Now with CIRCLES instead of squares
-function MonthlyHeatmap({ 
-  practiceHistory, 
+function MonthlyHeatmap({
+  practiceHistory,
   onDayClick,
   onOpenFakeDoor,
-  onAddRecord
-}: { 
+  onAddRecord,
+  votedCloud
+}: {
   practiceHistory: PracticeRecord[]
   onDayClick: (dateStr: string) => void
   onOpenFakeDoor: () => void
   onAddRecord: () => void
+  votedCloud: boolean
 }) {
-  const [votedCloud] = useLocalStorage('voted_cloud_sync', false)
   const today = new Date()
   const todayStr = getLocalDateStr()
   const [viewDate, setViewDate] = useState(today)
@@ -1974,6 +1975,13 @@ function JournalTab({
   const recordRefs = useRef<Record<string, HTMLDivElement | null>>({})
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
+  // 提取练习类型名称（去除备注）
+  const getTypeDisplayName = (type: string) => {
+    // type格式可能是："一序列 Mysore" 或 "Primary 1 - Mysore"
+    // 提取第一部分（在空格或" - "之前）
+    return type.split(/\s+|-\s*/)[0]
+  }
+
   // Handle scroll to show/hide back-to-top button (threshold: 400px)
   useEffect(() => {
     const container = scrollContainerRef.current
@@ -2038,11 +2046,12 @@ function JournalTab({
     <div ref={scrollContainerRef} className="flex-1 overflow-y-auto pb-24 pt-12 relative">
       {/* Calendar with integrated header */}
       <div className="px-6">
-        <MonthlyHeatmap 
-          practiceHistory={practiceHistory} 
+        <MonthlyHeatmap
+          practiceHistory={practiceHistory}
           onDayClick={handleDayClick}
           onOpenFakeDoor={onOpenFakeDoor}
           onAddRecord={() => setShowAddModal(true)}
+          votedCloud={votedCloud}
         />
       </div>
       
@@ -2090,7 +2099,7 @@ function JournalTab({
                     </span>
                   </div>
                 )}
-                <div className="text-[10px] font-serif italic text-muted-foreground mt-0.5">{practice.type}</div>
+                <div className="text-[10px] font-serif italic text-muted-foreground mt-0.5">{getTypeDisplayName(practice.type)}</div>
               </button>
               
               {/* Center: Vertical line with Dot - balanced whitespace on both sides */}
