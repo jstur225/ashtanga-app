@@ -1323,14 +1323,14 @@ function AddPracticeModal({
               </AnimatePresence>
 
               {/* Notes */}
-              <div className="mx-[-10%]">
-                <label className="block text-xs font-serif text-muted-foreground mb-2 ml-[10%]">练习心得</label>
+              <div>
+                <label className="block text-xs font-serif text-muted-foreground mb-2">练习心得</label>
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="记录呼吸、体感和觉察..."
-                  rows={4}
-                  className="w-[120%] ml-[10%] px-4 py-3 rounded-2xl bg-secondary text-foreground font-serif focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-none text-sm"
+                  rows={5}
+                  className="w-full px-4 py-3 rounded-2xl bg-secondary text-foreground font-serif focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-none text-sm"
                 />
               </div>
 
