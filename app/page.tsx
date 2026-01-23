@@ -1032,8 +1032,22 @@ function TypeSelectorModal({
   selectedType?: string
 }) {
   // 处理按钮点击
+  const [showCustomModal, setShowCustomModal] = useState(false)
+
   const handleOptionTap = (option: PracticeOption) => {
-    onClose(option.labelZh || option.label)
+    if (option.id === "custom") {
+      // 点击自定义按钮，弹出输入弹窗
+      setShowCustomModal(true)
+    } else {
+      // 点击普通按钮，直接返回类型
+      onClose(option.labelZh || option.label)
+    }
+  }
+
+  // 处理自定义练习确认
+  const handleCustomPracticeConfirm = (name: string, notes: string) => {
+    onClose(name)
+    setShowCustomModal(false)
   }
 
   return (
@@ -1057,7 +1071,7 @@ function TypeSelectorModal({
             className="fixed bottom-0 left-0 right-0 bg-card rounded-t-[32px] z-[80] flex flex-col max-h-[70vh] shadow-[0_-4px_20px_rgba(0,0,0,0.08)]"
           >
             {/* 标题栏 */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border flex-shrink-0">
+            <div className="flex items-center justify-between px-6 py-4 flex-shrink-0">
               <h2 className="text-lg font-serif text-foreground font-semibold">选择练习类型</h2>
               <button
                 onClick={() => onClose('')}
@@ -1087,7 +1101,7 @@ function TypeSelectorModal({
                             ? "bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] text-primary-foreground backdrop-blur-[16px] border border-white/30 shadow-[0_8px_24px_rgba(45,90,39,0.3)]"
                             : isCustomButton
                               ? "bg-background text-muted-foreground border-2 border-dashed border-muted-foreground/30 shadow-[0_2px_12px_rgba(0,0,0,0.03)]"
-                              : "bg-card text-foreground shadow-[0_4px_16px_rgba(0,0,0,0.06)] border border-border"
+                              : "bg-card text-foreground shadow-[0_4px_16px_rgba(0,0,0,0.06)]"
                         }
                       `}
                     >
@@ -1113,6 +1127,14 @@ function TypeSelectorModal({
               </p>
             </div>
           </motion.div>
+
+          {/* Custom Practice Modal */}
+          <CustomPracticeModal
+            isOpen={showCustomModal}
+            onClose={() => setShowCustomModal(false)}
+            onConfirm={handleCustomPracticeConfirm}
+            isFull={false}
+          />
         </>
       )}
     </AnimatePresence>
