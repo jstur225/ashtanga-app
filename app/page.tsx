@@ -1284,7 +1284,8 @@ function AddPracticeModal({
                     className="w-full px-3 py-2.5 rounded-xl bg-secondary text-foreground font-serif focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all text-sm"
                   />
                 </div>
-                <div className="flex items-end pb-0.5">
+                <div>
+                  <label className="block text-xs font-serif text-muted-foreground mb-1.5 opacity-0">解锁/突破</label>
                   <button
                     onClick={() => setBreakthroughEnabled(!breakthroughEnabled)}
                     className={`w-full flex items-center justify-start gap-1.5 px-3 py-2.5 rounded-xl border transition-all ${
