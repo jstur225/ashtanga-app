@@ -1717,20 +1717,20 @@ function JournalTab({
                 <div className="text-sm font-serif italic text-foreground leading-none">{formatDate(practice.date)}</div>
                 {practice.duration > 0 && (
                   <div className="flex items-center justify-end mt-1">
-                    <span className="text-xs font-serif text-muted-foreground leading-none">{formatMinutes(practice.duration)}</span>
-                    <span className="text-xs font-serif text-muted-foreground ml-0.5">
+                    <span className="text-xs font-serif italic text-muted-foreground leading-none">{formatMinutes(practice.duration)}</span>
+                    <span className="text-xs font-serif italic text-muted-foreground ml-0.5">
                       分钟
                     </span>
                   </div>
                 )}
-                <div className="text-[10px] font-serif text-muted-foreground mt-0.5">{practice.type}</div>
+                <div className="text-[10px] font-serif italic text-muted-foreground mt-0.5">{practice.type}</div>
               </button>
               
               {/* Center: Vertical line with Dot - balanced whitespace on both sides */}
               <div className="w-[1px] bg-border flex-shrink-0 self-stretch relative">
-                <div className={`absolute mt-[12px] left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full ${practice.breakthrough ? 'bg-gradient-to-br from-[#e67e22] to-[#f39c12]' : 'bg-gradient-to-br from-[rgba(45,90,39,0.9)] to-[rgba(74,122,68,0.8)]'}`} />
+                <div className={`absolute mt-[10px] left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full ${practice.breakthrough ? 'bg-gradient-to-br from-[#e67e22] to-[#f39c12]' : 'bg-gradient-to-br from-[rgba(45,90,39,0.9)] to-[rgba(74,122,68,0.8)]'}`} />
               </div>
-              
+
               {/* Right Column: Content - Left-aligned with matching breathing room */}
               <div className="flex-1 pl-3 pt-1 pb-1">
                 {/* First line: Breakthrough OR Notes - must align with Date */}
@@ -1746,7 +1746,7 @@ function JournalTab({
                   className="w-full text-left hover:bg-secondary/30 rounded-lg transition-colors overflow-hidden"
                   style={{ borderRadius: '0 0.5rem 0.5rem 0' }}
                 >
-                  <p className="text-sm text-foreground font-serif leading-relaxed whitespace-pre-wrap break-words w-full">
+                  <p className="text-sm text-foreground font-serif leading-snug whitespace-pre-wrap break-words w-full">
                     {practice.notes}
                   </p>
                 </button>
