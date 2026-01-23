@@ -853,8 +853,275 @@ function ZenSelect({
   )
 }
 
-// Add Record Modal (补录练习) - Now using Zen Date Picker and Custom Select
-function AddRecordModal({
+// Date Picker Modal - 复用Tab2的月度热力图样式
+function DatePickerModal({
+  isOpen,
+  onClose,
+  maxDate,
+  practiceHistory = [],
+}: {
+  isOpen: boolean
+  onClose: (date: string) => void
+  maxDate?: string
+  practiceHistory?: PracticeRecord[]
+}) {
+  const [viewDate, setViewDate] = useState(new Date())
+  const today = maxDate ? new Date(maxDate) : new Date()
+
+  // 复用MonthlyHeatmap的日历逻辑
+  const currentMonth = viewDate.getMonth()
+  const currentYear = viewDate.getFullYear()
+  const firstDayOfMonth = new Date(currentYear, currentMonth, 1)
+  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate()
+  const startDayOfWeek = firstDayOfMonth.getDay()
+
+  // 练习记录映射
+  const practiceMap = useMemo(() => {
+    const map: Record<string, boolean> = {}
+    practiceHistory.forEach((p) => {
+      map[p.date] = true
+    })
+    return map
+  }, [practiceHistory])
+
+  const calendarDays = useMemo(() => {
+    const days: (number | null)[] = []
+    for (let i = 0; i < startDayOfWeek; i++) {
+      days.push(null)
+    }
+    for (let day = 1; day <= daysInMonth; day++) {
+      days.push(day)
+    }
+    return days
+  }, [startDayOfWeek, daysInMonth])
+
+  const weekDays = ['日', '一', '二', '三', '四', '五', '六']
+
+  const goToPreviousMonth = () => {
+    setViewDate(new Date(currentYear, currentMonth - 1, 1))
+  }
+
+  const goToNextMonth = () => {
+    const nextMonth = new Date(currentYear, currentMonth + 1, 1)
+    if (nextMonth <= today) {
+      setViewDate(nextMonth)
+    }
+  }
+
+  const canGoNext = new Date(currentYear, currentMonth + 1, 1) <= today
+
+  const handleDayClick = (day: number | null) => {
+    if (day === null) return
+    const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+    const date = new Date(dateStr)
+    if (date <= today) {
+      onClose(dateStr)
+    }
+  }
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          {/* 背景遮罩 - z-[75] */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/30 z-[75]"
+            onClick={() => onClose('')}
+          />
+          {/* 模态框主体 - z-[80] */}
+          <motion.div
+            initial={{ y: "100%" }}
+            animate={{ y: 0 }}
+            exit={{ y: "100%" }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="fixed bottom-0 left-0 right-0 bg-card rounded-t-[32px] z-[80] p-6 pb-10 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] max-h-[80vh] overflow-y-auto"
+          >
+            {/* 标题栏 */}
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-lg font-serif text-foreground font-semibold">选择日期</h2>
+              <button
+                onClick={() => onClose('')}
+                className="p-2 -mr-2 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* 月份导航 */}
+            <div className="flex items-center justify-center gap-4 mb-6">
+              <button
+                onClick={goToPreviousMonth}
+                className="p-2 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              <h3 className="text-base font-serif text-foreground font-semibold">
+                {currentYear}年{currentMonth + 1}月
+              </h3>
+              <button
+                onClick={goToNextMonth}
+                disabled={!canGoNext}
+                className={`p-2 transition-colors ${
+                  canGoNext
+                    ? 'text-muted-foreground hover:text-foreground'
+                    : 'text-muted-foreground/30'
+                }`}
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* 日历网格 */}
+            <div className="grid grid-cols-7 gap-2">
+              {weekDays.map((day) => (
+                <div key={day} className="text-center text-xs text-muted-foreground font-serif py-2">
+                  {day}
+                </div>
+              ))}
+              {calendarDays.map((day, idx) => {
+                if (day === null) {
+                  return <div key={idx} />
+                }
+
+                const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+                const hasPractice = practiceMap[dateStr]
+                const isFuture = new Date(dateStr) > today
+
+                return (
+                  <motion.button
+                    key={idx}
+                    onClick={() => handleDayClick(day)}
+                    disabled={isFuture}
+                    whileTap={{ scale: 0.9 }}
+                    className={`
+                      aspect-square rounded-full flex items-center justify-center
+                      text-sm font-serif transition-all relative
+                      ${isFuture
+                        ? 'text-muted-foreground/30 cursor-not-allowed bg-transparent'
+                        : 'text-foreground hover:bg-secondary cursor-pointer'
+                      }
+                    `}
+                  >
+                    <span className="relative z-10">{day}</span>
+                    {hasPractice && !isFuture && (
+                      <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary" />
+                    )}
+                  </motion.button>
+                )
+              })}
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  )
+}
+
+// Type Selector Modal - 练习类型选择器（全屏）
+function TypeSelectorModal({
+  isOpen,
+  onClose,
+  practiceOptions,
+  selectedType,
+}: {
+  isOpen: boolean
+  onClose: (type: string) => void
+  practiceOptions: PracticeOption[]
+  selectedType?: string
+}) {
+  // 处理按钮点击
+  const handleOptionTap = (option: PracticeOption) => {
+    onClose(option.labelZh || option.label)
+  }
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          {/* 背景遮罩 - z-[75] */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/30 z-[75]"
+            onClick={() => onClose('')}
+          />
+          {/* 全屏模态框 - z-[80] */}
+          <motion.div
+            initial={{ x: "100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "100%" }}
+            transition={{ type: "spring", damping: 30, stiffness: 300 }}
+            className="fixed inset-0 bg-background z-[80] flex flex-col"
+          >
+            {/* 标题栏 */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+              <h2 className="text-lg font-serif text-foreground font-semibold">选择练习类型</h2>
+              <button
+                onClick={() => onClose('')}
+                className="p-2 -mr-2 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* 3列网格 - 可滚动 */}
+            <div className="flex-1 overflow-y-auto px-6 py-6">
+              <div className="grid grid-cols-3 gap-3">
+                {practiceOptions.map((option) => {
+                  const isSelected = selectedType === (option.labelZh || option.label)
+                  const isCustomButton = option.id === "custom"
+
+                  return (
+                    <motion.button
+                      key={option.id}
+                      whileTap={{ scale: 0.97 }}
+                      onClick={() => handleOptionTap(option)}
+                      className={`
+                        py-3 px-2 rounded-[20px] text-center font-serif transition-all duration-300
+                        min-h-[80px] w-full flex flex-col items-center justify-center
+                        ${
+                          isSelected
+                            ? "bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] text-primary-foreground backdrop-blur-[16px] border border-white/30 shadow-[0_8px_24px_rgba(45,90,39,0.3)]"
+                            : isCustomButton
+                              ? "bg-background text-muted-foreground border-2 border-dashed border-muted-foreground/30 shadow-[0_2px_12px_rgba(0,0,0,0.03)]"
+                              : "bg-card text-foreground shadow-[0_4px_16px_rgba(0,0,0,0.06)] border border-border"
+                        }
+                      `}
+                    >
+                      <span className="text-[14px] leading-snug break-words w-full line-clamp-2">
+                        {isCustomButton ? "+ 自定义" : option.labelZh}
+                      </span>
+                      {!isCustomButton && option.notes && (
+                        <span className={`
+                          text-[11px] mt-1 leading-snug break-words w-full line-clamp-1
+                          ${isSelected ? 'text-primary-foreground/70' : 'text-muted-foreground'}
+                        `}>
+                          {option.notes}
+                        </span>
+                      )}
+                    </motion.button>
+                  )
+                })}
+              </div>
+
+              {/* 提示文本 */}
+              <p className="text-center text-xs text-muted-foreground font-serif mt-6">
+                点击选择练习类型
+              </p>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  )
+}
+
+// Add Practice Modal (添加练习) - 使用DatePickerModal和TypeSelectorModal
+function AddPracticeModal({
   isOpen,
   onClose,
   onSave,
@@ -871,6 +1138,17 @@ function AddRecordModal({
   const [notes, setNotes] = useState("")
   const [breakthroughEnabled, setBreakthroughEnabled] = useState(false)
   const [breakthroughText, setBreakthroughText] = useState("")
+
+  // 子模态框状态
+  const [showDatePicker, setShowDatePicker] = useState(false)
+  const [showTypeSelector, setShowTypeSelector] = useState(false)
+
+  // 日期显示格式化
+  const formatDateDisplay = (dateStr: string) => {
+    if (!dateStr) return "选择日期"
+    const date = new Date(dateStr)
+    return `${date.getMonth() + 1}月${date.getDate()}日`
+  }
 
   const typeOptions = useMemo(() => {
     return practiceOptions
@@ -899,6 +1177,7 @@ function AddRecordModal({
   }
 
   return (
+    <>
     <AnimatePresence>
       {isOpen && (
         <>
@@ -917,31 +1196,38 @@ function AddRecordModal({
             className="fixed bottom-0 left-0 right-0 bg-card rounded-t-[24px] z-[70] p-6 pb-10 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] max-h-[90vh] overflow-y-auto"
           >
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-serif text-foreground font-semibold">补录练习</h2>
+              <h2 className="text-lg font-serif text-foreground font-semibold">🧘‍♀️添加练习</h2>
               <button onClick={onClose} className="p-2 -mr-2 text-muted-foreground hover:text-foreground transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="space-y-6">
-              {/* Date & Type */}
+              {/* Date & Type - 使用按钮触发模态框 */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-serif text-muted-foreground mb-2">日期</label>
-                  <ZenDatePicker value={date} onChange={setDate} maxDate={new Date().toISOString().split('T')[0]} />
+                  <button
+                    onClick={() => setShowDatePicker(true)}
+                    className="w-full px-4 py-3 rounded-2xl bg-secondary text-foreground font-serif text-left transition-all hover:bg-secondary/80 active:scale-[0.98]"
+                  >
+                    {formatDateDisplay(date)}
+                  </button>
                 </div>
                 <div>
                   <label className="block text-xs font-serif text-muted-foreground mb-2">练习类型</label>
-                  <select
-                    value={type}
-                    onChange={(e) => setType(e.target.value)}
-                    className="w-full px-4 py-3 rounded-2xl bg-secondary text-foreground font-serif focus:outline-none focus:ring-2 focus:ring-primary/20 appearance-none transition-all"
+                  <button
+                    onClick={() => setShowTypeSelector(true)}
+                    className={`
+                      w-full px-4 py-3 rounded-2xl font-serif text-left transition-all active:scale-[0.98]
+                      ${type
+                        ? 'bg-gradient-to-br from-[rgba(45,90,39,0.15)] to-[rgba(74,122,68,0.1)] text-primary border border-primary/20'
+                        : 'bg-secondary text-muted-foreground hover:bg-secondary/80'
+                      }
+                    `}
                   >
-                    <option value="" disabled>选择类型</option>
-                    {typeOptions.map((opt) => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
-                    ))}
-                  </select>
+                    {type || "选择类型"}
+                  </button>
                 </div>
               </div>
 
@@ -1014,13 +1300,40 @@ function AddRecordModal({
                 disabled={!date || !type}
                 className="w-full py-4 rounded-full bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white font-serif transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-50"
               >
-                保存补录
+                保存练习
               </button>
             </div>
           </motion.div>
         </>
       )}
     </AnimatePresence>
+
+    {/* 子模态框：日期选择器 - z-[80] */}
+  <DatePickerModal
+    isOpen={showDatePicker}
+    onClose={(selectedDate) => {
+      if (selectedDate) {
+        setDate(selectedDate)
+      }
+      setShowDatePicker(false)
+    }}
+    maxDate={new Date().toISOString().split('T')[0]}
+    practiceHistory={[]} // 可从父组件传入
+  />
+
+  {/* 子模态框：类型选择器 - z-[80] */}
+  <TypeSelectorModal
+    isOpen={showTypeSelector}
+    onClose={(selectedType) => {
+      if (selectedType) {
+        setType(selectedType)
+      }
+      setShowTypeSelector(false)
+    }}
+    practiceOptions={practiceOptions}
+    selectedType={type}
+  />
+  </>
   )
 }
 
@@ -1774,7 +2087,7 @@ function JournalTab({
         totalHours={totalHours}
       />
 
-      <AddRecordModal
+      <AddPracticeModal
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
         onSave={onAddRecord}
