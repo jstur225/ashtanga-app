@@ -1286,7 +1286,7 @@ function AddPracticeModal({
                 <div className="flex items-end pb-0.5">
                   <button
                     onClick={() => setBreakthroughEnabled(!breakthroughEnabled)}
-                    className={`flex items-center gap-1.5 px-3 py-2 rounded-full border transition-all ${
+                    className={`flex items-center gap-1.5 px-3 py-2.5 rounded-xl border transition-all ${
                       breakthroughEnabled
                         ? 'bg-orange-50 border-orange-200 text-orange-600 shadow-sm'
                         : 'bg-secondary border-transparent text-muted-foreground'
