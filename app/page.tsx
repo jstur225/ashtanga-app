@@ -223,7 +223,7 @@ function CustomPracticeModal({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/30 z-40"
+            className="fixed inset-0 bg-black/30 z-[100]"
             onClick={onClose}
           />
           <motion.div
@@ -231,7 +231,7 @@ function CustomPracticeModal({
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 bg-card rounded-t-[24px] z-50 p-6 pb-10 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]"
+            className="fixed bottom-0 left-0 right-0 bg-card rounded-t-[24px] z-[110] p-6 pb-10 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]"
           >
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-serif text-foreground">自定义练习</h2>
@@ -1342,7 +1342,8 @@ function AddPracticeModal({
     isOpen={showTypeSelector}
     onClose={(selectedType) => {
       if (selectedType === "__custom__") {
-        // 点击自定义按钮
+        // 点击自定义按钮，清空当前选择
+        setType("")
         setShowCustomModal(true)
       } else if (selectedType) {
         setType(selectedType)
