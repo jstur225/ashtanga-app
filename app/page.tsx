@@ -1243,24 +1243,24 @@ function AddPracticeModal({
               </button>
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-5">
               {/* Date & Type - 使用按钮触发模态框 */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-serif text-muted-foreground mb-2">日期</label>
+                  <label className="block text-xs font-serif text-muted-foreground mb-1.5">日期</label>
                   <button
                     onClick={() => setShowDatePicker(true)}
-                    className="w-full px-4 py-3 rounded-2xl bg-secondary text-foreground font-serif text-left transition-all hover:bg-secondary/80 active:scale-[0.98]"
+                    className="w-full px-3 py-2.5 rounded-xl bg-secondary text-foreground font-serif text-left transition-all hover:bg-secondary/80 active:scale-[0.98] text-sm"
                   >
                     {formatDateDisplay(date)}
                   </button>
                 </div>
                 <div>
-                  <label className="block text-xs font-serif text-muted-foreground mb-2">练习类型</label>
+                  <label className="block text-xs font-serif text-muted-foreground mb-1.5">练习类型</label>
                   <button
                     onClick={() => setShowTypeSelector(true)}
                     className={`
-                      w-full px-4 py-3 rounded-2xl font-serif text-left transition-all active:scale-[0.98]
+                      w-full px-3 py-2.5 rounded-xl font-serif text-left transition-all active:scale-[0.98] text-sm
                       ${type
                         ? 'bg-gradient-to-br from-[rgba(45,90,39,0.15)] to-[rgba(74,122,68,0.1)] text-primary border border-primary/20'
                         : 'bg-secondary text-muted-foreground hover:bg-secondary/80'
@@ -1273,29 +1273,27 @@ function AddPracticeModal({
               </div>
 
               {/* Duration & Breakthrough Toggle */}
-              <div className="flex items-end gap-4">
+              <div className="flex items-center gap-3">
                 <div className="flex-1">
-                  <label className="block text-xs font-serif text-muted-foreground mb-2">练习时长 (分钟)</label>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      value={duration}
-                      onChange={(e) => setDuration(Number(e.target.value))}
-                      className="w-full px-4 py-3 rounded-2xl bg-secondary text-foreground font-serif focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-                    />
-                  </div>
+                  <label className="block text-xs font-serif text-muted-foreground mb-1.5">练习时长 (分钟)</label>
+                  <input
+                    type="number"
+                    value={duration}
+                    onChange={(e) => setDuration(Number(e.target.value))}
+                    className="w-full px-3 py-2.5 rounded-xl bg-secondary text-foreground font-serif focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all text-sm"
+                  />
                 </div>
-                <div className="flex items-center gap-2 pb-3 px-2">
+                <div className="flex items-end pb-0.5">
                   <button
                     onClick={() => setBreakthroughEnabled(!breakthroughEnabled)}
-                    className={`flex items-center gap-2 px-4 py-2.5 rounded-full border transition-all ${
-                      breakthroughEnabled 
-                        ? 'bg-orange-50 border-orange-200 text-orange-600 shadow-sm' 
+                    className={`flex items-center gap-1.5 px-3 py-2 rounded-full border transition-all ${
+                      breakthroughEnabled
+                        ? 'bg-orange-50 border-orange-200 text-orange-600 shadow-sm'
                         : 'bg-secondary border-transparent text-muted-foreground'
                     }`}
                   >
-                    <Sparkles className={`w-4 h-4 ${breakthroughEnabled ? 'text-orange-500' : 'text-muted-foreground'}`} />
-                    <span className="text-sm font-serif">解锁突破</span>
+                    <Sparkles className={`w-3.5 h-3.5 ${breakthroughEnabled ? 'text-orange-500' : 'text-muted-foreground'}`} />
+                    <span className="text-xs font-serif">解锁突破</span>
                   </button>
                 </div>
               </div>
@@ -1309,15 +1307,15 @@ function AddPracticeModal({
                     exit={{ height: 0, opacity: 0 }}
                     className="overflow-hidden"
                   >
-                    <div className="pt-2">
-                      <label className="block text-xs font-serif text-muted-foreground mb-2">突破内容</label>
+                    <div className="pt-1">
+                      <label className="block text-xs font-serif text-muted-foreground mb-1.5">突破内容</label>
                       <input
                         type="text"
                         value={breakthroughText}
                         onChange={(e) => setBreakthroughText(e.target.value)}
                         placeholder="记录今天的里程碑..."
                         maxLength={20}
-                        className="w-full px-4 py-3 rounded-2xl bg-secondary text-foreground font-serif focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all border-orange-100 border text-sm"
+                        className="w-full px-3 py-2.5 rounded-xl bg-orange-50 text-foreground font-serif focus:outline-none focus:ring-2 focus:ring-orange-300/50 transition-all border border-orange-200 text-sm"
                       />
                     </div>
                   </motion.div>
