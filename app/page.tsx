@@ -708,7 +708,7 @@ function ShareCardModal({
                 ) : (
                   <p
                     onClick={() => setIsEditingNotes(true)}
-                    className="text-sm text-foreground font-serif leading-relaxed cursor-text hover:bg-secondary/30 rounded-lg p-1 -m-1 transition-colors"
+                    className="text-sm text-foreground font-serif leading-relaxed cursor-text hover:bg-secondary/30 rounded-lg p-1 -m-1 transition-colors whitespace-pre-wrap break-words max-h-[200px] overflow-y-auto"
                   >
                     {editableNotes || "点击编辑笔记..."}
                   </p>
@@ -1746,7 +1746,7 @@ function JournalTab({
                   className="w-full text-left hover:bg-secondary/30 rounded-lg transition-colors"
                   style={{ borderRadius: '0 0.5rem 0.5rem 0' }}
                 >
-                  <p className="text-lg text-foreground font-serif leading-snug line-clamp-3">
+                  <p className="text-lg text-foreground font-serif leading-snug whitespace-pre-wrap break-words">
                     {practice.notes}
                   </p>
                 </button>
