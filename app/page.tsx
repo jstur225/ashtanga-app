@@ -1051,6 +1051,7 @@ function TypeSelectorModal({
   }
 
   return (
+    <>
     <AnimatePresence>
       {isOpen && (
         <>
@@ -1127,17 +1128,20 @@ function TypeSelectorModal({
               </p>
             </div>
           </motion.div>
-
-          {/* Custom Practice Modal */}
-          <CustomPracticeModal
-            isOpen={showCustomModal}
-            onClose={() => setShowCustomModal(false)}
-            onConfirm={handleCustomPracticeConfirm}
-            isFull={false}
-          />
         </>
       )}
     </AnimatePresence>
+
+    {/* Custom Practice Modal - 独立渲染，避免z-index冲突 */}
+    {showCustomModal && (
+      <CustomPracticeModal
+        isOpen={showCustomModal}
+        onClose={() => setShowCustomModal(false)}
+        onConfirm={handleCustomPracticeConfirm}
+        isFull={false}
+      />
+    )}
+  </>
   )
 }
 
