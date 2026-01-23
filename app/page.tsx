@@ -1944,6 +1944,7 @@ function JournalTab({
   onDeleteRecord,
   onAddRecord,
   onOpenFakeDoor,
+  onAddOption,
 }: {
   practiceHistory: PracticeRecord[]
   practiceOptions: PracticeOption[]
@@ -1952,6 +1953,7 @@ function JournalTab({
   onDeleteRecord: (id: string) => void
   onAddRecord: (record: Omit<PracticeRecord, 'id' | 'created_at' | 'photos'>) => void
   onOpenFakeDoor: () => void
+  onAddOption?: (name: string, notes: string) => void
 }) {
   const [editingRecord, setEditingRecord] = useState<PracticeRecord | null>(null)
   const [sharingRecord, setSharingRecord] = useState<PracticeRecord | null>(null)
@@ -2134,7 +2136,7 @@ function JournalTab({
         onSave={onAddRecord}
         practiceOptions={practiceOptions}
         practiceHistory={practiceHistory}
-        onAddOption={handleAddOption}
+        onAddOption={onAddOption}
       />
 
 {/* Back to Top Button - Floating, Jade Glassmorphism */}
@@ -2947,14 +2949,15 @@ export default function AshtangaTracker() {
       )}
 
       {activeTab === 'journal' && (
-        <JournalTab 
-          practiceHistory={practiceHistory} 
+        <JournalTab
+          practiceHistory={practiceHistory}
           practiceOptions={practiceOptions}
           profile={userProfile}
           onEditRecord={handleEditRecord}
           onDeleteRecord={handleDeleteRecord}
           onAddRecord={handleAddRecord}
           onOpenFakeDoor={() => setShowFakeDoor({ type: 'cloud', isOpen: true })}
+          onAddOption={handleAddOption}
         />
       )}
       {activeTab === 'stats' && (
