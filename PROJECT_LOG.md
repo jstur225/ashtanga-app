@@ -1036,6 +1036,146 @@ const getTypeDisplayName = (type: string) => {
 
 ---
 
+### 2026-01-24 Tab3运行日志导出功能 ✅
+
+**阶段**: 调试和问题排查工具
+
+**核心改动**:
+- ✅ Tab3数据管理区添加"运行日志"按钮
+- ✅ 实现日志导出函数（环境信息+应用状态+localStorage+最近活动）
+- ✅ 一键复制JSON格式日志到剪贴板
+- ✅ 方便用户反馈问题时提供调试信息
+
+#### 功能设计
+
+**使用场景**:
+- 用户遇到bug时，可以快速导出运行日志
+- 开发者通过日志快速定位问题
+- 不需要用户描述复杂的操作步骤
+
+**日志内容**:
+```typescript
+{
+  environment: {
+    browser: navigator.userAgent,        // 浏览器类型和版本
+    deviceType: 'mobile' | 'desktop',    // 设备类型
+    screenWidth: number,                  // 屏幕宽度
+    screenHeight: number,                 // 屏幕高度
+    timezone: string,                     // 时区
+    exportTime: string                    // 导出时间
+  },
+  appState: {
+    recordsCount: number,                 // 记录数
+    optionsCount: number,                 // 选项数
+    totalDuration: number,                // 总练习时长（秒）
+    hasCustomOptions: boolean             // 是否有自定义选项
+  },
+  storageState: {
+    localStorageKeys: string[],           // localStorage键名
+    estimatedSize: number                 // 估计大小
+  },
+  recentActivity: Array<{                 // 最近5条记录
+    date: string,
+    type: string,
+    duration: number,
+    hasNotes: boolean,
+    hasBreakthrough: boolean
+  }>
+}
+```
+
+#### 技术实现
+
+**文件**: `app/page.tsx`, `components/SettingsModal.tsx`
+
+**实现方案**:
+1. SettingsModal添加 `onExportLog?: () => void` 回调prop
+2. 数据管理区添加"运行日志"按钮（紫色图标）
+3. 主页实现 `handleExportDebugLog` 函数
+4. 使用 `navigator.clipboard.writeText()` 复制到剪贴板
+5. 降级方案：textarea + execCommand（兼容旧浏览器）
+
+**代码示例**:
+```tsx
+// SettingsModal - 新增按钮
+{onExportLog && (
+  <button onClick={onExportLog}>
+    <Copy className="w-5 h-5 text-purple-500" />
+    <span>运行日志</span>
+    <span>复制到剪贴板，方便反馈问题</span>
+  </button>
+)}
+
+// handleExportDebugLog - 收集和导出日志
+const handleExportDebugLog = () => {
+  const debugLog = {
+    environment: { /* ... */ },
+    appState: { /* ... */ },
+    storageState: { /* ... */ },
+    recentActivity: practiceHistory.slice(-5).map(/* ... */)
+  }
+
+  const jsonString = JSON.stringify(debugLog, null, 2)
+  navigator.clipboard.writeText(jsonString).then(() => {
+    toast.success('✅ 日志已复制到剪贴板')
+  })
+}
+```
+
+#### 文案调整
+
+**初始文案**: "导出调试日志"
+**最终文案**: "运行日志"
+
+**原因**:
+- 更简洁，用户更容易理解
+- "调试"太技术化，"运行"更日常
+
+#### 部署情况
+
+**Git提交**:
+- `f84bb7d` - feat: 添加Tab3调试日志导出功能
+  - 82行代码
+  - 包含完整的日志收集和导出功能
+- `5200c45` - fix: 修改日志导出按钮文案
+  - 文案简化："导出调试日志" → "运行日志"
+
+**部署状态**:
+- ✅ 已推送到GitHub
+- ✅ Vercel自动部署触发
+
+#### 用户体验
+
+**使用流程**:
+1. Tab3 → 设置 → 数据管理
+2. 点击"运行日志"按钮
+3. 日志自动复制到剪贴板
+4. Toast提示"✅ 日志已复制到剪贴板"
+5. 粘贴到文本编辑器或发送给开发者
+
+**数据安全**:
+- ✅ 不记录用户敏感信息（姓名、笔记内容）
+- ✅ 只记录元数据和统计信息
+- ✅ localStorage只记录键名和大小，不记录值
+- ✅ 最近活动只显示摘要（是否有笔记/突破）
+
+#### 技术亮点
+
+1. **轻量级实现**: 不引入新的Hook或复杂状态管理
+2. **一次性收集**: 只在点击时生成日志，不占用内存
+3. **快速生成**: JSON序列化只需几毫秒
+4. **用户友好**: 一键复制，无需手动选择文本
+
+#### 下一步计划
+
+**P0**: 继续使用和测试，发现其他问题
+**P1**: 照片上传功能（Supabase Storage）
+**P2**: 数据备份提醒功能
+
+**产品里程碑**: 完善调试工具，提升问题排查效率 🎉
+
+---
+
 **阶段**: UI细节打磨和交互优化
 
 **核心改动**:
