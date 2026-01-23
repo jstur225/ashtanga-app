@@ -1940,9 +1940,7 @@ function StatsTab({
           </div>
           <div className="flex items-center">
             <h2 className="text-xl font-serif text-[#e67e22]">{profile.name}</h2>
-            <button onClick={onOpenFakeDoor}>
-              <ProBadge isPro={hasVotedPro} />
-            </button>
+            <ProBadge isPro={hasVotedPro} />
           </div>
           <p className="text-[10px] font-mono text-gray-400 mt-1">ID: {profile.id?.slice(0, 8) || 'ANONYMOUS'}</p>
           <p className="text-sm text-muted-foreground font-serif mt-1">{profile.signature}</p>

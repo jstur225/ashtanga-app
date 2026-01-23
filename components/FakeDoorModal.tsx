@@ -27,24 +27,25 @@ export function FakeDoorModal({ type, isOpen, onClose }: FakeDoorModalProps) {
     if (type === 'cloud') {
       setVotedCloud(true)
       trackEvent('vote_for_cloud_sync')
-      toast.success('收到你的心意！我们会加快进度，上线后第一时间通知您。')
+      toast.success('收到你的心意啦~')
     } else {
       setVotedPro(true)
       trackEvent('click_vote_pro_features')
-      toast.success('收到你的心意！我们会加快进度，上线后第一时间通知您。')
+      toast.success('收到你的心意啦~')
     }
-    
+
     // Close after a short delay to let user see the "voted" state
     setTimeout(onClose, 1500)
   }
 
   const content = {
     cloud: {
-      title: '☁️ 云端同步和上传照片',
-      subtitle: '高级版功能',
-      desc: '害怕 **数据丢失**？云端备份功能（支持多设备同步）正在开发中。投一票，上线第一时间通知您。',
+      title: '☁️云端同步📷上传照片',
+      subtitle: '害怕日记丢失？想上传当天练习的照片？',
+      desc: '考虑开发这些功能，你需要吗？请投一票~',
       icon: <Cloud className="w-12 h-12 text-primary" />,
-      primaryBtn: votedCloud ? '已投票！上线时通知您' : '【我也想要，投一票】',
+      primaryBtn: votedCloud ? '已投票！' : '【我想要，投一票】',
+      secondaryBtn: votedCloud ? '收到啦！' : '暂不需要',
     },
     pro: {
       title: '解锁专业版 (Pro Features)',
@@ -57,6 +58,7 @@ export function FakeDoorModal({ type, isOpen, onClose }: FakeDoorModalProps) {
       footer: `功能开发中... 已有 ${currentVotes} 人投票期待上线。`,
       icon: <Star className="w-12 h-12 text-yellow-500" />,
       primaryBtn: votedPro ? '已投票！上线时通知您' : '我也想要！(Vote +1)',
+      secondaryBtn: votedPro ? '收到啦！' : '暂不需要',
     }
   }
 
@@ -136,7 +138,7 @@ export function FakeDoorModal({ type, isOpen, onClose }: FakeDoorModalProps) {
                     onClick={onClose}
                     className="w-full py-3 rounded-full bg-secondary text-foreground font-serif transition-all hover:bg-secondary/80 active:scale-[0.98] text-sm"
                   >
-                    暂不需要
+                    {activeContent.secondaryBtn}
                   </button>
                 </div>
               </div>
