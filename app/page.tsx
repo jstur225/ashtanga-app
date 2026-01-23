@@ -1957,6 +1957,7 @@ function JournalTab({
   onAddRecord,
   onOpenFakeDoor,
   onAddOption,
+  votedCloud,
 }: {
   practiceHistory: PracticeRecord[]
   practiceOptions: PracticeOption[]
@@ -1966,6 +1967,7 @@ function JournalTab({
   onAddRecord: (record: Omit<PracticeRecord, 'id' | 'created_at' | 'photos'>) => void
   onOpenFakeDoor: () => void
   onAddOption?: (name: string, notes: string) => void
+  votedCloud: boolean
 }) {
   const [editingRecord, setEditingRecord] = useState<PracticeRecord | null>(null)
   const [sharingRecord, setSharingRecord] = useState<PracticeRecord | null>(null)
@@ -2983,6 +2985,7 @@ export default function AshtangaTracker() {
           onAddRecord={handleAddRecord}
           onOpenFakeDoor={() => setShowFakeDoor({ type: 'cloud', isOpen: true })}
           onAddOption={handleAddOption}
+          votedCloud={votedCloud}
         />
       )}
       {activeTab === 'stats' && (
