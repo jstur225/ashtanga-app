@@ -1032,22 +1032,14 @@ function TypeSelectorModal({
   selectedType?: string
 }) {
   // 处理按钮点击
-  const [showCustomModal, setShowCustomModal] = useState(false)
-
   const handleOptionTap = (option: PracticeOption) => {
     if (option.id === "custom") {
-      // 点击自定义按钮，弹出输入弹窗
-      setShowCustomModal(true)
+      // 点击自定义按钮，通知父组件
+      onClose("__custom__")
     } else {
       // 点击普通按钮，直接返回类型
       onClose(option.labelZh || option.label)
     }
-  }
-
-  // 处理自定义练习确认
-  const handleCustomPracticeConfirm = (name: string, notes: string) => {
-    onClose(name)
-    setShowCustomModal(false)
   }
 
   return (
@@ -1131,16 +1123,6 @@ function TypeSelectorModal({
         </>
       )}
     </AnimatePresence>
-
-    {/* Custom Practice Modal - 独立渲染，避免z-index冲突 */}
-    {showCustomModal && (
-      <CustomPracticeModal
-        isOpen={showCustomModal}
-        onClose={() => setShowCustomModal(false)}
-        onConfirm={handleCustomPracticeConfirm}
-        isFull={false}
-      />
-    )}
   </>
   )
 }
@@ -1169,6 +1151,7 @@ function AddPracticeModal({
   // 子模态框状态
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [showTypeSelector, setShowTypeSelector] = useState(false)
+  const [showCustomModal, setShowCustomModal] = useState(false)
 
   // 日期显示格式化
   const formatDateDisplay = (dateStr: string) => {
@@ -1182,6 +1165,12 @@ function AddPracticeModal({
       .filter(o => o.id !== "custom")
       .map(o => ({ value: o.labelZh || o.label, label: o.labelZh || o.label }))
   }, [practiceOptions])
+
+  // 处理自定义练习确认
+  const handleCustomPracticeConfirm = (name: string, notes: string) => {
+    setType(name)
+    setShowCustomModal(false)
+  }
 
   const handleSave = () => {
     if (date && type) {
@@ -1352,13 +1341,24 @@ function AddPracticeModal({
   <TypeSelectorModal
     isOpen={showTypeSelector}
     onClose={(selectedType) => {
-      if (selectedType) {
+      if (selectedType === "__custom__") {
+        // 点击自定义按钮
+        setShowCustomModal(true)
+      } else if (selectedType) {
         setType(selectedType)
       }
       setShowTypeSelector(false)
     }}
     practiceOptions={practiceOptions}
     selectedType={type}
+  />
+
+  {/* Custom Practice Modal - 自定义练习弹窗 */}
+  <CustomPracticeModal
+    isOpen={showCustomModal}
+    onClose={() => setShowCustomModal(false)}
+    onConfirm={handleCustomPracticeConfirm}
+    isFull={false}
   />
   </>
   )
