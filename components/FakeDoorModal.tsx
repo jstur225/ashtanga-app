@@ -38,6 +38,11 @@ export function FakeDoorModal({ type, isOpen, onClose }: FakeDoorModalProps) {
     setTimeout(onClose, 1500)
   }
 
+  const handleSecondary = () => {
+    toast.success('收到你的心意啦~')
+    onClose()
+  }
+
   const content = {
     cloud: {
       title: '☁️云端同步📷上传照片',
@@ -135,7 +140,7 @@ export function FakeDoorModal({ type, isOpen, onClose }: FakeDoorModalProps) {
                     {activeContent.primaryBtn}
                   </button>
                   <button
-                    onClick={onClose}
+                    onClick={handleSecondary}
                     className="w-full py-3 rounded-full bg-secondary text-foreground font-serif transition-all hover:bg-secondary/80 active:scale-[0.98] text-sm"
                   >
                     {activeContent.secondaryBtn}
