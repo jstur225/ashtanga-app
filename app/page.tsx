@@ -1273,7 +1273,7 @@ function AddPracticeModal({
               </div>
 
               {/* Duration & Breakthrough Toggle */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-[1fr_1.5fr] gap-3">
                 <div>
                   <label className="block text-xs font-serif text-muted-foreground mb-1.5">练习时长 (分钟)</label>
                   <input
@@ -1286,7 +1286,7 @@ function AddPracticeModal({
                 <div className="flex items-end pb-0.5">
                   <button
                     onClick={() => setBreakthroughEnabled(!breakthroughEnabled)}
-                    className={`flex items-center gap-1.5 px-3 py-2.5 rounded-xl border transition-all ${
+                    className={`w-full flex items-center gap-1.5 px-3 py-2.5 rounded-xl border transition-all ${
                       breakthroughEnabled
                         ? 'bg-orange-50 border-orange-200 text-orange-600 shadow-sm'
                         : 'bg-secondary border-transparent text-muted-foreground'
