@@ -1736,17 +1736,17 @@ function JournalTab({
                 {/* First line: Breakthrough OR Notes - must align with Date */}
                 {practice.breakthrough ? (
                   <div className="flex items-center gap-1 leading-none mb-1">
-                    <Sparkles className="w-3 h-3 text-[#e67e22] flex-shrink-0" />
+                    <Sparkles className="w-3 h-3 text-[#e67e22]" />
                     <span className="text-[11px] font-serif font-bold text-[#e67e22] leading-none">{practice.breakthrough}</span>
                   </div>
                 ) : null}
                 {/* Notes area - Click for Share Card */}
                 <button
                   onClick={(e) => handleRightClick(practice, e)}
-                  className="w-full text-left hover:bg-secondary/30 rounded-lg transition-colors overflow-hidden block"
+                  className="w-full text-left hover:bg-secondary/30 rounded-lg transition-colors overflow-hidden"
                   style={{ borderRadius: '0 0.5rem 0.5rem 0' }}
                 >
-                  <p className="text-sm text-foreground font-serif leading-snug whitespace-pre-wrap break-words w-full m-0">
+                  <p className="text-sm text-foreground font-serif leading-snug whitespace-pre-wrap break-words w-full">
                     {practice.notes}
                   </p>
                 </button>
