@@ -1594,7 +1594,7 @@ function SettingsModal({
                           <Copy className="w-5 h-5" />
                         </div>
                         <div className="text-left">
-                          <div className="text-sm font-serif text-foreground">导出调试日志</div>
+                          <div className="text-sm font-serif text-foreground">运行日志</div>
                           <div className="text-[10px] text-muted-foreground font-serif">复制到剪贴板，方便反馈问题</div>
                         </div>
                       </div>
