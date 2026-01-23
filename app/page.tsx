@@ -2464,7 +2464,6 @@ export default function AshtangaTracker() {
   const [showExportModal, setShowExportModal] = useState(false)
   const [exportedData, setExportedData] = useState('')
   const [votedCloud, setVotedCloud] = useLocalStorage('voted_cloud_sync', false)
-  const [refreshKey, setRefreshKey] = useState(0)
   const [isSaving, setIsSaving] = useState(false)
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
@@ -2649,8 +2648,8 @@ export default function AshtangaTracker() {
   }
 
   const handleVoteCloud = () => {
-    // Force re-render by updating refresh key
-    setRefreshKey(prev => prev + 1)
+    // Update the votedCloud state directly
+    setVotedCloud(true)
   }
 
   const canDeleteOption = useMemo(() => {
@@ -2983,7 +2982,6 @@ export default function AshtangaTracker() {
 
       {activeTab === 'journal' && (
         <JournalTab
-          key={refreshKey}
           practiceHistory={practiceHistory}
           practiceOptions={practiceOptions}
           profile={userProfile}
