@@ -2408,10 +2408,21 @@ function StatsTab({
   const { isInstallable, promptInstall } = usePWAInstall()
 
   const handleInstallClick = async () => {
+    // 检查是否已经安装
+    const isInstalled = window.matchMedia('(display-mode: standalone)').matches
+
+    if (isInstalled) {
+      // 已安装，推荐给朋友
+      toast('💚 已安装！推荐给朋友一起练习吧', {
+        duration: 3000,
+      })
+      return
+    }
+
     const installed = await promptInstall()
     if (installed) {
       toast.success('✅ 安装成功！现在可以从主屏幕打开了')
-    } else if (!installed && isInstallable) {
+    } else if (!installed) {
       // iOS或其他不支持beforeinstallprompt的情况
       toast('💡 iOS用户：点击分享按钮 → 添加到主屏幕', {
         duration: 5000,
@@ -2514,16 +2525,14 @@ function StatsTab({
     <div className="flex-1 overflow-y-auto pb-24 pt-4">
       {/* Header - install and settings icons */}
       <div className="px-6 flex items-center justify-between mb-4 pt-10">
-        {/* Install button - only show if installable */}
-        {isInstallable && (
-          <button
-            onClick={handleInstallClick}
-            className="p-2 text-muted-foreground hover:text-foreground transition-colors"
-            title="安装到主屏幕"
-          >
-            <Download className="w-5 h-5" />
-          </button>
-        )}
+        {/* Install button - always show */}
+        <button
+          onClick={handleInstallClick}
+          className="p-2 text-muted-foreground hover:text-foreground transition-colors"
+          title="安装到主屏幕"
+        >
+          <Download className="w-5 h-5" />
+        </button>
 
         <button
           onClick={onOpenSettings}

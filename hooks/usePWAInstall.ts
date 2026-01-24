@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 
 export function usePWAInstall() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
-  const [isInstallable, setIsInstallable] = useState(false)
+  const [isInstallable, setIsInstallable] = useState(true) // 默认显示
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -16,10 +16,9 @@ export function usePWAInstall() {
     // 监听beforeinstallprompt事件
     window.addEventListener('beforeinstallprompt', handler)
 
-    // 检查是否已经安装（仅在某些浏览器中有效）
-    if (window.matchMedia('(display-mode: standalone)').matches) {
-      setIsInstallable(false)
-    }
+    // 始终显示安装图标（即使已安装）
+    // 已安装的用户可以推荐给朋友
+    setIsInstallable(true)
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handler)
