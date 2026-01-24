@@ -1,6 +1,6 @@
 import mixpanel from 'mixpanel-browser';
 
-const MIXPANEL_TOKEN = process.env.NEXT_PUBLIC_MIXPANEL_TOKEN || '5268a97b486c115e4ac42757c2570f78';
+const MIXPANEL_TOKEN = process.env.NEXT_PUBLIC_MIXPANEL_TOKEN || '110c459d4e609bd51da14e421b2ef4ba';
 
 // 启用数据收集 - Beta版本封闭测试
 const MIXPANEL_ENABLED = true;
