@@ -19,9 +19,9 @@ async function createMaskableIcon() {
       }
     }).png().toBuffer();
 
-    // 将原始图标调整为居中位置（占中间60%，即307x307）
+    // 将原始图标调整为居中位置（占中间50%，即256x256），留更多安全区
     const resizedLogo = await sharp(sourceIcon)
-      .resize(307, 307, { fit: 'inside', withoutEnlargement: true })
+      .resize(256, 256, { fit: 'inside', withoutEnlargement: true })
       .toBuffer();
 
     // 合成到白色背景上
