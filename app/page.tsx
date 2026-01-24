@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { useLocalStorage, useInterval } from 'react-use';
 import { motion, AnimatePresence } from "framer-motion"
 import { usePracticeData, type PracticeRecord, type PracticeOption, type UserProfile } from "@/hooks/usePracticeData"
+import { usePWAInstall } from "@/hooks/usePWAInstall"
 import { BookOpen, BarChart3, Calendar, X, Camera, Pause, Play, Trash2, User, Settings, ChevronLeft, ChevronRight, ChevronUp, Cloud, Download, Upload, Plus, Share2, Sparkles, Check, Copy, ClipboardPaste } from "lucide-react"
 import { FakeDoorModal } from "@/components/FakeDoorModal"
 import { ImportModal } from "@/components/ImportModal"
@@ -2393,17 +2394,31 @@ function ProBadge({ isPro }: { isPro: boolean }) {
 }
 
 // Stats Tab Component with Profile and Heatmap - Removed title, added PRO badge
-function StatsTab({ 
-  practiceHistory, 
-  profile, 
+function StatsTab({
+  practiceHistory,
+  profile,
   onOpenSettings,
   onOpenFakeDoor
-}: { 
+}: {
   practiceHistory: PracticeRecord[]
   profile: UserProfile
   onOpenSettings: () => void
   onOpenFakeDoor: () => void
 }) {
+  const { isInstallable, promptInstall } = usePWAInstall()
+
+  const handleInstallClick = async () => {
+    const installed = await promptInstall()
+    if (installed) {
+      toast.success('✅ 安装成功！现在可以从主屏幕打开了')
+    } else if (!installed && isInstallable) {
+      // iOS或其他不支持beforeinstallprompt的情况
+      toast('💡 iOS用户：点击分享按钮 → 添加到主屏幕', {
+        duration: 5000,
+      })
+    }
+  }
+
   const [viewMode, setViewMode] = useState<'quarter' | 'half' | 'year'>('quarter')
   const [dateOffset, setDateOffset] = useState(0)
   const [hasVotedPro] = useLocalStorage('has_voted_pro', false)
@@ -2497,9 +2512,20 @@ function StatsTab({
 
   return (
     <div className="flex-1 overflow-y-auto pb-24 pt-4">
-      {/* Header - only settings icon */}
-      <div className="px-6 flex items-center justify-end mb-4 pt-10">
-        <button 
+      {/* Header - install and settings icons */}
+      <div className="px-6 flex items-center justify-between mb-4 pt-10">
+        {/* Install button - only show if installable */}
+        {isInstallable && (
+          <button
+            onClick={handleInstallClick}
+            className="p-2 text-muted-foreground hover:text-foreground transition-colors"
+            title="安装到主屏幕"
+          >
+            <Download className="w-5 h-5" />
+          </button>
+        )}
+
+        <button
           onClick={onOpenSettings}
           className="p-2 text-muted-foreground hover:text-foreground transition-colors"
         >
