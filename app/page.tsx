@@ -2440,14 +2440,9 @@ function StatsTab({
         toast('💡 iOS用户：点击分享按钮⎋↑ → 添加到主屏幕', {
           duration: 6000,
         })
-      } else if (isAndroid && isSupportedBrowser) {
-        toast('💡 在浏览器菜单中，选择"添加到主屏幕"或"安装应用"', {
-          duration: 6000,
-        })
       } else if (isAndroid) {
-        // 夸克、UC等不支持的浏览器
-        toast('💡 建议使用Chrome浏览器安装以获得最佳体验', {
-          duration: 5000,
+        toast('💡 请在Chrome浏览器，点击右上角⋮ → 选择"添加到主屏幕"或"安装应用"，获得最佳使用体验', {
+          duration: 7000,
         })
       } else {
         toast('💡 电脑用户：请用手机浏览器安装', {
