@@ -708,7 +708,7 @@ function ShareCardModal({
   totalPracticeCount,
   thisMonthDays,
   totalHours,
-  onSave,
+  onEditRecord,
 }: {
   isOpen: boolean
   onClose: () => void
@@ -717,7 +717,7 @@ function ShareCardModal({
   totalPracticeCount: number
   thisMonthDays: number
   totalHours: number
-  onSave?: (id: string, data: Partial<PracticeRecord>) => void
+  onEditRecord: (id: string, notes: string, photos: string[], breakthrough?: string) => void
 }) {
   const [editableNotes, setEditableNotes] = useState("")
   const [isEditingNotes, setIsEditingNotes] = useState(false)
@@ -854,18 +854,15 @@ function ShareCardModal({
                   取消
                 </button>
                 <button
-                  onClick={(e) => {
-                    e.preventDefault() // 防止其他事件干扰
-                    console.log('Button clicked, isNotesModified:', isNotesModified, 'editableNotes:', editableNotes, 'originalNotes:', originalNotes)
+                  onClick={() => {
+                    console.log('Button clicked, isNotesModified:', isNotesModified)
 
                     if (isNotesModified) {
                       // 保存文案，但不关闭模态框
-                      if (record && onSave) {
-                        console.log('Calling onSave with:', record.id, editableNotes)
-                        onSave(record.id, { notes: editableNotes })
-                        setOriginalNotes(editableNotes) // 更新原始文案，这样按钮会变回"保存图片"
-                      } else {
-                        console.log('onSave or record is missing')
+                      if (record) {
+                        console.log('Calling onEditRecord with:', record.id, editableNotes)
+                        onEditRecord(record.id, editableNotes, [], record.breakthrough)
+                        setOriginalNotes(editableNotes) // 更新原始文案
                       }
                     } else {
                       // 导出图片（待实现）
@@ -2114,11 +2111,11 @@ function JournalTab({
   useEffect(() => {
     const container = scrollContainerRef.current
     if (!container) return
-    
+
     const handleScroll = () => {
       setShowBackToTop(container.scrollTop > 400)
     }
-    
+
     container.addEventListener('scroll', handleScroll, { passive: true })
     return () => container.removeEventListener('scroll', handleScroll)
   }, [])
@@ -2278,7 +2275,7 @@ function JournalTab({
         totalPracticeCount={totalPracticeCount}
         thisMonthDays={thisMonthDays}
         totalHours={totalHours}
-        onSave={onEditRecord}
+        onEditRecord={onEditRecord}
       />
 
       <AddPracticeModal
