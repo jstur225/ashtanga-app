@@ -733,6 +733,107 @@ function ShareCardModal({
 
   const isNotesModified = editableNotes !== originalNotes
 
+  // 图片导出功能
+  const handleExportImage = async () => {
+    const element = document.getElementById('share-card-content')
+    if (!element) {
+      alert('未找到分享卡片内容')
+      return
+    }
+
+    try {
+      // 创建 SVG foreignObject 包装器
+      const canvas = document.createElement('canvas')
+      const ctx = canvas.getContext('2d')
+      if (!ctx) {
+        alert('无法创建画布')
+        return
+      }
+
+      // 获取元素尺寸和样式
+      const rect = element.getBoundingClientRect()
+      const scale = 2 // 提高清晰度
+      canvas.width = rect.width * scale
+      canvas.height = rect.height * scale
+
+      // 获取计算后的样式
+      const computedStyle = window.getComputedStyle(element)
+
+      // 创建 SVG
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+      svg.setAttribute('width', rect.width)
+      svg.setAttribute('height', rect.height)
+      svg.setAttribute('viewBox', `0 0 ${rect.width} ${rect.height}`)
+
+      // 创建 foreignObject
+      const foreignObject = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject')
+      foreignObject.setAttribute('width', '100%')
+      foreignObject.setAttribute('height', '100%')
+      foreignObject.setAttribute('x', '0')
+      foreignObject.setAttribute('y', '0')
+
+      // 克隆元素内容
+      const clonedElement = element.cloneNode(true)
+
+      // 设置内联样式
+      const allElements = clonedElement.querySelectorAll('*')
+      allElements.forEach(el => {
+        const elStyle = window.getComputedStyle(element.querySelector('*')?.[0] || el)
+        if (el instanceof HTMLElement) {
+          el.style.fontFamily = computedStyle.fontFamily
+          el.style.fontSize = computedStyle.fontSize
+          el.style.lineHeight = computedStyle.lineHeight
+        }
+      })
+
+      foreignObject.appendChild(clonedElement)
+      svg.appendChild(foreignObject)
+
+      // 将 SVG 转换为图片
+      const svgData = new XMLSerializer().serializeToString(svg)
+      const img = new Image()
+      const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' })
+      const url = URL.createObjectURL(svgBlob)
+
+      img.onload = () => {
+        // 绘制到 Canvas
+        ctx.fillStyle = computedStyle.backgroundColor || '#ffffff'
+        ctx.fillRect(0, 0, canvas.width, canvas.height)
+        ctx.scale(scale, scale)
+        ctx.drawImage(img, 0, 0, rect.width, rect.height)
+
+        // 导出为 PNG
+        canvas.toBlob((blob) => {
+          if (!blob) {
+            alert('导出失败')
+            return
+          }
+          const link = document.createElement('a')
+          link.download = `ashtanga-${record?.date || 'practice'}.png`
+          link.href = URL.createObjectURL(blob)
+          link.click()
+
+          // 清理
+          URL.revokeObjectURL(url)
+          URL.revokeObjectURL(link.href)
+
+          // 显示提示
+          alert('图片已保存到下载文件夹')
+          onClose()
+        }, 'image/png')
+      }
+
+      img.onerror = () => {
+        alert('图片生成失败')
+      }
+
+      img.src = url
+    } catch (error) {
+      console.error('导出失败:', error)
+      alert('导出失败，请重试')
+    }
+  }
+
   if (!record) return null
 
   const formattedDate = new Date(record.date).toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '.')
@@ -855,19 +956,16 @@ function ShareCardModal({
                 </button>
                 <button
                   onClick={() => {
-                    console.log('Button clicked, isNotesModified:', isNotesModified)
-
                     if (isNotesModified) {
                       // 保存文案，但不关闭模态框
                       if (record) {
-                        console.log('Calling onEditRecord with:', record.id, editableNotes)
                         onEditRecord(record.id, editableNotes, [], record.breakthrough)
                         setOriginalNotes(editableNotes) // 更新原始文案
+                        toast.success('文案已保存')
                       }
                     } else {
-                      // 导出图片（待实现）
-                      alert("图片导出功能开发中...")
-                      onClose()
+                      // 导出图片
+                      handleExportImage()
                     }
                   }}
                   className="flex-1 py-3 rounded-full bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white font-serif transition-all hover:opacity-90 active:scale-[0.98] flex items-center justify-center gap-2"
