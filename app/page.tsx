@@ -918,7 +918,6 @@ function ShareCardModal({
                       if (record) {
                         onEditRecord(record.id, editableNotes, [], record.breakthrough)
                         setOriginalNotes(editableNotes) // 更新原始文案
-                        toast.success('文案已保存')
                       }
                     } else {
                       // 导出图片
@@ -2162,6 +2161,16 @@ function JournalTab({
     return type.split(/\s+|-\s*/)[0]
   }
 
+  // 适配器函数：将 ShareCardModal 的调用格式转换为 handleEditRecord 期望的格式
+  const handleShareCardEdit = (id: string, notes: string, photos: string[], breakthrough?: string) => {
+    const updateData: Partial<PracticeRecord> = {
+      notes,
+      photos,
+      ...(breakthrough !== undefined && { breakthrough })
+    }
+    onEditRecord(id, updateData)
+  }
+
   // Handle scroll to show/hide back-to-top button (threshold: 400px)
   useEffect(() => {
     const container = scrollContainerRef.current
@@ -2330,7 +2339,7 @@ function JournalTab({
         totalPracticeCount={totalPracticeCount}
         thisMonthDays={thisMonthDays}
         totalHours={totalHours}
-        onEditRecord={onEditRecord}
+        onEditRecord={handleShareCardEdit}
       />
 
       <AddPracticeModal
