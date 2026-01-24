@@ -2185,7 +2185,7 @@ function JournalTab({
                 times: highlightedDate === practice.date ? [0, 0.5, 1] : undefined
               }
             }}
-            className="flex flex-col rounded-lg -mx-4 px-4"
+            className="flex flex-col rounded-lg"
           >
             {/* Single Row Layout - Date-Anchored Alignment with Symmetrical Spacing */}
             <div className="flex items-start rounded-lg">
