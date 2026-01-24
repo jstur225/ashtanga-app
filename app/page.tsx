@@ -766,16 +766,41 @@ function ShareCardModal({
         allowTaint: true,
         foreignObjectRendering: false,
         onclone: (clonedDoc) => {
-          const clonedElement = clonedDoc.getElementById('share-card-content')
-          if (!clonedElement) return
+          console.log('onclone 回调触发')
 
-          // 递归清理所有元素的计算样式，移除所有现代颜色函数
+          // 注入 CSS 样式来重置所有颜色为标准值
+          const style = clonedDoc.createElement('style')
+          style.textContent = `
+            * {
+              color: #000000 !important;
+              background-color: #ffffff !important;
+              border-color: #e5e7eb !important;
+            }
+            .bg-primary { background-color: #2d5a27 !important; }
+            .text-primary { color: #2d5a27 !important; }
+            .text-muted-foreground { color: #6b7280 !important; }
+            .bg-secondary { background-color: #f3f4f6 !important; }
+            .text-foreground { color: #111827 !important; }
+            .border-border { border-color: #e5e7eb !important; }
+          `
+          clonedDoc.head.appendChild(style)
+
+          const clonedElement = clonedDoc.getElementById('share-card-content')
+          if (!clonedElement) {
+            console.error('克隆元素未找到')
+            return
+          }
+
+          console.log('开始清理元素样式')
+
+          // 递归清理所有元素的样式
           const cleanElement = (el: HTMLElement) => {
             try {
+              // 获取所有计算样式
               const styles = clonedDoc.defaultView?.getComputedStyle(el)
               if (!styles) return
 
-              // 检查并替换所有可能包含现代颜色函数的属性
+              // 强制设置简单的颜色值
               const colorProps = [
                 'color',
                 'backgroundColor',
@@ -791,17 +816,7 @@ function ShareCardModal({
               ]
 
               colorProps.forEach(prop => {
-                const value = styles.getPropertyValue(prop)
-                if (value && (
-                  value.includes('lab(') ||
-                  value.includes('oklab(') ||
-                  value.includes('oklch(') ||
-                  value.includes('lch(') ||
-                  value.includes('color(')
-                )) {
-                  // 移除该属性的内联样式，让元素继承或使用默认值
-                  el.style.removeProperty(prop)
-                }
+                el.style.removeProperty(prop)
               })
 
               Array.from(el.children).forEach((child) => {
@@ -810,13 +825,16 @@ function ShareCardModal({
                 }
               })
             } catch (e) {
-              // 忽略单个元素的错误
+              console.error('清理元素时出错:', e)
             }
           }
 
           cleanElement(clonedElement)
+          console.log('元素样式清理完成')
         }
       })
+
+      console.log('Canvas 生成完成')
 
       canvas.toBlob((blob) => {
         if (!blob) {
