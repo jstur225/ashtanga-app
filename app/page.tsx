@@ -443,6 +443,7 @@ function EditRecordModal({
   onSave,
   onDelete,
   practiceOptions,
+  practiceHistory = [],
 }: {
   isOpen: boolean
   onClose: () => void
@@ -450,6 +451,7 @@ function EditRecordModal({
   onSave: (id: string, data: Partial<PracticeRecord>) => void
   onDelete: (id: string) => void
   practiceOptions: PracticeOption[]
+  practiceHistory?: PracticeRecord[]
 }) {
   const [notes, setNotes] = useState("")
   const [breakthroughEnabled, setBreakthroughEnabled] = useState(false)
@@ -471,12 +473,6 @@ function EditRecordModal({
     const date = new Date(dateStr)
     return `${date.getMonth() + 1}月${date.getDate()}日`
   }
-
-  const typeOptions = useMemo(() => {
-    return practiceOptions
-      .filter(o => o.id !== "custom")
-      .map(o => ({ value: o.label_zh || o.label, label: o.label_zh || o.label }))
-  }, [practiceOptions])
 
   useEffect(() => {
     if (record) {
@@ -594,12 +590,14 @@ function EditRecordModal({
                     <label className="block text-xs font-serif text-muted-foreground mb-1.5">练习时长 (分钟)</label>
                     <input
                       type="number"
-                      value={duration}
-                      onChange={(e) => setDuration(Number(e.target.value))}
+                      value={duration || ''}
+                      onChange={(e) => setDuration(e.target.value === '' ? 0 : Number(e.target.value))}
+                      placeholder="输入时长"
                       className="w-full px-3 py-2.5 rounded-xl bg-secondary text-foreground font-serif focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all text-sm"
                     />
                   </div>
-                  <div className="flex items-end pb-0.5">
+                  <div>
+                    <label className="block text-xs font-serif text-muted-foreground mb-1.5">突破时刻</label>
                     <button
                       type="button"
                       onClick={() => setBreakthroughEnabled(!breakthroughEnabled)}
@@ -673,24 +671,27 @@ function EditRecordModal({
           {/* DatePicker Modal */}
           <DatePickerModal
             isOpen={showDatePicker}
-            onClose={() => setShowDatePicker(false)}
-            onSelect={(selectedDate) => {
-              setDate(selectedDate)
+            onClose={(selectedDate) => {
+              if (selectedDate) {
+                setDate(selectedDate)
+              }
               setShowDatePicker(false)
             }}
-            initialDate={date}
+            maxDate={new Date().toISOString().split('T')[0]}
+            practiceHistory={practiceHistory}
           />
 
           {/* TypeSelector Modal */}
           <TypeSelectorModal
             isOpen={showTypeSelector}
-            onClose={() => setShowTypeSelector(false)}
-            onSelect={(selectedType) => {
-              setType(selectedType)
+            onClose={(selectedType) => {
+              if (selectedType && selectedType !== "__custom__") {
+                setType(selectedType)
+              }
               setShowTypeSelector(false)
             }}
-            options={typeOptions}
-            initialType={type}
+            practiceOptions={practiceOptions}
+            selectedType={type}
           />
         </>
       )}
@@ -1356,13 +1357,14 @@ function AddPracticeModal({
                   <label className="block text-xs font-serif text-muted-foreground mb-1.5">练习时长 (分钟)</label>
                   <input
                     type="number"
-                    value={duration}
-                    onChange={(e) => setDuration(Number(e.target.value))}
+                    value={duration || ''}
+                    onChange={(e) => setDuration(e.target.value === '' ? 0 : Number(e.target.value))}
+                    placeholder="输入时长"
                     className="w-full px-3 py-2.5 rounded-xl bg-secondary text-foreground font-serif focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all text-sm"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-serif text-muted-foreground mb-1.5 opacity-0">解锁/突破</label>
+                  <label className="block text-xs font-serif text-muted-foreground mb-1.5 opacity-0">突破时刻</label>
                   <button
                     onClick={() => setBreakthroughEnabled(!breakthroughEnabled)}
                     className={`w-full flex items-center justify-start gap-1.5 px-3 py-2.5 rounded-xl border transition-all ${
@@ -2242,6 +2244,7 @@ function JournalTab({
         onSave={onEditRecord}
         onDelete={onDeleteRecord}
         practiceOptions={practiceOptions}
+        practiceHistory={practiceHistory}
       />
 
       <ShareCardModal
