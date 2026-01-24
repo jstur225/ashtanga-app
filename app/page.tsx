@@ -717,7 +717,7 @@ function ShareCardModal({
   totalPracticeCount: number
   thisMonthDays: number
   totalHours: number
-  onSave?: (id: string, notes: string, photos: string[], breakthrough?: string) => void
+  onSave?: (id: string, data: Partial<PracticeRecord>) => void
 }) {
   const [editableNotes, setEditableNotes] = useState("")
   const [isEditingNotes, setIsEditingNotes] = useState(false)
@@ -856,15 +856,16 @@ function ShareCardModal({
                 <button
                   onClick={() => {
                     if (isNotesModified) {
-                      // 保存文案
+                      // 保存文案，但不关闭模态框
                       if (record && onSave) {
-                        onSave(record.id, editableNotes, [], record.breakthrough)
+                        onSave(record.id, { notes: editableNotes })
+                        setOriginalNotes(editableNotes) // 更新原始文案，这样按钮会变回"保存图片"
                       }
                     } else {
                       // 导出图片（待实现）
                       alert("图片导出功能开发中...")
+                      onClose()
                     }
-                    onClose()
                   }}
                   className="flex-1 py-3 rounded-full bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white font-serif transition-all hover:opacity-90 active:scale-[0.98] flex items-center justify-center gap-2"
                 >
