@@ -8,11 +8,10 @@ const MIXPANEL_ENABLED = true;
 export const initAnalytics = () => {
   if (typeof window !== 'undefined' && MIXPANEL_ENABLED) {
     mixpanel.init(MIXPANEL_TOKEN, {
-      debug: true, // 开启调试日志，帮助排查问题
+      debug: false, // 关闭调试日志
       track_pageview: true, // 保留页面浏览统计
       persistence: 'localStorage',
       autocapture: false, // 关闭自动点击捕获，只收集手动埋点
-      // 不指定api_host，让mixpanel自动处理
       record_sessions_percent: 0, // 关闭会话录制，保护用户隐私
     });
   }
