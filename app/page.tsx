@@ -2408,12 +2408,12 @@ function StatsTab({
   const { isInstallable, promptInstall } = usePWAInstall()
 
   const handleInstallClick = async () => {
-    // 检查是否已经安装
+    // 检查是否已经安装到主屏幕
     const isInstalled = window.matchMedia('(display-mode: standalone)').matches
 
     if (isInstalled) {
-      // 已安装，推荐给朋友
-      toast('💚 已安装！推荐给朋友一起练习吧', {
+      // 已安装到主屏幕，推荐给朋友
+      toast('💚 已安装到主屏幕！推荐给朋友一起练习吧', {
         duration: 3000,
       })
       return
@@ -2421,7 +2421,7 @@ function StatsTab({
 
     const installed = await promptInstall()
     if (installed) {
-      toast.success('✅ 安装成功！现在可以从主屏幕打开了')
+      toast.success('✅ 已安装到主屏幕！现在可以从主屏幕打开了')
     } else {
       // 无法自动弹出安装提示，显示手动指引
       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
