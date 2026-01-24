@@ -27,12 +27,12 @@ export function FakeDoorModal({ type, isOpen, onClose, onVote }: FakeDoorModalPr
 
     if (type === 'cloud') {
       setVotedCloud(true)
-      trackEvent('vote_for_cloud_sync')
+      trackEvent('vote_for_cloud_sync', { vote: 'yes' })
       toast.success('收到你的心意啦~')
       onVote?.()
     } else {
       setVotedPro(true)
-      trackEvent('click_vote_pro_features')
+      trackEvent('vote_for_cloud_sync', { vote: 'yes' })
       toast.success('收到你的心意啦~')
     }
 
@@ -41,6 +41,7 @@ export function FakeDoorModal({ type, isOpen, onClose, onVote }: FakeDoorModalPr
   }
 
   const handleSecondary = () => {
+    trackEvent('vote_for_cloud_sync', { vote: 'no' })
     toast.success('收到你的心意啦~')
     onClose()
   }

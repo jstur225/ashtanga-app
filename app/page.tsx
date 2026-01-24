@@ -763,6 +763,15 @@ function ShareCardModal({
         }
       })
 
+      // 记录分享卡片导出事件
+      trackEvent('share_card_export', {
+        practice_type: record?.type,
+        has_breakthrough: !!record?.breakthrough,
+        has_notes: editableNotes !== originalNotes,
+        export_method: result.method,
+        export_success: result.success
+      })
+
       toast.dismiss('export')
 
       if (result.success) {
@@ -773,6 +782,14 @@ function ShareCardModal({
         toast.error(errorMessage)
       }
     } catch (error) {
+      // 记录失败
+      trackEvent('share_card_export', {
+        practice_type: record?.type,
+        has_breakthrough: !!record?.breakthrough,
+        has_notes: editableNotes !== originalNotes,
+        export_method: 'error',
+        export_success: false
+      })
       toast.dismiss('export')
       toast.error('导出失败，请重试')
     }
@@ -2822,10 +2839,12 @@ export default function AshtangaTracker() {
 
   const handleAddRecord = (record: Omit<PracticeRecord, 'id' | 'created_at' | 'photos'>) => {
     addRecord(record)
-    trackEvent('finish_practice', {
+    trackEvent('add_record', {
       type: record.type,
       duration: record.duration,
-      is_patch: true
+      date: record.date,
+      has_breakthrough: !!record.breakthrough,
+      has_notes: !!record.notes && record.notes.length > 0
     })
     toast.success('补卡成功！')
   }
