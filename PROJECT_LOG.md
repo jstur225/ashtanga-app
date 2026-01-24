@@ -979,3 +979,55 @@ if (result) {
 * **自我验证**：Orange 自己用 Excel 模拟 Timeline 记录一周，确认“左日期、右日记”的模式确实能产生觉察。
 
 ---
+---
+
+## 开发日志
+
+### 2026-01-25: PWA原生应用封装完成 ✅
+
+**目标**: 将Webapp封装为可安装的原生应用，无需应用商店审核
+
+**核心功能**:
+- ✅ PWA配置完成（manifest.json + Service Worker）
+- ✅ Tab3添加PWA安装引导Banner（固定显示）
+- ✅ Tab3左上角添加安装图标（点击触发）
+- ✅ 智能检测用户系统和浏览器
+- ✅ 根据系统+浏览器显示对应安装指引
+
+**PWA特性**:
+- 可安装到主屏幕，全屏运行，无浏览器地址栏
+- 支持离线使用（Service Worker缓存）
+- 图标：1024x1024全绿色icon.png
+- 主题色：#4a7c59（绿色）
+
+**安装指引**（Android）:
+```
+💡 安装到主屏幕方法
+Chrome浏览器：点击右上角→ 选择添加到主屏幕
+Edge浏览器：点击右下角→ 选择添加到手机
+安装后可像App一样使用，获得最佳体验。
+```
+
+**技术实现**:
+- `public/manifest.json` - PWA配置文件
+- `public/sw.js` - Service Worker（离线缓存）
+- `components/ServiceWorkerRegister.tsx` - 注册组件
+- `components/PWAInstallBanner.tsx` - Banner组件
+- `hooks/usePWAInstall.ts` - 安装逻辑hook
+
+**浏览器兼容性**:
+- 支持：Chrome、Safari、Edge、Samsung Internet
+- 不支持：夸克、UC、小米、华为（不显示引导）
+
+**Git提交**: 17个提交（fde2475 → 9d50e7c）
+
+**部署状态**: ✅ 已推送到GitHub，Vercel自动部署完成
+
+**用户体验**: 
+- 两个提示入口（Banner固定 + Toast点击）
+- 文案统一，覆盖主流浏览器
+- 一键安装，无需审核，跨平台（iOS+Android）
+
+**下一步**: 继续使用和测试，发现问题
+
+---
