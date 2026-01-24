@@ -20,12 +20,21 @@ export function PWAInstallBanner() {
       return
     }
 
-    // 检测用户系统
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
-    const isAndroid = /Android/.test(navigator.userAgent)
+    // 检测浏览器和系统
+    const userAgent = navigator.userAgent
+    const isIOS = /iPad|iPhone|iPod/.test(userAgent)
+    const isAndroid = /Android/.test(userAgent)
 
-    // 只在移动设备显示
-    if (isIOS || isAndroid) {
+    // 只在支持的浏览器显示：Chrome、Safari、Edge、Samsung Internet
+    const isChrome = /Chrome/.test(userAgent) && /Google Inc/.test(navigator.vendor)
+    const isSafari = /Safari/.test(userAgent) && /Apple Computer/.test(navigator.vendor)
+    const isEdge = /Edg/.test(userAgent)
+    const isSamsung = /SamsungBrowser/.test(userAgent)
+
+    const isSupportedBrowser = isChrome || isSafari || isEdge || isSamsung
+
+    // 只在移动设备 + 支持的浏览器显示
+    if ((isIOS || isAndroid) && isSupportedBrowser) {
       setIsVisible(true)
     }
   }, [])

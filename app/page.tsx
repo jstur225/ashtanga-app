@@ -2425,16 +2425,29 @@ function StatsTab({
       toast.success('✅ 已安装到主屏幕！现在可以从主屏幕打开了')
     } else {
       // 无法自动弹出安装提示，显示手动指引
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
-      const isAndroid = /Android/.test(navigator.userAgent)
+      const userAgent = navigator.userAgent
+      const isIOS = /iPad|iPhone|iPod/.test(userAgent)
+      const isAndroid = /Android/.test(userAgent)
+
+      // 检测浏览器
+      const isChrome = /Chrome/.test(userAgent) && /Google Inc/.test(navigator.vendor)
+      const isSafari = /Safari/.test(userAgent) && /Apple Computer/.test(navigator.vendor)
+      const isEdge = /Edg/.test(userAgent)
+      const isSamsung = /SamsungBrowser/.test(userAgent)
+      const isSupportedBrowser = isChrome || isSafari || isEdge || isSamsung
 
       if (isIOS) {
         toast('💡 iOS用户：点击分享按钮⎋↑ → 添加到主屏幕', {
           duration: 6000,
         })
-      } else if (isAndroid) {
-        toast('💡 在Chrome浏览器中，点击右上角⋮ → 添加到主屏幕', {
+      } else if (isAndroid && isSupportedBrowser) {
+        toast('💡 在浏览器菜单中，选择"添加到主屏幕"或"安装应用"', {
           duration: 6000,
+        })
+      } else if (isAndroid) {
+        // 夸克、UC等不支持的浏览器
+        toast('💡 建议使用Chrome浏览器安装以获得最佳体验', {
+          duration: 5000,
         })
       } else {
         toast('💡 电脑用户：请用手机浏览器安装', {
