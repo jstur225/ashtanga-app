@@ -2155,6 +2155,7 @@ function JournalTab({
   onOpenFakeDoor,
   onAddOption,
   votedCloud,
+  onLogExport,
 }: {
   practiceHistory: PracticeRecord[]
   practiceOptions: PracticeOption[]
@@ -2165,6 +2166,7 @@ function JournalTab({
   onOpenFakeDoor: () => void
   onAddOption?: (name: string, notes: string) => void
   votedCloud: boolean
+  onLogExport: (log: any) => void
 }) {
   const [editingRecord, setEditingRecord] = useState<PracticeRecord | null>(null)
   const [sharingRecord, setSharingRecord] = useState<PracticeRecord | null>(null)
@@ -2360,7 +2362,7 @@ function JournalTab({
         thisMonthDays={thisMonthDays}
         totalHours={totalHours}
         onEditRecord={handleShareCardEdit}
-        onLogExport={(log) => setExportLogs([...exportLogs, log])}
+        onLogExport={onLogExport}
       />
 
       <AddPracticeModal
@@ -3292,6 +3294,7 @@ export default function AshtangaTracker() {
           onOpenFakeDoor={() => setShowFakeDoor({ type: 'cloud', isOpen: true })}
           onAddOption={handleAddOption}
           votedCloud={votedCloud}
+          onLogExport={(log) => setExportLogs([...exportLogs, log])}
         />
       )}
       {activeTab === 'stats' && (
