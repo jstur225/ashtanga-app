@@ -768,23 +768,6 @@ function ShareCardModal({
         onclone: (clonedDoc) => {
           console.log('onclone 回调触发')
 
-          // 注入 CSS 样式来重置所有颜色为标准值
-          const style = clonedDoc.createElement('style')
-          style.textContent = `
-            * {
-              color: #000000 !important;
-              background-color: #ffffff !important;
-              border-color: #e5e7eb !important;
-            }
-            .bg-primary { background-color: #2d5a27 !important; }
-            .text-primary { color: #2d5a27 !important; }
-            .text-muted-foreground { color: #6b7280 !important; }
-            .bg-secondary { background-color: #f3f4f6 !important; }
-            .text-foreground { color: #111827 !important; }
-            .border-border { border-color: #e5e7eb !important; }
-          `
-          clonedDoc.head.appendChild(style)
-
           const clonedElement = clonedDoc.getElementById('share-card-content')
           if (!clonedElement) {
             console.error('克隆元素未找到')
@@ -793,14 +776,13 @@ function ShareCardModal({
 
           console.log('开始清理元素样式')
 
-          // 递归清理所有元素的样式
+          // 递归清理所有元素的现代颜色函数
           const cleanElement = (el: HTMLElement) => {
             try {
-              // 获取所有计算样式
               const styles = clonedDoc.defaultView?.getComputedStyle(el)
               if (!styles) return
 
-              // 强制设置简单的颜色值
+              // 检查并清理所有颜色相关属性
               const colorProps = [
                 'color',
                 'backgroundColor',
@@ -816,7 +798,18 @@ function ShareCardModal({
               ]
 
               colorProps.forEach(prop => {
-                el.style.removeProperty(prop)
+                const value = styles.getPropertyValue(prop)
+                // 检查是否包含现代颜色函数
+                if (value && (
+                  value.includes('lab(') ||
+                  value.includes('oklab(') ||
+                  value.includes('oklch(') ||
+                  value.includes('lch(')
+                )) {
+                  // 只移除包含现代颜色函数的属性
+                  el.style.removeProperty(prop)
+                  console.log(`移除 ${prop}:`, value)
+                }
               })
 
               Array.from(el.children).forEach((child) => {
@@ -867,7 +860,7 @@ function ShareCardModal({
       setExportLogs([...exportLogs, logEntry])
 
       console.error('导出失败详细错误:', error)
-      toast.error(`导出失败，请重试`, { id: 'export' })
+      toast.error(`导出失败: ${errorMessage}`, { id: 'export' })
     }
   }
 
