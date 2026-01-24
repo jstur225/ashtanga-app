@@ -2441,7 +2441,7 @@ function StatsTab({
           duration: 6000,
         })
       } else if (isAndroid) {
-        toast('💡 安装到主屏幕方法 | Chrome浏览器：点击右上角→ 选择添加到主屏幕 | Edge浏览器：点击右下角→ 选择添加到手机 | 安装后可像App一样使用，获得最佳体验。', {
+        toast('💡 安装到主屏幕方法\nChrome浏览器：点击右上角→ 选择添加到主屏幕\nEdge浏览器：点击右下角→ 选择添加到手机\n安装后可像App一样使用，获得最佳体验。', {
           duration: 10000,
         })
       } else {

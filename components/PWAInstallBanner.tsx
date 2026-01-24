@@ -54,7 +54,7 @@ export function PWAInstallBanner() {
   const isAndroid = /Android/.test(navigator.userAgent)
 
   return (
-    <div className="mx-4 mt-2 mb-3 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-3 shadow-sm">
+    <div className="mx-4 mt-2 mb-3 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 shadow-sm">
       <button
         onClick={handleDismiss}
         className="absolute top-2 right-2 p-1 text-green-600 hover:text-green-800 transition-colors"
@@ -62,30 +62,20 @@ export function PWAInstallBanner() {
         <X className="w-4 h-4" />
       </button>
 
-      <div className="flex items-start gap-3 pr-6">
-        <div className="flex-shrink-0">
-          <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center">
-            <Chrome className="w-5 h-5 text-white" />
-          </div>
-        </div>
-
-        <div className="flex-1">
-          <h3 className="text-sm font-semibold text-green-900 mb-1">
-            {isIOS ? '添加到主屏幕' : '安装到主屏幕'}
-          </h3>
-          <p className="text-xs text-green-700 mb-2">
-            {isIOS
-              ? '点击底部分享按钮⎋↑ → 选择"添加到主屏幕"'
-              : <>
-                  Chrome：右上角⋮ → 添加到主屏幕<br />
-                  Edge：右下角… → 添加到手机
-                </>
-            }
-          </p>
-          <p className="text-[10px] text-green-600">
-            💡 安装后可以像App一样使用，支持离线记录
-          </p>
-        </div>
+      <div className="flex-1">
+        <h3 className="text-sm font-semibold text-green-900 mb-2">
+          💡 安装到主屏幕方法
+        </h3>
+        <p className="text-xs text-green-700 leading-relaxed">
+          {isIOS
+            ? '点击底部分享按钮⎋↑ → 选择"添加到主屏幕"'
+            : <>
+                Chrome浏览器：点击右上角→ 选择添加到主屏幕<br />
+                Edge浏览器：点击右下角→ 选择添加到手机<br />
+                安装后可像App一样使用，获得最佳体验。
+              </>
+          }
+        </p>
       </div>
     </div>
   )
