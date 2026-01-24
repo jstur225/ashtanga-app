@@ -2161,7 +2161,7 @@ function JournalTab({
       </div>
       
       {/* Timeline - continuous, split click zones */}
-      <div className="px-4">
+      <div className="px-6">
         {practiceHistory.map((practice, index) => (
           <motion.div
             key={practice.id}
