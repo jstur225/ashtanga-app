@@ -12,7 +12,7 @@ export const initAnalytics = () => {
       track_pageview: true, // 保留页面浏览统计
       persistence: 'localStorage',
       autocapture: false, // 关闭自动点击捕获，只收集手动埋点
-      api_host: 'https://api-eu.mixpanel.com',
+      api_host: 'https://api.mixpanel.com', // 美国区域
       record_sessions_percent: 0, // 关闭会话录制，保护用户隐私
     });
   }
