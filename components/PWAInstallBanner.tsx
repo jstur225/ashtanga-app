@@ -62,12 +62,12 @@ export function PWAInstallBanner() {
 
         <div className="flex-1">
           <h3 className="text-sm font-semibold text-green-900 mb-1">
-            {isIOS ? '添加到主屏幕' : '安装应用'}
+            {isIOS ? '添加到主屏幕' : '安装到主屏幕'}
           </h3>
           <p className="text-xs text-green-700 mb-2">
             {isIOS
               ? '点击底部分享按钮⎋↑ → 选择"添加到主屏幕"'
-              : '点击右上角⋮菜单 → 选择"添加到主屏幕"或"安装应用"'}
+              : '在Chrome浏览器中，点击右上角⋮ → 选择"添加到主屏幕"或"安装应用"'}
           </p>
           <p className="text-[10px] text-green-600">
             💡 安装后可以像App一样使用，支持离线记录

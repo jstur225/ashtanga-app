@@ -2433,7 +2433,7 @@ function StatsTab({
           duration: 6000,
         })
       } else if (isAndroid) {
-        toast('💡 Android用户：点击右上角⋮ → 添加到主屏幕', {
+        toast('💡 在Chrome浏览器中，点击右上角⋮ → 添加到主屏幕', {
           duration: 6000,
         })
       } else {
