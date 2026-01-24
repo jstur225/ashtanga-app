@@ -926,6 +926,7 @@ function ShareCardModal({
               </button>
             </div>
           </div>
+          </motion.div>
         </>
       )}
     </AnimatePresence>
