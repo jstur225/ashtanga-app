@@ -751,7 +751,7 @@ function ShareCardModal({
     }
 
     try {
-      toast.loading('正在生成图片...', { id: 'export' })
+      toast.loading('正在生成图片...', { id: 'export-loading' })
 
       // 使用 modern-screenshot 生成图片
       const dataUrl = await domToPng(element, {
@@ -772,7 +772,8 @@ function ShareCardModal({
       logEntry.success = true
       setExportLogs([...exportLogs, logEntry])
 
-      toast.success('图片已保存', { id: 'export' })
+      toast.dismiss('export-loading')
+      toast.success('图片已保存')
       onClose()
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error)
@@ -782,7 +783,8 @@ function ShareCardModal({
       setExportLogs([...exportLogs, logEntry])
 
       console.error('导出失败:', error)
-      toast.error(`导出失败，请重试`, { id: 'export' })
+      toast.dismiss('export-loading')
+      toast.error(`导出失败，请重试`)
     }
   }
 
