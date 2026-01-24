@@ -2687,12 +2687,19 @@ export default function AshtangaTracker() {
       exportTime: new Date().toISOString()
     }
 
-    // 2. 收集应用状态
+    // 2. 收集应用状态（包含完整选项列表）
     const appState = {
       recordsCount: practiceHistory.length,
       optionsCount: practiceOptions.length,
       totalDuration: practiceHistory.reduce((sum, r) => sum + (r.duration || 0), 0),
-      hasCustomOptions: practiceOptions.some(o => o.is_custom)
+      hasCustomOptions: practiceOptions.some(o => o.is_custom),
+      optionsList: practiceOptions.map(o => ({
+        id: o.id,
+        label: o.label,
+        labelZh: o.label_zh,
+        notes: o.notes,
+        isCustom: o.is_custom
+      }))
     }
 
     // 3. 读取localStorage数据（只读统计）
@@ -2703,18 +2710,27 @@ export default function AshtangaTracker() {
       estimatedSize: new Blob(Object.values(localStorage)).size
     }
 
-    // 4. 生成日志
+    // 4. 生成日志（最近20条，增强字段）
     const debugLog = {
       environment,
       appState,
       storageState,
-      recentActivity: practiceHistory.slice(-5).map(r => ({
+      recentActivity: practiceHistory.slice(-20).map(r => ({
+        id: r.id,
         date: r.date,
         type: r.type,
         duration: r.duration,
         hasNotes: !!r.notes,
+        notesLength: r.notes?.length || 0,
+        hasPhotos: !!r.photos?.length,
+        photosCount: r.photos?.length || 0,
         hasBreakthrough: !!r.breakthrough
-      }))
+      })),
+      userProfile: {
+        name: userProfile?.name || '未设置',
+        hasAvatar: !!userProfile?.avatar,
+        isPro: userProfile?.is_pro || false
+      }
     }
 
     // 5. 转换为JSON并复制到剪贴板
