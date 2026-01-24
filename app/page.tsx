@@ -10,7 +10,7 @@ import { ImportModal } from "@/components/ImportModal"
 import { ExportModal } from "@/components/ExportModal"
 import { toast } from 'sonner'
 import { trackEvent } from '@/lib/analytics'
-import html2canvas from 'html2canvas'
+import { domToPng } from 'modern-screenshot'
 
 // Helper functions
 function getLocalDateStr() {
@@ -736,17 +736,12 @@ function ShareCardModal({
 
   // 图片导出功能
   const handleExportImage = async () => {
-    console.log('handleExportImage 函数被调用')
     const element = document.getElementById('share-card-content')
     if (!element) {
-      console.error('未找到分享卡片内容')
       toast.error('未找到分享卡片内容')
       return
     }
 
-    console.log('找到元素，开始生成图片')
-
-    const startTime = Date.now()
     const userAgent = navigator.userAgent
     const logEntry = {
       timestamp: new Date().toISOString(),
@@ -758,100 +753,27 @@ function ShareCardModal({
     try {
       toast.loading('正在生成图片...', { id: 'export' })
 
-      const canvas = await html2canvas(element, {
+      // 使用 modern-screenshot 生成图片
+      const dataUrl = await domToPng(element, {
+        scale: 2, // 提高清晰度
         backgroundColor: '#ffffff',
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        allowTaint: true,
-        foreignObjectRendering: false,
-        onclone: (clonedDoc) => {
-          console.log('onclone 回调触发')
-
-          const clonedElement = clonedDoc.getElementById('share-card-content')
-          if (!clonedElement) {
-            console.error('克隆元素未找到')
-            return
-          }
-
-          console.log('开始清理元素样式')
-
-          // 递归清理所有元素的现代颜色函数
-          const cleanElement = (el: HTMLElement) => {
-            try {
-              const styles = clonedDoc.defaultView?.getComputedStyle(el)
-              if (!styles) return
-
-              // 检查并清理所有颜色相关属性
-              const colorProps = [
-                'color',
-                'backgroundColor',
-                'borderColor',
-                'borderTopColor',
-                'borderRightColor',
-                'borderBottomColor',
-                'borderLeftColor',
-                'outlineColor',
-                'textDecorationColor',
-                'fill',
-                'stroke'
-              ]
-
-              colorProps.forEach(prop => {
-                const value = styles.getPropertyValue(prop)
-                // 检查是否包含现代颜色函数
-                if (value && (
-                  value.includes('lab(') ||
-                  value.includes('oklab(') ||
-                  value.includes('oklch(') ||
-                  value.includes('lch(')
-                )) {
-                  // 只移除包含现代颜色函数的属性
-                  el.style.removeProperty(prop)
-                  console.log(`移除 ${prop}:`, value)
-                }
-              })
-
-              Array.from(el.children).forEach((child) => {
-                if (child instanceof HTMLElement) {
-                  cleanElement(child)
-                }
-              })
-            } catch (e) {
-              console.error('清理元素时出错:', e)
-            }
-          }
-
-          cleanElement(clonedElement)
-          console.log('元素样式清理完成')
+        fetch: {
+          bypassingCache: true
         }
       })
 
-      console.log('Canvas 生成完成')
+      // 将 dataUrl 转换为 blob 并下载
+      const link = document.createElement('a')
+      link.download = `ashtanga-${record?.date || 'practice'}.png`
+      link.href = dataUrl
+      link.click()
 
-      canvas.toBlob((blob) => {
-        if (!blob) {
-          logEntry.error = 'Blob 为空'
-          setExportLogs([...exportLogs, logEntry])
-          toast.error('导出失败，请重试', { id: 'export' })
-          return
-        }
+      // 记录成功日志
+      logEntry.success = true
+      setExportLogs([...exportLogs, logEntry])
 
-        const url = URL.createObjectURL(blob)
-        const link = document.createElement('a')
-        link.download = `ashtanga-${record?.date || 'practice'}.png`
-        link.href = url
-        link.click()
-
-        URL.revokeObjectURL(url)
-
-        // 记录成功日志
-        logEntry.success = true
-        setExportLogs([...exportLogs, logEntry])
-
-        toast.success('图片已保存', { id: 'export' })
-        onClose()
-      }, 'image/png')
+      toast.success('图片已保存', { id: 'export' })
+      onClose()
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error)
       logEntry.error = errorMessage
@@ -859,8 +781,8 @@ function ShareCardModal({
       // 记录失败日志
       setExportLogs([...exportLogs, logEntry])
 
-      console.error('导出失败详细错误:', error)
-      toast.error(`导出失败: ${errorMessage}`, { id: 'export' })
+      console.error('导出失败:', error)
+      toast.error(`导出失败，请重试`, { id: 'export' })
     }
   }
 
