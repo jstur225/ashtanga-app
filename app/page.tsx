@@ -442,29 +442,62 @@ function EditRecordModal({
   record,
   onSave,
   onDelete,
+  practiceOptions,
 }: {
   isOpen: boolean
   onClose: () => void
   record: PracticeRecord | null
-  onSave: (id: string, notes: string, photos: string[], breakthrough?: string) => void
+  onSave: (id: string, data: Partial<PracticeRecord>) => void
   onDelete: (id: string) => void
+  practiceOptions: PracticeOption[]
 }) {
   const [notes, setNotes] = useState("")
   const [breakthroughEnabled, setBreakthroughEnabled] = useState(false)
   const [breakthroughText, setBreakthroughText] = useState("")
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
+  // 新增：日期、类型、时长的状态
+  const [date, setDate] = useState("")
+  const [type, setType] = useState("")
+  const [duration, setDuration] = useState(60)
+
+  // 新增：子模态框状态
+  const [showDatePicker, setShowDatePicker] = useState(false)
+  const [showTypeSelector, setShowTypeSelector] = useState(false)
+
+  // 日期显示格式化
+  const formatDateDisplay = (dateStr: string) => {
+    if (!dateStr) return "选择日期"
+    const date = new Date(dateStr)
+    return `${date.getMonth() + 1}月${date.getDate()}日`
+  }
+
+  const typeOptions = useMemo(() => {
+    return practiceOptions
+      .filter(o => o.id !== "custom")
+      .map(o => ({ value: o.label_zh || o.label, label: o.label_zh || o.label }))
+  }, [practiceOptions])
+
   useEffect(() => {
     if (record) {
       setNotes(record.notes)
       setBreakthroughEnabled(!!record.breakthrough)
       setBreakthroughText(record.breakthrough || "")
+      setDate(record.date)
+      setType(record.type)
+      setDuration(Math.floor(record.duration / 60)) // 转换为分钟
     }
   }, [record])
 
   const handleSave = () => {
     if (record) {
-      onSave(record.id, notes, [], breakthroughEnabled ? breakthroughText : undefined)
+      onSave(record.id, {
+        notes,
+        breakthrough: breakthroughEnabled ? breakthroughText : undefined,
+        date,
+        type,
+        duration: duration * 60, // 转换为秒
+      })
       onClose()
     }
   }
@@ -527,23 +560,44 @@ function EditRecordModal({
               </div>
             ) : (
               <div className="space-y-4">
-                {/* Read-only info */}
+                {/* Date & Type - 可编辑 */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-serif text-muted-foreground mb-1.5">日期</label>
-                    <div className="px-3 py-2.5 rounded-xl bg-secondary text-foreground font-serif text-sm">{formatDate(record.date)}</div>
+                    <button
+                      onClick={() => setShowDatePicker(true)}
+                      className="w-full px-3 py-2.5 rounded-xl bg-secondary text-foreground font-serif text-left transition-all hover:bg-secondary/80 active:scale-[0.98] text-sm"
+                    >
+                      {formatDateDisplay(date)}
+                    </button>
                   </div>
                   <div>
-                    <label className="block text-xs font-serif text-muted-foreground mb-1.5">类型</label>
-                    <div className="px-3 py-2.5 rounded-xl bg-secondary text-foreground font-serif text-sm">{record.type}</div>
+                    <label className="block text-xs font-serif text-muted-foreground mb-1.5">练习类型</label>
+                    <button
+                      onClick={() => setShowTypeSelector(true)}
+                      className={`
+                        w-full px-3 py-2.5 rounded-xl font-serif text-left transition-all active:scale-[0.98] text-sm
+                        ${type
+                          ? 'bg-gradient-to-br from-[rgba(45,90,39,0.15)] to-[rgba(74,122,68,0.1)] text-primary border border-primary/20'
+                          : 'bg-secondary text-muted-foreground hover:bg-secondary/80'
+                        }
+                      `}
+                    >
+                      {type ? type.split(' ')[0] : "选择类型"}
+                    </button>
                   </div>
                 </div>
-                
+
                 {/* Duration & Breakthrough Toggle */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-serif text-muted-foreground mb-1.5">时长</label>
-                    <div className="px-3 py-2.5 rounded-xl bg-secondary text-foreground font-serif text-sm">{formatDuration(record.duration)}</div>
+                    <label className="block text-xs font-serif text-muted-foreground mb-1.5">练习时长 (分钟)</label>
+                    <input
+                      type="number"
+                      value={duration}
+                      onChange={(e) => setDuration(Number(e.target.value))}
+                      className="w-full px-3 py-2.5 rounded-xl bg-secondary text-foreground font-serif focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all text-sm"
+                    />
                   </div>
                   <div className="flex items-end pb-0.5">
                     <button
@@ -615,6 +669,29 @@ function EditRecordModal({
               </div>
             )}
           </motion.div>
+
+          {/* DatePicker Modal */}
+          <DatePickerModal
+            isOpen={showDatePicker}
+            onClose={() => setShowDatePicker(false)}
+            onSelect={(selectedDate) => {
+              setDate(selectedDate)
+              setShowDatePicker(false)
+            }}
+            initialDate={date}
+          />
+
+          {/* TypeSelector Modal */}
+          <TypeSelectorModal
+            isOpen={showTypeSelector}
+            onClose={() => setShowTypeSelector(false)}
+            onSelect={(selectedType) => {
+              setType(selectedType)
+              setShowTypeSelector(false)
+            }}
+            options={typeOptions}
+            initialType={type}
+          />
         </>
       )}
     </AnimatePresence>
@@ -2164,6 +2241,7 @@ function JournalTab({
         record={editingRecord}
         onSave={onEditRecord}
         onDelete={onDeleteRecord}
+        practiceOptions={practiceOptions}
       />
 
       <ShareCardModal
@@ -2637,8 +2715,8 @@ export default function AshtangaTracker() {
     toast.success('已删除选项')
   }
 
-  const handleEditRecord = (id: string, notes: string, photos: string[], breakthrough?: string) => {
-    updateRecord(id, { notes, breakthrough })
+  const handleEditRecord = (id: string, data: Partial<PracticeRecord>) => {
+    updateRecord(id, data)
     toast.success('更新成功')
   }
 
