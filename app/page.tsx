@@ -708,6 +708,7 @@ function ShareCardModal({
   totalPracticeCount,
   thisMonthDays,
   totalHours,
+  onSave,
 }: {
   isOpen: boolean
   onClose: () => void
@@ -716,15 +717,21 @@ function ShareCardModal({
   totalPracticeCount: number
   thisMonthDays: number
   totalHours: number
+  onSave?: (id: string, notes: string, photos: string[], breakthrough?: string) => void
 }) {
   const [editableNotes, setEditableNotes] = useState("")
   const [isEditingNotes, setIsEditingNotes] = useState(false)
+  const [originalNotes, setOriginalNotes] = useState("")
 
   useEffect(() => {
     if (record) {
-      setEditableNotes(record.notes || "今日练习完成")
+      const notes = record.notes || "今日练习完成"
+      setEditableNotes(notes)
+      setOriginalNotes(notes)
     }
   }, [record])
+
+  const isNotesModified = editableNotes !== originalNotes
 
   if (!record) return null
 
@@ -750,7 +757,8 @@ function ShareCardModal({
             className="fixed inset-0 z-50 flex items-center justify-center p-6"
             onClick={onClose}
           >
-            <div 
+            <div
+              id="share-card-content"
               className="bg-background rounded-3xl w-full max-w-sm shadow-2xl overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
@@ -847,13 +855,21 @@ function ShareCardModal({
                 </button>
                 <button
                   onClick={() => {
-                    alert("分享图片功能开发中...")
+                    if (isNotesModified) {
+                      // 保存文案
+                      if (record && onSave) {
+                        onSave(record.id, editableNotes, [], record.breakthrough)
+                      }
+                    } else {
+                      // 导出图片（待实现）
+                      alert("图片导出功能开发中...")
+                    }
                     onClose()
                   }}
                   className="flex-1 py-3 rounded-full bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white font-serif transition-all hover:opacity-90 active:scale-[0.98] flex items-center justify-center gap-2"
                 >
                   <Share2 className="w-4 h-4" />
-                  保存图片
+                  {isNotesModified ? '保存' : '保存图片'}
                 </button>
               </div>
             </div>
@@ -2255,6 +2271,7 @@ function JournalTab({
         totalPracticeCount={totalPracticeCount}
         thisMonthDays={thisMonthDays}
         totalHours={totalHours}
+        onSave={onEditRecord}
       />
 
       <AddPracticeModal
