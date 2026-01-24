@@ -10,6 +10,7 @@ import { ImportModal } from "@/components/ImportModal"
 import { ExportModal } from "@/components/ExportModal"
 import { toast } from 'sonner'
 import { trackEvent } from '@/lib/analytics'
+import html2canvas from 'html2canvas'
 
 // Helper functions
 function getLocalDateStr() {
@@ -735,45 +736,29 @@ function ShareCardModal({
 
   // 图片导出功能
   const handleExportImage = async () => {
-    console.log('开始导出图片...')
-    toast.loading('正在生成图片...', { id: 'export-loading' })
-
     const element = document.getElementById('share-card-content')
     if (!element) {
-      console.error('未找到分享卡片内容')
-      toast.error('未找到分享卡片内容', { id: 'export-loading' })
+      toast.error('未找到分享卡片内容')
       return
     }
 
-    console.log('找到元素:', element)
-
     try {
-      console.log('正在导入 html2canvas...')
-      // 动态导入 html2canvas
-      const html2canvas = (await import('html2canvas')).default
-      console.log('html2canvas 导入成功')
+      toast.loading('正在生成图片...', { id: 'export' })
 
-      console.log('开始生成 canvas...')
       const canvas = await html2canvas(element, {
         backgroundColor: '#ffffff',
-        scale: 2, // 提高清晰度
+        scale: 2,
         useCORS: true,
-        logging: true,
+        logging: false,
         allowTaint: true,
       })
-      console.log('Canvas 生成成功:', canvas)
 
-      toast.success('图片生成中...', { id: 'export-loading' })
-
-      // 转换为图片并下载
       canvas.toBlob((blob) => {
         if (!blob) {
-          console.error('导出失败：blob 为空')
-          toast.error('导出失败，请重试', { id: 'export-loading' })
+          toast.error('导出失败，请重试', { id: 'export' })
           return
         }
 
-        console.log('Blob 生成成功，准备下载...')
         const url = URL.createObjectURL(blob)
         const link = document.createElement('a')
         link.download = `ashtanga-${record?.date || 'practice'}.png`
@@ -781,13 +766,12 @@ function ShareCardModal({
         link.click()
 
         URL.revokeObjectURL(url)
-        console.log('图片下载完成')
-        toast.success('图片已保存到下载文件夹', { id: 'export-loading' })
+        toast.success('图片已保存', { id: 'export' })
         onClose()
       }, 'image/png')
     } catch (error) {
       console.error('导出失败:', error)
-      toast.error('导出失败，请重试', { id: 'export-loading' })
+      toast.error('导出失败，请重试', { id: 'export' })
     }
   }
 
