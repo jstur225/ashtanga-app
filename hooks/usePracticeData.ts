@@ -52,7 +52,7 @@ export const usePracticeData = () => {
     id: '',
     created_at: new Date().toISOString(),
     name: '阿斯汤加习练者',
-    signature: '练习阿斯汤加是一场修行',
+    signature: '练习、练习，一切随之而来。',
     avatar: null,
     is_pro: false,
   });
