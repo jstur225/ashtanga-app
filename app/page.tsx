@@ -9,6 +9,7 @@ import { BookOpen, BarChart3, Calendar, X, Camera, Pause, Play, Trash2, User, Se
 import { FakeDoorModal } from "@/components/FakeDoorModal"
 import { ImportModal } from "@/components/ImportModal"
 import { ExportModal } from "@/components/ExportModal"
+import { PWAInstallBanner } from "@/components/PWAInstallBanner"
 import { toast } from 'sonner'
 import { trackEvent } from '@/lib/analytics'
 import { captureWithFallback, formatErrorForUser } from '@/lib/screenshot'
@@ -2554,6 +2555,9 @@ function StatsTab({
           <Settings className="w-5 h-5" />
         </button>
       </div>
+
+      {/* PWA Install Banner */}
+      <PWAInstallBanner />
 
       <div className="px-6 pb-48">
         {/* Profile Section with PRO Badge - NOW FIRST */}
