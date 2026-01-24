@@ -742,6 +742,15 @@ function ShareCardModal({
       return
     }
 
+    const startTime = Date.now()
+    const userAgent = navigator.userAgent
+    const logEntry = {
+      timestamp: new Date().toISOString(),
+      success: false,
+      userAgent,
+      recordDate: record?.date
+    }
+
     try {
       toast.loading('正在生成图片...', { id: 'export' })
 
@@ -807,6 +816,8 @@ function ShareCardModal({
 
       canvas.toBlob((blob) => {
         if (!blob) {
+          logEntry.error = 'Blob 为空'
+          setExportLogs([...exportLogs, logEntry])
           toast.error('导出失败，请重试', { id: 'export' })
           return
         }
@@ -818,10 +829,21 @@ function ShareCardModal({
         link.click()
 
         URL.revokeObjectURL(url)
+
+        // 记录成功日志
+        logEntry.success = true
+        setExportLogs([...exportLogs, logEntry])
+
         toast.success('图片已保存', { id: 'export' })
         onClose()
       }, 'image/png')
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      logEntry.error = errorMessage
+
+      // 记录失败日志
+      setExportLogs([...exportLogs, logEntry])
+
       console.error('导出失败详细错误:', error)
       toast.error(`导出失败，请重试`, { id: 'export' })
     }
@@ -2691,6 +2713,13 @@ export default function AshtangaTracker() {
   const [exportedData, setExportedData] = useState('')
   const [votedCloud, setVotedCloud] = useLocalStorage('voted_cloud_sync', false)
   const [isSaving, setIsSaving] = useState(false)
+  const [exportLogs, setExportLogs] = useLocalStorage<{
+    timestamp: string
+    success: boolean
+    error?: string
+    userAgent: string
+    recordDate?: string
+  }[]>('ashtanga_export_logs', [])
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
   const lastTapRef = useRef<{ id: string; time: number } | null>(null)
@@ -2932,7 +2961,14 @@ export default function AshtangaTracker() {
         name: userProfile?.name || '未设置',
         hasAvatar: !!userProfile?.avatar,
         isPro: userProfile?.is_pro || false
-      }
+      },
+      imageExportHistory: exportLogs.slice(-10).map(log => ({
+        timestamp: log.timestamp,
+        success: log.success,
+        error: log.error,
+        userAgent: log.userAgent.substring(0, 200), // 截断过长的 UA
+        recordDate: log.recordDate
+      }))
     }
 
     // 5. 转换为JSON并复制到剪贴板
