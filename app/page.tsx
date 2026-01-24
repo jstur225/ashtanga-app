@@ -745,19 +745,27 @@ function ShareCardModal({
     try {
       toast.loading('正在生成图片...', { id: 'export' })
 
+      console.log('开始生成 canvas，元素:', element)
+
       const canvas = await html2canvas(element, {
         backgroundColor: '#ffffff',
         scale: 2,
         useCORS: true,
-        logging: false,
+        logging: true,
         allowTaint: true,
+        foreignObjectRendering: false,
       })
+
+      console.log('Canvas 生成成功:', canvas)
 
       canvas.toBlob((blob) => {
         if (!blob) {
+          console.error('Blob 为空')
           toast.error('导出失败，请重试', { id: 'export' })
           return
         }
+
+        console.log('Blob 生成成功，大小:', blob.size, 'bytes')
 
         const url = URL.createObjectURL(blob)
         const link = document.createElement('a')
@@ -770,8 +778,8 @@ function ShareCardModal({
         onClose()
       }, 'image/png')
     } catch (error) {
-      console.error('导出失败:', error)
-      toast.error('导出失败，请重试', { id: 'export' })
+      console.error('导出失败详细错误:', error)
+      toast.error(`导出失败: ${error.message || '未知错误'}`, { id: 'export' })
     }
   }
 
