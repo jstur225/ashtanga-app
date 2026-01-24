@@ -710,6 +710,7 @@ function ShareCardModal({
   thisMonthDays,
   totalHours,
   onEditRecord,
+  onLogExport,
 }: {
   isOpen: boolean
   onClose: () => void
@@ -719,6 +720,7 @@ function ShareCardModal({
   thisMonthDays: number
   totalHours: number
   onEditRecord: (id: string, notes: string, photos: string[], breakthrough?: string) => void
+  onLogExport: (log: any) => void
 }) {
   const [editableNotes, setEditableNotes] = useState("")
   const [isEditingNotes, setIsEditingNotes] = useState(false)
@@ -781,7 +783,7 @@ function ShareCardModal({
 
       // 记录成功日志
       logEntry.success = true
-      setExportLogs([...exportLogs, logEntry])
+      onLogExport(logEntry)
 
       console.log('准备清除 loading 并显示成功')
       toast.dismiss('export-loading')
@@ -795,7 +797,7 @@ function ShareCardModal({
       logEntry.error = errorMessage
 
       // 记录失败日志
-      setExportLogs([...exportLogs, logEntry])
+      onLogExport(logEntry)
 
       console.log('清除 loading 并显示错误')
       toast.dismiss('export-loading')
@@ -2358,6 +2360,7 @@ function JournalTab({
         thisMonthDays={thisMonthDays}
         totalHours={totalHours}
         onEditRecord={handleShareCardEdit}
+        onLogExport={(log) => setExportLogs([...exportLogs, log])}
       />
 
       <AddPracticeModal
