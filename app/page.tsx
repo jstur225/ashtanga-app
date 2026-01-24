@@ -802,11 +802,12 @@ function ShareCardModal({
             className="fixed inset-0 z-50 flex items-center justify-center p-6"
             onClick={onClose}
           >
-            <div
-              id="share-card-content"
-              className="bg-background rounded-3xl w-full max-w-sm shadow-2xl overflow-hidden"
-              onClick={(e) => e.stopPropagation()}
-            >
+            <div className="flex flex-col gap-3 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+              {/* Share Card Content (for screenshot) */}
+              <div
+                id="share-card-content"
+                className="bg-background rounded-3xl shadow-2xl overflow-hidden"
+              >
               {/* Header: Hero Duration Design */}
               <div className="px-5 pt-5 pb-4 border-b border-border">
                 {/* Top Line: Date · Type (small, subtle) */}
@@ -889,42 +890,42 @@ function ShareCardModal({
                   <span className="text-xs font-serif text-muted-foreground">熬汤日记</span>
                 </div>
               </div>
-
-              {/* Actions */}
-              <div className="flex gap-3 px-5 pb-5">
-                <button
-                  onClick={onClose}
-                  className="flex-1 py-3 rounded-full bg-secondary text-foreground font-serif transition-all hover:bg-secondary/80 active:scale-[0.98]"
-                >
-                  取消
-                </button>
-                <button
-                  onClick={() => {
-                    console.log('按钮点击 - isNotesModified:', isNotesModified)
-                    console.log('editableNotes:', editableNotes)
-                    console.log('originalNotes:', originalNotes)
-
-                    if (isNotesModified) {
-                      console.log('走保存文案分支')
-                      // 保存文案，但不关闭模态框
-                      if (record) {
-                        onEditRecord(record.id, editableNotes, [], record.breakthrough)
-                        setOriginalNotes(editableNotes) // 更新原始文案
-                      }
-                    } else {
-                      console.log('走导出图片分支')
-                      // 导出图片
-                      handleExportImage()
-                    }
-                  }}
-                  className="flex-1 py-3 rounded-full bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white font-serif transition-all hover:opacity-90 active:scale-[0.98] flex items-center justify-center gap-2"
-                >
-                  <Share2 className="w-4 h-4" />
-                  {isNotesModified ? '保存' : '保存图片'}
-                </button>
-              </div>
             </div>
-          </motion.div>
+
+            {/* Actions (outside screenshot area) */}
+            <div className="flex gap-3">
+              <button
+                onClick={onClose}
+                className="flex-1 py-3 rounded-full bg-secondary text-foreground font-serif transition-all hover:bg-secondary/80 active:scale-[0.98]"
+              >
+                返回
+              </button>
+              <button
+                onClick={() => {
+                  console.log('按钮点击 - isNotesModified:', isNotesModified)
+                  console.log('editableNotes:', editableNotes)
+                  console.log('originalNotes:', originalNotes)
+
+                  if (isNotesModified) {
+                    console.log('走保存文案分支')
+                    // 保存文案，但不关闭模态框
+                    if (record) {
+                      onEditRecord(record.id, editableNotes, [], record.breakthrough)
+                      setOriginalNotes(editableNotes) // 更新原始文案
+                    }
+                  } else {
+                    console.log('走导出图片分支')
+                    // 导出图片
+                    handleExportImage()
+                  }
+                }}
+                className="flex-1 py-3 rounded-full bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white font-serif transition-all hover:opacity-90 active:scale-[0.98] flex items-center justify-center gap-2"
+              >
+                <Share2 className="w-4 h-4" />
+                {isNotesModified ? '保存' : '保存图片'}
+              </button>
+            </div>
+          </div>
         </>
       )}
     </AnimatePresence>
