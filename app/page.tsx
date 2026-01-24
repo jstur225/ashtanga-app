@@ -2137,8 +2137,8 @@ function JournalTab({
               <div className="flex-1 pl-3 pb-1">
                 {/* First line: Breakthrough OR Notes - must align with Date */}
                 {practice.breakthrough ? (
-                  <div className="flex items-center gap-1 leading-snug mb-1 mt-[3px]">
-                    <Sparkles className="w-3 h-3 text-[#e67e22]" />
+                  <div className="flex items-start gap-1 leading-snug mb-1 mt-[3px]">
+                    <Sparkles className="w-3 h-3 text-[#e67e22] flex-shrink-0 mt-[2px]" />
                     <span className="text-sm font-serif font-bold text-[#e67e22] leading-snug">{practice.breakthrough}</span>
                   </div>
                 ) : null}
