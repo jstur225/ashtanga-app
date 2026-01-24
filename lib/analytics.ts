@@ -2,18 +2,18 @@ import mixpanel from 'mixpanel-browser';
 
 const MIXPANEL_TOKEN = process.env.NEXT_PUBLIC_MIXPANEL_TOKEN || '5268a97b486c115e4ac42757c2570f78';
 
-// 暂停数据收集 - 测试完成后再启用
-const MIXPANEL_ENABLED = false;
+// 启用数据收集 - Beta版本封闭测试
+const MIXPANEL_ENABLED = true;
 
 export const initAnalytics = () => {
   if (typeof window !== 'undefined' && MIXPANEL_ENABLED) {
     mixpanel.init(MIXPANEL_TOKEN, {
-      debug: true, // Force debug mode to see logs in production console
-      track_pageview: true,
+      debug: false, // 关闭生产环境调试日志
+      track_pageview: true, // 保留页面浏览统计
       persistence: 'localStorage',
-      autocapture: true,
+      autocapture: false, // 关闭自动点击捕获，只收集手动埋点
       api_host: 'https://api-eu.mixpanel.com',
-      record_sessions_percent: 100,
+      record_sessions_percent: 0, // 关闭会话录制，保护用户隐私
     });
   }
 };
