@@ -736,11 +736,15 @@ function ShareCardModal({
 
   // 图片导出功能
   const handleExportImage = async () => {
+    console.log('handleExportImage 函数被调用')
     const element = document.getElementById('share-card-content')
     if (!element) {
+      console.error('未找到分享卡片内容')
       toast.error('未找到分享卡片内容')
       return
     }
+
+    console.log('找到元素，开始生成图片')
 
     const startTime = Date.now()
     const userAgent = navigator.userAgent
@@ -971,13 +975,19 @@ function ShareCardModal({
                 </button>
                 <button
                   onClick={() => {
+                    console.log('按钮点击 - isNotesModified:', isNotesModified)
+                    console.log('editableNotes:', editableNotes)
+                    console.log('originalNotes:', originalNotes)
+
                     if (isNotesModified) {
+                      console.log('走保存文案分支')
                       // 保存文案，但不关闭模态框
                       if (record) {
                         onEditRecord(record.id, editableNotes, [], record.breakthrough)
                         setOriginalNotes(editableNotes) // 更新原始文案
                       }
                     } else {
+                      console.log('走导出图片分支')
                       // 导出图片
                       handleExportImage()
                     }
