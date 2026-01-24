@@ -737,100 +737,42 @@ function ShareCardModal({
   const handleExportImage = async () => {
     const element = document.getElementById('share-card-content')
     if (!element) {
-      alert('未找到分享卡片内容')
+      toast.error('未找到分享卡片内容')
       return
     }
 
     try {
-      // 创建 SVG foreignObject 包装器
-      const canvas = document.createElement('canvas')
-      const ctx = canvas.getContext('2d')
-      if (!ctx) {
-        alert('无法创建画布')
-        return
-      }
+      // 动态导入 html2canvas
+      const html2canvas = (await import('html2canvas')).default
 
-      // 获取元素尺寸和样式
-      const rect = element.getBoundingClientRect()
-      const scale = 2 // 提高清晰度
-      canvas.width = rect.width * scale
-      canvas.height = rect.height * scale
-
-      // 获取计算后的样式
-      const computedStyle = window.getComputedStyle(element)
-
-      // 创建 SVG
-      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
-      svg.setAttribute('width', rect.width)
-      svg.setAttribute('height', rect.height)
-      svg.setAttribute('viewBox', `0 0 ${rect.width} ${rect.height}`)
-
-      // 创建 foreignObject
-      const foreignObject = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject')
-      foreignObject.setAttribute('width', '100%')
-      foreignObject.setAttribute('height', '100%')
-      foreignObject.setAttribute('x', '0')
-      foreignObject.setAttribute('y', '0')
-
-      // 克隆元素内容
-      const clonedElement = element.cloneNode(true)
-
-      // 设置内联样式
-      const allElements = clonedElement.querySelectorAll('*')
-      allElements.forEach(el => {
-        const elStyle = window.getComputedStyle(element.querySelector('*')?.[0] || el)
-        if (el instanceof HTMLElement) {
-          el.style.fontFamily = computedStyle.fontFamily
-          el.style.fontSize = computedStyle.fontSize
-          el.style.lineHeight = computedStyle.lineHeight
-        }
+      const canvas = await html2canvas(element, {
+        backgroundColor: '#ffffff',
+        scale: 2, // 提高清晰度
+        useCORS: true,
+        logging: false,
+        allowTaint: true,
       })
 
-      foreignObject.appendChild(clonedElement)
-      svg.appendChild(foreignObject)
+      // 转换为图片并下载
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          toast.error('导出失败，请重试')
+          return
+        }
 
-      // 将 SVG 转换为图片
-      const svgData = new XMLSerializer().serializeToString(svg)
-      const img = new Image()
-      const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' })
-      const url = URL.createObjectURL(svgBlob)
+        const url = URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.download = `ashtanga-${record?.date || 'practice'}.png`
+        link.href = url
+        link.click()
 
-      img.onload = () => {
-        // 绘制到 Canvas
-        ctx.fillStyle = computedStyle.backgroundColor || '#ffffff'
-        ctx.fillRect(0, 0, canvas.width, canvas.height)
-        ctx.scale(scale, scale)
-        ctx.drawImage(img, 0, 0, rect.width, rect.height)
-
-        // 导出为 PNG
-        canvas.toBlob((blob) => {
-          if (!blob) {
-            alert('导出失败')
-            return
-          }
-          const link = document.createElement('a')
-          link.download = `ashtanga-${record?.date || 'practice'}.png`
-          link.href = URL.createObjectURL(blob)
-          link.click()
-
-          // 清理
-          URL.revokeObjectURL(url)
-          URL.revokeObjectURL(link.href)
-
-          // 显示提示
-          alert('图片已保存到下载文件夹')
-          onClose()
-        }, 'image/png')
-      }
-
-      img.onerror = () => {
-        alert('图片生成失败')
-      }
-
-      img.src = url
+        URL.revokeObjectURL(url)
+        toast.success('图片已保存到下载文件夹')
+        onClose()
+      }, 'image/png')
     } catch (error) {
       console.error('导出失败:', error)
-      alert('导出失败，请重试')
+      toast.error('导出失败，请重试')
     }
   }
 
