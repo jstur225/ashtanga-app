@@ -758,25 +758,25 @@ function ShareCardModal({
 
           // 递归清理所有元素的样式，移除 oklab 和 lab 颜色函数
           const cleanElement = (el: HTMLElement) => {
-            const styles = window.getComputedStyle(el)
+            // 使用克隆文档的 defaultView 获取计算样式
+            const styles = clonedDoc.defaultView?.getComputedStyle(el)
+            if (!styles) return
 
-            // 替换所有现代颜色函数（oklab, lab, oklch, lch, hsl, hwb）
+            // 替换所有现代颜色函数（oklab, lab, oklch, lch）
             const replaceColorFunctions = (color: string) => {
+              if (!color || color === 'rgba(0, 0, 0, 0)') return 'transparent'
               return color
                 .replace(/oklab\([^)]+\)/gi, '#000000')
-                .replace(/lab\([^)]+\)/gi, '#000000')
+                .replace(/\blab\([^)]+\)/gi, '#000000')
                 .replace(/oklch\([^)]+\)/gi, '#000000')
                 .replace(/lch\([^)]+\)/gi, '#000000')
+                .replace(/color\(?\s*-moz-[^\)]+\)?/gi, '#000000')
             }
 
             // 应用清理后的颜色
-            const originalColor = styles.color
-            const originalBg = styles.backgroundColor
-            const originalBorder = styles.borderColor
-
-            el.style.setProperty('color', replaceColorFunctions(originalColor), 'important')
-            el.style.setProperty('background-color', replaceColorFunctions(originalBg), 'important')
-            el.style.setProperty('border-color', replaceColorFunctions(originalBorder), 'important')
+            el.style.color = replaceColorFunctions(styles.color)
+            el.style.backgroundColor = replaceColorFunctions(styles.backgroundColor)
+            el.style.borderColor = replaceColorFunctions(styles.borderColor)
 
             Array.from(el.children).forEach((child) => {
               if (child instanceof HTMLElement) {
