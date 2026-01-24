@@ -2422,11 +2422,24 @@ function StatsTab({
     const installed = await promptInstall()
     if (installed) {
       toast.success('✅ 安装成功！现在可以从主屏幕打开了')
-    } else if (!installed) {
-      // iOS或其他不支持beforeinstallprompt的情况
-      toast('💡 iOS用户：点击分享按钮 → 添加到主屏幕', {
-        duration: 5000,
-      })
+    } else {
+      // 无法自动弹出安装提示，显示手动指引
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+      const isAndroid = /Android/.test(navigator.userAgent)
+
+      if (isIOS) {
+        toast('💡 iOS用户：点击分享按钮⎋↑ → 添加到主屏幕', {
+          duration: 6000,
+        })
+      } else if (isAndroid) {
+        toast('💡 Android用户：点击右上角⋮ → 添加到主屏幕', {
+          duration: 6000,
+        })
+      } else {
+        toast('💡 电脑用户：请用手机浏览器安装', {
+          duration: 4000,
+        })
+      }
     }
   }
 
