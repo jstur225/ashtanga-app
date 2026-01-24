@@ -854,12 +854,18 @@ function ShareCardModal({
                   取消
                 </button>
                 <button
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.preventDefault() // 防止其他事件干扰
+                    console.log('Button clicked, isNotesModified:', isNotesModified, 'editableNotes:', editableNotes, 'originalNotes:', originalNotes)
+
                     if (isNotesModified) {
                       // 保存文案，但不关闭模态框
                       if (record && onSave) {
+                        console.log('Calling onSave with:', record.id, editableNotes)
                         onSave(record.id, { notes: editableNotes })
                         setOriginalNotes(editableNotes) // 更新原始文案，这样按钮会变回"保存图片"
+                      } else {
+                        console.log('onSave or record is missing')
                       }
                     } else {
                       // 导出图片（待实现）
@@ -867,7 +873,7 @@ function ShareCardModal({
                       onClose()
                     }
                   }}
-                  className="flex-1 py-3 rounded-full bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white font-serif transition-all hover:opacity-90 active:scale-[0.98] flex items-center justify-center gap-2"
+                  className="flex-1 py-3 rounded-full bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] backdrop-blur-md border border-white/20 shadow-[0_4px_16pxrgba(45,90,39,0.25)] text-white font-serif transition-all hover:opacity-90 active:scale-[0.98] flex items-center justify-center gap-2"
                 >
                   <Share2 className="w-4 h-4" />
                   {isNotesModified ? '保存' : '保存图片'}
