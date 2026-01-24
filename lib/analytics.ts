@@ -8,7 +8,7 @@ const MIXPANEL_ENABLED = true;
 export const initAnalytics = () => {
   if (typeof window !== 'undefined' && MIXPANEL_ENABLED) {
     mixpanel.init(MIXPANEL_TOKEN, {
-      debug: false, // 关闭生产环境调试日志
+      debug: true, // 开启调试日志，帮助排查问题
       track_pageview: true, // 保留页面浏览统计
       persistence: 'localStorage',
       autocapture: false, // 关闭自动点击捕获，只收集手动埋点
