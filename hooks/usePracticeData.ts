@@ -73,7 +73,14 @@ export const usePracticeData = () => {
       created_at: new Date().toISOString(),
       photos: [], // MVP doesn't support photos
     };
-    setRecords([newRecord, ...(records || [])]);
+
+    // 修复：添加记录后按日期排序，而不是直接放在最前面
+    const newRecords = [...(records || []), newRecord];
+    const sortedRecords = newRecords.sort((a, b) => {
+      return new Date(b.date).getTime() - new Date(a.date).getTime();
+    });
+    setRecords(sortedRecords);
+
     return newRecord;
   };
 
@@ -132,7 +139,14 @@ export const usePracticeData = () => {
         return false;
       }
 
-      if (data.records) setRecords(data.records);
+      // 修复：导入记录后按日期倒序排序（最新的日期在上面）
+      if (data.records) {
+        const sortedRecords = [...data.records].sort((a, b) => {
+          return new Date(b.date).getTime() - new Date(a.date).getTime();
+        });
+        setRecords(sortedRecords);
+      }
+
       if (data.options) setOptions(data.options);
       if (data.profile) setProfile(data.profile);
 
