@@ -76,7 +76,11 @@ export function PWAInstallBanner() {
           <p className="text-xs text-green-700 mb-2">
             {isIOS
               ? '点击底部分享按钮⎋↑ → 选择"添加到主屏幕"'
-              : '请在Chrome浏览器，点击右上角⋮ → 选择"添加到主屏幕"或"安装应用"'}
+              : <>
+                  Chrome：右上角⋮ → 添加到主屏幕<br />
+                  Edge：右下角… → 添加到手机
+                </>
+            }
           </p>
           <p className="text-[10px] text-green-600">
             💡 安装后可以像App一样使用，支持离线记录
