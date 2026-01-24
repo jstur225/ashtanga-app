@@ -745,18 +745,39 @@ function ShareCardModal({
     try {
       toast.loading('正在生成图片...', { id: 'export' })
 
-      console.log('开始生成 canvas，元素:', element)
+      console.log('开始生成 canvas')
 
       const canvas = await html2canvas(element, {
         backgroundColor: '#ffffff',
         scale: 2,
         useCORS: true,
-        logging: true,
+        logging: false,
         allowTaint: true,
         foreignObjectRendering: false,
+        onclone: (clonedDoc) => {
+          const clonedElement = clonedDoc.getElementById('share-card-content')
+          if (!clonedElement) return
+
+          // 递归清理所有元素的样式，移除 oklab
+          const cleanElement = (el: HTMLElement) => {
+            const styles = window.getComputedStyle(el)
+            // 强制使用简单的颜色值
+            el.style.color = styles.color.replace(/oklab\([^)]+\)/gi, '#000000')
+            el.style.backgroundColor = styles.backgroundColor.replace(/oklab\([^)]+\)/gi, '#ffffff')
+            el.style.borderColor = styles.borderColor.replace(/oklab\([^)]+\)/gi, '#e5e7eb')
+
+            Array.from(el.children).forEach((child) => {
+              if (child instanceof HTMLElement) {
+                cleanElement(child)
+              }
+            })
+          }
+
+          cleanElement(clonedElement)
+        }
       })
 
-      console.log('Canvas 生成成功:', canvas)
+      console.log('Canvas 生成成功')
 
       canvas.toBlob((blob) => {
         if (!blob) {
