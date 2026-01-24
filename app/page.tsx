@@ -756,33 +756,49 @@ function ShareCardModal({
           const clonedElement = clonedDoc.getElementById('share-card-content')
           if (!clonedElement) return
 
-          // 递归清理所有元素的样式，移除 oklab 和 lab 颜色函数
+          // 递归清理所有元素的计算样式，移除所有现代颜色函数
           const cleanElement = (el: HTMLElement) => {
-            // 使用克隆文档的 defaultView 获取计算样式
-            const styles = clonedDoc.defaultView?.getComputedStyle(el)
-            if (!styles) return
+            try {
+              const styles = clonedDoc.defaultView?.getComputedStyle(el)
+              if (!styles) return
 
-            // 替换所有现代颜色函数（oklab, lab, oklch, lch）
-            const replaceColorFunctions = (color: string) => {
-              if (!color || color === 'rgba(0, 0, 0, 0)') return 'transparent'
-              return color
-                .replace(/oklab\([^)]+\)/gi, '#000000')
-                .replace(/\blab\([^)]+\)/gi, '#000000')
-                .replace(/oklch\([^)]+\)/gi, '#000000')
-                .replace(/lch\([^)]+\)/gi, '#000000')
-                .replace(/color\(?\s*-moz-[^\)]+\)?/gi, '#000000')
+              // 检查并替换所有可能包含现代颜色函数的属性
+              const colorProps = [
+                'color',
+                'backgroundColor',
+                'borderColor',
+                'borderTopColor',
+                'borderRightColor',
+                'borderBottomColor',
+                'borderLeftColor',
+                'outlineColor',
+                'textDecorationColor',
+                'fill',
+                'stroke'
+              ]
+
+              colorProps.forEach(prop => {
+                const value = styles.getPropertyValue(prop)
+                if (value && (
+                  value.includes('lab(') ||
+                  value.includes('oklab(') ||
+                  value.includes('oklch(') ||
+                  value.includes('lch(') ||
+                  value.includes('color(')
+                )) {
+                  // 移除该属性的内联样式，让元素继承或使用默认值
+                  el.style.removeProperty(prop)
+                }
+              })
+
+              Array.from(el.children).forEach((child) => {
+                if (child instanceof HTMLElement) {
+                  cleanElement(child)
+                }
+              })
+            } catch (e) {
+              // 忽略单个元素的错误
             }
-
-            // 应用清理后的颜色
-            el.style.color = replaceColorFunctions(styles.color)
-            el.style.backgroundColor = replaceColorFunctions(styles.backgroundColor)
-            el.style.borderColor = replaceColorFunctions(styles.borderColor)
-
-            Array.from(el.children).forEach((child) => {
-              if (child instanceof HTMLElement) {
-                cleanElement(child)
-              }
-            })
           }
 
           cleanElement(clonedElement)
@@ -807,7 +823,7 @@ function ShareCardModal({
       }, 'image/png')
     } catch (error) {
       console.error('导出失败详细错误:', error)
-      toast.error(`导出失败: ${error.message || '未知错误'}`, { id: 'export' })
+      toast.error(`导出失败，请重试`, { id: 'export' })
     }
   }
 
