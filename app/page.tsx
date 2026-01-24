@@ -736,11 +736,16 @@ function ShareCardModal({
 
   // 图片导出功能
   const handleExportImage = async () => {
+    console.log('=== handleExportImage 开始 ===')
+
     const element = document.getElementById('share-card-content')
     if (!element) {
+      console.error('元素未找到')
       toast.error('未找到分享卡片内容')
       return
     }
+
+    console.log('找到元素:', element)
 
     const userAgent = navigator.userAgent
     const logEntry = {
@@ -751,8 +756,10 @@ function ShareCardModal({
     }
 
     try {
+      console.log('显示 loading')
       toast.loading('正在生成图片...', { id: 'export-loading' })
 
+      console.log('开始调用 domToPng')
       // 使用 modern-screenshot 生成图片
       const dataUrl = await domToPng(element, {
         scale: 2, // 提高清晰度
@@ -762,27 +769,35 @@ function ShareCardModal({
         }
       })
 
+      console.log('domToPng 成功，dataUrl 长度:', dataUrl?.length)
+
       // 将 dataUrl 转换为 blob 并下载
       const link = document.createElement('a')
       link.download = `ashtanga-${record?.date || 'practice'}.png`
       link.href = dataUrl
       link.click()
 
+      console.log('文件已下载')
+
       // 记录成功日志
       logEntry.success = true
       setExportLogs([...exportLogs, logEntry])
 
+      console.log('准备清除 loading 并显示成功')
       toast.dismiss('export-loading')
       toast.success('图片已保存')
       onClose()
+
+      console.log('=== handleExportImage 完成 ===')
     } catch (error) {
+      console.error('导出失败:', error)
       const errorMessage = error instanceof Error ? error.message : String(error)
       logEntry.error = errorMessage
 
       // 记录失败日志
       setExportLogs([...exportLogs, logEntry])
 
-      console.error('导出失败:', error)
+      console.log('清除 loading 并显示错误')
       toast.dismiss('export-loading')
       toast.error(`导出失败，请重试`)
     }
