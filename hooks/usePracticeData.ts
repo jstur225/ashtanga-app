@@ -67,8 +67,6 @@ export const usePracticeData = () => {
   }, []); // 只在组件挂载时执行一次
 
   const addRecord = (record: Omit<PracticeRecord, 'id' | 'created_at' | 'photos'>) => {
-    console.log('addRecord called with date:', record.date); // 调试日志
-
     const newRecord: PracticeRecord = {
       ...record,
       id: uuidv4(),
@@ -81,11 +79,9 @@ export const usePracticeData = () => {
     const sortedRecords = newRecords.sort((a, b) => {
       const dateA = new Date(a.date).getTime();
       const dateB = new Date(b.date).getTime();
-      console.log(`Sorting: ${a.date} (${dateA}) vs ${b.date} (${dateB}) = ${dateB - dateA}`); // 调试日志
       return dateB - dateA;
     });
 
-    console.log('Sorted records:', sortedRecords.map(r => r.date)); // 调试日志
     setRecords(sortedRecords);
 
     return newRecord;
