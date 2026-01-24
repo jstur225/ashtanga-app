@@ -1595,7 +1595,7 @@ function SettingsModal({
                         </div>
                         <div className="text-left">
                           <div className="text-sm font-serif text-foreground">运行日志</div>
-                          <div className="text-[10px] text-muted-foreground font-serif">复制到剪贴板，方便反馈问题</div>
+                          <div className="text-[10px] text-muted-foreground font-serif">如遇问题，请复制本日志发给开发者</div>
                         </div>
                       </div>
                       <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
@@ -2696,8 +2696,8 @@ export default function AshtangaTracker() {
       optionsList: practiceOptions.map(o => ({
         id: o.id,
         label: o.label,
-        labelZh: o.label_zh,
-        notes: o.notes,
+        labelZh: o.label_zh || '',
+        notes: o.notes || '',
         isCustom: o.is_custom
       }))
     }
