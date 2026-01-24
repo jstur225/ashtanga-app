@@ -765,9 +765,6 @@ function ShareCardModal({
 
       // 记录分享卡片导出事件
       trackEvent('share_card_export', {
-        practice_type: record?.type,
-        has_breakthrough: !!record?.breakthrough,
-        has_notes: editableNotes !== originalNotes,
         export_method: result.method,
         export_success: result.success
       })
@@ -784,9 +781,6 @@ function ShareCardModal({
     } catch (error) {
       // 记录失败
       trackEvent('share_card_export', {
-        practice_type: record?.type,
-        has_breakthrough: !!record?.breakthrough,
-        has_notes: editableNotes !== originalNotes,
         export_method: 'error',
         export_success: false
       })
