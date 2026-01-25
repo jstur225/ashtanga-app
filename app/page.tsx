@@ -632,7 +632,7 @@ function EditRecordModal({
                           onChange={(e) => setBreakthroughText(e.target.value)}
                           placeholder="记录今天的里程碑..."
                           maxLength={20}
-                          className="w-full px-3 py-2.5 rounded-xl bg-orange-50 text-foreground font-serif focus:outline-none focus:ring-2 focus:ring-orange-300/50 transition-all border border-orange-200 text-sm"
+                          className="w-full px-3 py-2.5 rounded-xl bg-secondary text-foreground placeholder:text-muted-foreground font-serif focus:outline-none focus:ring-2 focus:ring-orange-200/30 transition-all text-sm"
                         />
                       </div>
                     </motion.div>
@@ -1918,7 +1918,7 @@ function CompletionSheet({
                           onChange={(e) => setBreakthroughText(e.target.value)}
                           placeholder="记录今天的里程碑..."
                           maxLength={20}
-                          className="w-full px-3 py-2.5 rounded-xl bg-orange-50 text-foreground font-serif focus:outline-none focus:ring-2 focus:ring-orange-300/50 transition-all border border-orange-200 text-sm"
+                          className="w-full px-3 py-2.5 rounded-xl bg-secondary text-foreground placeholder:text-muted-foreground font-serif focus:outline-none focus:ring-2 focus:ring-orange-200/30 transition-all text-sm"
                         />
                       </div>
                     </motion.div>
