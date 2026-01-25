@@ -908,6 +908,7 @@ function ShareCardModal({
                 </div>
               </div>
             </div>
+            </div>
 
             {/* Actions (outside screenshot area) */}
             <div className="flex gap-3">
