@@ -1,7 +1,8 @@
 "use client"
 
-import React from "react"
+import React, { useEffect } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { motion, Variants } from "framer-motion"
 import { ArrowRight, Timer, BookOpen, BarChart3, ChevronDown, Moon, Shield, Coffee, Leaf, Wind, Github } from "lucide-react"
 
@@ -29,6 +30,17 @@ const scaleIn: Variants = {
 }
 
 export default function MobileLandingPage() {
+    const router = useRouter()
+
+    // 检查是否已经看过落地页
+    useEffect(() => {
+        const hasSeenLanding = localStorage.getItem('has_seen_landing')
+        if (hasSeenLanding === 'true') {
+            // 已经看过，直接跳转到练习页
+            router.replace('/practice')
+        }
+    }, [router])
+
     return (
         <div className="min-h-screen bg-[#F9F7F2] text-[#2A4B3C] font-serif selection:bg-[#2A4B3C] selection:text-[#F9F7F2] overflow-x-hidden pb-12">
 
@@ -61,13 +73,19 @@ export default function MobileLandingPage() {
                 </div>
 
                 {/* Top Right: Start Practice Button with Glassmorphism */}
-                <Link href="/practice">
-                    <button className="flex items-center gap-2 px-3 py-1 bg-gradient-to-br from-[#2A4B3C] to-[#1a2f26] text-[#C1A268] rounded-full shadow-lg hover:shadow-[#C1A268]/20 border border-[#C1A268]/20 active:scale-95 transition-all duration-300 relative overflow-hidden group backdrop-blur-md">
-                        <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                        <span className="text-[10px] font-serif tracking-widest relative z-10">开始练习</span>
-                        <ArrowRight className="w-3 h-3 relative z-10 group-hover:translate-x-0.5 transition-transform" />
-                    </button>
-                </Link>
+                <button
+                    onClick={() => {
+                        // 保存已访问标记
+                        localStorage.setItem('has_seen_landing', 'true')
+                        // 跳转到练习页
+                        router.push('/practice')
+                    }}
+                    className="flex items-center gap-2 px-3 py-1 bg-gradient-to-br from-[#2A4B3C] to-[#1a2f26] text-[#C1A268] rounded-full shadow-lg hover:shadow-[#C1A268]/20 border border-[#C1A268]/20 active:scale-95 transition-all duration-300 relative overflow-hidden group backdrop-blur-md"
+                >
+                    <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                    <span className="text-[10px] font-serif tracking-widest relative z-10">开始练习</span>
+                    <ArrowRight className="w-3 h-3 relative z-10 group-hover:translate-x-0.5 transition-transform" />
+                </button>
             </nav>
 
             {/* 2. Hero Section */}
