@@ -68,7 +68,7 @@ export function PWAInstallBanner() {
         </h3>
         <p className="text-xs text-green-700 leading-relaxed">
           {isIOS
-            ? '点击底部分享按钮⎋↑ → 选择"添加到主屏幕"'
+            ? '使用Safari浏览器：点击底部分享按钮⎋↑ → 选择"添加到主屏幕"'
             : <>
                 Chrome浏览器：点击右上角→ 选择添加到主屏幕<br />
                 Edge浏览器：点击右下角→ 选择添加到手机<br />

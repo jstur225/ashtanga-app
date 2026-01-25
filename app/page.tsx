@@ -2437,9 +2437,17 @@ function StatsTab({
       const isSupportedBrowser = isChrome || isSafari || isEdge || isSamsung
 
       if (isIOS) {
-        toast('💡 iOS用户：点击分享按钮⎋↑ → 添加到主屏幕', {
-          duration: 6000,
-        })
+        toast.custom(
+          (t) => (
+            <div className="bg-white border border-green-200 rounded-lg shadow-lg p-4 max-w-sm mx-auto">
+              <div className="flex flex-col gap-1">
+                <div className="text-sm font-semibold text-green-900">💡 安装到主屏幕方法</div>
+                <div className="text-xs text-green-700">使用Safari浏览器：点击底部分享按钮⎋↑ → 选择"添加到主屏幕"</div>
+              </div>
+            </div>
+          ),
+          { duration: 10000 }
+        )
       } else if (isAndroid) {
         toast.custom(
           (t) => (
