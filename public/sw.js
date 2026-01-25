@@ -38,21 +38,44 @@ self.addEventListener('activate', event => {
   )
 })
 
-// 拦截请求
+// 拦截请求 - Network First策略，确保总是获取最新内容
 self.addEventListener('fetch', event => {
+  const url = new URL(event.request.url)
+
+  // 对于HTML页面，使用Network First（优先网络，确保最新）
+  if (event.request.mode === 'navigate' ||
+      event.request.destination === 'document') {
+    event.respondWith(
+      fetch(event.request)
+        .then(response => {
+          // 网络成功，克隆并缓存
+          if (response && response.status === 200) {
+            const responseToCache = response.clone()
+            caches.open(CACHE_NAME).then(cache => {
+              cache.put(event.request, responseToCache)
+            })
+          }
+          return response
+        })
+        .catch(() => {
+          // 网络失败，尝试使用缓存
+          return caches.match(event.request)
+        })
+    )
+    return
+  }
+
+  // 对于静态资源（图标等），使用Cache First（优先缓存，提升性能）
   event.respondWith(
     caches.match(event.request)
       .then(response => {
-        // 缓存命中，返回缓存
         if (response) {
           return response
         }
         return fetch(event.request).then(response => {
-          // 检查是否是有效响应
           if (!response || response.status !== 200 || response.type !== 'basic') {
             return response
           }
-          // 克隆响应
           const responseToCache = response.clone()
           caches.open(CACHE_NAME)
             .then(cache => {
