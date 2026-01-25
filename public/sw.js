@@ -7,26 +7,34 @@ const urlsToCache = [
   '/manifest.json'
 ]
 
-// 安装Service Worker
+// 安装Service Worker - 立即激活，等待中状态
 self.addEventListener('install', event => {
+  // 跳过等待，立即激活新的Service Worker
+  self.skipWaiting()
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => cache.addAll(urlsToCache))
   )
 })
 
-// 激活Service Worker
+// 激活Service Worker - 立即控制所有客户端
 self.addEventListener('activate', event => {
+  // 立即控制所有客户端
   event.waitUntil(
-    caches.keys().then(cacheNames => {
-      return Promise.all(
+    (async () => {
+      // 立即控制所有客户端
+      await clients.claim()
+
+      // 删除所有旧缓存
+      const cacheNames = await caches.keys()
+      await Promise.all(
         cacheNames.map(cacheName => {
           if (cacheName !== CACHE_NAME) {
             return caches.delete(cacheName)
           }
         })
       )
-    })
+    })()
   )
 })
 
