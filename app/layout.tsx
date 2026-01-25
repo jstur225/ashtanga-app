@@ -1,6 +1,6 @@
 import React from "react"
 import type { Metadata, Viewport } from 'next'
-import { Inter, JetBrains_Mono, Noto_Serif_SC } from 'next/font/google'
+import { Inter, JetBrains_Mono, Noto_Serif_SC, Playfair_Display } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { Toaster } from 'sonner'
 import { AnalyticsInitializer } from '@/components/AnalyticsInitializer'
@@ -19,6 +19,10 @@ const notoSerifSC = Noto_Serif_SC({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
   variable: "--font-noto-serif-sc",
+});
+const playfair = Playfair_Display({
+  subsets: ["latin"],
+  variable: "--font-playfair",
 });
 
 export const viewport: Viewport = {
@@ -54,7 +58,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} ${jetbrainsMono.variable} ${notoSerifSC.variable} font-sans antialiased`}>
+      <body className={`${inter.variable} ${jetbrainsMono.variable} ${notoSerifSC.variable} ${playfair.variable} font-sans antialiased`}>
         <AnalyticsInitializer />
         <ServiceWorkerRegister />
         {children}

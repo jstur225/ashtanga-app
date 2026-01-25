@@ -77,7 +77,15 @@
 @theme inline {
   --font-sans: var(--font-inter), 'Inter', 'Inter Fallback', system-ui, sans-serif;
   --font-serif: var(--font-noto-serif-sc), 'Noto Serif SC', 'SimSun', 'STSong', serif;
+  --font-playfair: var(--font-playfair), 'Playfair Display', serif;
   --font-mono: var(--font-jetbrains-mono), 'JetBrains Mono', 'JetBrains Mono Fallback', monospace;
+
+  /* Classic/Retro Palette */
+  --color-cream: #F9F7F2;
+  --color-forest: #2A4B3C;
+  --color-gold: #C1A268;
+  --color-gold-light: #D4AF37;
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -116,6 +124,22 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
+@utility bg-paper-pattern {
+  background-color: var(--color-cream);
+  background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stickiness='5'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.08'/%3E%3C/svg%3E");
+}
+
+@utility text-gold-gradient {
+  background: linear-gradient(135deg, #C1A268 0%, #E5C585 50%, #C1A268 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+@utility border-gold-shimmer {
+  border-image: linear-gradient(135deg, #C1A268, #E5C585, #C1A268) 1;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -129,7 +153,6 @@
     /* 移动端固定视口 */
     height: 100%;
     width: 100%;
-    overflow: hidden;
     -webkit-touch-callout: none;
     -webkit-user-select: none;
     user-select: none;
@@ -161,9 +184,12 @@
 
 /* Subtle breath-like pulse animation for the active start button */
 @keyframes pulse-subtle {
-  0%, 100% {
+
+  0%,
+  100% {
     box-shadow: 0 4px 20px rgba(45, 90, 39, 0.15);
   }
+
   50% {
     box-shadow: 0 4px 30px rgba(45, 90, 39, 0.25);
   }
@@ -179,6 +205,7 @@
     transform: scale(1);
     opacity: 0.6;
   }
+
   100% {
     transform: scale(1.5);
     opacity: 0;
@@ -196,9 +223,12 @@
 
 /* Breathing scale animation for center circle */
 @keyframes breathe {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: scale(1);
   }
+
   50% {
     transform: scale(1.03);
   }
@@ -210,12 +240,15 @@
 
 /* Hide scrollbars for clean look while keeping scroll functionality */
 .hide-scrollbar {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
 }
 
 .hide-scrollbar::-webkit-scrollbar {
-  display: none;  /* Chrome, Safari and Opera */
+  display: none;
+  /* Chrome, Safari and Opera */
 }
 
 /* Highlight flash animation for calendar date click */
@@ -224,22 +257,27 @@
     background-color: rgba(45, 90, 39, 0);
     box-shadow: 0 0 0 rgba(45, 90, 39, 0);
   }
+
   20% {
     background-color: rgba(45, 90, 39, 0.15);
     box-shadow: 0 0 20px rgba(45, 90, 39, 0.3);
   }
+
   40% {
     background-color: rgba(45, 90, 39, 0);
     box-shadow: 0 0 0 rgba(45, 90, 39, 0);
   }
+
   60% {
     background-color: rgba(45, 90, 39, 0.15);
     box-shadow: 0 0 20px rgba(45, 90, 39, 0.3);
   }
+
   80% {
     background-color: rgba(45, 90, 39, 0);
     box-shadow: 0 0 0 rgba(45, 90, 39, 0);
   }
+
   100% {
     background-color: rgba(45, 90, 39, 0);
     box-shadow: 0 0 0 rgba(45, 90, 39, 0);
@@ -249,4 +287,3 @@
 .animate-highlight-flash {
   animation: highlight-flash 1.5s ease-in-out;
 }
-
