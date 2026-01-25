@@ -63,6 +63,46 @@ export const usePracticeData = () => {
     if (!stored || stored === '[]') {
       setOptions(DEFAULT_OPTIONS);
     }
+
+    // 为首次用户添加教程记录
+    const storedRecords = localStorage.getItem('ashtanga_records');
+    if (!storedRecords || storedRecords === '[]') {
+      const today = new Date().toISOString().split('T')[0];
+      const now = new Date().toISOString();
+
+      const tutorialRecords: PracticeRecord[] = [
+        {
+          id: `tutorial-${Date.now()}-1`,
+          created_at: now,
+          date: today,
+          type: '1', // 一序列
+          duration: 5400,
+          notes: '🎉 开始记录你的阿斯汤加之旅！\n\n📝 如何记录觉察：\n• 记录练习中的身体感受\n• 回忆呼吸的起伏状态\n• 分享内心的思绪或念头\n• 每一次记录都是对自己的诚实内观\n\n💡 小贴士：点击记录可以编辑或分享，完整编辑点击左侧区域',
+          photos: []
+        },
+        {
+          id: `tutorial-${Date.now()}-2`,
+          created_at: now,
+          date: today,
+          type: '1', // 一序列
+          duration: 7200,
+          notes: '🧘‍♂️ 今天的练习特别流畅，体式有了新的突破。超级开心\n\n🌟 突破时刻功能：\n• 记录你的里程碑\n• 看到进步时为自己庆祝\n• 激励自己继续保持\n\n✨ Practice, practice, and all is coming.',
+          breakthrough: '马里奇D终于可以自己绑上了',
+          photos: []
+        },
+        {
+          id: `tutorial-${Date.now()}-3`,
+          created_at: now,
+          date: today,
+          type: '6', // 休息日
+          duration: 0,
+          notes: '🌙 休息日也是练习的一部分。\n\n📖 如何记录休息日：\n• 记录身体的恢复状况\n• 写下对下次练习的期待\n• 观察身体的变化\n\n💤 休息是为了更好的练习，给身体时间成长。',
+          photos: []
+        }
+      ];
+
+      setRecords(tutorialRecords);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // 只在组件挂载时执行一次
 
