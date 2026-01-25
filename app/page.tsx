@@ -891,7 +891,7 @@ function ShareCardModal({
                     {/* Avatar */}
                     <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] flex items-center justify-center overflow-hidden">
                       {profile.avatar ? (
-                        <img src={profile.avatar || "/placeholder.svg}" alt="头像" className="w-full h-full object-cover" />
+                        <img src={profile.avatar} alt="头像" className="w-full h-full object-cover" />
                       ) : (
                         <User className="w-3.5 h-3.5 text-white" />
                       )}
