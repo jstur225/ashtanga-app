@@ -7,9 +7,19 @@ import { AnalyticsInitializer } from '@/components/AnalyticsInitializer'
 import { ServiceWorkerRegister } from '@/components/ServiceWorkerRegister'
 import './globals.css'
 
-const _inter = Inter({ subsets: ["latin"] });
-const _jetbrainsMono = JetBrains_Mono({ subsets: ["latin"] });
-const _notoSerifSC = Noto_Serif_SC({ subsets: ["latin"], weight: ["400", "500", "600", "700"] });
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+});
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-jetbrains-mono",
+});
+const notoSerifSC = Noto_Serif_SC({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-noto-serif-sc",
+});
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -44,7 +54,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`font-sans antialiased`}>
+      <body className={`${inter.variable} ${jetbrainsMono.variable} ${notoSerifSC.variable} font-sans antialiased`}>
         <AnalyticsInitializer />
         <ServiceWorkerRegister />
         {children}
