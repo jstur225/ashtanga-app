@@ -1,4 +1,5 @@
-const CACHE_NAME = 'ashtanga-v1'
+// 使用时间戳作为版本号，每次构建时自动更新
+const CACHE_NAME = `ashtanga-${Date.now()}`
 const urlsToCache = [
   '/',
   '/icon.png',
