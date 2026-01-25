@@ -885,9 +885,9 @@ function ShareCardModal({
                   </div>
                 </div>
 
-                {/* Identity Footer: Avatar+Name+Signature (Left) | Brand Watermark (Right - plain text) */}
+                {/* Identity Footer: Avatar+Name (Left) | Brand+Signature (Right) */}
                 <div className="flex items-center justify-between pt-3">
-                  {/* Left: Avatar, Name and Signature */}
+                  {/* Left: Avatar and Name */}
                   <div className="flex items-center gap-2">
                     <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] flex items-center justify-center overflow-hidden">
                       {profile.avatar ? (
@@ -896,14 +896,15 @@ function ShareCardModal({
                         <User className="w-3.5 h-3.5 text-white" />
                       )}
                     </div>
-                    <div className="flex flex-col">
-                      <span className="text-sm font-serif text-[#e67e22]">{profile.name}</span>
-                      <span className="text-xs text-muted-foreground italic font-serif">{profile.signature}</span>
-                    </div>
+                    <span className="text-sm font-serif text-[#e67e22]">{profile.name}</span>
                   </div>
 
-                  {/* Right: Brand Watermark - Plain text, no background */}
-                  <span className="text-xs font-serif text-muted-foreground">熬汤日记</span>
+                  {/* Right: Brand and Signature - horizontal, both gray italic small */}
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] text-muted-foreground italic font-serif">熬汤日记</span>
+                    <span className="text-[10px] text-muted-foreground italic font-serif">·</span>
+                    <span className="text-[10px] text-muted-foreground italic font-serif">{profile.signature}</span>
+                  </div>
                 </div>
               </div>
             </div>
