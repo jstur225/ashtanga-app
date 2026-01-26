@@ -1269,7 +1269,7 @@ function TypeSelectorModal({
                               ? "bg-background text-muted-foreground border-2 border-dashed border-muted-foreground/30 shadow-[0_2px_12px_rgba(0,0,0,0.03)]"
                               : isRestDayButton
                                 ? "bg-yellow-50/40 hover:bg-yellow-50/60 text-foreground border border-yellow-200/50 shadow-[0_2px_8px_rgba(252,211,77,0.15)]"
-                                : "bg-green-50/40 hover:bg-green-50/60 text-foreground border border-green-200/50 shadow-[0_2px_8px_rgba(134,239,172,0.15)]"
+                                : "bg-card text-foreground shadow-[0_4px_16px_rgba(0,0,0,0.06)]"
                 }
                         }
                       `}
@@ -3302,7 +3302,7 @@ export default function AshtangaTracker() {
                           ? "bg-background text-muted-foreground border-2 border-dashed border-muted-foreground/30 shadow-[0_2px_12px_rgba(0,0,0,0.03)]"
                           : isRestDayButton
                             ? "bg-yellow-50/40 hover:bg-yellow-50/60 text-foreground border border-yellow-200/50 shadow-[0_2px_8px_rgba(252,211,77,0.15)]"
-                            : "bg-green-50/40 hover:bg-green-50/60 text-foreground border border-green-200/50 shadow-[0_2px_8px_rgba(134,239,172,0.15)]"
+                            : "bg-background text-foreground shadow-[0_4px_16px_rgba(0,0,0,0.06)] border border-stone-100/50"
                     }
                   `}
                 >
