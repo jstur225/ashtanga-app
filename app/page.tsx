@@ -321,20 +321,25 @@ export default function MobileLandingPage() {
 
                 {/* 开始练习大按钮 */}
                 <motion.div
-                    variants={fadeInUp}
+                    initial={{ opacity: 0, y: 30, scale: 0.95 }}
+                    whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                    viewport={{ once: true, margin: "-50px" }}
+                    transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 }}
                     className="flex justify-center mt-8"
                 >
-                    <button
+                    <motion.button
+                        whileHover={{ scale: 1.05, shadow: "0 10px 40px rgba(193, 162, 104, 0.3)" }}
+                        whileTap={{ scale: 0.95 }}
                         onClick={() => {
                             localStorage.setItem('has_seen_landing', 'true')
                             router.push('/practice')
                         }}
-                        className="flex items-center gap-3 px-8 py-4 bg-gradient-to-br from-[#2A4B3C] to-[#1a2f26] text-[#C1A268] rounded-full shadow-lg hover:shadow-[#C1A268]/20 border border-[#C1A268]/20 active:scale-95 transition-all duration-300 relative overflow-hidden group backdrop-blur-md"
+                        className="flex items-center gap-3 px-8 py-4 bg-gradient-to-br from-[#2A4B3C] to-[#1a2f26] text-[#C1A268] rounded-full shadow-lg hover:shadow-[#C1A268]/20 border border-[#C1A268]/20 transition-all duration-300 relative overflow-hidden group backdrop-blur-md"
                     >
                         <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                         <span className="text-base font-serif tracking-widest relative z-10">开始练习</span>
                         <ArrowRight className="w-5 h-5 relative z-10 group-hover:translate-x-0.5 transition-transform" />
-                    </button>
+                    </motion.button>
                 </motion.div>
 
                 <motion.div
