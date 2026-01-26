@@ -32,6 +32,7 @@ const scaleIn: Variants = {
 export default function MobileLandingPage() {
     const router = useRouter()
     const [isFixed, setIsFixed] = useState(false)
+    const [buttonY, setButtonY] = useState(0)
     const buttonRef = useRef<HTMLButtonElement>(null)
 
     // 检查是否已经看过落地页
@@ -48,11 +49,15 @@ export default function MobileLandingPage() {
         const observer = new IntersectionObserver(
             (entries) => {
                 entries.forEach((entry) => {
-                    if (entry.isIntersecting && !isFixed) {
-                        // 按钮进入视口，等待动画完成后固定
+                    if (entry.isIntersecting && !isFixed && buttonRef.current) {
+                        // 记录当前位置
+                        const rect = buttonRef.current.getBoundingClientRect()
+                        setButtonY(rect.top + window.scrollY)
+
+                        // 等待动画完成后平滑移动到底部
                         setTimeout(() => {
                             setIsFixed(true)
-                        }, 800) // 等待0.8秒动画完成
+                        }, 800)
                     }
                 })
             },
@@ -352,13 +357,7 @@ export default function MobileLandingPage() {
                         whileInView={{ opacity: 1, y: 0, scale: 1 }}
                         viewport={{ once: true, margin: "-100px" }}
                         transition={{ duration: 0.8, ease: "easeOut" }}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => {
-                            localStorage.setItem('has_seen_landing', 'true')
-                            router.push('/practice')
-                        }}
-                        style={isFixed ? {
+                        animate={isFixed ? {
                             position: 'fixed',
                             bottom: '2rem',
                             left: '0',
@@ -366,12 +365,21 @@ export default function MobileLandingPage() {
                             marginLeft: 'auto',
                             marginRight: 'auto',
                             width: 'fit-content',
-                            zIndex: 50,
-                            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 2px rgba(193, 162, 104, 0.6), 0 0 20px rgba(193, 162, 104, 0.4)'
-                        } : {
-                            boxShadow: '0 20px 40px -12px rgba(0, 0, 0, 0.4), 0 0 0 2px rgba(193, 162, 104, 0.5), 0 0 15px rgba(193, 162, 104, 0.3)'
+                            zIndex: 50
+                        } : {}}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => {
+                            localStorage.setItem('has_seen_landing', 'true')
+                            router.push('/practice')
                         }}
-                        className="flex items-center gap-3 px-12 py-4 bg-gradient-to-br from-[#2A4B3C] to-[#1a2f26] text-[#C1A268] rounded-full border border-[#C1A268]/20 transition-all duration-500 relative overflow-hidden group backdrop-blur-md"
+                        style={{
+                            boxShadow: isFixed
+                                ? '0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 2px rgba(193, 162, 104, 0.6), 0 0 20px rgba(193, 162, 104, 0.4)'
+                                : '0 20px 40px -12px rgba(0, 0, 0, 0.4), 0 0 0 2px rgba(193, 162, 104, 0.5), 0 0 15px rgba(193, 162, 104, 0.3)',
+                            transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)'
+                        }}
+                        className="flex items-center gap-3 px-12 py-4 bg-gradient-to-br from-[#2A4B3C] to-[#1a2f26] text-[#C1A268] rounded-full border border-[#C1A268]/20 relative overflow-hidden group backdrop-blur-md"
                     >
                         <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                         <span className="text-xl font-serif tracking-widest relative z-10">开始练习</span>
