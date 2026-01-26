@@ -4,7 +4,7 @@
   "description": "阿斯汤加瑜伽练习记录 - Practice, practice, and all is coming",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
+  "background_color": "#F9F7F2",
   "theme_color": "#4a7c59",
   "orientation": "portrait",
   "icons": [
