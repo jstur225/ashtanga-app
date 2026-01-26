@@ -361,11 +361,13 @@ export default function MobileLandingPage() {
                         style={isFixed ? {
                             position: 'fixed',
                             bottom: '2rem',
-                            left: '50%',
-                            transform: 'translateX(-50%)',
-                            zIndex: 50
-                        } : {}}
-                        className="flex items-center gap-3 px-8 py-4 bg-gradient-to-br from-[#2A4B3C] to-[#1a2f26] text-[#C1A268] rounded-full shadow-2xl hover:shadow-[#C1A268]/40 border border-[#C1A268]/20 transition-all duration-500 relative overflow-hidden group backdrop-blur-md"
+                            left: 'calc(50% - 110px)',
+                            zIndex: 50,
+                            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(193, 162, 104, 0.3)'
+                        } : {
+                            boxShadow: '0 20px 40px -12px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(193, 162, 104, 0.2)'
+                        }}
+                        className="flex items-center gap-3 px-8 py-4 bg-gradient-to-br from-[#2A4B3C] to-[#1a2f26] text-[#C1A268] rounded-full border border-[#C1A268]/20 transition-all duration-500 relative overflow-hidden group backdrop-blur-md"
                     >
                         <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                         <span className="text-base font-serif tracking-widest relative z-10">开始练习</span>
