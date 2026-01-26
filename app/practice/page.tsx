@@ -2446,8 +2446,7 @@ function StatsTab({
             <div className="bg-white border border-green-200 rounded-lg shadow-lg p-4 max-w-sm mx-auto">
               <div className="flex flex-col gap-1">
                 <div className="text-sm font-semibold text-green-900">💡 安装到主屏幕方法</div>
-                <div className="text-xs text-green-700">使用Safari浏览器：点击右上角分享按钮⎋↑ → 选择"添加到主屏幕"</div>
-                <div className="text-xs text-green-600 mt-1">之后可像App一样使用，获得最佳体验。</div>
+                <div className="text-xs text-green-700">苹果用户请使用Safari浏览器：点击右下角分享按钮 → 选择"添加到主屏幕"，之后可像App一样使用，获得最佳体验。</div>
               </div>
             </div>
           ),
@@ -2459,9 +2458,7 @@ function StatsTab({
             <div className="bg-white border border-green-200 rounded-lg shadow-lg p-4 max-w-sm mx-auto">
               <div className="flex flex-col gap-1">
                 <div className="text-sm font-semibold text-green-900">💡 安装到主屏幕方法</div>
-                <div className="text-xs text-green-700">Chrome浏览器：点击右上角→ 选择添加到主屏幕</div>
-                <div className="text-xs text-green-700">Edge浏览器：点击右下角→ 选择添加到手机</div>
-                <div className="text-xs text-green-600 mt-1">安装后可像App一样使用，获得最佳体验。</div>
+                <div className="text-xs text-green-700">安卓用户请使用Chrome浏览器：点击右上角→ 选择添加到主屏幕<br/>或者Edge浏览器：点击右下角→ 选择添加到手机<br/>安装后可像App一样使用，获得最佳体验。</div>
               </div>
             </div>
           ),
