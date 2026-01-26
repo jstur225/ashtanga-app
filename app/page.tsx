@@ -31,8 +31,8 @@ const scaleIn: Variants = {
 
 export default function MobileLandingPage() {
     const router = useRouter()
-    const [isButtonVisible, setIsButtonVisible] = useState(false)
-    const buttonRef = useRef<HTMLDivElement>(null)
+    const [showFixedButton, setShowFixedButton] = useState(false)
+    const triggerRef = useRef<HTMLDivElement>(null)
 
     // 检查是否已经看过落地页
     useEffect(() => {
@@ -43,28 +43,28 @@ export default function MobileLandingPage() {
         }
     }, [router])
 
-    // 监听按钮是否进入视口
+    // 监听触发区域是否进入视口
     useEffect(() => {
         const observer = new IntersectionObserver(
             (entries) => {
                 entries.forEach((entry) => {
-                    if (entry.isIntersecting && !isButtonVisible) {
-                        // 按钮进入视口，延迟0.8秒后固定（动画完成）
+                    if (entry.isIntersecting && !showFixedButton) {
+                        // 触发区域进入视口，延迟1秒后显示固定按钮
                         setTimeout(() => {
-                            setIsButtonVisible(true)
-                        }, 800)
+                            setShowFixedButton(true)
+                        }, 1000)
                     }
                 })
             },
-            { threshold: 0.5 }
+            { threshold: 0.3 }
         )
 
-        if (buttonRef.current) {
-            observer.observe(buttonRef.current)
+        if (triggerRef.current) {
+            observer.observe(triggerRef.current)
         }
 
         return () => observer.disconnect()
-    }, [isButtonVisible])
+    }, [])
 
     return (
         <div className="min-h-screen bg-[#F9F7F2] text-[#2A4B3C] font-serif selection:bg-[#2A4B3C] selection:text-[#F9F7F2] overflow-x-hidden pb-12">
@@ -344,27 +344,51 @@ export default function MobileLandingPage() {
                     </div>
                 </motion.div>
 
-                {/* 开始练习大按钮 - 固定悬浮 */}
-                <div ref={buttonRef} className="flex justify-center pb-6">
+                {/* 开始练习按钮触发区域 */}
+                <div ref={triggerRef} className="h-20"></div>
+
+                {/* 开始练习大按钮 - 原始位置（用于动画） */}
+                {!showFixedButton && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 50, scale: 0.9 }}
+                        whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                        viewport={{ once: true, margin: "-100px" }}
+                        transition={{ duration: 0.8, ease: "easeOut" }}
+                        className="flex justify-center pb-8"
+                    >
+                        <button
+                            onClick={() => {
+                                localStorage.setItem('has_seen_landing', 'true')
+                                router.push('/practice')
+                            }}
+                            className="flex items-center gap-3 px-8 py-4 bg-gradient-to-br from-[#2A4B3C] to-[#1a2f26] text-[#C1A268] rounded-full shadow-xl hover:shadow-[#C1A268]/30 border border-[#C1A268]/20 transition-all duration-300 relative overflow-hidden group backdrop-blur-md"
+                        >
+                            <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                            <span className="text-base font-serif tracking-widest relative z-10">开始练习</span>
+                            <ArrowRight className="w-5 h-5 relative z-10 group-hover:translate-x-0.5 transition-transform" />
+                        </button>
+                    </motion.div>
+                )}
+
+                {/* 固定悬浮按钮 */}
+                {showFixedButton && (
                     <motion.button
-                        initial={{ opacity: 0, y: 30, scale: 0.95 }}
-                        animate={isButtonVisible ? { opacity: 1, y: 0, scale: 1 } : { opacity: 1, y: 0, scale: 1 }}
-                        transition={{ duration: 0.6, ease: "easeOut" }}
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.4 }}
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={() => {
                             localStorage.setItem('has_seen_landing', 'true')
                             router.push('/practice')
                         }}
-                        className={`flex items-center gap-3 px-8 py-4 bg-gradient-to-br from-[#2A4B3C] to-[#1a2f26] text-[#C1A268] rounded-full shadow-xl hover:shadow-[#C1A268]/30 border border-[#C1A268]/20 transition-all duration-300 relative overflow-hidden group backdrop-blur-md ${
-                            isButtonVisible ? 'fixed bottom-8 left-1/2 -translate-x-1/2 z-50' : ''
-                        }`}
+                        className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-8 py-4 bg-gradient-to-br from-[#2A4B3C] to-[#1a2f26] text-[#C1A268] rounded-full shadow-2xl hover:shadow-[#C1A268]/40 border border-[#C1A268]/20 transition-all duration-300 relative overflow-hidden group backdrop-blur-md"
                     >
                         <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                         <span className="text-base font-serif tracking-widest relative z-10">开始练习</span>
                         <ArrowRight className="w-5 h-5 relative z-10 group-hover:translate-x-0.5 transition-transform" />
                     </motion.button>
-                </div>
+                )}
 
                 <motion.div
                     initial={{ opacity: 0 }}
