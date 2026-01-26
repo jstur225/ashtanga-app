@@ -1252,6 +1252,7 @@ function TypeSelectorModal({
                     : (option.labelZh || option.label)
                   const isSelected = selectedType === optionTypeValue
                   const isCustomButton = option.id === "custom"
+                  const isRestDayButton = option.id === "6"
 
                   return (
                     <motion.button
@@ -1266,7 +1267,9 @@ function TypeSelectorModal({
                             ? "bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] text-primary-foreground backdrop-blur-[16px] border border-white/30 shadow-[0_8px_24px_rgba(45,90,39,0.3)]"
                             : isCustomButton
                               ? "bg-background text-muted-foreground border-2 border-dashed border-muted-foreground/30 shadow-[0_2px_12px_rgba(0,0,0,0.03)]"
-                              : "bg-card text-foreground shadow-[0_4px_16px_rgba(0,0,0,0.06)]"
+                              : isRestDayButton
+                                ? "bg-yellow-50 hover:bg-yellow-100 text-foreground border border-yellow-200 shadow-[0_4px_16px_rgba(252,211,77,0.3)]"
+                                : "bg-card text-foreground shadow-[0_4px_16px_rgba(0,0,0,0.06)]"
                         }
                       `}
                     >
@@ -2499,7 +2502,7 @@ function StatsTab({
       const date = new Date(record.date)
       // Check if record is in current month and year, and not in future (by string comparison for safety)
       if (date.getMonth() === currentMonth && date.getFullYear() === currentYear && record.date <= todayStr) {
-        if (record.duration > 0) {
+        if (record.duration > 0 && !record.type.includes('休息日')) {
           practiceDays++
           totalMinutes += Math.floor(record.duration / 60)
         }
@@ -2517,7 +2520,7 @@ function StatsTab({
     let totalSeconds = 0
     
     practiceHistory.forEach((record) => {
-      if (record.duration > 0) {
+      if (record.duration > 0 && !record.type.includes('休息日')) {
         totalDays++
         totalSeconds += record.duration
       }
@@ -2880,6 +2883,12 @@ export default function AshtangaTracker() {
   }
 
   const handleEditDelete = (id: string) => {
+    // 保护休息日按钮不可删除
+    if (id === '6') {
+      toast.error('休息日按钮不能删除，但可以编辑')
+      return
+    }
+
     // Cannot delete if only 2 non-custom options remain
     const nonCustomOptions = practiceOptions.filter(o => o.id !== "custom")
     if (nonCustomOptions.length <= 2) {
@@ -3275,6 +3284,7 @@ export default function AshtangaTracker() {
             {practiceOptions.map((option) => {
               const isSelected = selectedOption === option.id
               const isCustomButton = option.id === "custom"
+              const isRestDayButton = option.id === "6"
 
               return (
                 <motion.button
@@ -3289,7 +3299,9 @@ export default function AshtangaTracker() {
                         ? "bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] text-primary-foreground backdrop-blur-[16px] border border-white/30 shadow-[0_8px_24px_rgba(45,90,39,0.3)]"
                         : isCustomButton
                           ? "bg-background text-muted-foreground border-2 border-dashed border-muted-foreground/30 shadow-[0_2px_12px_rgba(0,0,0,0.03)]"
-                          : "bg-background text-foreground shadow-[0_4px_16px_rgba(0,0,0,0.06)] border border-stone-100/50"
+                          : isRestDayButton
+                            ? "bg-yellow-50 hover:bg-yellow-100 text-foreground border border-yellow-200 shadow-[0_4px_16px_rgba(252,211,77,0.3)]"
+                            : "bg-background text-foreground shadow-[0_4px_16px_rgba(0,0,0,0.06)] border border-stone-100/50"
                     }
                   `}
                 >
