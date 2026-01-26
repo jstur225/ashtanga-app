@@ -5,7 +5,6 @@
 > 极简的阿斯汤加瑜伽练习记录工具
 > Practice, practice, and all is coming.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Next.js](https://img.shields.io/badge/Next.js-16-black)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-19-blue)](https://react.dev/)
 [![PWA](https://img.shields.io/badge/PWA-Ready-green)](https://www.pwabuilder.com/)
@@ -27,7 +26,6 @@
 - [部署指南](#部署指南)
 - [常见问题](#常见问题)
 - [版本历史](#版本历史)
-- [贡献指南](#贡献指南)
 
 ---
 
@@ -123,7 +121,7 @@
 - **本地优先**: 数据默认存储在浏览器本地
 - **用户控制**: 完全由用户决定是否导出/分享
 - **无账号系统**: 不需要注册登录
-- **透明开源**: 代码开源，可自部署
+- **数据私有**: 所有数据只属于用户本人
 
 ---
 
@@ -145,14 +143,10 @@
 #### 安装步骤
 
 ```bash
-# 1. 克隆项目
-git clone https://github.com/jstur225/ashtanga-app.git
-cd ashtanga-app
-
-# 2. 安装依赖
+# 1. 安装依赖
 npm install
 
-# 3. 启动开发服务器
+# 2. 启动开发服务器
 npm run dev
 ```
 
@@ -294,15 +288,14 @@ interface PracticeRecord {
 
 ### Vercel 部署 (推荐)
 
-1. **Fork 项目**
-   ```bash
-   https://github.com/jstur225/ashtanga-app
-   ```
+1. **准备项目**
+   - 确保代码在本地仓库
+   - 测试构建：`npm run build`
 
 2. **在 Vercel 导入项目**
    - 访问 [vercel.com](https://vercel.com)
    - 点击 "New Project"
-   - 选择你fork的仓库
+   - 导入项目目录
 
 3. **配置项目**
    - Framework Preset: Next.js
@@ -426,62 +419,9 @@ CMD ["npm", "start"]
 
 ---
 
-## 贡献指南
-
-欢迎贡献代码、报告问题或提出建议！
-
-### 如何贡献
-
-1. Fork 本项目
-2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 开启 Pull Request
-
-### 开发规范
-
-- 遵循现有代码风格
-- 添加必要的注释
-- 更新相关文档
-- 确保类型安全（TypeScript）
-
-### 报告问题
-
-请在 [GitHub Issues](https://github.com/jstur225/ashtanga-app/issues) 报告问题。
-
----
-
-## 许可证
-
-MIT License
-
-Copyright (c) 2026 Ashtanga Life
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-
----
-
 ## 联系方式
 
 - **产品**: orange
-- **开发**: Claude Code
-- **仓库**: [https://github.com/jstur225/ashtanga-app](https://github.com/jstur225/ashtanga-app)
 - **在线地址**: [https://ash.ashtangalife.online](https://ash.ashtangalife.online)
 
 ---
@@ -490,6 +430,6 @@ SOFTWARE.
 
 **Practice, practice, and all is coming.** 🙏
 
-Made with ❤️ by Ashtanga practitioners
+Made with ❤️ for Ashtanga practitioners
 
 </div>
