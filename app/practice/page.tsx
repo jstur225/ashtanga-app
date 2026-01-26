@@ -2885,7 +2885,7 @@ export default function AshtangaTracker() {
   const handleEditDelete = (id: string) => {
     // 保护休息日按钮不可删除
     if (id === '6') {
-      toast.error('休息日按钮不能删除，但可以编辑')
+      toast.error('此选项默认不纳入统计，可以编辑但不能删除')
       return
     }
 
