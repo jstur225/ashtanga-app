@@ -67,7 +67,7 @@ export default function MobileLandingPage() {
     }, [])
 
     return (
-        <div className="min-h-screen bg-[#F9F7F2] text-[#2A4B3C] font-serif selection:bg-[#2A4B3C] selection:text-[#F9F7F2] overflow-x-hidden pb-12">
+        <div className={`min-h-screen bg-[#F9F7F2] text-[#2A4B3C] font-serif selection:bg-[#2A4B3C] selection:text-[#F9F7F2] overflow-x-hidden ${showFixedButton ? 'pb-32' : 'pb-12'}`}>
 
             {/* 1. Navbar - Delicate Design */}
             <nav className="fixed top-0 w-full px-5 py-3 z-50 flex justify-between items-center bg-[#F9F7F2]/90 backdrop-blur-md border-b border-[#2A4B3C]/5 supports-[backdrop-filter]:bg-[#F9F7F2]/60">
