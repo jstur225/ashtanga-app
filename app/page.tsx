@@ -31,9 +31,6 @@ const scaleIn: Variants = {
 
 export default function MobileLandingPage() {
     const router = useRouter()
-    const [isFixed, setIsFixed] = useState(false)
-    const [buttonY, setButtonY] = useState(0)
-    const buttonRef = useRef<HTMLButtonElement>(null)
 
     // 检查是否已经看过落地页
     useEffect(() => {
@@ -44,38 +41,11 @@ export default function MobileLandingPage() {
         }
     }, [router])
 
-    // 监听按钮是否进入视口
-    useEffect(() => {
-        const observer = new IntersectionObserver(
-            (entries) => {
-                entries.forEach((entry) => {
-                    if (entry.isIntersecting && !isFixed && buttonRef.current) {
-                        // 记录当前位置
-                        const rect = buttonRef.current.getBoundingClientRect()
-                        setButtonY(rect.top + window.scrollY)
-
-                        // 等待动画完成后平滑移动到底部
-                        setTimeout(() => {
-                            setIsFixed(true)
-                        }, 800)
-                    }
-                })
-            },
-            { threshold: 0.5 }
-        )
-
-        if (buttonRef.current) {
-            observer.observe(buttonRef.current)
-        }
-
-        return () => observer.disconnect()
-    }, [isFixed])
-
     return (
-        <div className={`min-h-screen bg-[#F9F7F2] text-[#2A4B3C] font-serif selection:bg-[#2A4B3C] selection:text-[#F9F7F2] overflow-x-hidden ${isFixed ? 'pb-32' : 'pb-12'}`}>
+        <div className="min-h-screen bg-[#F9F7F2] text-[#2A4B3C] font-serif selection:bg-[#2A4B3C] selection:text-[#F9F7F2] overflow-x-hidden pb-12">
 
             {/* 1. Navbar - Delicate Design */}
-            <nav className="fixed top-0 w-full px-5 py-3 z-50 flex justify-between items-center bg-[#F9F7F2]/90 backdrop-blur-md border-b border-[#2A4B3C]/5 supports-[backdrop-filter]:bg-[#F9F7F2]/60">
+            <nav className="fixed top-0 w-full px-5 py-4 z-50 flex justify-between items-center bg-[#F9F7F2]/90 backdrop-blur-md border-b border-[#2A4B3C]/5 supports-[backdrop-filter]:bg-[#F9F7F2]/60">
 
                 {/* Left: Branding */}
                 <div className="flex flex-row items-center gap-2">
@@ -212,14 +182,14 @@ export default function MobileLandingPage() {
                             <HorizontalCard
                                 icon={BookOpen}
                                 title="觉察日记"
-                                desc="记录每一次练习，不仅仅是打卡，更是对身体的内观。"
+                                desc="记录不仅是打卡，更是对身体的内观。"
                             />
                         </motion.div>
                         <motion.div variants={fadeInUp}>
                             <HorizontalCard
                                 icon={BarChart3}
                                 title="练习日历"
-                                desc="见证你每一次的练习，记录你的坚持与汗水。"
+                                desc="见证练习轨迹，记录你的坚持与汗水。"
                             />
                         </motion.div>
                     </div>
@@ -327,7 +297,7 @@ export default function MobileLandingPage() {
                             <CompactInfoRow
                                 icon={Shield}
                                 title="数据私有"
-                                desc="采用本地存储，你的数据只属于你。"
+                                desc="采用本地存储，数据只属于你。"
                             />
                         </motion.div>
                         <motion.div variants={fadeInUp} className="h-[1px] bg-[#2A4B3C]/5 w-full"></motion.div>
@@ -349,37 +319,23 @@ export default function MobileLandingPage() {
                     </div>
                 </motion.div>
 
-                {/* 开始练习按钮 - 单个按钮+动态定位 */}
-                <div className="flex justify-center pb-8">
+                {/* 开始练习按钮 */}
+                <div className="flex justify-center pt-12 pb-8">
                     <motion.button
-                        ref={buttonRef}
                         initial={{ opacity: 0, y: 50, scale: 0.9 }}
                         whileInView={{ opacity: 1, y: 0, scale: 1 }}
                         viewport={{ once: true, margin: "-100px" }}
                         transition={{ duration: 0.8, ease: "easeOut" }}
-                        animate={isFixed ? {
-                            position: 'fixed',
-                            bottom: '2rem',
-                            left: '0',
-                            right: '0',
-                            marginLeft: 'auto',
-                            marginRight: 'auto',
-                            width: 'fit-content',
-                            zIndex: 50
-                        } : {}}
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={() => {
                             localStorage.setItem('has_seen_landing', 'true')
                             router.push('/practice')
                         }}
+                        className="flex items-center gap-3 px-12 py-4 bg-gradient-to-br from-[#2A4B3C] to-[#1a2f26] text-[#C1A268] rounded-full border border-[#C1A268]/20 relative overflow-hidden group backdrop-blur-md shadow-lg hover:shadow-[#C1A268]/20 transition-all duration-300"
                         style={{
-                            boxShadow: isFixed
-                                ? '0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 2px rgba(193, 162, 104, 0.6), 0 0 20px rgba(193, 162, 104, 0.4)'
-                                : '0 20px 40px -12px rgba(0, 0, 0, 0.4), 0 0 0 2px rgba(193, 162, 104, 0.5), 0 0 15px rgba(193, 162, 104, 0.3)',
-                            transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)'
+                            boxShadow: '0 20px 40px -12px rgba(0, 0, 0, 0.4), 0 0 0 2px rgba(193, 162, 104, 0.5), 0 0 15px rgba(193, 162, 104, 0.3)'
                         }}
-                        className="flex items-center gap-3 px-12 py-4 bg-gradient-to-br from-[#2A4B3C] to-[#1a2f26] text-[#C1A268] rounded-full border border-[#C1A268]/20 relative overflow-hidden group backdrop-blur-md"
                     >
                         <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                         <span className="text-xl font-serif tracking-widest relative z-10">开始练习</span>
