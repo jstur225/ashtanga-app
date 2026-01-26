@@ -32,6 +32,7 @@ const scaleIn: Variants = {
 export default function MobileLandingPage() {
     const router = useRouter()
     const [isButtonVisible, setIsButtonVisible] = useState(false)
+    const buttonRef = useRef<HTMLDivElement>(null)
 
     // 检查是否已经看过落地页
     useEffect(() => {
@@ -41,6 +42,29 @@ export default function MobileLandingPage() {
             router.replace('/practice')
         }
     }, [router])
+
+    // 监听按钮是否进入视口
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting && !isButtonVisible) {
+                        // 按钮进入视口，延迟0.8秒后固定（动画完成）
+                        setTimeout(() => {
+                            setIsButtonVisible(true)
+                        }, 800)
+                    }
+                })
+            },
+            { threshold: 0.5 }
+        )
+
+        if (buttonRef.current) {
+            observer.observe(buttonRef.current)
+        }
+
+        return () => observer.disconnect()
+    }, [isButtonVisible])
 
     return (
         <div className="min-h-screen bg-[#F9F7F2] text-[#2A4B3C] font-serif selection:bg-[#2A4B3C] selection:text-[#F9F7F2] overflow-x-hidden pb-12">
@@ -321,21 +345,19 @@ export default function MobileLandingPage() {
                 </motion.div>
 
                 {/* 开始练习大按钮 - 固定悬浮 */}
-                <div className="flex justify-center pb-6">
+                <div ref={buttonRef} className="flex justify-center pb-6">
                     <motion.button
                         initial={{ opacity: 0, y: 30, scale: 0.95 }}
-                        whileInView={{ opacity: 1, y: 0, scale: 1 }}
-                        viewport={{ once: true, margin: "-50px" }}
-                        transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 }}
-                        onAnimationComplete={() => setIsButtonVisible(true)}
+                        animate={isButtonVisible ? { opacity: 1, y: 0, scale: 1 } : { opacity: 1, y: 0, scale: 1 }}
+                        transition={{ duration: 0.6, ease: "easeOut" }}
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={() => {
                             localStorage.setItem('has_seen_landing', 'true')
                             router.push('/practice')
                         }}
-                        className={`flex items-center gap-3 px-8 py-4 bg-gradient-to-br from-[#2A4B3C] to-[#1a2f26] text-[#C1A268] rounded-full shadow-lg hover:shadow-[#C1A268]/20 border border-[#C1A268]/20 transition-all duration-300 relative overflow-hidden group backdrop-blur-md ${
-                            isButtonVisible ? 'fixed bottom-6 left-1/2 -translate-x-1/2 z-50' : ''
+                        className={`flex items-center gap-3 px-8 py-4 bg-gradient-to-br from-[#2A4B3C] to-[#1a2f26] text-[#C1A268] rounded-full shadow-xl hover:shadow-[#C1A268]/30 border border-[#C1A268]/20 transition-all duration-300 relative overflow-hidden group backdrop-blur-md ${
+                            isButtonVisible ? 'fixed bottom-8 left-1/2 -translate-x-1/2 z-50' : ''
                         }`}
                     >
                         <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
