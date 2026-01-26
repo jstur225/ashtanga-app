@@ -361,17 +361,21 @@ export default function MobileLandingPage() {
                         style={isFixed ? {
                             position: 'fixed',
                             bottom: '2rem',
-                            left: 'calc(50% - 110px)',
+                            left: '0',
+                            right: '0',
+                            marginLeft: 'auto',
+                            marginRight: 'auto',
+                            width: 'fit-content',
                             zIndex: 50,
-                            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(193, 162, 104, 0.3)'
+                            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 2px rgba(193, 162, 104, 0.6), 0 0 20px rgba(193, 162, 104, 0.4)'
                         } : {
-                            boxShadow: '0 20px 40px -12px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(193, 162, 104, 0.2)'
+                            boxShadow: '0 20px 40px -12px rgba(0, 0, 0, 0.4), 0 0 0 2px rgba(193, 162, 104, 0.5), 0 0 15px rgba(193, 162, 104, 0.3)'
                         }}
-                        className="flex items-center gap-3 px-8 py-4 bg-gradient-to-br from-[#2A4B3C] to-[#1a2f26] text-[#C1A268] rounded-full border border-[#C1A268]/20 transition-all duration-500 relative overflow-hidden group backdrop-blur-md"
+                        className="flex items-center gap-3 px-10 py-4 bg-gradient-to-br from-[#2A4B3C] to-[#1a2f26] text-[#C1A268] rounded-full border border-[#C1A268]/20 transition-all duration-500 relative overflow-hidden group backdrop-blur-md"
                     >
                         <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                        <span className="text-base font-serif tracking-widest relative z-10">开始练习</span>
-                        <ArrowRight className="w-5 h-5 relative z-10 group-hover:translate-x-0.5 transition-transform" />
+                        <span className="text-lg font-serif tracking-widest relative z-10">开始练习</span>
+                        <ArrowRight className="w-6 h-6 relative z-10 group-hover:translate-x-0.5 transition-transform" />
                     </motion.button>
                 </div>
 
