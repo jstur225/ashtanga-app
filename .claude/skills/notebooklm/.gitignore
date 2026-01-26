@@ -1,0 +1,17 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environment
+.venv/
+
+# Sensitive data
+.env
+data/auth_info.json
+data/browser_state/
+
+# OS files
+.DS_Store
+Thumbs.db

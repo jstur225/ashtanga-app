@@ -1,0 +1,25 @@
+{
+  "notebooks": {
+    "toto\u8001\u5e08\u7b14\u8bb0": {
+      "id": "toto\u8001\u5e08\u7b14\u8bb0",
+      "url": "https://notebooklm.google.com/notebook/76f2d395-d995-407b-bbe8-5c2e847ce443",
+      "name": "toto\u8001\u5e08\u7b14\u8bb0",
+      "description": "toto\u8001\u5e08\u7684\u8bfe\u7a0b\u7b14\u8bb0\uff1a\u4e2a\u4eba\u6210\u957f\u3001\u7cfb\u7edf\u601d\u8003\u3001\u7ed3\u6784\u6027\u51b2\u7a81\u3001\u521b\u9020\u6027\u5f20\u529b",
+      "topics": [
+        "\u4e2a\u4eba\u6210\u957f",
+        "\u7cfb\u7edf\u601d\u8003",
+        "\u7ed3\u6784\u6027\u51b2\u7a81",
+        "\u521b\u9020\u6027\u5f20\u529b"
+      ],
+      "content_types": [],
+      "use_cases": [],
+      "tags": [],
+      "created_at": "2026-01-26T16:49:07.643940",
+      "updated_at": "2026-01-26T16:49:07.643969",
+      "use_count": 0,
+      "last_used": null
+    }
+  },
+  "active_notebook_id": "toto\u8001\u5e08\u7b14\u8bb0",
+  "updated_at": "2026-01-26T16:49:07.643974"
+}
