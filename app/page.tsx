@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect } from "react"
+import React, { useEffect, useState, useRef } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { motion, Variants } from "framer-motion"
@@ -31,6 +31,7 @@ const scaleIn: Variants = {
 
 export default function MobileLandingPage() {
     const router = useRouter()
+    const [isButtonVisible, setIsButtonVisible] = useState(false)
 
     // 检查是否已经看过落地页
     useEffect(() => {
@@ -319,28 +320,29 @@ export default function MobileLandingPage() {
                     </div>
                 </motion.div>
 
-                {/* 开始练习大按钮 */}
-                <motion.div
-                    initial={{ opacity: 0, y: 30, scale: 0.95 }}
-                    whileInView={{ opacity: 1, y: 0, scale: 1 }}
-                    viewport={{ once: true, margin: "-50px" }}
-                    transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 }}
-                    className="flex justify-center mt-8"
-                >
+                {/* 开始练习大按钮 - 固定悬浮 */}
+                <div className="flex justify-center pb-6">
                     <motion.button
-                        whileHover={{ scale: 1.05, shadow: "0 10px 40px rgba(193, 162, 104, 0.3)" }}
+                        initial={{ opacity: 0, y: 30, scale: 0.95 }}
+                        whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                        viewport={{ once: true, margin: "-50px" }}
+                        transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 }}
+                        onAnimationComplete={() => setIsButtonVisible(true)}
+                        whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={() => {
                             localStorage.setItem('has_seen_landing', 'true')
                             router.push('/practice')
                         }}
-                        className="flex items-center gap-3 px-8 py-4 bg-gradient-to-br from-[#2A4B3C] to-[#1a2f26] text-[#C1A268] rounded-full shadow-lg hover:shadow-[#C1A268]/20 border border-[#C1A268]/20 transition-all duration-300 relative overflow-hidden group backdrop-blur-md"
+                        className={`flex items-center gap-3 px-8 py-4 bg-gradient-to-br from-[#2A4B3C] to-[#1a2f26] text-[#C1A268] rounded-full shadow-lg hover:shadow-[#C1A268]/20 border border-[#C1A268]/20 transition-all duration-300 relative overflow-hidden group backdrop-blur-md ${
+                            isButtonVisible ? 'fixed bottom-6 left-1/2 -translate-x-1/2 z-50' : ''
+                        }`}
                     >
                         <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                         <span className="text-base font-serif tracking-widest relative z-10">开始练习</span>
                         <ArrowRight className="w-5 h-5 relative z-10 group-hover:translate-x-0.5 transition-transform" />
                     </motion.button>
-                </motion.div>
+                </div>
 
                 <motion.div
                     initial={{ opacity: 0 }}
