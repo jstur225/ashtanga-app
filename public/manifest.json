@@ -1,0 +1,50 @@
+{
+  "name": "熬汤日记",
+  "short_name": "熬汤日记",
+  "description": "阿斯汤加瑜伽练习记录 - Practice, practice, and all is coming",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#4a7c59",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/apple-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon.png",
+      "sizes": "1024x1024",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ],
+  "categories": ["health", "fitness", "lifestyle"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "开始练习",
+      "short_name": "练习",
+      "description": "快速开始今日练习",
+      "url": "/?action=start",
+      "icons": [{"src": "/icon.png", "sizes": "192x192"}]
+    },
+    {
+      "name": "觉察日记",
+      "short_name": "日记",
+      "description": "查看练习历史",
+      "url": "/?tab=diary",
+      "icons": [{"src": "/icon.png", "sizes": "192x192"}]
+    }
+  ]
+}
