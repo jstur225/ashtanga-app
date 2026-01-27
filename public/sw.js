@@ -65,7 +65,32 @@ self.addEventListener('fetch', event => {
     return
   }
 
-  // 对于静态资源（图标等），使用Cache First（优先缓存，提升性能）
+  // 对于静态资源
+  const url = event.request.url
+
+  // JavaScript 和 CSS 文件使用 Network First（确保最新版本）
+  if (url.match(/\.(js|css)$/) || url.includes('/_next/')) {
+    event.respondWith(
+      fetch(event.request)
+        .then(response => {
+          // 网络成功，克隆并缓存
+          if (response && response.status === 200) {
+            const responseToCache = response.clone()
+            caches.open(CACHE_NAME).then(cache => {
+              cache.put(event.request, responseToCache)
+            })
+          }
+          return response
+        })
+        .catch(() => {
+          // 网络失败，尝试使用缓存
+          return caches.match(event.request)
+        })
+    )
+    return
+  }
+
+  // 其他静态资源（图标等）使用 Cache First（优先缓存，提升性能）
   event.respondWith(
     caches.match(event.request)
       .then(response => {
