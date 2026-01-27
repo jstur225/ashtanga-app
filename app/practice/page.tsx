@@ -153,7 +153,7 @@ function ZenDatePicker({
                 </button>
               </div>
 
-              <div className="grid grid-cols-7 gap-1">
+              <div className="grid grid-cols-7 gap-3">
                 {weekDays.map((day) => (
                   <div key={day} className="text-center text-xs text-muted-foreground font-serif py-2">
                     {day}
@@ -1140,7 +1140,7 @@ function DatePickerModal({
             </div>
 
             {/* 日历网格 */}
-            <div className="grid grid-cols-7 gap-2">
+            <div className="grid grid-cols-7 gap-3">
               {weekDays.map((day) => (
                 <div key={day} className="text-center text-xs text-muted-foreground font-serif py-2">
                   {day}
@@ -2074,7 +2074,7 @@ function MonthlyHeatmap({
           </button>
         </div>
       </div>
-      <div className="grid grid-cols-7 gap-[2px] p-4">
+      <div className="grid grid-cols-7 gap-3 p-4">
         {weekDays.map((day) => (
           <div key={day} className="text-center text-[9px] text-muted-foreground font-serif py-0.5">
             {day}
