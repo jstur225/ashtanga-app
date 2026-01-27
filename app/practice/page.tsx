@@ -88,12 +88,14 @@ function ZenDatePicker({
 
   const goToNextMonth = () => {
     const nextMonth = new Date(currentYear, currentMonth + 1, 1)
-    if (nextMonth <= today) {
+    // 限制到2026年12月
+    const maxDate = new Date(2026, 11, 31)
+    if (nextMonth <= maxDate) {
       setViewDate(nextMonth)
     }
   }
 
-  const canGoNext = new Date(currentYear, currentMonth + 1, 1) <= today
+  const canGoNext = new Date(currentYear, currentMonth + 1, 1) <= new Date(2026, 11, 31)
 
   const handleDayClick = (day: number | null) => {
     if (day === null) return
@@ -1068,12 +1070,14 @@ function DatePickerModal({
 
   const goToNextMonth = () => {
     const nextMonth = new Date(currentYear, currentMonth + 1, 1)
-    if (nextMonth <= today) {
+    // 限制到2026年12月
+    const maxDate = new Date(2026, 11, 31)
+    if (nextMonth <= maxDate) {
       setViewDate(nextMonth)
     }
   }
 
-  const canGoNext = new Date(currentYear, currentMonth + 1, 1) <= today
+  const canGoNext = new Date(currentYear, currentMonth + 1, 1) <= new Date(2026, 11, 31)
 
   const handleDayClick = (day: number | null) => {
     if (day === null) return
@@ -2020,12 +2024,14 @@ function MonthlyHeatmap({
 
   const goToNextMonth = () => {
     const nextMonth = new Date(currentYear, currentMonth + 1, 1)
-    if (nextMonth <= today) {
+    // 限制到2026年12月
+    const maxDate = new Date(2026, 11, 31)
+    if (nextMonth <= maxDate) {
       setViewDate(nextMonth)
     }
   }
 
-  const canGoNext = new Date(currentYear, currentMonth + 1, 1) <= today
+  const canGoNext = new Date(currentYear, currentMonth + 1, 1) <= new Date(2026, 11, 31)
 
   const handleDayClick = (day: number | null) => {
     if (day === null) return
