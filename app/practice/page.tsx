@@ -88,14 +88,10 @@ function ZenDatePicker({
 
   const goToNextMonth = () => {
     const nextMonth = new Date(currentYear, currentMonth + 1, 1)
-    // 限制到2026年12月
-    const maxDate = new Date(2026, 11, 31)
-    if (nextMonth <= maxDate) {
-      setViewDate(nextMonth)
-    }
+    setViewDate(nextMonth)
   }
 
-  const canGoNext = new Date(currentYear, currentMonth + 1, 1) <= new Date(2026, 11, 31)
+  const canGoNext = true
 
   const handleDayClick = (day: number | null) => {
     if (day === null) return
@@ -155,7 +151,7 @@ function ZenDatePicker({
                 </button>
               </div>
 
-              <div className="grid grid-cols-7 gap-[6px]">
+              <div className="grid grid-cols-7 gap-[8px]">
                 {weekDays.map((day) => (
                   <div key={day} className="text-center text-xs text-muted-foreground font-serif py-2">
                     {day}
@@ -1070,14 +1066,10 @@ function DatePickerModal({
 
   const goToNextMonth = () => {
     const nextMonth = new Date(currentYear, currentMonth + 1, 1)
-    // 限制到2026年12月
-    const maxDate = new Date(2026, 11, 31)
-    if (nextMonth <= maxDate) {
-      setViewDate(nextMonth)
-    }
+    setViewDate(nextMonth)
   }
 
-  const canGoNext = new Date(currentYear, currentMonth + 1, 1) <= new Date(2026, 11, 31)
+  const canGoNext = true
 
   const handleDayClick = (day: number | null) => {
     if (day === null) return
@@ -2024,14 +2016,10 @@ function MonthlyHeatmap({
 
   const goToNextMonth = () => {
     const nextMonth = new Date(currentYear, currentMonth + 1, 1)
-    // 限制到2026年12月
-    const maxDate = new Date(2026, 11, 31)
-    if (nextMonth <= maxDate) {
-      setViewDate(nextMonth)
-    }
+    setViewDate(nextMonth)
   }
 
-  const canGoNext = new Date(currentYear, currentMonth + 1, 1) <= new Date(2026, 11, 31)
+  const canGoNext = true
 
   const handleDayClick = (day: number | null) => {
     if (day === null) return
@@ -2080,7 +2068,7 @@ function MonthlyHeatmap({
           </button>
         </div>
       </div>
-      <div className="grid grid-cols-7 gap-[6px] p-4">
+      <div className="grid grid-cols-7 gap-[8px] p-4">
         {weekDays.map((day) => (
           <div key={day} className="text-center text-[9px] text-muted-foreground font-serif py-0.5">
             {day}
