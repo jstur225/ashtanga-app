@@ -152,10 +152,12 @@ export const usePracticeData = () => {
   };
 
   const exportData = () => {
+    // 移除头像，避免 base64 数据过大导致无法复制
+    const { avatar, ...profileWithoutAvatar } = profile;
     const data = {
       records,
       options,
-      profile,
+      profile: profileWithoutAvatar,
       export_at: new Date().toISOString(),
     };
     const jsonString = JSON.stringify(data, null, 2);
