@@ -16,6 +16,52 @@
 - **项目原则**: 每个项目都要追求极致的简单
 
 ## 使用记录
+- **2026-01-27**: **阿斯汤加app - 日历优化和日期限制解除** - UI细节打磨
+  - **项目路径**: `D:\BaiduSyncdisk\work\ashtang-app\`
+  - **核心改动**:
+    1. **日历圆圈间隔优化**:
+       - 从 12px（gap-3）调整为 6px（gap-[6px]）
+       - 三个日历统一修改：热力图、添加/编辑记录日历、主日历
+       - 提交：51bad96
+    2. **解除日期浏览限制**:
+       - 原来：只能浏览到今天的日期
+       - 现在：可以浏览 2026 年 1 月 - 12 月所有月份
+       - 三个日历的"下个月"按钮都已解锁
+       - 提交：bee41b9
+    3. **Service Worker 缓存策略修复**:
+       - 问题：普通刷新看不到更新，需要硬刷新
+       - 原因：JS/CSS 文件使用 Cache First 策略，总是返回旧缓存
+       - 解决：JS/CSS 改用 Network First，确保获取最新版本
+       - 提交：df91eac
+    4. **版本回滚**:
+       - 回滚到 f8929e5（移除README中的开源相关内容）
+       - 删除了之前的日历颜色功能（休息日/突破日区分）
+    5. **TODO 更新**:
+       - 添加 PNG 图标准备任务（breakthrough-dot.png）
+       - 建议尺寸：64px × 64px，显示为 6px × 6px
+  - **部署状态**: ✅ 所有修改已推送到 GitHub，Vercel 自动部署
+  - **在线地址**: https://ash.ashtangalife.online
+  - **产品决策**: 符合"简单"理念，UI 细节打磨（间隔、日期范围），保持极简
+  - **下一步**: 继续使用和测试，准备突破日 PNG 图标
+- **2026-01-26**: **Vercel React Best Practices 技能安装** - 手动安装成功
+  - **技能路径**: `.claude/skills/vercel-react-best-practices/`
+  - **技能内容**:
+    - SKILL.md - 技能说明文档（触发条件、使用场景）
+    - AGENTS.md - 完整规则文档（57条规则，8个类别）
+    - metadata.json - 技能元数据（版本1.0.0，MIT许可）
+  - **核心功能**: React和Next.js性能优化指南（来自Vercel工程团队）
+  - **安装方式**: 手动下载（skills CLI工具遇到TTY错误）
+  - **57条规则分类**:
+    1. Eliminating Waterfalls（消除瀑布流）- 关键优先级
+    2. Bundle Size Optimization（包体积优化）- 关键优先级
+    3. Server-Side Performance（服务端性能）- 高优先级
+    4. Client-Side Data Fetching（客户端数据获取）- 中高优先级
+    5. Re-render Optimization（重渲染优化）- 中等优先级
+    6. Rendering Performance（渲染性能）- 中等优先级
+    7. JavaScript Performance - 低中优先级
+    8. Advanced Patterns（高级模式）- 低优先级
+  - **使用效果**: Claude Code现在会自动应用这些最佳实践，无需用户显式调用
+  - **下一步**: 继续使用，技能已集成到项目中，每次对话都会参考
 - **2026-01-26**: **生活教练系统文件恢复与配置更新** - 系统维护
   - **项目路径**: `XBB-APP/life_coach/`
   - **核心工作**:
