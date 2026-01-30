@@ -429,6 +429,8 @@ function EditOptionModal({
                     删除选项
                   </button>
                 )}
+                {/* 底部留白，防止被底部导航栏遮挡 */}
+                <div className="h-16"></div>
               </div>
             )}
           </motion.div>
@@ -667,6 +669,8 @@ function EditRecordModal({
                   <Trash2 className="w-4 h-4" />
                   删除记录
                 </button>
+                {/* 底部留白，防止被底部导航栏遮挡 */}
+                <div className="h-16"></div>
               </div>
             )}
           </motion.div>
