@@ -326,11 +326,8 @@ export default function MobileLandingPage() {
                             localStorage.setItem('has_seen_landing', 'true')
                             router.push('/practice')
                         }}
-                        className="group relative px-8 py-4 bg-gradient-to-br from-[#2A4B3C] to-[#1a2f26] text-[#C1A268] rounded-full shadow-xl hover:shadow-[#C1A268]/40 border border-[#C1A268]/20 active:scale-95 transition-all duration-300 overflow-hidden"
+                        className="group relative px-8 py-4 bg-gradient-to-br from-[#2A4B3C] to-[#1a2f26] text-[#C1A268] rounded-full shadow-xl hover:shadow-[#C1A268]/40 border-2 border-[#C1A268] active:scale-95 transition-all duration-300 overflow-hidden"
                     >
-                        {/* 白色呼吸脉冲效果 */}
-                        <div className="absolute inset-0 rounded-full bg-white/10 animate-pulse"></div>
-
                         {/* 背景光泽效果 */}
                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-500 ease-in-out"></div>
 
