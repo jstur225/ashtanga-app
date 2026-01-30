@@ -16,6 +16,112 @@
 - **项目原则**: 每个项目都要追求极致的简单
 
 ## 使用记录
+- **2026-01-30**: **阿斯汤加app - 落地页底部添加开始练习按钮** - 优化用户体验，无需向上滚动即可开始练习
+  - **项目路径**: `D:\BaiduSyncdisk\work\cursor app\claude code\`
+  - **核心功能**:
+    - ✅ 在落地页3大特点Section底部添加显眼的CTA按钮
+    - ✅ 比导航栏按钮更大更突出（px-8 py-4, text-lg）
+    - ✅ 完全圆角设计（rounded-full，与导航栏一致）
+    - ✅ 金色边框（border-2 border-[#C1A268]，清晰可见）
+    - ✅ 光泽扫过效果（悬停时从左到右）
+    - ✅ 复用导航栏的onClick逻辑（localStorage标记 + router.push跳转）
+  - **设计特点**:
+    - **配色方案**: 深绿色渐变背景 + 金色文字 + 金色边框
+    - **按钮形状**: 完全圆角（rounded-full），柔和流畅
+    - **边框**: 2px金色实色边框（清晰可见）
+    - **光泽扫过**: 悬停时白色光泽从左到右扫过（via-white/30, 500ms）
+    - **阴影**: hover时40%透明度金色阴影
+    - **响应式**: 手机端按钮足够大，易于点击
+    - **一致性**: 与导航栏按钮风格统一，更大更突出
+    - **极简**: 去除了所有复杂动画和脉冲，只保留核心功能
+  - **技术实现**:
+    - 修改文件: `app/page.tsx`（第322-340行，共19行代码）
+    - 使用普通 div（无进入动画）
+    - 使用 Tailwind CSS 实现样式和效果
+    - 复用 ArrowRight 图标（已导入）
+  - **Git提交**:
+    - `953aef5` - feat: 落地页底部添加开始练习按钮（初版，带进入动画）
+    - `06d7bb1` - refactor: 优化底部按钮视觉效果，去除进入动画
+    - `5b01ba1` - style: 底部按钮改为完全圆角+白色呼吸效果
+    - `c16290c` - style: 简化按钮，去除脉冲，添加金色边框（最终版）
+  - **产品决策**: 符合"简单"理念，极简设计，金色边框清晰可见，无多余动画
+  - **测试验证**: ✅ 开发服务器运行正常，可在 http://localhost:3000 或 :3001 查看效果
+  - **下一步**: 部署到Vercel，观察用户点击数据（Mixpanel埋点）
+- **2026-01-30**: **图片批量压缩工具 v2.0** - 压缩水晶上架图片到3MB以内（2个目录）
+  - **目录1**: `D:\BaiduSyncdisk\work\星图\水晶上架（压缩）`
+    - ✅ 成功压缩: 326个图片
+    - ✅ 无需压缩: 1201个图片
+    - 📊 总文件数: 1527个
+  - **目录2**: `D:\BaiduSyncdisk\work\星图\水晶上架 - 副本`
+    - ✅ 成功压缩: 760个图片
+    - ✅ 无需压缩: 767个图片
+    - 📊 总文件数: 1527个
+  - **总计**: 1527个文件，处理了2个目录，共压缩1086张图片，0个失败
+  - **压缩效果示例**:
+    - 471.jpg: 3.73MB → 2.85MB (质量: 90)
+    - 32.44g#2883.jpeg: 3.83MB → 2.86MB (质量: 90)
+    - 20.83g#2962.jpg: 4.59MB → 2.62MB (质量: 95)
+    - 29.74g#2966.jpg: 4.15MB → 2.29MB (质量: 95)
+  - **技术方案**:
+    - Python + Pillow库（图像处理）
+    - 智能质量调整：从95开始逐步降低，每次递减5，最低60
+    - 自动格式转换：RGBA转RGB（JPEG不支持透明通道）
+    - PNG转JPEG：自动将PNG文件转换为JPEG格式以获得更好的压缩率
+    - 临时文件检查：确保压缩成功才替换原文件
+  - **创建文件**:
+    - `compress_images.py` - 压缩脚本（可修改TARGET_DIR重复使用）
+    - `compress_log.txt` - 目录1压缩日志
+    - `compress_log_副本.txt` - 目录2压缩日志
+  - **产品决策**: 符合"简单"理念，修改路径即可重复使用，自动递归遍历所有子目录
+- **2026-01-28**: **小红书MCP配置清理** - 移除旧配置为重新部署做准备
+  - **清理内容**:
+    1. **全局配置清理** (`C:/Users/BIN/.claude.json`):
+       - 删除 `C:/Users/BIN/Desktop` 项目中的 `xiaohongshu-mcp` 配置
+       - URL: `http://localhost:18060/mcp` 已移除
+    2. **项目配置清理**:
+       - 删除 `.mcp.json` 文件（包含过时的 `mcp-chrome-bridge` 配置）
+       - 确认项目目录中无小红书相关残留文件
+    3. **验证完成**:
+       - ✅ 全局配置中无xiaohongshu-mcp残留
+       - ✅ 项目目录中无小红书相关文件
+       - ✅ 所有项目配置已清理干净
+  - **当前MCP状态**:
+    - **全局MCP服务器**: context7, zai-mcp-server, web-search-prime, web-reader, zread
+    - **项目本地MCP**: chrome-mcp-server (HTTP: http://127.0.0.1:12306/mcp)
+  - **目的**: 清理旧配置，准备重新部署小红书MCP服务器
+  - **历史背景**: 之前在2026-01-18配置过xiaohongshu-mcp-windows-amd64 v2.0.0，但tools目录已不存在
+- **2026-01-28**: **有赞订单同步工具 - 出库单API完整字段探索** - 库存管理API文档化
+  - **项目路径**: `D:\BaiduSyncdisk\work\cursor app\youzan\youzan_sync\`
+  - **核心发现**:
+    1. **出库单详情API成功调用**:
+       - API: `youzan.retail.open.stockoutorder.get/3.0.0`
+       - ⚠️ 关键发现：必须同时提供 `biz_bill_no` 和 `warehouse_code` 两个参数
+       - 错误信息："查询不到出库单" 或 "业务单据号不能为空"
+    2. **出库单列表API已验证**:
+       - API: `youzan.retail.open.stockoutorder.query/3.0.0`
+       - 参数: `create_time_start` + `create_time_end` (字符串格式)
+       - 返回最近30天225条出库单
+    3. **成功查询案例**:
+       - 订单号: E20260127181531081706165
+       - 出库单号: OB003260128000002
+       - 仓库代码: MD00002
+       - 出库类型: XSCK (销售出库)
+  - **完整字段清单**:
+    - **主表字段 (9个)**: biz_bill_no, source_order_no, order_type, create_time, warehouse_code, out_reason, supplier_id, out_stock_order_status, order_items
+    - **明细表字段 (11个)**: product_name, sku_no, sku_code, quantity, unit, real_sales_price, with_tax_income, with_tax_amount, with_tax_cost, without_tax_amount, without_tax_cost
+  - **API对比**:
+    - 列表API: 14个明细字段（包含input_tax_rate, output_tax_rate, total_sell）
+    - 详情API: 11个明细字段（不含上述3个），但新增 out_reason, out_stock_order_status
+  - **生成的文件**:
+    - `outbound_full_fields.json` - 列表API完整响应
+    - `outbound_detail_full.json` - 详情API完整响应
+    - `test_time_params.py` - 列表API测试脚本
+    - `extract_all_outbound_detail_fields.py` - 详情API字段提取脚本
+  - **技术要点**:
+    - 详情API参数必须包含仓库代码（warehouse_code）
+    - 列表API和详情API的返回字段不完全一致
+    - 出库类型：XSCK(销售出库)、QTCK(其他出库-领用)
+  - **入库单API**: 未查询（有 stockinorder 相关API，但用户暂不需要）
 - **2026-01-27**: **阿斯汤加app - 日历优化和日期限制解除** - UI细节打磨
   - **项目路径**: `D:\BaiduSyncdisk\work\ashtang-app\`
   - **核心改动**:
