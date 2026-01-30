@@ -326,9 +326,12 @@ export default function MobileLandingPage() {
                             localStorage.setItem('has_seen_landing', 'true')
                             router.push('/practice')
                         }}
-                        className="group relative px-8 py-4 bg-gradient-to-br from-[#2A4B3C] to-[#1a2f26] text-[#C1A268] rounded-2xl shadow-xl hover:shadow-[#C1A268]/40 border border-[#C1A268]/20 active:scale-95 transition-all duration-300 overflow-hidden"
+                        className="group relative px-8 py-4 bg-gradient-to-br from-[#2A4B3C] to-[#1a2f26] text-[#C1A268] rounded-full shadow-xl hover:shadow-[#C1A268]/40 border border-[#C1A268]/20 active:scale-95 transition-all duration-300 overflow-hidden"
                     >
-                        {/* 背景光泽效果 - 增强版 */}
+                        {/* 白色呼吸脉冲效果 */}
+                        <div className="absolute inset-0 rounded-full bg-white/10 animate-pulse"></div>
+
+                        {/* 背景光泽效果 */}
                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-500 ease-in-out"></div>
 
                         {/* 按钮内容 */}
@@ -336,12 +339,6 @@ export default function MobileLandingPage() {
                             <span className="text-lg font-serif tracking-widest">开始练习</span>
                             <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
                         </div>
-
-                        {/* 持续金色脉冲效果 */}
-                        <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-[#C1A268]/20 via-[#C1A268]/30 to-[#C1A268]/20 animate-pulse"></div>
-
-                        {/* 悬停时增强的脉冲 */}
-                        <div className="absolute inset-0 rounded-2xl bg-[#C1A268]/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                     </button>
                 </div>
 
