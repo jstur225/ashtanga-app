@@ -650,7 +650,7 @@ function EditRecordModal({
                     value={notes}
                     onChange={(e) => setNotes(e.target.value.slice(0, 2000))}
                     placeholder="今天的练习感受如何？"
-                    rows={5}
+                    rows={6}
                     className="w-full px-4 py-3 rounded-2xl bg-secondary text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-none font-serif text-sm"
                   />
                 </div>
