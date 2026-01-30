@@ -1,0 +1,48 @@
+# Claude Code 快速启动指南
+
+## 快速启动
+
+双击 `start.bat` 即可启动 Claude Code
+
+## 启动文件说明
+
+### `start.bat` - Windows 快速启动
+- 双击即可运行
+- 自动切换到项目目录
+- 使用 UTF-8 编码，支持中文显示
+
+### `start.ps1` - PowerShell 启动（可选）
+如果需要更高级的功能，可以创建 PowerShell 版本
+
+## 项目结构
+
+```
+D:\BaiduSyncdisk\work\cursor app\claude code\
+├── .claude/           # Claude Code 配置目录
+│   ├── skills/        # 技能包
+│   └── plans/         # 计划文件
+├── XBB-APP/          # 应用目录
+│   ├── Ashtang_app/  # 阿斯汤加打卡app
+│   └── life_coach/   # 生活教练系统
+├── memory.md         # 使用记忆
+├── CLAUDE.md         # 项目指令（如果需要）
+├── start.bat         # 快速启动脚本
+└── 启动说明.md        # 本文件
+```
+
+## 使用提示
+
+1. **首次使用**：确保已全局安装 Claude Code (`npm install -g @anthropic-ai/claude-code`)
+2. **目录作用**：启动后自动在当前目录工作，可访问所有子项目
+3. **快捷方式**：可以将 `start.bat` 发送到桌面快捷方式
+
+## 常见问题
+
+**Q: 双击没反应？**
+A: 检查是否已安装 Claude Code，在命令行输入 `claude --version` 验证
+
+**Q: 中文乱码？**
+A: start.bat 已设置 UTF-8 编码，如有问题请检查终端设置
+
+**Q: 如何自定义启动参数？**
+A: 编辑 start.bat，在 `claude` 命令后添加参数，如 `claude --help`

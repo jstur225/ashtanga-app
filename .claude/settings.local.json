@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__chrome-mcp-server__chrome_navigate",
+      "mcp__chrome-mcp-server__chrome_get_web_content",
+      "Bash(claude:*)",
+      "mcp__chrome-mcp-server__get_windows_and_tabs"
+    ]
+  }
+}

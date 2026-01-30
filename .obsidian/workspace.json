@@ -1,0 +1,223 @@
+{
+  "main": {
+    "id": "06eb40de34a4457a",
+    "type": "split",
+    "children": [
+      {
+        "id": "94c3819898dfcbd5",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "be148c3c4b94a9b6",
+            "type": "leaf",
+            "state": {
+              "type": "empty",
+              "state": {},
+              "icon": "lucide-file",
+              "title": "新标签页"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "bcf87e6dd424eaff",
+    "type": "split",
+    "children": [
+      {
+        "id": "1d13f8f64bac2ed3",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "0289df97fba6c9ca",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "文件列表"
+            }
+          },
+          {
+            "id": "4887eefd7658358d",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "搜索"
+            }
+          },
+          {
+            "id": "ef4f752ccaa77ac6",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "书签"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 200
+  },
+  "right": {
+    "id": "1346b5745af59436",
+    "type": "split",
+    "children": [
+      {
+        "id": "52decf6db9a04578",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "9a56e951382cd7bd",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "反向链接"
+            }
+          },
+          {
+            "id": "9dcd19c10752d336",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "XBB-APP/Ashtang_app/MVP_REFACTOR_PLAN.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "MVP_REFACTOR_PLAN 的出链列表"
+            }
+          },
+          {
+            "id": "19d03c9a882175bc",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "标签"
+            }
+          },
+          {
+            "id": "fcc370e9b0bd3b7e",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "添加笔记属性"
+            }
+          },
+          {
+            "id": "7e34459857c34b8c",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "XBB-APP/Ashtang_app/MVP_REFACTOR_PLAN.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "MVP_REFACTOR_PLAN 的大纲"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:打开快速切换": false,
+      "graph:查看关系图谱": false,
+      "canvas:新建白板": false,
+      "daily-notes:打开/创建今天的日记": false,
+      "templates:插入模板": false,
+      "command-palette:打开命令面板": false,
+      "bases:新建数据库": false
+    }
+  },
+  "active": "0289df97fba6c9ca",
+  "lastOpenFiles": [
+    "未命名.md",
+    "未命名.base",
+    "未命名 1.base",
+    "Claude.md",
+    "XBB-APP/life_coach/recent_data.txt.baiduyun.uploading.cfg",
+    "XBB-APP/life_coach/columns.txt.baiduyun.uploading.cfg",
+    "memory.md.baiduyun.uploading.cfg",
+    "XBB-APP/life_coach/docs/CHANGELOG.md",
+    "XBB-APP/life_coach/docs/FEISHU_API_GUIDE.md",
+    "XBB-APP/life_coach/docs/FLOMO_CONVERTER_GUIDE.md",
+    "XBB-APP/life_coach/docs/FLOMO_INTEGRATION_GUIDE.md",
+    "XBB-APP/life_coach/docs/NOTEBOOKLM_集成指南.md",
+    "XBB-APP/life_coach/docs/USER_PROFILE_GUIDE.md",
+    "XBB-APP/life_coach/docs/V2.5_SUMMARY.md",
+    "XBB-APP/life_coach/january_2026_data.txt",
+    "XBB-APP/life_coach/weekly_report_2026-01-10.md.baiduyun.uploading.cfg",
+    "XBB-APP/life_coach/user_profile_from_flomo.md.baiduyun.uploading.cfg",
+    "XBB-APP/life_coach/tools/update_history.py.baiduyun.uploading.cfg",
+    "XBB-APP/life_coach/tools/sync_feishu_data.py.baiduyun.uploading.cfg",
+    "XBB-APP/life_coach/weekly_report_2026-01-10.md",
+    "XBB-APP/life_coach/user_profile_from_flomo.md",
+    "XBB-APP/life_coach/november_2025_review_enhanced.md",
+    "XBB-APP/life_coach/november_2025_review.md",
+    "XBB-APP/life_coach/knowledge/flomo_notes_md/flomo_notes_2026.md",
+    "XBB-APP/life_coach/knowledge/flomo_notes_md/flomo_notes_2025.md",
+    "XBB-APP/life_coach/knowledge/flomo_notes_md/flomo_notes_2024.md",
+    "XBB-APP/life_coach/knowledge/flomo_notes_md/flomo_notes_2023.md",
+    "XBB-APP/life_coach/knowledge/flomo_notes_md/flomo_notes_2022.md",
+    "XBB-APP/life_coach/knowledge/flomo_notes_by_tag/flomo_画画.md",
+    "XBB-APP/life_coach/knowledge/flomo_notes_by_tag/flomo_玄学_释放.md",
+    "XBB-APP/life_coach/knowledge/flomo_notes_by_tag/flomo_玄学_转念.md",
+    "XBB-APP/life_coach/knowledge/flomo_notes_by_tag/flomo_每日回顾.md",
+    "XBB-APP/life_coach/knowledge/flomo_notes_by_tag/flomo_摘录.md",
+    "XBB-APP/life_coach/knowledge/flomo_notes_by_tag/flomo_work表面看起来他是要一个ai电话，实际上是需要让买了课的学员都立刻加微信不要上来就讨论方案，而是要先确认：我们到底在解决什么需求。.md",
+    "XBB-APP/life_coach/knowledge/flomo_notes_by_tag/flomo_work只有走出来的结果，没有说出来的路径。说出来的是路径，走出来的才是结果。我们要一起走出这个结果，100%做到谁也不可能，只能说我们陪其他人走过出来。.md",
+    "XBB-APP/Ashtang_app/public/icon-maskable.png",
+    "XBB-APP/Ashtang_app/unnamed.png",
+    "XBB-APP/Ashtang_app/public/icon.png",
+    "XBB-APP/Ashtang_app/public/icon.svg",
+    "ashtanga_promo_image.png"
+  ]
+}
