@@ -736,6 +736,7 @@ function ShareCardModal({
   const [editableNotes, setEditableNotes] = useState("")
   const [isEditingNotes, setIsEditingNotes] = useState(false)
   const [originalNotes, setOriginalNotes] = useState("")
+  const [isCapturing, setIsCapturing] = useState(false)  // 新增：截图状态
 
   useEffect(() => {
     if (record) {
@@ -758,6 +759,13 @@ function ShareCardModal({
     try {
       toast.loading('正在生成图片...', { id: 'export' })
 
+      // 1. 设置截图状态（展开全部内容）
+      setIsCapturing(true)
+
+      // 2. 等待DOM更新（确保高度扩展完成）
+      await new Promise(resolve => setTimeout(resolve, 100))
+
+      // 3. 执行截图
       const result = await captureWithFallback(element, {
         scale: 2,
         backgroundColor: '#ffffff',
@@ -773,6 +781,9 @@ function ShareCardModal({
           onLogExport(logEntry)
         }
       })
+
+      // 4. 恢复预览状态（恢复高度限制）
+      setIsCapturing(false)
 
       // 记录分享卡片导出事件
       trackEvent('share_card_export', {
@@ -790,6 +801,8 @@ function ShareCardModal({
         toast.error(errorMessage)
       }
     } catch (error) {
+      // 5. 出错时也要恢复状态
+      setIsCapturing(false)
       // 记录失败
       trackEvent('share_card_export', {
         export_method: 'error',
@@ -863,7 +876,11 @@ function ShareCardModal({
                 ) : (
                   <p
                     onClick={() => setIsEditingNotes(true)}
-                    className="text-sm text-foreground font-serif leading-relaxed cursor-text hover:bg-secondary/30 rounded-lg p-1 -m-1 transition-colors whitespace-pre-wrap break-words max-h-[200px] overflow-y-auto"
+                    className={`text-sm text-foreground font-serif leading-relaxed cursor-text hover:bg-secondary/30 rounded-lg p-1 -m-1 transition-colors whitespace-pre-wrap break-words ${
+                      isCapturing
+                        ? 'max-h-none'  // 截图时：无高度限制
+                        : 'max-h-[60vh] overflow-y-auto'  // 预览时：最大60vh，超出滚动
+                    }`}
                   >
                     {editableNotes || "点击编辑笔记..."}
                   </p>
