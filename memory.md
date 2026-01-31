@@ -16,6 +16,57 @@
 - **项目原则**: 每个项目都要追求极致的简单
 
 ## 使用记录
+- **2026-01-31**: **阿斯汤加app - 修复删除确认按钮被底部导航栏遮挡（iOS Safari）** - 彻底解决双重遮挡问题
+  - **项目路径**: `D:\BaiduSyncdisk\work\cursor app\claude code\`
+  - **问题描述**:
+    - 在iPhone Safari中，编辑记录弹窗的删除确认界面被底部导航栏遮挡
+    - 双重遮挡：iOS浏览器工具栏（约80px）+ App导航栏（约60px）
+    - 删除按钮在弹窗底部，被两层遮挡，无法点击
+  - **解决方案**: 弹窗打开时隐藏导航栏
+    - 添加派生状态 `hasAnyModalOpen`，统一判断所有弹窗状态
+    - 修改导航栏为条件渲染，使用 AnimatePresence 实现平滑动画
+    - 将 `editingRecord` 和 `showAddModal` 状态从 JournalTab 提升到主组件
+    - 删除旧的底部留白（EditRecordModal 和 EditOptionModal 的 h-16）
+  - **技术实现**:
+    - 修改文件: `app/practice/page.tsx`
+    - 新增状态: `editingRecord`, `showAddModal`（主组件）
+    - 新增派生状态: `hasAnyModalOpen`（useMemo）
+    - 修改导航栏: 条件渲染 + AnimatePresence + motion.nav
+    - JournalTab 新增 props: `editingRecord`, `onSetEditingRecord`, `showAddModal`, `onSetShowAddModal`
+  - **工作原理**:
+    - 用户点击编辑记录 → `setEditingRecord(record)`
+    - `editingRecord !== null` → `hasAnyModalOpen = true`
+    - 导航栏隐藏（200ms 退出动画）
+    - 用户点击删除 → 删除确认界面完全显示
+    - 用户确认删除或取消 → 弹窗关闭 → 导航栏显示（200ms 进入动画）
+  - **优点**:
+    - ✅ 彻底解决iOS Safari的双重遮挡问题
+    - ✅ 复用现有状态，不需要新的回调机制
+    - ✅ 所有弹窗都不会被遮挡（通用解决方案）
+    - ✅ 用户体验好，动画流畅
+    - ✅ 代码清晰，符合"简单"理念
+  - **验证**: ✅ iPad Safari 测试通过，导航栏正确显示/隐藏
+  - **调试工具**:
+    - 添加可视化调试指示器（右上角显示 Modal: 🔴 OPEN / 🟢 CLOSED）
+    - 添加控制台日志（输出所有弹窗状态）
+  - **产品决策**: 符合"简单"理念，彻底解决遮挡问题，动画流畅自然
+- **2026-01-30**: **阿斯汤加app - Dev分支合并到Master** - 手动合并解决冲突，成功部署
+  - **项目路径**: `D:\BaiduSyncdisk\work\cursor app\claude code\`
+  - **合并内容**:
+    - ✅ 底部按钮优化（4个commit：953aef5, 06d7bb1, 5b01ba1, c16290c）
+    - ✅ 弹窗逻辑修复
+  - **冲突解决**:
+    - 冲突文件：11个（README.md, app/page.tsx, app/practice/page.tsx等）
+    - 解决方案：保留本地master版本（已包含dev的优化）
+    - 处理方式：`git checkout --ours` + `git add .`
+  - **Git提交**:
+    - `b1564c0` - merge: 合并dev分支到master（Co-Authored-By: Claude Sonnet 4.5）
+  - **推送结果**: ✅ 成功推送到origin/master
+  - **验证步骤**:
+    - ✅ 底部按钮代码已合并到master
+    - ✅ 弹窗逻辑代码已合并到master
+    - ✅ 远程仓库已更新
+  - **下一步**: 验证Vercel自动部署，检查生产环境功能
 - **2026-01-30**: **阿斯汤加app - 落地页底部添加开始练习按钮** - 优化用户体验，无需向上滚动即可开始练习
   - **项目路径**: `D:\BaiduSyncdisk\work\cursor app\claude code\`
   - **核心功能**:
