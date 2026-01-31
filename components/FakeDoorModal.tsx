@@ -22,12 +22,15 @@ export function FakeDoorModal({ type, isOpen, onClose, onVote }: FakeDoorModalPr
   const isVoted = type === 'cloud' ? votedCloud : votedPro
   const currentVotes = type === 'pro' && votedPro ? proVotes + 1 : proVotes
 
-  const handleVote = () => {
+  const handleVote = (choice?: 'sync' | 'photo' | 'both') => {
     if (isVoted) return
 
     if (type === 'cloud') {
       setVotedCloud(true)
-      trackEvent('vote_for_cloud_sync', { vote: 'yes' })
+      trackEvent('vote_for_cloud_sync', {
+        vote: 'yes',
+        choice: choice!
+      })
       toast.success('收到你的心意啦~')
       onVote?.()
     } else {
@@ -41,7 +44,10 @@ export function FakeDoorModal({ type, isOpen, onClose, onVote }: FakeDoorModalPr
   }
 
   const handleSecondary = () => {
-    trackEvent('vote_for_cloud_sync', { vote: 'no' })
+    trackEvent('vote_for_cloud_sync', {
+      vote: 'no',
+      choice: 'none'
+    })
     toast.success('收到你的心意啦~')
     onClose()
   }
@@ -130,25 +136,74 @@ export function FakeDoorModal({ type, isOpen, onClose, onVote }: FakeDoorModalPr
                   </div>
                 )}
 
-                <div className="w-full flex flex-col gap-2">
-                  <button
-                    onClick={handleVote}
-                    disabled={isVoted}
-                    className={`w-full py-3 rounded-full font-serif transition-all duration-300 shadow-lg text-sm ${
-                      isVoted
-                        ? 'bg-green-500 text-white cursor-default'
-                        : 'bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] text-white hover:opacity-90 active:scale-[0.98]'
-                    }`}
-                  >
-                    {activeContent.primaryBtn}
-                  </button>
-                  <button
-                    onClick={handleSecondary}
-                    className="w-full py-3 rounded-full bg-secondary text-foreground font-serif transition-all hover:bg-secondary/80 active:scale-[0.98] text-sm"
-                  >
-                    {activeContent.secondaryBtn}
-                  </button>
-                </div>
+                {type === 'cloud' ? (
+                  // 云端同步：4个垂直按钮
+                  <div className="w-full flex flex-col gap-2">
+                    <button
+                      onClick={() => handleVote('sync')}
+                      disabled={isVoted}
+                      className={`w-full py-3 rounded-full font-serif transition-all duration-300 shadow-lg text-sm ${
+                        isVoted
+                          ? 'bg-green-500 text-white cursor-default'
+                          : 'bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] text-white hover:opacity-90 active:scale-[0.98]'
+                      }`}
+                    >
+                      {isVoted ? '已收到投票' : '【想要】云端数据同步'}
+                    </button>
+
+                    <button
+                      onClick={() => handleVote('photo')}
+                      disabled={isVoted}
+                      className={`w-full py-3 rounded-full font-serif transition-all duration-300 shadow-lg text-sm ${
+                        isVoted
+                          ? 'bg-green-500 text-white cursor-default'
+                          : 'bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] text-white hover:opacity-90 active:scale-[0.98]'
+                      }`}
+                    >
+                      {isVoted ? '已收到投票' : '【想要】体式照片上传'}
+                    </button>
+
+                    <button
+                      onClick={() => handleVote('both')}
+                      disabled={isVoted}
+                      className={`w-full py-3 rounded-full font-serif transition-all duration-300 shadow-lg text-sm ${
+                        isVoted
+                          ? 'bg-green-500 text-white cursor-default'
+                          : 'bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] text-white hover:opacity-90 active:scale-[0.98]'
+                      }`}
+                    >
+                      {isVoted ? '已收到投票' : '【全都要】同步 + 照片'}
+                    </button>
+
+                    <button
+                      onClick={handleSecondary}
+                      className="w-full py-3 rounded-full bg-secondary text-foreground font-serif transition-all hover:bg-secondary/80 active:scale-[0.98] text-sm"
+                    >
+                      {isVoted ? '收到啦' : '暂时不需要'}
+                    </button>
+                  </div>
+                ) : (
+                  // pro模式：保持原有双按钮布局（禁止修改）
+                  <div className="w-full flex flex-col gap-2">
+                    <button
+                      onClick={() => handleVote()}
+                      disabled={isVoted}
+                      className={`w-full py-3 rounded-full font-serif transition-all duration-300 shadow-lg text-sm ${
+                        isVoted
+                          ? 'bg-green-500 text-white cursor-default'
+                          : 'bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] text-white hover:opacity-90 active:scale-[0.98]'
+                      }`}
+                    >
+                      {activeContent.primaryBtn}
+                    </button>
+                    <button
+                      onClick={handleSecondary}
+                      className="w-full py-3 rounded-full bg-secondary text-foreground font-serif transition-all hover:bg-secondary/80 active:scale-[0.98] text-sm"
+                    >
+                      {activeContent.secondaryBtn}
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </motion.div>
