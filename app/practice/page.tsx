@@ -2204,6 +2204,10 @@ function JournalTab({
   onAddOption,
   votedCloud,
   onLogExport,
+  editingRecord,
+  onSetEditingRecord,
+  showAddModal,
+  onSetShowAddModal,
 }: {
   practiceHistory: PracticeRecord[]
   practiceOptions: PracticeOption[]
@@ -2215,10 +2219,12 @@ function JournalTab({
   onAddOption?: (name: string, notes: string) => void
   votedCloud: boolean
   onLogExport: (log: any) => void
+  editingRecord: PracticeRecord | null
+  onSetEditingRecord: (record: PracticeRecord | null) => void
+  showAddModal: boolean
+  onSetShowAddModal: (show: boolean) => void
 }) {
-  const [editingRecord, setEditingRecord] = useState<PracticeRecord | null>(null)
   const [sharingRecord, setSharingRecord] = useState<PracticeRecord | null>(null)
-  const [showAddModal, setShowAddModal] = useState(false)
   const [showBackToTop, setShowBackToTop] = useState(false)
   const [highlightedDate, setHighlightedDate] = useState<string | null>(null)
   const recordRefs = useRef<Record<string, HTMLDivElement | null>>({})
@@ -2309,7 +2315,7 @@ function JournalTab({
           practiceHistory={practiceHistory}
           onDayClick={handleDayClick}
           onOpenFakeDoor={onOpenFakeDoor}
-          onAddRecord={() => setShowAddModal(true)}
+          onAddRecord={() => onSetShowAddModal(true)}
           votedCloud={votedCloud}
         />
       </div>
@@ -2393,7 +2399,7 @@ function JournalTab({
 
       <EditRecordModal
         isOpen={!!editingRecord}
-        onClose={() => setEditingRecord(null)}
+        onClose={() => onSetEditingRecord(null)}
         record={editingRecord}
         onSave={onEditRecord}
         onDelete={onDeleteRecord}
@@ -2416,7 +2422,7 @@ function JournalTab({
 
       <AddPracticeModal
         isOpen={showAddModal}
-        onClose={() => setShowAddModal(false)}
+        onClose={() => onSetShowAddModal(false)}
         onSave={onAddRecord}
         practiceOptions={practiceOptions}
         practiceHistory={practiceHistory}
@@ -2794,6 +2800,8 @@ export default function AshtangaTracker() {
   const [showCustomModal, setShowCustomModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [editingOption, setEditingOption] = useState<PracticeOption | null>(null)
+  const [editingRecord, setEditingRecord] = useState<PracticeRecord | null>(null)
+  const [showAddModal, setShowAddModal] = useState(false)
   const [showConfirmEnd, setShowConfirmEnd] = useState(false)
   const [showCompletion, setShowCompletion] = useState(false)
   const [finalDuration, setFinalDuration] = useState("")
@@ -3446,6 +3454,10 @@ export default function AshtangaTracker() {
           onAddOption={handleAddOption}
           votedCloud={votedCloud}
           onLogExport={(log) => setExportLogs([...exportLogs, log])}
+          editingRecord={editingRecord}
+          onSetEditingRecord={setEditingRecord}
+          showAddModal={showAddModal}
+          onSetShowAddModal={setShowAddModal}
         />
       )}
       {activeTab === 'stats' && (
