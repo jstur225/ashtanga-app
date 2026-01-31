@@ -62,6 +62,22 @@ export const usePracticeData = () => {
     const stored = localStorage.getItem('ashtanga_options');
     if (!stored || stored === '[]') {
       setOptions(DEFAULT_OPTIONS);
+    } else {
+      // 数据迁移：将旧的 labelZh 字段转换为 label_zh
+      try {
+        const parsedOptions = JSON.parse(stored);
+        const needsMigration = parsedOptions.some((opt: any) => opt.labelZh && !opt.label_zh);
+
+        if (needsMigration) {
+          const migratedOptions = parsedOptions.map((opt: any) => ({
+            ...opt,
+            label_zh: opt.label_zh || opt.labelZh || '',
+          }));
+          setOptions(migratedOptions);
+        }
+      } catch (e) {
+        console.error('Failed to migrate options data:', e);
+      }
     }
 
     // 为首次用户添加教程记录
