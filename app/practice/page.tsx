@@ -87,22 +87,16 @@ function ZenDatePicker({
   }
 
   const goToNextMonth = () => {
-    const nextMonth = new Date(currentYear, currentMonth + 1, 1)
-    if (nextMonth <= today) {
-      setViewDate(nextMonth)
-    }
+    setViewDate(new Date(currentYear, currentMonth + 1, 1))
   }
 
-  const canGoNext = new Date(currentYear, currentMonth + 1, 1) <= today
+  const canGoNext = true
 
   const handleDayClick = (day: number | null) => {
     if (day === null) return
     const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-    const date = new Date(dateStr)
-    if (date <= today) {
-      onChange(dateStr)
-      setIsOpen(false)
-    }
+    onChange(dateStr)
+    setIsOpen(false)
   }
 
   const selectedDateStr = value
@@ -165,13 +159,11 @@ function ZenDatePicker({
                   }
                   const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
                   const isSelected = dateStr === selectedDateStr
-                  const isFuture = new Date(dateStr) > today
 
                   return (
                     <button
                       key={idx}
                       onClick={() => handleDayClick(day)}
-                      disabled={isFuture}
                       className={`
                         aspect-square rounded-full flex items-center justify-center text-sm font-serif transition-all
                         ${isSelected
@@ -1067,21 +1059,15 @@ function DatePickerModal({
   }
 
   const goToNextMonth = () => {
-    const nextMonth = new Date(currentYear, currentMonth + 1, 1)
-    if (nextMonth <= today) {
-      setViewDate(nextMonth)
-    }
+    setViewDate(new Date(currentYear, currentMonth + 1, 1))
   }
 
-  const canGoNext = new Date(currentYear, currentMonth + 1, 1) <= today
+  const canGoNext = true
 
   const handleDayClick = (day: number | null) => {
     if (day === null) return
     const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-    const date = new Date(dateStr)
-    if (date <= today) {
-      onClose(dateStr)
-    }
+    onClose(dateStr)
   }
 
   return (
@@ -1153,22 +1139,18 @@ function DatePickerModal({
 
                 const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
                 const hasPractice = practiceMap[dateStr]
-                const isFuture = new Date(dateStr) > today
 
                 return (
                   <motion.button
                     key={idx}
                     onClick={() => handleDayClick(day)}
-                    disabled={isFuture}
                     whileTap={{ scale: 0.9 }}
                     className={`
                       aspect-square rounded-full flex items-center justify-center
                       text-[9px] font-serif transition-all
-                      ${hasPractice && !isFuture
+                      ${hasPractice
                         ? 'bg-gradient-to-br from-[rgba(45,90,39,0.9)] to-[rgba(74,122,68,0.75)] backdrop-blur-sm border border-white/20 shadow-[0_2px_8px_rgba(45,90,39,0.3)] text-white cursor-pointer hover:shadow-[0_2px_12px_rgba(45,90,39,0.45)]'
-                        : isFuture
-                          ? 'bg-background text-muted-foreground/50 cursor-not-allowed'
-                          : 'bg-background text-foreground cursor-pointer hover:bg-secondary'
+                        : 'bg-background text-foreground cursor-pointer hover:bg-secondary'
                       }
                     `}
                   >
@@ -2015,13 +1997,10 @@ function MonthlyHeatmap({
   }
 
   const goToNextMonth = () => {
-    const nextMonth = new Date(currentYear, currentMonth + 1, 1)
-    if (nextMonth <= today) {
-      setViewDate(nextMonth)
-    }
+    setViewDate(new Date(currentYear, currentMonth + 1, 1))
   }
 
-  const canGoNext = new Date(currentYear, currentMonth + 1, 1) <= today
+  const canGoNext = true
 
   const handleDayClick = (day: number | null) => {
     if (day === null) return
