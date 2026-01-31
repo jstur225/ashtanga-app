@@ -2835,7 +2835,10 @@ export default function AshtangaTracker() {
       editingOption !== null ||
       showAddModal ||
       showSettings ||
-      childModalOpen  // 子组件的弹窗
+      childModalOpen ||  // 子组件的弹窗（包含确认删除等）
+      editingRecord !== null ||  // 编辑记录弹窗
+      showConfirmEnd ||  // 确认结束弹窗
+      showCompletion    // 完成练习弹窗
     )
   }, [
     showCustomModal,
@@ -2843,7 +2846,10 @@ export default function AshtangaTracker() {
     editingOption,
     showAddModal,
     showSettings,
-    childModalOpen
+    childModalOpen,
+    editingRecord,
+    showConfirmEnd,
+    showCompletion
   ])
 
   // Initialize practice options from hook data
