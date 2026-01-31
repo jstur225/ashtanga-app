@@ -1595,14 +1595,14 @@ function SettingsModal({
     const file = e.target.files?.[0]
     if (!file) return
 
-    // 检查文件大小（限制2MB）
-    const MAX_SIZE = 2 * 1024 * 1024 // 2MB
+    // 检查文件大小（限制5MB）
+    const MAX_SIZE = 5 * 1024 * 1024 // 5MB
     if (file.size > MAX_SIZE) {
-      alert('图片太大啦，请选择2MB以内的图片')
+      alert('图片太大啦，请选择5MB以内的图片')
       return
     }
 
-    // 压缩图片
+    // 自动压缩图片
     const reader = new FileReader()
     reader.onload = (event) => {
       const img = new Image()
@@ -1610,7 +1610,7 @@ function SettingsModal({
         const canvas = document.createElement('canvas')
         const ctx = canvas.getContext('2d')
 
-        // 计算压缩后的尺寸（最大200x200）
+        // 计算压缩后的尺寸（最大200x200，头像显示足够）
         const MAX_DIMENSION = 200
         let width = img.width
         let height = img.height
@@ -1633,8 +1633,8 @@ function SettingsModal({
         // 绘制压缩后的图片
         ctx?.drawImage(img, 0, 0, width, height)
 
-        // 转换为base64，质量0.8
-        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.8)
+        // 转换为base64，质量0.85
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85)
         setAvatar(compressedDataUrl)
       }
       img.src = event.target?.result as string
