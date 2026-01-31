@@ -870,8 +870,7 @@ function ShareCardModal({
                     onChange={(e) => setEditableNotes(e.target.value)}
                     onBlur={() => setIsEditingNotes(false)}
                     autoFocus
-                    rows={4}
-                    className={`w-full text-sm text-foreground font-serif leading-relaxed bg-transparent focus:outline-none resize-y ${
+                    className={`w-full text-sm text-foreground font-serif leading-relaxed bg-transparent focus:outline-none resize-y min-h-[200px] ${
                       isCapturing
                         ? 'max-h-none'  // 截图时：无高度限制
                         : 'max-h-[60vh] overflow-y-auto'  // 编辑时：最大60vh，超出滚动
