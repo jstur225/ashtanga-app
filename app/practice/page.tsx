@@ -1643,8 +1643,13 @@ function SettingsModal({
   }
 
   const handleSave = () => {
-    onSave({ ...profile, name, signature, avatar })
-    onClose()
+    try {
+      onSave({ ...profile, name, signature, avatar })
+      onClose()
+    } catch (error) {
+      console.error('保存失败:', error)
+      toast.error('保存失败，图片可能太大，请尝试压缩后再上传')
+    }
   }
 
   return (
