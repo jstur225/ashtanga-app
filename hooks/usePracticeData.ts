@@ -62,6 +62,22 @@ export const usePracticeData = () => {
     const stored = localStorage.getItem('ashtanga_options');
     if (!stored || stored === '[]') {
       setOptions(DEFAULT_OPTIONS);
+    } else {
+      // 数据迁移：将旧的 labelZh 字段转换为 label_zh
+      try {
+        const parsedOptions = JSON.parse(stored);
+        const needsMigration = parsedOptions.some((opt: any) => opt.labelZh && !opt.label_zh);
+
+        if (needsMigration) {
+          const migratedOptions = parsedOptions.map((opt: any) => ({
+            ...opt,
+            label_zh: opt.label_zh || opt.labelZh || '',
+          }));
+          setOptions(migratedOptions);
+        }
+      } catch (e) {
+        console.error('Failed to migrate options data:', e);
+      }
     }
 
     // 为首次用户添加教程记录
@@ -76,17 +92,25 @@ export const usePracticeData = () => {
           date: '2026-01-11',
           type: '一序列 Mysore',
           duration: 5400,
-          notes: '🎉 开始记录你的阿斯汤加之旅！\n\n📝 如何记录觉察：\n• 记录练习中的身体感受\n• 回忆呼吸的起伏状态\n• 分享内心的思绪或念头\n• 每一次记录都是对自己的诚实内观\n\n💡 小贴士：点击记录可以编辑或分享，🔴删除记录或完整编辑点击左侧区域',
+          notes: '👋 同学你好，欢迎使用熬汤日记！\n\n功能说明：\n📱 Tab1 - 今日练习\n\n• 先选择练习类型，再点击"开始练习"计时\n• 练习结束后填写觉察笔记并保存\n• 可标记"突破时刻"记录里程碑',
           photos: []
         },
         {
           id: `tutorial-${Date.now()}-2`,
           created_at: now,
-          date: '2026-01-01',
+          date: '2026-01-07',
           type: '一序列 Led class',
           duration: 7200,
-          notes: '🌟 突破时刻功能：\n• 记录你的里程碑\n• 看到进步时为自己庆祝\n• 激励自己继续保持\n\n✨ Practice, practice, and all is coming.',
-          breakthrough: '马里奇D终于可以自己绑上了',
+          notes: '📖 Tab2 - 觉察日记\n\n• 点击记录卡片可分享或编辑\n🔴 点击左侧日期区域可完整编辑或删除记录\n• 点击右上角"+"添加过往练习\n\n回顾记录，看见坚持的力量。🌟',
+          photos: []
+        },
+        {
+          id: `tutorial-${Date.now()}-3`,
+          created_at: now,
+          date: '2026-01-01',
+          type: '半序列',
+          duration: 2700,
+          notes: '📊 Tab3 - 我的数据\n\n• 热力图：绿点越多=练习越多\n• 练习统计：总天数、总时长、平均时长\n• 个人信息：点击头像可修改昵称和签名\n• 数据管理：导出/导入数据备份',
           photos: []
         }
       ];

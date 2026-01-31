@@ -87,7 +87,8 @@ function ZenDatePicker({
   }
 
   const goToNextMonth = () => {
-    setViewDate(new Date(currentYear, currentMonth + 1, 1))
+    const nextMonth = new Date(currentYear, currentMonth + 1, 1)
+    setViewDate(nextMonth)
   }
 
   const canGoNext = true
@@ -140,8 +141,7 @@ function ZenDatePicker({
                 </h3>
                 <button
                   onClick={goToNextMonth}
-                  disabled={!canGoNext}
-                  className={`p-2 transition-colors ${canGoNext ? 'text-muted-foreground hover:text-foreground' : 'text-muted-foreground/30'}`}
+                  className="p-2 text-muted-foreground hover:text-foreground transition-colors"
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>
@@ -168,9 +168,7 @@ function ZenDatePicker({
                         aspect-square rounded-full flex items-center justify-center text-sm font-serif transition-all
                         ${isSelected
                           ? 'bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white'
-                          : isFuture
-                            ? 'text-muted-foreground/30 cursor-not-allowed'
-                            : 'text-foreground hover:bg-secondary'
+                          : 'text-foreground hover:bg-secondary'
                         }
                       `}
                     >
@@ -421,6 +419,8 @@ function EditOptionModal({
                     删除选项
                   </button>
                 )}
+                {/* 底部留白，防止被底部导航栏遮挡 */}
+                <div className="h-16"></div>
               </div>
             )}
           </motion.div>
@@ -659,6 +659,8 @@ function EditRecordModal({
                   <Trash2 className="w-4 h-4" />
                   删除记录
                 </button>
+                {/* 底部留白，防止被底部导航栏遮挡 */}
+                <div className="h-16"></div>
               </div>
             )}
           </motion.div>
@@ -1059,7 +1061,8 @@ function DatePickerModal({
   }
 
   const goToNextMonth = () => {
-    setViewDate(new Date(currentYear, currentMonth + 1, 1))
+    const nextMonth = new Date(currentYear, currentMonth + 1, 1)
+    setViewDate(nextMonth)
   }
 
   const canGoNext = true
@@ -1114,12 +1117,7 @@ function DatePickerModal({
               </h3>
               <button
                 onClick={goToNextMonth}
-                disabled={!canGoNext}
-                className={`p-2 transition-colors ${
-                  canGoNext
-                    ? 'text-muted-foreground hover:text-foreground'
-                    : 'text-muted-foreground/30'
-                }`}
+                className="p-2 text-muted-foreground hover:text-foreground transition-colors"
               >
                 <ChevronRight className="w-5 h-5" />
               </button>
@@ -1571,18 +1569,63 @@ function SettingsModal({
 
   const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (file) {
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setAvatar(reader.result as string)
-      }
-      reader.readAsDataURL(file)
+    if (!file) return
+
+    // 检查文件大小（限制5MB）
+    const MAX_SIZE = 5 * 1024 * 1024 // 5MB
+    if (file.size > MAX_SIZE) {
+      alert('图片太大啦，请选择5MB以内的图片')
+      return
     }
+
+    // 自动压缩图片
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      const img = new Image()
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+        const ctx = canvas.getContext('2d')
+
+        // 计算压缩后的尺寸（最大200x200，头像显示足够）
+        const MAX_DIMENSION = 200
+        let width = img.width
+        let height = img.height
+
+        if (width > height) {
+          if (width > MAX_DIMENSION) {
+            height = (height * MAX_DIMENSION) / width
+            width = MAX_DIMENSION
+          }
+        } else {
+          if (height > MAX_DIMENSION) {
+            width = (width * MAX_DIMENSION) / height
+            height = MAX_DIMENSION
+          }
+        }
+
+        canvas.width = width
+        canvas.height = height
+
+        // 绘制压缩后的图片
+        ctx?.drawImage(img, 0, 0, width, height)
+
+        // 转换为base64，质量0.85
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85)
+        setAvatar(compressedDataUrl)
+      }
+      img.src = event.target?.result as string
+    }
+    reader.readAsDataURL(file)
   }
 
   const handleSave = () => {
-    onSave({ ...profile, name, signature, avatar })
-    onClose()
+    try {
+      onSave({ ...profile, name, signature, avatar })
+      onClose()
+    } catch (error) {
+      console.error('保存失败:', error)
+      toast.error('保存失败，图片可能太大，请尝试压缩后再上传')
+    }
   }
 
   return (
@@ -1997,7 +2040,8 @@ function MonthlyHeatmap({
   }
 
   const goToNextMonth = () => {
-    setViewDate(new Date(currentYear, currentMonth + 1, 1))
+    const nextMonth = new Date(currentYear, currentMonth + 1, 1)
+    setViewDate(nextMonth)
   }
 
   const canGoNext = true
@@ -2030,10 +2074,9 @@ function MonthlyHeatmap({
           <h3 className="font-serif text-foreground min-w-[90px] text-center font-semibold text-lg">
             {currentYear}年{currentMonth + 1}月
           </h3>
-          <button 
+          <button
             onClick={goToNextMonth}
-            disabled={!canGoNext}
-            className={`p-1 transition-colors ${canGoNext ? 'text-muted-foreground hover:text-foreground' : 'text-muted-foreground/30'}`}
+            className="p-1 text-muted-foreground hover:text-foreground transition-colors"
           >
             <ChevronRight className="w-5 h-5" />
           </button>
@@ -2127,10 +2170,6 @@ function JournalTab({
   onAddOption,
   votedCloud,
   onLogExport,
-  editingRecord,
-  onSetEditingRecord,
-  showAddModal,
-  onSetShowAddModal,
 }: {
   practiceHistory: PracticeRecord[]
   practiceOptions: PracticeOption[]
@@ -2142,12 +2181,10 @@ function JournalTab({
   onAddOption?: (name: string, notes: string) => void
   votedCloud: boolean
   onLogExport: (log: any) => void
-  editingRecord: PracticeRecord | null
-  onSetEditingRecord: (record: PracticeRecord | null) => void
-  showAddModal: boolean
-  onSetShowAddModal: (show: boolean) => void
 }) {
+  const [editingRecord, setEditingRecord] = useState<PracticeRecord | null>(null)
   const [sharingRecord, setSharingRecord] = useState<PracticeRecord | null>(null)
+  const [showAddModal, setShowAddModal] = useState(false)
   const [showBackToTop, setShowBackToTop] = useState(false)
   const [highlightedDate, setHighlightedDate] = useState<string | null>(null)
   const recordRefs = useRef<Record<string, HTMLDivElement | null>>({})
@@ -2221,7 +2258,7 @@ function JournalTab({
   // Left click -> Edit record
   const handleLeftClick = (record: PracticeRecord, e: React.MouseEvent) => {
     e.stopPropagation()
-    onSetEditingRecord(record)
+    setEditingRecord(record)
   }
 
   // Right click -> Share card
@@ -2238,7 +2275,7 @@ function JournalTab({
           practiceHistory={practiceHistory}
           onDayClick={handleDayClick}
           onOpenFakeDoor={onOpenFakeDoor}
-          onAddRecord={() => onSetShowAddModal(true)}
+          onAddRecord={() => setShowAddModal(true)}
           votedCloud={votedCloud}
         />
       </div>
@@ -2322,7 +2359,7 @@ function JournalTab({
 
       <EditRecordModal
         isOpen={!!editingRecord}
-        onClose={() => onSetEditingRecord(null)}
+        onClose={() => setEditingRecord(null)}
         record={editingRecord}
         onSave={onEditRecord}
         onDelete={onDeleteRecord}
@@ -2344,7 +2381,7 @@ function JournalTab({
 
       <AddPracticeModal
         isOpen={showAddModal}
-        onClose={() => onSetShowAddModal(false)}
+        onClose={() => setShowAddModal(false)}
         onSave={onAddRecord}
         practiceOptions={practiceOptions}
         practiceHistory={practiceHistory}
@@ -2731,8 +2768,6 @@ export default function AshtangaTracker() {
   const [showExportModal, setShowExportModal] = useState(false)
   const [exportedData, setExportedData] = useState('')
   const [votedCloud, setVotedCloud] = useLocalStorage('voted_cloud_sync', false)
-  const [editingRecord, setEditingRecord] = useState<PracticeRecord | null>(null)  // 编辑记录弹窗状态
-  const [showAddModal, setShowAddModal] = useState(false)  // 添加记录弹窗状态
   const [isSaving, setIsSaving] = useState(false)
   const [exportLogs, setExportLogs] = useLocalStorage<{
     timestamp: string
@@ -2741,37 +2776,6 @@ export default function AshtangaTracker() {
     userAgent: string
     recordDate?: string
   }[]>('ashtanga_export_logs', [])
-
-  // 派生状态：判断是否有任何弹窗打开（用于控制导航栏显示）
-  const hasAnyModalOpen = useMemo(() => {
-    return (
-      showCustomModal ||
-      showEditModal ||
-      editingOption !== null ||
-      showAddModal ||
-      showSettings ||
-      editingRecord !== null  // 编辑记录弹窗
-    )
-  }, [
-    showCustomModal,
-    showEditModal,
-    editingOption,
-    showAddModal,
-    showSettings,
-    editingRecord
-  ])
-
-  // 调试信息：在控制台输出弹窗状态
-  useEffect(() => {
-    console.log('[Modal Debug] hasAnyModalOpen:', hasAnyModalOpen, {
-      showCustomModal,
-      showEditModal,
-      editingOption: editingOption?.id || null,
-      showAddModal,
-      showSettings,
-      editingRecord: editingRecord?.id || null
-    })
-  }, [hasAnyModalOpen, showCustomModal, showEditModal, editingOption, showAddModal, showSettings, editingRecord])
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
   const lastTapRef = useRef<{ id: string; time: number } | null>(null)
@@ -3384,10 +3388,6 @@ export default function AshtangaTracker() {
           onAddOption={handleAddOption}
           votedCloud={votedCloud}
           onLogExport={(log) => setExportLogs([...exportLogs, log])}
-          editingRecord={editingRecord}
-          onSetEditingRecord={setEditingRecord}
-          showAddModal={showAddModal}
-          onSetShowAddModal={setShowAddModal}
         />
       )}
       {activeTab === 'stats' && (
@@ -3400,40 +3400,31 @@ export default function AshtangaTracker() {
       )}
 
       {/* Fixed Bottom Navigation */}
-      <AnimatePresence>
-        {!hasAnyModalOpen && (
-          <motion.nav
-            initial={{ y: 0, opacity: 1 }}
-            exit={{ y: 100, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="fixed bottom-0 left-0 right-0 border-t border-border bg-card px-6 py-4 pb-4 z-30"
+      <nav className="fixed bottom-0 left-0 right-0 border-t border-border bg-card px-6 py-4 pb-4 z-30">
+        <div className="flex justify-around items-center">
+          <button 
+            onClick={() => setActiveTab('practice')}
+            className={`flex flex-col items-center gap-1.5 transition-colors ${activeTab === 'practice' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}
           >
-            <div className="flex justify-around items-center">
-              <button
-                onClick={() => setActiveTab('practice')}
-                className={`flex flex-col items-center gap-1.5 transition-colors ${activeTab === 'practice' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}
-              >
-                <Calendar className="w-5 h-5" />
-                <span className="text-xs font-serif">今日练习</span>
-              </button>
-              <button
-                onClick={() => setActiveTab('journal')}
-                className={`flex flex-col items-center gap-1.5 transition-colors ${activeTab === 'journal' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}
-              >
-                <BookOpen className="w-5 h-5" />
-                <span className="text-xs font-serif">觉察日记</span>
-              </button>
-              <button
-                onClick={() => setActiveTab('stats')}
-                className={`flex flex-col items-center gap-1.5 transition-colors ${activeTab === 'stats' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}
-              >
-                <BarChart3 className="w-5 h-5" />
-                <span className="text-xs font-serif">我的数据</span>
-              </button>
-            </div>
-          </motion.nav>
-        )}
-      </AnimatePresence>
+            <Calendar className="w-5 h-5" />
+            <span className="text-xs font-serif">今日练习</span>
+          </button>
+          <button 
+            onClick={() => setActiveTab('journal')}
+            className={`flex flex-col items-center gap-1.5 transition-colors ${activeTab === 'journal' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+          >
+            <BookOpen className="w-5 h-5" />
+            <span className="text-xs font-serif">觉察日记</span>
+          </button>
+          <button 
+            onClick={() => setActiveTab('stats')}
+            className={`flex flex-col items-center gap-1.5 transition-colors ${activeTab === 'stats' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+          >
+            <BarChart3 className="w-5 h-5" />
+            <span className="text-xs font-serif">我的数据</span>
+          </button>
+        </div>
+      </nav>
 
       {/* Custom Practice Modal */}
       <CustomPracticeModal
