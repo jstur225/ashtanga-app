@@ -419,8 +419,6 @@ function EditOptionModal({
                     删除选项
                   </button>
                 )}
-                {/* 底部留白，防止被底部导航栏遮挡 */}
-                <div className="h-16"></div>
               </div>
             )}
           </motion.div>
@@ -439,6 +437,7 @@ function EditRecordModal({
   onDelete,
   practiceOptions,
   practiceHistory = [],
+  onChildModalOpen,
 }: {
   isOpen: boolean
   onClose: () => void
@@ -447,6 +446,7 @@ function EditRecordModal({
   onDelete: (id: string) => void
   practiceOptions: PracticeOption[]
   practiceHistory?: PracticeRecord[]
+  onChildModalOpen?: (open: boolean) => void
 }) {
   const [notes, setNotes] = useState("")
   const [breakthroughEnabled, setBreakthroughEnabled] = useState(false)
@@ -495,14 +495,31 @@ function EditRecordModal({
 
   const handleDeleteClick = () => {
     setShowDeleteConfirm(true)
+    onChildModalOpen?.(true)
   }
 
   const handleConfirmDelete = () => {
     if (record) {
       onDelete(record.id)
       setShowDeleteConfirm(false)
+      onChildModalOpen?.(false)
       onClose()
     }
+  }
+
+  const handleCancelDelete = () => {
+    setShowDeleteConfirm(false)
+    onChildModalOpen?.(false)
+  }
+
+  const handleDatePickerToggle = (open: boolean) => {
+    setShowDatePicker(open)
+    onChildModalOpen?.(open)
+  }
+
+  const handleTypeSelectorToggle = (open: boolean) => {
+    setShowTypeSelector(open)
+    onChildModalOpen?.(open)
   }
 
   return (
@@ -536,7 +553,7 @@ function EditRecordModal({
                 <p className="text-center text-sm text-muted-foreground font-serif">{formatDate(record.date)} · {record.type}</p>
                 <div className="flex gap-3">
                   <button
-                    onClick={() => setShowDeleteConfirm(false)}
+                    onClick={handleCancelDelete}
                     className="flex-1 py-3 rounded-full bg-secondary text-foreground font-serif transition-all hover:bg-secondary/80 active:scale-[0.98]"
                   >
                     取消
@@ -556,7 +573,7 @@ function EditRecordModal({
                   <div>
                     <label className="block text-xs font-serif text-muted-foreground mb-1.5">日期</label>
                     <button
-                      onClick={() => setShowDatePicker(true)}
+                      onClick={() => handleDatePickerToggle(true)}
                       className="w-full px-3 py-2.5 rounded-xl bg-secondary text-foreground font-serif text-left transition-all hover:bg-secondary/80 active:scale-[0.98] text-sm"
                     >
                       {formatDateDisplay(date)}
@@ -565,7 +582,7 @@ function EditRecordModal({
                   <div>
                     <label className="block text-xs font-serif text-muted-foreground mb-1.5">练习类型</label>
                     <button
-                      onClick={() => setShowTypeSelector(true)}
+                      onClick={() => handleTypeSelectorToggle(true)}
                       className={`
                         w-full px-3 py-2.5 rounded-xl font-serif text-left transition-all active:scale-[0.98] text-sm
                         ${type
@@ -659,8 +676,6 @@ function EditRecordModal({
                   <Trash2 className="w-4 h-4" />
                   删除记录
                 </button>
-                {/* 底部留白，防止被底部导航栏遮挡 */}
-                <div className="h-16"></div>
               </div>
             )}
           </motion.div>
@@ -672,7 +687,7 @@ function EditRecordModal({
               if (selectedDate) {
                 setDate(selectedDate)
               }
-              setShowDatePicker(false)
+              handleDatePickerToggle(false)
             }}
             maxDate={new Date().toISOString().split('T')[0]}
             practiceHistory={practiceHistory}
@@ -685,7 +700,7 @@ function EditRecordModal({
               if (selectedType && selectedType !== "__custom__") {
                 setType(selectedType)
               }
-              setShowTypeSelector(false)
+              handleTypeSelectorToggle(false)
             }}
             practiceOptions={practiceOptions}
             selectedType={type}
@@ -1147,7 +1162,7 @@ function DatePickerModal({
                       aspect-square rounded-full flex items-center justify-center
                       text-[9px] font-serif transition-all
                       ${hasPractice
-                        ? 'bg-gradient-to-br from-[rgba(45,90,39,0.9)] to-[rgba(74,122,68,0.75)] backdrop-blur-sm border border-white/20 shadow-[0_2px_8px_rgba(45,90,39,0.3)] text-white cursor-pointer hover:shadow-[0_2px_12px_rgba(45,90,39,0.45)]'
+                        ? 'bg-gradient-to-br from-[rgba(45,90,39,0.95)] to-[rgba(74,122,68,0.85)] border border-white/20 shadow-[0_2px_8px_rgba(45,90,39,0.3)] text-white cursor-pointer hover:shadow-[0_2px_12px_rgba(45,90,39,0.45)]'
                         : 'bg-background text-foreground cursor-pointer hover:bg-secondary'
                       }
                     `}
@@ -1287,6 +1302,7 @@ function AddPracticeModal({
   practiceOptions,
   practiceHistory = [],
   onAddOption,
+  onChildModalOpen,
 }: {
   isOpen: boolean
   onClose: () => void
@@ -1294,6 +1310,7 @@ function AddPracticeModal({
   practiceOptions: PracticeOption[]
   practiceHistory?: PracticeRecord[]
   onAddOption?: (name: string, notes: string) => void
+  onChildModalOpen?: (open: boolean) => void
 }) {
   const [date, setDate] = useState(() => new Date().toISOString().split('T')[0])
   const [type, setType] = useState("")
@@ -1334,12 +1351,29 @@ function AddPracticeModal({
       // 延迟关闭弹窗，确保用户看到toast提示和选项保存完成
       setTimeout(() => {
         setShowCustomModal(false)
+        onChildModalOpen?.(false)
       }, 800)
     } else {
       console.log('onAddOption is undefined!')
       setType(name)
       setShowCustomModal(false)
+      onChildModalOpen?.(false)
     }
+  }
+
+  const handleDatePickerToggle = (open: boolean) => {
+    setShowDatePicker(open)
+    onChildModalOpen?.(open)
+  }
+
+  const handleTypeSelectorToggle = (open: boolean) => {
+    setShowTypeSelector(open)
+    onChildModalOpen?.(open)
+  }
+
+  const handleCustomModalToggle = (open: boolean) => {
+    setShowCustomModal(open)
+    onChildModalOpen?.(open)
   }
 
   const handleSave = () => {
@@ -1394,7 +1428,7 @@ function AddPracticeModal({
                 <div>
                   <label className="block text-xs font-serif text-muted-foreground mb-1.5">日期</label>
                   <button
-                    onClick={() => setShowDatePicker(true)}
+                    onClick={() => handleDatePickerToggle(true)}
                     className="w-full px-3 py-2.5 rounded-xl bg-secondary text-foreground font-serif text-left transition-all hover:bg-secondary/80 active:scale-[0.98] text-sm"
                   >
                     {formatDateDisplay(date)}
@@ -1403,7 +1437,7 @@ function AddPracticeModal({
                 <div>
                   <label className="block text-xs font-serif text-muted-foreground mb-1.5">练习类型</label>
                   <button
-                    onClick={() => setShowTypeSelector(true)}
+                    onClick={() => handleTypeSelectorToggle(true)}
                     className={`
                       w-full px-3 py-2.5 rounded-xl font-serif text-left transition-all active:scale-[0.98] text-sm
                       ${type
@@ -1503,7 +1537,7 @@ function AddPracticeModal({
       if (selectedDate) {
         setDate(selectedDate)
       }
-      setShowDatePicker(false)
+      handleDatePickerToggle(false)
     }}
     maxDate={new Date().toISOString().split('T')[0]}
     practiceHistory={practiceHistory}
@@ -1516,11 +1550,11 @@ function AddPracticeModal({
       if (selectedType === "__custom__") {
         // 点击自定义按钮，清空当前选择
         setType("")
-        setShowCustomModal(true)
+        handleCustomModalToggle(true)
       } else if (selectedType) {
         setType(selectedType)
       }
-      setShowTypeSelector(false)
+      handleTypeSelectorToggle(false)
     }}
     practiceOptions={practiceOptions}
     selectedType={type}
@@ -1529,7 +1563,7 @@ function AddPracticeModal({
   {/* Custom Practice Modal - 自定义练习弹窗 */}
   <CustomPracticeModal
     isOpen={showCustomModal}
-    onClose={() => setShowCustomModal(false)}
+    onClose={() => handleCustomModalToggle(false)}
     onConfirm={handleCustomPracticeConfirm}
     isFull={false}
   />
@@ -2084,9 +2118,9 @@ function MonthlyHeatmap({
         
         {/* Right: Add Button - aligned with calendar last column */}
         <div className="w-[calc((100%-12px)/7)] flex justify-center">
-          <button 
+          <button
             onClick={onAddRecord}
-            className="w-8 h-8 rounded-full bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] backdrop-blur-md border border-white/20 shadow-[0_2px_8px_rgba(45,90,39,0.2)] flex items-center justify-center text-white"
+            className="w-8 h-8 rounded-full bg-gradient-to-br from-[rgba(45,90,39,0.95)] to-[rgba(74,122,68,0.85)] border border-white/20 shadow-[0_2px_8px_rgba(45,90,39,0.2)] flex items-center justify-center text-white"
           >
             <Plus className="w-4 h-4" />
           </button>
@@ -2109,12 +2143,12 @@ function MonthlyHeatmap({
               onClick={() => handleDayClick(day)}
               disabled={!practiced}
               className={`aspect-square rounded-full flex items-center justify-center text-[9px] font-serif transition-all ${
-                practiced 
-                  ? 'bg-gradient-to-br from-[rgba(45,90,39,0.9)] to-[rgba(74,122,68,0.75)] backdrop-blur-sm border border-white/20 shadow-[0_2px_8px_rgba(45,90,39,0.3)] text-white cursor-pointer hover:shadow-[0_2px_12px_rgba(45,90,39,0.45)]' 
-                  : day === null 
-                    ? 'bg-transparent' 
-                    : isPast 
-                      ? 'bg-background text-foreground' 
+                practiced
+                  ? 'bg-gradient-to-br from-[rgba(45,90,39,0.95)] to-[rgba(74,122,68,0.85)] border border-white/20 shadow-[0_2px_8px_rgba(45,90,39,0.3)] text-white cursor-pointer hover:shadow-[0_2px_12px_rgba(45,90,39,0.45)]'
+                  : day === null
+                    ? 'bg-transparent'
+                    : isPast
+                      ? 'bg-background text-foreground'
                       : 'bg-background text-muted-foreground/50'
               }`}
             >
@@ -2170,6 +2204,10 @@ function JournalTab({
   onAddOption,
   votedCloud,
   onLogExport,
+  editingRecord,
+  onSetEditingRecord,
+  showAddModal,
+  onSetShowAddModal,
 }: {
   practiceHistory: PracticeRecord[]
   practiceOptions: PracticeOption[]
@@ -2181,10 +2219,12 @@ function JournalTab({
   onAddOption?: (name: string, notes: string) => void
   votedCloud: boolean
   onLogExport: (log: any) => void
+  editingRecord: PracticeRecord | null
+  onSetEditingRecord: (record: PracticeRecord | null) => void
+  showAddModal: boolean
+  onSetShowAddModal: (show: boolean) => void
 }) {
-  const [editingRecord, setEditingRecord] = useState<PracticeRecord | null>(null)
   const [sharingRecord, setSharingRecord] = useState<PracticeRecord | null>(null)
-  const [showAddModal, setShowAddModal] = useState(false)
   const [showBackToTop, setShowBackToTop] = useState(false)
   const [highlightedDate, setHighlightedDate] = useState<string | null>(null)
   const recordRefs = useRef<Record<string, HTMLDivElement | null>>({})
@@ -2275,7 +2315,7 @@ function JournalTab({
           practiceHistory={practiceHistory}
           onDayClick={handleDayClick}
           onOpenFakeDoor={onOpenFakeDoor}
-          onAddRecord={() => setShowAddModal(true)}
+          onAddRecord={() => onSetShowAddModal(true)}
           votedCloud={votedCloud}
         />
       </div>
@@ -2359,12 +2399,13 @@ function JournalTab({
 
       <EditRecordModal
         isOpen={!!editingRecord}
-        onClose={() => setEditingRecord(null)}
+        onClose={() => onSetEditingRecord(null)}
         record={editingRecord}
         onSave={onEditRecord}
         onDelete={onDeleteRecord}
         practiceOptions={practiceOptions}
         practiceHistory={practiceHistory}
+        onChildModalOpen={(open) => setChildModalOpen(open)}
       />
 
       <ShareCardModal
@@ -2381,11 +2422,12 @@ function JournalTab({
 
       <AddPracticeModal
         isOpen={showAddModal}
-        onClose={() => setShowAddModal(false)}
+        onClose={() => onSetShowAddModal(false)}
         onSave={onAddRecord}
         practiceOptions={practiceOptions}
         practiceHistory={practiceHistory}
         onAddOption={onAddOption}
+        onChildModalOpen={(open) => setChildModalOpen(open)}
       />
 
 {/* Back to Top Button - Floating, Jade Glassmorphism */}
@@ -2758,6 +2800,8 @@ export default function AshtangaTracker() {
   const [showCustomModal, setShowCustomModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [editingOption, setEditingOption] = useState<PracticeOption | null>(null)
+  const [editingRecord, setEditingRecord] = useState<PracticeRecord | null>(null)
+  const [showAddModal, setShowAddModal] = useState(false)
   const [showConfirmEnd, setShowConfirmEnd] = useState(false)
   const [showCompletion, setShowCompletion] = useState(false)
   const [finalDuration, setFinalDuration] = useState("")
@@ -2779,6 +2823,34 @@ export default function AshtangaTracker() {
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
   const lastTapRef = useRef<{ id: string; time: number } | null>(null)
+
+  // 跟踪子组件内部的弹窗状态（无法直接访问）
+  const [childModalOpen, setChildModalOpen] = useState(false)
+
+  // 派生状态：判断是否有需要隐藏导航栏的弹窗打开
+  const hasAnyModalOpen = useMemo(() => {
+    return (
+      showCustomModal ||
+      showEditModal ||
+      editingOption !== null ||
+      showAddModal ||
+      showSettings ||
+      childModalOpen ||  // 子组件的弹窗（包含确认删除等）
+      editingRecord !== null ||  // 编辑记录弹窗
+      showConfirmEnd ||  // 确认结束弹窗
+      showCompletion    // 完成练习弹窗
+    )
+  }, [
+    showCustomModal,
+    showEditModal,
+    editingOption,
+    showAddModal,
+    showSettings,
+    childModalOpen,
+    editingRecord,
+    showConfirmEnd,
+    showCompletion
+  ])
 
   // Initialize practice options from hook data
   useEffect(() => {
@@ -3388,6 +3460,10 @@ export default function AshtangaTracker() {
           onAddOption={handleAddOption}
           votedCloud={votedCloud}
           onLogExport={(log) => setExportLogs([...exportLogs, log])}
+          editingRecord={editingRecord}
+          onSetEditingRecord={setEditingRecord}
+          showAddModal={showAddModal}
+          onSetShowAddModal={setShowAddModal}
         />
       )}
       {activeTab === 'stats' && (
@@ -3400,31 +3476,40 @@ export default function AshtangaTracker() {
       )}
 
       {/* Fixed Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 border-t border-border bg-card px-6 py-4 pb-4 z-30">
-        <div className="flex justify-around items-center">
-          <button 
-            onClick={() => setActiveTab('practice')}
-            className={`flex flex-col items-center gap-1.5 transition-colors ${activeTab === 'practice' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+      <AnimatePresence>
+        {!hasAnyModalOpen && (
+          <motion.nav
+            initial={{ y: 0, opacity: 1 }}
+            exit={{ y: 100, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed bottom-0 left-0 right-0 border-t border-border bg-card px-6 py-4 pb-4 z-30"
           >
-            <Calendar className="w-5 h-5" />
-            <span className="text-xs font-serif">今日练习</span>
-          </button>
-          <button 
-            onClick={() => setActiveTab('journal')}
-            className={`flex flex-col items-center gap-1.5 transition-colors ${activeTab === 'journal' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}
-          >
-            <BookOpen className="w-5 h-5" />
-            <span className="text-xs font-serif">觉察日记</span>
-          </button>
-          <button 
-            onClick={() => setActiveTab('stats')}
-            className={`flex flex-col items-center gap-1.5 transition-colors ${activeTab === 'stats' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}
-          >
-            <BarChart3 className="w-5 h-5" />
-            <span className="text-xs font-serif">我的数据</span>
-          </button>
-        </div>
-      </nav>
+            <div className="flex justify-around items-center">
+              <button
+                onClick={() => setActiveTab('practice')}
+                className={`flex flex-col items-center gap-1.5 transition-colors ${activeTab === 'practice' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+              >
+                <Calendar className="w-5 h-5" />
+                <span className="text-xs font-serif">今日练习</span>
+              </button>
+              <button
+                onClick={() => setActiveTab('journal')}
+                className={`flex flex-col items-center gap-1.5 transition-colors ${activeTab === 'journal' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+              >
+                <BookOpen className="w-5 h-5" />
+                <span className="text-xs font-serif">觉察日记</span>
+              </button>
+              <button
+                onClick={() => setActiveTab('stats')}
+                className={`flex flex-col items-center gap-1.5 transition-colors ${activeTab === 'stats' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+              >
+                <BarChart3 className="w-5 h-5" />
+                <span className="text-xs font-serif">我的数据</span>
+              </button>
+            </div>
+          </motion.nav>
+        )}
+      </AnimatePresence>
 
       {/* Custom Practice Modal */}
       <CustomPracticeModal
