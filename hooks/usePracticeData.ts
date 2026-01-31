@@ -92,17 +92,16 @@ export const usePracticeData = () => {
           date: '2026-01-11',
           type: '一序列 Mysore',
           duration: 5400,
-          notes: '🎉 开始记录你的阿斯汤加之旅！\n\n📝 如何记录觉察：\n• 记录练习中的身体感受\n• 回忆呼吸的起伏状态\n• 分享内心的思绪或念头\n• 每一次记录都是对自己的诚实内观\n\n💡 小贴士：点击记录可以编辑或分享，🔴删除记录或完整编辑点击左侧区域',
+          notes: '👋 欢迎使用熬汤日记！\n\n功能说明：\n• 点击记录卡片可编辑或删除\n• 点击底部"+"添加新练习\n• 底部切换三个标签页：今日练习/觉察日记/我的数据\n\n记录你的每一次练习，看见进步。✨',
           photos: []
         },
         {
           id: `tutorial-${Date.now()}-2`,
           created_at: now,
           date: '2026-01-01',
-          type: '一序列 Led class',
-          duration: 7200,
-          notes: '🌟 突破时刻功能：\n• 记录你的里程碑\n• 看到进步时为自己庆祝\n• 激励自己继续保持\n\n✨ Practice, practice, and all is coming.',
-          breakthrough: '马里奇D终于可以自己绑上了',
+          type: '休息日',
+          duration: 0,
+          notes: '🌿 休息日也是练习的一部分\n\n记录休息日可以帮助你：\n• 回顾整个练习周期\n• 观察身体恢复状态\n• 保持练习的连贯性\n\n休息也是瑜伽。🧘‍♂️',
           photos: []
         }
       ];
