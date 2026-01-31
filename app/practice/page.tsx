@@ -2298,7 +2298,7 @@ function JournalTab({
   // Left click -> Edit record
   const handleLeftClick = (record: PracticeRecord, e: React.MouseEvent) => {
     e.stopPropagation()
-    setEditingRecord(record)
+    onSetEditingRecord(record)
   }
 
   // Right click -> Share card
