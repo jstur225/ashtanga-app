@@ -1593,13 +1593,53 @@ function SettingsModal({
 
   const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (file) {
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setAvatar(reader.result as string)
-      }
-      reader.readAsDataURL(file)
+    if (!file) return
+
+    // 检查文件大小（限制2MB）
+    const MAX_SIZE = 2 * 1024 * 1024 // 2MB
+    if (file.size > MAX_SIZE) {
+      alert('图片太大啦，请选择2MB以内的图片')
+      return
     }
+
+    // 压缩图片
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      const img = new Image()
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+        const ctx = canvas.getContext('2d')
+
+        // 计算压缩后的尺寸（最大200x200）
+        const MAX_DIMENSION = 200
+        let width = img.width
+        let height = img.height
+
+        if (width > height) {
+          if (width > MAX_DIMENSION) {
+            height = (height * MAX_DIMENSION) / width
+            width = MAX_DIMENSION
+          }
+        } else {
+          if (height > MAX_DIMENSION) {
+            width = (width * MAX_DIMENSION) / height
+            height = MAX_DIMENSION
+          }
+        }
+
+        canvas.width = width
+        canvas.height = height
+
+        // 绘制压缩后的图片
+        ctx?.drawImage(img, 0, 0, width, height)
+
+        // 转换为base64，质量0.8
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.8)
+        setAvatar(compressedDataUrl)
+      }
+      img.src = event.target?.result as string
+    }
+    reader.readAsDataURL(file)
   }
 
   const handleSave = () => {
