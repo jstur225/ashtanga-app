@@ -9,7 +9,7 @@ import { BookOpen, BarChart3, Calendar, X, Camera, Pause, Play, Trash2, User, Se
 import { FakeDoorModal } from "@/components/FakeDoorModal"
 import { ImportModal } from "@/components/ImportModal"
 import { ExportModal } from "@/components/ExportModal"
-import { XiaohongshuInviteModal } from "@/components/XiaohongshuInviteModal"
+import { XiaohongshuInviteModal, INVITE_VERSION } from "@/components/XiaohongshuInviteModal"
 import { PWAInstallBanner } from "@/components/PWAInstallBanner"
 import { toast } from 'sonner'
 import { trackEvent } from '@/lib/analytics'
@@ -2492,8 +2492,6 @@ function StatsTab({
   onOpenFakeDoor,
   showXiaohongshuModal,
   setShowXiaohongshuModal,
-  hasReadXiaohongshu,
-  setHasReadXiaohongshu,
   hasNewXhsMessage,
 }: {
   practiceHistory: PracticeRecord[]
@@ -2502,8 +2500,6 @@ function StatsTab({
   onOpenFakeDoor: () => void
   showXiaohongshuModal: boolean
   setShowXiaohongshuModal: (value: boolean) => void
-  hasReadXiaohongshu: boolean
-  setHasReadXiaohongshu: (value: boolean) => void
   hasNewXhsMessage: boolean
 }) {
   const { isInstallable, promptInstall } = usePWAInstall()
@@ -2704,7 +2700,7 @@ function StatsTab({
             <button
               onClick={() => {
                 setShowXiaohongshuModal(true)
-                setHasReadXiaohongshu(true)
+                setReadInviteVersion(INVITE_VERSION) // 保存当前版本号
               }}
               className="absolute -top-6 -right-6 w-9 h-9 rounded-full bg-white shadow-lg flex items-center justify-center hover:scale-110 active:scale-95 transition-transform z-10"
               aria-label="小红书群邀请"
@@ -2712,7 +2708,7 @@ function StatsTab({
               <MessageCircle className="w-4.5 h-4.5 text-[#e67e22]" />
 
               {/* 红色状态点 - 气泡中下方 */}
-              {hasNewXhsMessage && !hasReadXiaohongshu && (
+              {hasNewXhsMessage && (
                 <div className="absolute bottom-1 left-1/2 -translate-x-1/2 rounded-full w-1 h-1 bg-red-400" />
               )}
             </button>
@@ -2877,11 +2873,11 @@ export default function AshtangaTracker() {
   // 小红书群邀请弹窗状态
   const [showXiaohongshuModal, setShowXiaohongshuModal] = useState(false)
 
-  // 红点未读状态（localStorage持久化）
-  const [hasReadXiaohongshu, setHasReadXiaohongshu] = useLocalStorage('xhs_invite_read', false)
+  // 已读版本号（localStorage持久化）
+  const [readInviteVersion, setReadInviteVersion] = useLocalStorage('xhs_invite_version', '')
 
-  // 新消息标记（可通过localStorage或远程配置控制）
-  const [hasNewXhsMessage, setHasNewXhsMessage] = useLocalStorage('xhs_has_new_message', true)
+  // 派生状态：判断是否显示红点（版本号不同时显示）
+  const hasNewXhsMessage = readInviteVersion !== INVITE_VERSION
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
   const lastTapRef = useRef<{ id: string; time: number } | null>(null)
@@ -3536,8 +3532,6 @@ export default function AshtangaTracker() {
           onOpenFakeDoor={() => setShowFakeDoor({ type: 'pro', isOpen: true })}
           showXiaohongshuModal={showXiaohongshuModal}
           setShowXiaohongshuModal={setShowXiaohongshuModal}
-          hasReadXiaohongshu={hasReadXiaohongshu}
-          setHasReadXiaohongshu={setHasReadXiaohongshu}
           hasNewXhsMessage={hasNewXhsMessage}
         />
       )}

@@ -5,6 +5,9 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X, Copy } from 'lucide-react'
 import { toast } from 'sonner'
 
+// 版本号 - 每次更新文案时修改此版本号
+export const INVITE_VERSION = 'v1'
+
 // 复制文案（固定内容）
 const XIAOHONGSHU_INVITE_TEXT =
   '0【全选复制，xiaohongshu等你归来】 3月1日前可入，"🆓熬汤日记内测交流群"趣味空间 MF8158 :/#b🤔🍉🐂😗🐯😉🐯🥭😌😚🐶🐭'
