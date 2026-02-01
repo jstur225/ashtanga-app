@@ -5,10 +5,11 @@ import { useLocalStorage, useInterval } from 'react-use';
 import { motion, AnimatePresence } from "framer-motion"
 import { usePracticeData, type PracticeRecord, type PracticeOption, type UserProfile } from "@/hooks/usePracticeData"
 import { usePWAInstall } from "@/hooks/usePWAInstall"
-import { BookOpen, BarChart3, Calendar, X, Camera, Pause, Play, Trash2, User, Settings, ChevronLeft, ChevronRight, ChevronUp, Cloud, Download, Upload, Plus, Share2, Sparkles, Check, Copy, ClipboardPaste } from "lucide-react"
+import { BookOpen, BarChart3, Calendar, X, Camera, Pause, Play, Trash2, User, Settings, ChevronLeft, ChevronRight, ChevronUp, Cloud, Download, Upload, Plus, Share2, Sparkles, Check, Copy, ClipboardPaste, MessageCircle } from "lucide-react"
 import { FakeDoorModal } from "@/components/FakeDoorModal"
 import { ImportModal } from "@/components/ImportModal"
 import { ExportModal } from "@/components/ExportModal"
+import { XiaohongshuInviteModal } from "@/components/XiaohongshuInviteModal"
 import { PWAInstallBanner } from "@/components/PWAInstallBanner"
 import { toast } from 'sonner'
 import { trackEvent } from '@/lib/analytics'
@@ -2488,12 +2489,22 @@ function StatsTab({
   practiceHistory,
   profile,
   onOpenSettings,
-  onOpenFakeDoor
+  onOpenFakeDoor,
+  showXiaohongshuModal,
+  setShowXiaohongshuModal,
+  hasReadXiaohongshu,
+  setHasReadXiaohongshu,
+  hasNewXhsMessage,
 }: {
   practiceHistory: PracticeRecord[]
   profile: UserProfile
   onOpenSettings: () => void
   onOpenFakeDoor: () => void
+  showXiaohongshuModal: boolean
+  setShowXiaohongshuModal: (value: boolean) => void
+  hasReadXiaohongshu: boolean
+  setHasReadXiaohongshu: (value: boolean) => void
+  hasNewXhsMessage: boolean
 }) {
   const { isInstallable, promptInstall } = usePWAInstall()
 
@@ -2563,7 +2574,7 @@ function StatsTab({
   const [viewMode, setViewMode] = useState<'quarter' | 'half' | 'year'>('quarter')
   const [dateOffset, setDateOffset] = useState(0)
   const [hasVotedPro] = useLocalStorage('has_voted_pro', false)
-  
+
   const today = new Date()
   const todayStr = getLocalDateStr()
 
@@ -2678,12 +2689,33 @@ function StatsTab({
       <div className="px-6 pb-48">
         {/* Profile Section with PRO Badge - NOW FIRST */}
         <div className="flex flex-col items-center mb-6">
-          <div className="w-20 h-20 rounded-full green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] flex items-center justify-center mb-3 overflow-hidden">
-            {profile.avatar ? (
-              <img src={profile.avatar || "/placeholder.svg"} alt="头像" className="w-full h-full object-cover" />
-            ) : (
-              <User className="w-10 h-10 text-white" />
-            )}
+          {/* 头像容器 */}
+          <div className="relative mb-3">
+            {/* 头像 */}
+            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] flex items-center justify-center overflow-hidden">
+              {profile.avatar ? (
+                <img src={profile.avatar || "/placeholder.svg"} alt="头像" className="w-full h-full object-cover" />
+              ) : (
+                <User className="w-10 h-10 text-white" />
+              )}
+            </div>
+
+            {/* 气泡通知图标 - 头像右上角（更靠外） */}
+            <button
+              onClick={() => {
+                setShowXiaohongshuModal(true)
+                setHasReadXiaohongshu(true)
+              }}
+              className="absolute -top-6 -right-6 w-9 h-9 rounded-full bg-white shadow-lg flex items-center justify-center hover:scale-110 active:scale-95 transition-transform z-10"
+              aria-label="小红书群邀请"
+            >
+              <MessageCircle className="w-4.5 h-4.5 text-[#e67e22]" />
+
+              {/* 红色状态点 - 气泡中下方 */}
+              {hasNewXhsMessage && !hasReadXiaohongshu && (
+                <div className="absolute bottom-1 left-1/2 -translate-x-1/2 rounded-full w-1 h-1 bg-red-400" />
+              )}
+            </button>
           </div>
           <div className="flex items-center">
             <h2 className="text-xl font-serif text-[#e67e22]">{profile.name}</h2>
@@ -2841,6 +2873,15 @@ export default function AshtangaTracker() {
     userAgent: string
     recordDate?: string
   }[]>('ashtanga_export_logs', [])
+
+  // 小红书群邀请弹窗状态
+  const [showXiaohongshuModal, setShowXiaohongshuModal] = useState(false)
+
+  // 红点未读状态（localStorage持久化）
+  const [hasReadXiaohongshu, setHasReadXiaohongshu] = useLocalStorage('xhs_invite_read', false)
+
+  // 新消息标记（可通过localStorage或远程配置控制）
+  const [hasNewXhsMessage, setHasNewXhsMessage] = useLocalStorage('xhs_has_new_message', true)
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
   const lastTapRef = useRef<{ id: string; time: number } | null>(null)
@@ -3488,11 +3529,16 @@ export default function AshtangaTracker() {
         />
       )}
       {activeTab === 'stats' && (
-        <StatsTab 
-          practiceHistory={practiceHistory} 
+        <StatsTab
+          practiceHistory={practiceHistory}
           profile={userProfile}
           onOpenSettings={() => setShowSettings(true)}
           onOpenFakeDoor={() => setShowFakeDoor({ type: 'pro', isOpen: true })}
+          showXiaohongshuModal={showXiaohongshuModal}
+          setShowXiaohongshuModal={setShowXiaohongshuModal}
+          hasReadXiaohongshu={hasReadXiaohongshu}
+          setHasReadXiaohongshu={setHasReadXiaohongshu}
+          hasNewXhsMessage={hasNewXhsMessage}
         />
       )}
 
@@ -3616,6 +3662,15 @@ export default function AshtangaTracker() {
         isOpen={showFakeDoor.isOpen}
         onClose={() => setShowFakeDoor({ ...showFakeDoor, isOpen: false })}
         onVote={handleVoteCloud}
+      />
+
+      {/* 小红书群邀请弹窗 */}
+      <XiaohongshuInviteModal
+        isOpen={showXiaohongshuModal}
+        onClose={() => {
+          setShowXiaohongshuModal(false)
+          // 已在点击气泡时标记已读，这里无需重复
+        }}
       />
     </div>
   )
