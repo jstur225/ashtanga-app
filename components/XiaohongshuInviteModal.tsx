@@ -9,9 +9,6 @@ import { toast } from 'sonner'
 const XIAOHONGSHU_INVITE_TEXT =
   '0【全选复制，xiaohongshu等你归来】 3月1日前可入，"🆓熬汤日记内测交流群"趣味空间 MF8158 :/#b🤔🍉🐂😗🐯😉🐯🥭😌😚🐶🐭'
 
-// 小红书搜索链接（使用群号）
-const XIAOHONGSHU_SEARCH_URL = 'https://www.xiaohongshu.com/search_result?keyword=MF8158'
-
 interface XiaohongshuInviteModalProps {
   isOpen: boolean
   onClose: () => void
@@ -22,7 +19,7 @@ export function XiaohongshuInviteModal({ isOpen, onClose }: XiaohongshuInviteMod
 
   const handleCopyAndJump = async () => {
     try {
-      // 1. 复制文案到剪贴板
+      // 复制文案到剪贴板
       if (navigator.clipboard && navigator.clipboard.writeText) {
         await navigator.clipboard.writeText(XIAOHONGSHU_INVITE_TEXT)
       } else {
@@ -37,17 +34,12 @@ export function XiaohongshuInviteModal({ isOpen, onClose }: XiaohongshuInviteMod
         document.body.removeChild(textArea)
       }
 
-      // 2. 显示成功提示
+      // 显示成功提示
       setCopied(true)
-      toast.success('✅ 已复制，即将跳转到小红书...', {
+      toast.success('✅ 已复制！打开小红书即可自动识别', {
         duration: 2000,
         position: 'top-center',
       })
-
-      // 3. 延迟跳转（让用户看到提示）
-      setTimeout(() => {
-        window.open(XIAOHONGSHU_SEARCH_URL, '_blank')
-      }, 1000)
 
     } catch (err) {
       console.error('复制失败:', err)
@@ -115,7 +107,7 @@ export function XiaohongshuInviteModal({ isOpen, onClose }: XiaohongshuInviteMod
                   className="w-full py-4 rounded-full bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white font-serif transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   <Copy className="w-4 h-4" />
-                  {copied ? '已复制，跳转中...' : '一键复制去加入！'}
+                  {copied ? '✅ 已复制' : '一键复制'}
                 </button>
               </div>
             </motion.div>
