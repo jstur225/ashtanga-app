@@ -2588,21 +2588,22 @@ function StatsTab({
     const currentMonth = today.getMonth()
     const currentYear = today.getFullYear()
     let practiceDays = 0
-    let totalMinutes = 0
-    
+    let totalSeconds = 0
+
     practiceHistory.forEach((record) => {
       const date = new Date(record.date)
       // Check if record is in current month and year, and not in future (by string comparison for safety)
       if (date.getMonth() === currentMonth && date.getFullYear() === currentYear && record.date <= todayStr) {
         if (record.duration > 0) {
           practiceDays++
-          totalMinutes += Math.floor(record.duration / 60)
+          totalSeconds += record.duration
         }
       }
     })
-    
-    const avgDuration = practiceDays > 0 ? Math.round(totalMinutes / practiceDays) : 0
-    
+
+    const totalMinutes = Math.round(totalSeconds / 60)
+    const avgDuration = practiceDays > 0 ? Math.round(totalSeconds / practiceDays / 60) : 0
+
     return { practiceDays, totalMinutes, avgDuration }
   }, [practiceHistory, today, todayStr])
 
@@ -2610,17 +2611,20 @@ function StatsTab({
   const totalStats = useMemo(() => {
     let totalDays = 0
     let totalSeconds = 0
-    
+
     practiceHistory.forEach((record) => {
       if (record.duration > 0) {
         totalDays++
         totalSeconds += record.duration
       }
     })
-    
+
+    const avgMinutes = totalDays > 0 ? Math.round(totalSeconds / totalDays / 60) : 0
+
     return {
       totalDays,
       totalHours: Math.round(totalSeconds / 3600),
+      avgMinutes,
     }
   }, [practiceHistory])
 
@@ -2732,7 +2736,7 @@ function StatsTab({
             <div className="text-xs text-muted-foreground font-serif mt-1">总小时</div>
           </div>
           <div className="bg-white rounded-[20px] p-4 text-center shadow-md border border-stone-200">
-            <div className="text-2xl font-serif text-primary">{currentMonthStats.avgDuration}</div>
+            <div className="text-2xl font-serif text-primary">{totalStats.avgMinutes}</div>
             <div className="text-xs text-muted-foreground font-serif mt-1">平均分钟</div>
           </div>
         </div>
