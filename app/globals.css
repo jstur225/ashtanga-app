@@ -140,6 +140,27 @@
   border-image: linear-gradient(135deg, #C1A268, #E5C585, #C1A268) 1;
 }
 
+/* Safari兼容的绿色渐变 - 自动fallback到纯色 */
+@utility green-gradient {
+  background-color: #2D5A27;
+  background-image: -webkit-linear-gradient(bottom right, rgba(74, 122, 68, 0.7), rgba(45, 90, 39, 0.85));
+  background-image: linear-gradient(to top left, rgba(74, 122, 68, 0.7), rgba(45, 90, 39, 0.85));
+}
+
+/* 深色绿色渐变（日历用） */
+@utility green-gradient-deep {
+  background-color: #2D5A27;
+  background-image: -webkit-linear-gradient(bottom right, rgba(74, 122, 68, 0.85), rgba(45, 90, 39, 0.95));
+  background-image: linear-gradient(to top left, rgba(74, 122, 68, 0.85), rgba(45, 90, 39, 0.95));
+}
+
+/* 浅色绿色渐变（选中状态用） */
+@utility green-gradient-light {
+  background-color: rgba(45, 90, 39, 0.15);
+  background-image: -webkit-linear-gradient(bottom right, rgba(74, 122, 68, 0.1), rgba(45, 90, 39, 0.15));
+  background-image: linear-gradient(to top left, rgba(74, 122, 68, 0.1), rgba(45, 90, 39, 0.15));
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

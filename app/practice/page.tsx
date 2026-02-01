@@ -167,7 +167,7 @@ function ZenDatePicker({
                       className={`
                         aspect-square rounded-full flex items-center justify-center text-sm font-serif transition-all
                         ${isSelected
-                          ? 'bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white'
+                          ? 'green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white'
                           : 'text-foreground hover:bg-secondary'
                         }
                       `}
@@ -271,7 +271,7 @@ function CustomPracticeModal({
                 <button
                   onClick={handleConfirm}
                   disabled={!practiceName.trim()}
-                  className="w-full py-4 rounded-full bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white font-serif transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.98] backdrop-blur-sm"
+                  className="w-full py-4 rounded-full green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white font-serif transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.98] backdrop-blur-sm"
                 >
                   添加选项
                 </button>
@@ -405,7 +405,7 @@ function EditOptionModal({
                 <button
                   onClick={handleSave}
                   disabled={!name.trim()}
-                  className="w-full py-4 rounded-full bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white font-serif transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.98]"
+                  className="w-full py-4 rounded-full green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white font-serif transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.98]"
                 >
                   保存
                 </button>
@@ -586,7 +586,7 @@ function EditRecordModal({
                       className={`
                         w-full px-3 py-2.5 rounded-xl font-serif text-left transition-all active:scale-[0.98] text-sm
                         ${type
-                          ? 'bg-gradient-to-br from-[rgba(45,90,39,0.15)] to-[rgba(74,122,68,0.1)] text-primary border border-primary/20'
+                          ? 'green-gradient-light text-primary border border-primary/20'
                           : 'bg-secondary text-muted-foreground hover:bg-secondary/80'
                         }
                       `}
@@ -664,7 +664,7 @@ function EditRecordModal({
 
                 <button
                   onClick={handleSave}
-                  className="w-full py-4 rounded-full bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white font-serif transition-all hover:opacity-90 active:scale-[0.98]"
+                  className="w-full py-4 rounded-full green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white font-serif transition-all hover:opacity-90 active:scale-[0.98]"
                 >
                   保存修改
                 </button>
@@ -919,7 +919,7 @@ function ShareCardModal({
                 <div className="pt-3">
                   <div className="flex items-center gap-2">
                     {/* Avatar */}
-                    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] flex items-center justify-center overflow-hidden">
+                    <div className="w-7 h-7 rounded-full green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] flex items-center justify-center overflow-hidden">
                       {profile.avatar ? (
                         <img src={profile.avatar} alt="头像" className="w-full h-full object-cover" />
                       ) : (
@@ -966,7 +966,7 @@ function ShareCardModal({
                     handleExportImage()
                   }
                 }}
-                className="flex-1 py-3 rounded-full bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white font-serif transition-all hover:opacity-90 active:scale-[0.98] flex items-center justify-center gap-2"
+                className="flex-1 py-3 rounded-full green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white font-serif transition-all hover:opacity-90 active:scale-[0.98] flex items-center justify-center gap-2"
               >
                 <Share2 className="w-4 h-4" />
                 {isNotesModified ? '保存' : '保存图片'}
@@ -1033,7 +1033,7 @@ function ZenSelect({
                   }}
                   className={`w-full px-4 py-2.5 rounded-xl text-left font-serif transition-colors ${
                     value === option.value
-                      ? 'bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white'
+                      ? 'green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white'
                       : 'text-foreground hover:bg-secondary'
                   }`}
                 >
@@ -1183,7 +1183,7 @@ function DatePickerModal({
                       aspect-square rounded-full flex items-center justify-center
                       text-[9px] font-serif transition-all
                       ${hasPractice
-                        ? 'bg-gradient-to-br from-[rgba(45,90,39,0.95)] to-[rgba(74,122,68,0.85)] border border-white/20 shadow-[0_2px_8px_rgba(45,90,39,0.3)] text-white cursor-pointer hover:shadow-[0_2px_12px_rgba(45,90,39,0.45)]'
+                        ? 'green-gradient-deep border border-white/20 shadow-[0_2px_8px_rgba(45,90,39,0.3)] text-white cursor-pointer hover:shadow-[0_2px_12px_rgba(45,90,39,0.45)]'
                         : 'bg-background text-foreground cursor-pointer hover:bg-secondary'
                       }
                     `}
@@ -1279,7 +1279,7 @@ function TypeSelectorModal({
                         min-h-[80px] w-full flex flex-col items-center justify-center
                         ${
                           isSelected
-                            ? "bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] text-primary-foreground backdrop-blur-[16px] border border-white/30 shadow-[0_8px_24px_rgba(45,90,39,0.3)]"
+                            ? "green-gradient text-primary-foreground backdrop-blur-[16px] border border-white/30 shadow-[0_8px_24px_rgba(45,90,39,0.3)]"
                             : isCustomButton
                               ? "bg-background text-muted-foreground border-2 border-dashed border-muted-foreground/30 shadow-[0_2px_12px_rgba(0,0,0,0.03)]"
                               : "bg-card text-foreground shadow-[0_4px_16px_rgba(0,0,0,0.06)]"
@@ -1462,7 +1462,7 @@ function AddPracticeModal({
                     className={`
                       w-full px-3 py-2.5 rounded-xl font-serif text-left transition-all active:scale-[0.98] text-sm
                       ${type
-                        ? 'bg-gradient-to-br from-[rgba(45,90,39,0.15)] to-[rgba(74,122,68,0.1)] text-primary border border-primary/20'
+                        ? 'green-gradient-light text-primary border border-primary/20'
                         : 'bg-secondary text-muted-foreground hover:bg-secondary/80'
                       }
                     `}
@@ -1541,7 +1541,7 @@ function AddPracticeModal({
               <button
                 onClick={handleSave}
                 disabled={!date || !type}
-                className="w-full py-4 rounded-full bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white font-serif transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-50"
+                className="w-full py-4 rounded-full green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white font-serif transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-50"
               >
                 保存练习
               </button>
@@ -1714,7 +1714,7 @@ function SettingsModal({
                 onClick={() => setActiveSection('profile')}
                 className={`flex-1 py-2 rounded-full text-sm font-serif transition-all ${
                   activeSection === 'profile' 
-                    ? 'bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white' 
+                    ? 'green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white' 
                     : 'bg-secondary text-foreground'
                 }`}
               >
@@ -1724,7 +1724,7 @@ function SettingsModal({
                 onClick={() => setActiveSection('data')}
                 className={`flex-1 py-2 rounded-full text-sm font-serif transition-all ${
                   activeSection === 'data' 
-                    ? 'bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white' 
+                    ? 'green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white' 
                     : 'bg-secondary text-foreground'
                 }`}
               >
@@ -1852,7 +1852,7 @@ function SettingsModal({
               <div className="pt-4">
                 <button
                   onClick={handleSave}
-                  className="w-full py-4 rounded-full bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] text-white font-serif shadow-lg hover:opacity-90 active:scale-[0.98] transition-all"
+                  className="w-full py-4 rounded-full green-gradient text-white font-serif shadow-lg hover:opacity-90 active:scale-[0.98] transition-all"
                 >
                   保存设置
                 </button>
@@ -1905,7 +1905,7 @@ function ConfirmEndDialog({
               </button>
               <button
                 onClick={onConfirm}
-                className="flex-1 py-3 rounded-full bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white font-serif transition-all hover:opacity-90 active:scale-[0.98]"
+                className="flex-1 py-3 rounded-full green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white font-serif transition-all hover:opacity-90 active:scale-[0.98]"
               >
                 结束
               </button>
@@ -2026,7 +2026,7 @@ function CompletionSheet({
 
               <button
                 onClick={handleSave}
-                className="w-full py-4 rounded-full bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white font-serif transition-all hover:opacity-90 active:scale-[0.98]"
+                className="w-full py-4 rounded-full green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white font-serif transition-all hover:opacity-90 active:scale-[0.98]"
               >
                 保存练习
               </button>
@@ -2141,7 +2141,7 @@ function MonthlyHeatmap({
         <div className="w-[calc((100%-12px)/7)] flex justify-center">
           <button
             onClick={onAddRecord}
-            className="w-8 h-8 rounded-full bg-gradient-to-br from-[rgba(45,90,39,0.95)] to-[rgba(74,122,68,0.85)] border border-white/20 shadow-[0_2px_8px_rgba(45,90,39,0.2)] flex items-center justify-center text-white"
+            className="w-8 h-8 rounded-full green-gradient-deep border border-white/20 shadow-[0_2px_8px_rgba(45,90,39,0.2)] flex items-center justify-center text-white"
           >
             <Plus className="w-4 h-4" />
           </button>
@@ -2165,7 +2165,7 @@ function MonthlyHeatmap({
               disabled={!practiced}
               className={`aspect-square rounded-full flex items-center justify-center text-[9px] font-serif transition-all ${
                 practiced
-                  ? 'bg-gradient-to-br from-[rgba(45,90,39,0.95)] to-[rgba(74,122,68,0.85)] border border-white/20 shadow-[0_2px_8px_rgba(45,90,39,0.3)] text-white cursor-pointer hover:shadow-[0_2px_12px_rgba(45,90,39,0.45)]'
+                  ? 'green-gradient-deep border border-white/20 shadow-[0_2px_8px_rgba(45,90,39,0.3)] text-white cursor-pointer hover:shadow-[0_2px_12px_rgba(45,90,39,0.45)]'
                   : day === null
                     ? 'bg-transparent'
                     : isPast
@@ -2197,7 +2197,7 @@ function SyncButton({ onOpenFakeDoor, hasVoted }: { onOpenFakeDoor: () => void; 
       onClick={handleClick}
       className={`relative w-8 h-8 rounded-full backdrop-blur-md border border-white/20 shadow-[0_2px_8px_rgba(45,90,39,0.2)] flex items-center justify-center transition-all ${
         hasVoted 
-          ? 'bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)]' 
+          ? 'green-gradient' 
           : 'bg-stone-400'
       }`}
     >
@@ -2390,7 +2390,7 @@ function JournalTab({
               
               {/* Center: Vertical line with Dot - balanced whitespace on both sides */}
               <div className="w-[1px] bg-border flex-shrink-0 self-stretch relative">
-                <div className={`absolute mt-[10px] left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full ${practice.breakthrough ? 'bg-gradient-to-br from-[#e67e22] to-[#f39c12]' : 'bg-gradient-to-br from-[rgba(45,90,39,0.9)] to-[rgba(74,122,68,0.8)]'}`} />
+                <div className={`absolute mt-[10px] left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full ${practice.breakthrough ? 'bg-gradient-to-br from-[#e67e22] to-[#f39c12]' : 'green-gradient-deep'}`} />
               </div>
 
               {/* Right Column: Content - Left-aligned with matching breathing room */}
@@ -2460,7 +2460,7 @@ function JournalTab({
             exit={{ opacity: 0, y: 20 }}
             transition={{ duration: 0.5, ease: "easeOut" }}
             onClick={scrollToTop}
-            className="fixed bottom-32 right-10 z-40 w-14 h-14 rounded-full bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] backdrop-blur-md border border-white/20 shadow-[0_8px_32px_rgba(45,90,39,0.4)] flex items-center justify-center text-white hover:shadow-[0_8px_40px_rgba(45,90,39,0.5)] transition-shadow active:scale-95"
+            className="fixed bottom-32 right-10 z-40 w-14 h-14 rounded-full green-gradient backdrop-blur-md border border-white/20 shadow-[0_8px_32px_rgba(45,90,39,0.4)] flex items-center justify-center text-white hover:shadow-[0_8px_40px_rgba(45,90,39,0.5)] transition-shadow active:scale-95"
           >
             <ChevronUp className="w-6 h-6" />
           </motion.button>
@@ -2475,7 +2475,7 @@ function ProBadge({ isPro }: { isPro: boolean }) {
   return (
     <span className={`ml-2 px-2 py-0.5 text-[10px] font-serif rounded ${
       isPro 
-        ? 'bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white' 
+        ? 'green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white' 
         : 'bg-muted text-muted-foreground'
     }`}>
       PRO
@@ -2678,7 +2678,7 @@ function StatsTab({
       <div className="px-6 pb-48">
         {/* Profile Section with PRO Badge - NOW FIRST */}
         <div className="flex flex-col items-center mb-6">
-          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] flex items-center justify-center mb-3 overflow-hidden">
+          <div className="w-20 h-20 rounded-full green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] flex items-center justify-center mb-3 overflow-hidden">
             {profile.avatar ? (
               <img src={profile.avatar || "/placeholder.svg"} alt="头像" className="w-full h-full object-cover" />
             ) : (
@@ -2735,7 +2735,7 @@ function StatsTab({
                   onClick={() => { setViewMode(mode); setDateOffset(0) }}
                   className={`px-2 py-1 rounded-full text-xs font-mono transition-all ${
                     viewMode === mode
-                      ? 'bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] text-white shadow-sm'
+                      ? 'green-gradient text-white shadow-sm'
                       : 'text-stone-400 hover:text-stone-600'
                   }`}
                 >
@@ -2767,7 +2767,7 @@ function StatsTab({
                     }}
                     className={`${dotConfig.size} ${dotConfig.rounded} transition-colors ${
                       heatmapData[dateStr]
-                        ? 'bg-gradient-to-br from-[rgba(45,90,39,0.9)] to-[rgba(74,122,68,0.8)] shadow-[0_2px_8px_rgba(45,90,39,0.3)]'
+                        ? 'green-gradient-deep shadow-[0_2px_8px_rgba(45,90,39,0.3)]'
                         : 'bg-stone-200'
                     }`}
                   />
@@ -3289,7 +3289,7 @@ export default function AshtangaTracker() {
             </div>
             
             {/* Main circle with glassmorphism gradient border - scaled down 30% */}
-            <div className={`w-[200px] h-[200px] sm:w-[220px] sm:h-[220px] rounded-full bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] p-[2px] shadow-[0_12px_48px_rgba(45,90,39,0.45)] ${!isPaused ? 'animate-breathe' : ''}`}>
+            <div className={`w-[200px] h-[200px] sm:w-[220px] sm:h-[220px] rounded-full green-gradient p-[2px] shadow-[0_12px_48px_rgba(45,90,39,0.45)] ${!isPaused ? 'animate-breathe' : ''}`}>
               <div className="w-full h-full rounded-full bg-background/95 backdrop-blur-[16px] flex flex-col items-center justify-center border border-white/30 relative">
                 {/* Timer display - Minutes large, unit below */}
                 <div className="flex flex-col items-center">
@@ -3347,7 +3347,7 @@ export default function AshtangaTracker() {
             <motion.button
               whileTap={{ scale: 0.95 }}
               onClick={handleEndRequest}
-              className="px-8 py-4 rounded-full bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white font-serif shadow-[0_4px_20px_rgba(45,90,39,0.2)] hover:opacity-90 transition-opacity"
+              className="px-8 py-4 rounded-full green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white font-serif shadow-[0_4px_20px_rgba(45,90,39,0.2)] hover:opacity-90 transition-opacity"
             >
               结束
             </motion.button>
@@ -3404,7 +3404,7 @@ export default function AshtangaTracker() {
                     min-h-[72px] w-full flex flex-col items-center justify-center
                     ${
                       isSelected
-                        ? "bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] text-primary-foreground backdrop-blur-[16px] border border-white/30 shadow-[0_8px_24px_rgba(45,90,39,0.3)]"
+                        ? "green-gradient text-primary-foreground backdrop-blur-[16px] border border-white/30 shadow-[0_8px_24px_rgba(45,90,39,0.3)]"
                         : isCustomButton
                           ? "bg-background text-muted-foreground border-2 border-dashed border-muted-foreground/30 shadow-[0_2px_12px_rgba(0,0,0,0.03)]"
                           : "bg-background text-foreground shadow-[0_4px_16px_rgba(0,0,0,0.06)] border border-stone-100/50"
@@ -3445,7 +3445,7 @@ export default function AshtangaTracker() {
                 w-36 h-36 rounded-full flex items-center justify-center relative overflow-hidden
                 transition-colors duration-500
                 ${selectedOption
-                  ? "bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] cursor-pointer backdrop-blur-[16px] border border-white/30 shadow-[0_12px_48px_rgba(45,90,39,0.45)]"
+                  ? "green-gradient cursor-pointer backdrop-blur-[16px] border border-white/30 shadow-[0_12px_48px_rgba(45,90,39,0.45)]"
                   : "bg-muted/50 backdrop-blur-sm"
                 }
               `}
