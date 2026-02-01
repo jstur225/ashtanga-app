@@ -2728,8 +2728,8 @@ function StatsTab({
         {/* Stats Cards - NOW SECOND */}
         <div className="grid grid-cols-3 gap-3 mb-4">
           <div className="bg-white rounded-[20px] p-4 text-center shadow-md border border-stone-200">
-            <div className="text-2xl font-serif text-primary">{currentMonthStats.practiceDays}</div>
-            <div className="text-xs text-muted-foreground font-serif mt-1">本月天数</div>
+            <div className="text-2xl font-serif text-primary">{totalStats.totalDays}</div>
+            <div className="text-xs text-muted-foreground font-serif mt-1">总练习天数</div>
           </div>
           <div className="bg-white rounded-[20px] p-4 text-center shadow-md border border-stone-200">
             <div className="text-2xl font-serif text-primary">{totalStats.totalHours}</div>
