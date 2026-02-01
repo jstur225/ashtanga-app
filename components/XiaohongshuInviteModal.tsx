@@ -100,6 +100,14 @@ export function XiaohongshuInviteModal({ isOpen, onClose }: XiaohongshuInviteMod
                   入股不亏，垫子上见！🧘‍♂️
                 </p>
 
+                {/* 复制框 - 可手动选择复制 */}
+                <div className="bg-secondary/50 rounded-xl p-3 space-y-2">
+                  <p className="text-xs text-muted-foreground font-mono">📋 复制下方内容</p>
+                  <div className="bg-background rounded-lg p-3 text-xs text-muted-foreground font-mono break-all select-text">
+                    {XIAOHONGSHU_INVITE_TEXT}
+                  </div>
+                </div>
+
                 {/* 复制按钮 */}
                 <button
                   onClick={handleCopyAndJump}
