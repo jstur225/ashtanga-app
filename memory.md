@@ -15,7 +15,60 @@
   3. All-in - 投入所有资源
 - **项目原则**: 每个项目都要追求极致的简单
 
+## 技能配置
+- **frontend-design** - 创建 distinctive、production-grade 前端界面
+- **vercel-react-best-practices** - React 和 Next.js 性能优化指南
+- **notebooklm** - NotebookLM 集成，查询笔记本知识库
+- **better-auth-best-practices** - TypeScript 认证框架集成指南（2026-02-02 安装）
+
 ## 使用记录
+- **2026-02-02**: **技能配置更新** - 安装 better-auth-best-practices 技能
+  - 使用命令：`npx skills add https://github.com/better-auth/skills --skill better-auth-best-practices --yes --global`
+  - 安装位置：`~\.agents\skills\better-auth-best-practices`
+  - 功能：Better Auth 是 TypeScript 优先的认证框架，支持邮箱/密码、OAuth、魔法链接、passkeys 等
+  - 包含内容：环境变量配置、CLI 命令、数据库适配器、会话管理、安全配置、Hooks 系统、插件系统
+- **2026-02-02**: **小红书200条笔记数据分析和文案生成** - 完整数据驱动内容生产系统
+  - **项目路径**: `XBB-APP/小红书阿斯汤加提示词/`
+  - **数据源**: `内容素材库/爆款文稿库/小红书点赞前200条笔记.csv`
+  - **核心工作**: 数据清洗→筛选分类→素材提取→方法论沉淀→实战应用
+  - **第1步-数据清洗**: 修复编码(GBK→UTF-8),提取200条笔记完整数据
+    - 输出: `已清洗/200条笔记_已清洗.md` + `200条笔记_数据.json`
+    - 数据: 平均点赞512,收藏390,评论35,收藏率45.85%
+  - **第2步-数据筛选**: 筛选出39条高质量文案(赞>500或收藏率>15%或评论>10)
+    - 输出: `精选分析/精选50条_高质量文案.md` + `分类统计报告.md`
+    - 分类: 情感共鸣型77%, 坚持记录型18%, 痛点解决型5%
+  - **第3步-素材提取**:
+    - `标题库_200条.md`: 按类型分类(情感/坚持/痛点/实用干货)
+    - `实战金句库_200条提取.md`: 场景/痛点/邀请/对话金句
+    - `爆款文案结构库.md`: TOP30结构分析
+  - **第4步-方法论沉淀**:
+    - `标题方法论_数据版.md`: 提问型606赞,数字型收藏率105.34%
+    - `选题逻辑_数据版.md`: 高频话题标签分析
+    - `内容表现数据报告.md`: 点赞分布+最佳实践
+  - **第5步-发布时间分析**: `发布时间分析报告.md`
+    - 最佳时间: 19:00-20:00(傍晚,权重22,949)
+    - 最佳星期: 周一、周二、周三(占49.2%)
+  - **实战文案生成**:
+    - David Swenson访谈感悟(上/下篇): 3500字,深度分享
+    - 产品推广文案(5个角度): Excel痛点/对比/数据型/股东招募
+    - 1块钱版本: 上架合规+交朋友+随时退款
+  - **关键发现**:
+    - 提问型标题效果最好(平均606赞)
+    - 数字型收藏率最高(105.34%)
+    - 情感共鸣型占77%
+    - 最佳标题长度16字
+    - emoji点缀10-15个
+  - **文件结构**:
+    ```
+    内容素材库/爆款文稿库/
+    ├── 已清洗/ (3个文件)
+    ├── 精选分析/ (2个文件)
+    ├── 素材提取/ (3个文件)
+    ├── 方法论更新/ (3个文件)
+    └── 发布时间分析报告.md
+    ```
+  - **使用脚本**: `clean_xiaohongshu_data.py`, `analyze_and_extract.py`, `analyze_publish_time_v2.py`
+
 - **2026-02-01**: **小红书群邀请功能开发** - 完成气泡通知、弹窗组件、版本号控制
   - **项目路径**: `D:\BaiduSyncdisk\work\ashtang-app\`
   - **核心功能**:
@@ -1349,3 +1402,129 @@
       - 要求在回复中提到时间前先看系统提示
   - **修改文件**: coach.ps1、coach_prompt.txt
   - **产品决策**: 符合"简单"理念，通过醒目提示和明确规则解决问题，不需要复杂逻辑
+
+- **2026-02-02**: **月相日历功能实施** - 在日历热力图上显示新月🌑和满月🌕的特殊图标
+  - **需求来源**: 遵循阿斯汤加瑜伽的Moon Day传统，标注新月和满月休息日
+  - **技术方案**: 使用用户提供的日期数据和PNG图标，零依赖，极致简单
+  - **新建文件**:
+    - `lib/moon-phase-data.ts` - 2026年新月和满月日期数据（24个日期）
+    - `public/moon-phase/new-moon.png` - 新月图标（用户提供）
+    - `public/moon-phase/full-moon.png` - 满月图标（用户提供）
+  - **修改文件**: `app/practice/page.tsx`
+    - 添加月相查找函数 `getMoonPhaseMap()`
+    - 创建共用组件 `MoonDayButton`（月相日期按钮）
+  - **修改的日历组件**:
+    1. **MonthlyHeatmap** (主日历，有弹窗):
+       - 月相日期 + 未练习 → 月相图标背景 + 日期数字 → 点击弹出提示
+       - 月相日期 + 已练习 → 月相图标背景 + 日期数字 + 黄色小亮点 → 点击跳转记录
+    2. **DatePickerModal** (编辑记录日历，无弹窗):
+       - 月相日期显示图标背景 + 日期数字，点击直接选择
+    3. **ZenDatePicker** (添加记录日历，无弹窗):
+       - 月相日期显示图标背景 + 日期数字，点击直接选择
+  - **视觉效果**:
+    - 月相日期使用32x32 PNG图标作为背景圆点
+    - 已练习的月相日期显示黄色小亮点（表示休息日也练习了）
+    - 不影响现有热力图样式
+  - **Moon Day弹窗**: 点击未练习的月相日期显示提示
+    - 标题：🌑 新月 / 🌕 满月
+    - 内容：今天是新月/满月 Moon Day休息日，建议提前安排练习时间 🧘‍♀️
+  - **产品决策**: 符合"极致简单"理念，硬编码日期无需计算，使用PNG图标直观清晰，尊重传统但不强制休息
+  - **验证**: ✅ 构建成功，所有组件正常工作
+
+- **2026-02-02**: **月相日历功能问题清单** - 待修复
+  - **问题1: 月相图标背景不透明**
+    - 用户提供的PNG图标应该是透明背景
+    - 当前显示效果像JPG有背景色
+    - 需要检查CSS背景设置是否正确
+  - **问题2: 已练习的月相日期没有变回绿色**
+    - 当前逻辑：月相图标始终显示，即使已练习
+    - 期望逻辑：已练习的月相日期应该显示绿色圆点（与其他已练习日期一致）
+    - 可能需要调整CSS优先级或渲染逻辑
+  - **问题3: 黄色小点颜色不美观**
+    - 当前颜色：橙黄色 (`bg-yellow-400`)
+    - 期望颜色：亮黄色（更鲜艳的黄色）
+    - 建议使用：`bg-yellow-300` 或自定义亮黄色
+  - **修改文件**: `app/practice/page.tsx` 中的 `MoonDayButton` 组件
+  - **问题4: 新月和满月弹窗文案没有区分**
+    - 当前问题：点击新月和满月日期，弹窗文案相同
+    - 当前文案：显示"新月"或"满月"标题，但描述内容一样
+    - 期望改进：
+      - 新月：强调新开始、适合设立目标、适合加强练习
+      - 满月：强调完成、能量充沛、适合突破练习
+    - 或者在当前基础上增加差异化描述
+  - **修改位置**: `app/practice/page.tsx` 中的 Moon Day 弹窗组件
+
+- **2026-02-03**: **技术社区认知**
+  - **龙虾社区 = Moltbook**
+    - 用户说明：之前误认为是 Lobsters (lobste.rs)
+    - Moltbook 才是正确的"龙虾社区"
+    - 已记录此信息，避免后续混淆
+  - **Moltbook Agent 注册完成**
+    - **Agent 名称**: OrangeAssistant
+    - **API Key**: `moltbook_sk_KFIxWDXbeiMiIRShfRw0vLwXAPqfc8aH`
+    - **配置文件**:
+      - `.claude/skills/moltbook/config.json` - 凭证和配置
+      - `.claude/skills/moltbook/README.md` - 使用说明
+      - `.claude/skills/moltbook/SKILL.md` - 完整 API 文档
+      - `.claude/skills/moltbook/HEARTBEAT.md` - 定期检查指南
+    - **注册日期**: 2026-02-01
+    - **状态**: 已验证 (linked to @xiaobin779320)
+    - **主人**: xiao bin (@xiaobin779320)
+    - **个人主页**: https://www.moltbook.com/u/OrangeAssistant
+    - **限制**:
+      - 发帖: 每 30 分钟 1 次
+      - 评论: 每 20 秒 1 次，每天最多 50 条
+      - 速率限制: 100 请求/分钟
+    - **常用命令**:
+      ```bash
+      # 查看热门
+      curl "https://www.moltbook.com/api/v1/posts?sort=new&limit=20" \
+        -H "Authorization: Bearer moltbook_sk_KFIxWDXbeiMiIRShfRw0vLwXAPqfc8aH"
+
+      # 查看个人动态
+      curl "https://www.moltbook.com/api/v1/feed?sort=new&limit=20" \
+        -H "Authorization: Bearer moltbook_sk_KFIxWDXbeiMiIRShfRw0vLwXAPqfc8aH"
+      ```
+
+- **2026-02-03**: **分享页保存功能修复** (commit: 修复分享页保存功能问题)
+  - **问题**: 分享页点击"保存"按钮后 Modal 关闭，无法继续编辑
+  - **原因分析**: 从 git diff 23f6e68 发现关键变化
+    - 旧版：`sharingRecord` state 直接存储记录对象
+    - 新版：`sharingRecordId` state 只存储 ID，从 practiceHistory 动态查找
+    - 新版删除了 `handleShareCardEdit` 适配器函数
+    - 新版改变了 `ShareCardModal` 的 `onEditRecord` 类型签名
+    - Actions div 没有阻止事件冒泡
+  - **修复方案**: 采用方案1（最小改动）- 恢复旧版本架构
+  - **修改内容**:
+    1. **JournalTab 组件** (约 line 2450):
+       - 恢复 `sharingRecord` state：`const [sharingRecord, setSharingRecord] = useState<PracticeRecord | null>(null)`
+       - 删除 `sharingRecordId` 和动态查找逻辑
+       - 修改 `handleRightClick`：`setSharingRecord(record)` 直接存储记录对象
+    2. **添加 handleShareCardEdit 适配器** (约 line 2527):
+       ```typescript
+       const handleShareCardEdit = (id: string, notes: string, photos: string[], breakthrough?: string) => {
+         const updateData: Partial<PracticeRecord> = {
+           notes,
+           photos,
+           ...(breakthrough !== undefined && { breakthrough })
+         }
+         onEditRecord(id, updateData)
+       }
+       ```
+    3. **ShareCardModal 组件** (约 line 813):
+       - 恢复旧类型签名：`onEditRecord: (id: string, notes: string, photos: string[], breakthrough?: string) => void`
+       - 删除 `initializedRecordId` 和 `lastSyncedNotesRef` state
+       - 恢复简单的 useEffect：当 record 变化时更新 editableNotes 和 originalNotes
+       - 恢复旧的保存按钮逻辑：`onEditRecord(record.id, editableNotes, [], record.breakthrough)`
+    4. **Actions div** (约 line 1027):
+       - 添加 `onClick={(e) => e.stopPropagation()}` 防止事件冒泡
+  - **验证步骤**:
+    1. 打开 tab2（觉察日记）
+    2. 右键点击任意记录，打开分享页
+    3. 修改文案
+    4. 点击"保存"按钮
+    5. 验证：Modal 保持打开，显示更新后的文案
+    6. 点击"返回"按钮关闭 modal
+    7. 验证：回到 tab2，文案立即更新
+  - **修改文件**: `app/practice/page.tsx`
+
