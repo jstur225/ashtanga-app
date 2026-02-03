@@ -210,7 +210,6 @@ function MoonDayButton({
   practiced,
   isPast,
   hasBreakthrough,
-  children,
   className,
   ...props
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -219,7 +218,6 @@ function MoonDayButton({
   practiced: boolean
   isPast?: boolean
   hasBreakthrough?: boolean
-  children: React.ReactNode
 }) {
   // 修复：已练习的月相日期应该优先显示绿色，而不是月相图标
   const isMoonDayNotPracticed = moonInfo && !practiced
@@ -240,7 +238,7 @@ function MoonDayButton({
         // 只有未练习的月相日期才显示月相图标背景
         isMoonDayNotPracticed ? {
           backgroundImage: `url(${moonInfo!.icon})`,
-          backgroundSize: '40px 40px',
+          backgroundSize: 'contain',
           backgroundRepeat: 'no-repeat',
           backgroundPosition: 'center',
           boxShadow: 'none'
@@ -259,8 +257,6 @@ function MoonDayButton({
       {hasBreakthrough && !moonInfo && (
         <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-1 h-1 bg-[#e67e22] rounded-full z-20 shadow-[0_0_6px_rgba(230,126,34,0.8)]" />
       )}
-
-      {children}
     </button>
   )
 }
