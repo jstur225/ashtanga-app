@@ -255,7 +255,7 @@ function MoonDayButton({
 
       {/* 突破日：显示橙色小亮点（非月相日期） */}
       {hasBreakthrough && !moonInfo && (
-        <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-1 h-1 bg-[#e67e22] rounded-full z-20 shadow-[0_0_6px_rgba(230,126,34,0.8)]" />
+        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-1 h-1 bg-[#e67e22] rounded-full z-20 shadow-[0_0_6px_rgba(230,126,34,0.8)]" />
       )}
     </button>
   )
