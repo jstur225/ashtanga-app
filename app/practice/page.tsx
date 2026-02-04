@@ -250,7 +250,7 @@ function MoonDayButton({
 
       {/* 月相日期且已练习：显示黄色小亮点 */}
       {moonInfo && practiced && (
-        <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-1 h-1 bg-[#FFE066] rounded-full z-20 shadow-[0_0_6px_rgba(255,224,102,0.8)]" />
+        <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-[#FFE066] rounded-full z-20 shadow-[0_0_6px_rgba(255,224,102,0.8)]" />
       )}
 
       {/* 突破日：显示橙色小亮点（非月相日期） */}
