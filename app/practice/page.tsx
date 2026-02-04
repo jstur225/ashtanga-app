@@ -992,7 +992,7 @@ function ShareCardModal({
                       <div className="text-2xl font-serif font-bold text-foreground">
                         {totalHours} <span className="text-sm font-normal">小时</span>
                       </div>
-                      <div className="text-[10px] text-muted-foreground font-serif">熬汤时长</div>
+                      <div className="text-[10px] text-muted-foreground font-serif">累计熬汤时长</div>
                     </div>
                   </div>
 
