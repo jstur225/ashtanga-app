@@ -824,7 +824,7 @@ function ShareCardModal({
       setEditableNotes(notes)
       setOriginalNotes(notes)
     }
-  }, [record])
+  }, [record, record?.notes])
 
   // 早期返回必须在所有 Hooks 之后
   if (!record) return null
@@ -1023,13 +1023,22 @@ function ShareCardModal({
               {/* Actions (outside screenshot area, but inside stopPropagation div) */}
               <div className="flex gap-3" onClick={(e) => e.stopPropagation()}>
                 <button
-                  onClick={onClose}
+                  type="button"
+                  onMouseDown={(e) => {
+                    e.stopPropagation()
+                    e.preventDefault()
+                    onClose()
+                  }}
                   className="flex-1 py-3 rounded-full bg-secondary text-foreground font-serif transition-all hover:bg-secondary/80 active:scale-[0.98]"
                 >
                   返回
                 </button>
                 <button
-                  onClick={() => {
+                  type="button"
+                  onMouseDown={(e) => {
+                    console.log('💾 保存按钮')
+                    e.stopPropagation()
+                    e.preventDefault()
                     if (isNotesModified) {
                       // 保存文案，但不关闭模态框
                       if (record) {
@@ -2404,7 +2413,7 @@ function JournalTab({
   showAddModal: boolean
   onSetShowAddModal: (show: boolean) => void
 }) {
-  const [sharingRecord, setSharingRecord] = useState<PracticeRecord | null>(null)
+  const [sharingRecordId, setSharingRecordId] = useState<string | null>(null)
   const [childModalOpen, setChildModalOpen] = useState(false)
   const [showBackToTop, setShowBackToTop] = useState(false)
   const [highlightedDate, setHighlightedDate] = useState<string | null>(null)
@@ -2413,6 +2422,13 @@ function JournalTab({
 
   // 月相Map
   const moonPhaseMap = useMemo(() => getMoonPhaseMap(), [])
+
+  // 根据 ID 从最新的 practiceHistory 中查找记录
+  const sharingRecord = useMemo(() => {
+    return sharingRecordId
+      ? practiceHistory.find(r => r.id === sharingRecordId) || null
+      : null
+  }, [sharingRecordId, practiceHistory])
 
   // 提取练习类型名称（去除备注）
   const getTypeDisplayName = (type: string) => {
@@ -2478,7 +2494,7 @@ function JournalTab({
   // Right click -> Share card
   const handleRightClick = (record: PracticeRecord, e: React.MouseEvent) => {
     e.stopPropagation()
-    setSharingRecord(record)
+    setSharingRecordId(record.id)
   }
 
   // Share card edit adapter - converts old signature to new
@@ -2594,7 +2610,7 @@ function JournalTab({
 
       <ShareCardModal
         isOpen={!!sharingRecord}
-        onClose={() => setSharingRecord(null)}
+        onClose={() => setSharingRecordId(null)}
         record={sharingRecord}
         profile={profile}
         totalPracticeCount={totalPracticeCount}
@@ -3221,10 +3237,7 @@ export default function AshtangaTracker() {
   }
 
   const handleEditRecord = (id: string, data: Partial<PracticeRecord>) => {
-    console.log('🔧 handleEditRecord called:', { id, data, currentNotes: data.notes })
     const result = updateRecord(id, data)
-    console.log('✅ updateRecord completed')
-    console.log('📊 current practiceHistory length:', practiceHistory.length)
     toast.success('更新成功')
     return result
   }

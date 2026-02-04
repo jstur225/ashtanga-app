@@ -1528,3 +1528,96 @@
     7. 验证：回到 tab2，文案立即更新
   - **修改文件**: `app/practice/page.tsx`
 
+
+- **2026-02-03**: **月相功能开发和分支管理**
+  - **背景**: dev 分支有月相功能但分享页有 bug，master 分支无月相功能但有其他修复
+  - **目标**: 从 master 创建 dev2 分支，添加月相功能
+  
+  - **执行步骤**:
+    1. 生成月相功能 patch: `git format-patch -1 21a2073`
+    2. 从 master 创建 dev2: `git checkout master && git checkout -b dev2`
+    3. Patch 应用失败，采用手动迁移方案
+    
+  - **手动迁移内容**:
+    1. **新增文件**:
+       - `lib/moon-phase-data.ts` - 月相数据（2026年新月满月日期）
+       - `public/moon-phase/full-moon.png` - 满月图标
+       - `public/moon-phase/new-moon.png` - 新月图标
+    
+    2. **app/practice/page.tsx 修改**:
+       - 添加月相相关导入和常量
+       - 新增 `getMoonPhaseMap()` 函数
+       - 新增 `MoonDayButton` 组件（统一的月相日期按钮）
+       - ZenDatePicker、DatePickerModal、MonthlyHeatmap 中集成月相显示
+       - MonthlyHeatmap 添加月相弹窗提示
+       - JournalTab 时间线添加月相黄色标记
+       - ShareCardModal 添加 stopPropagation
+       - 更新 handleEditRecord 格式
+       - StatsTab 文字修改（总小时→总熬汤时长）
+    
+  - **遇到的问题和修复**:
+    1. **TypeScript 错误**: MoonDayButton 缺少 children 属性
+       - 修复：添加 children 参数，但导致日期重复显示（11223344）
+    
+    2. **日期数字重复显示**: MoonDayButton 内部已有 `<span>{day}</span>`，调用时又传递 children
+       - 修复：移除 children 参数，组件内部自己渲染 day
+    
+    3. **月相图标不自适应**: backgroundSize 固定 40px
+       - 修复：改为 `backgroundSize: 'contain'` 实现自适应
+    
+    4. **分享页保存问题仍未完全解决**:
+       - 已有记录编辑文案保存正常
+       - 新建记录编辑文案保存不生效
+       - 原因：onEditRecord 调用格式不一致
+       - 修复：统一使用旧格式（通过 handleShareCardEdit 适配器）
+  
+  - **当前状态**:
+    - dev 分支：包含月相功能，分享页保存功能已修复
+    - dev2 分支：基于 master 创建，包含月相功能（未充分测试）
+    - master 分支：无月相功能，但有头像修复、数据迁移、日历限制解除等
+  
+  - **提交记录**:
+    - `81971b1` feat: 从 master 创建 dev2 分支并添加月相功能
+    - `2d4a34c` fix: 修复日历数字重复显示问题和月相图标自适应
+  
+  - **待解决问题**:
+    - 分享页新建记录保存功能需要测试验证
+    - 需要决定是否合并 dev2 到 master 或继续使用 dev 分支
+
+- **2026-02-04**: **修复分享页文案无法保存问题** (新建记录)
+  - **问题**: 新建记录的分享卡片修改文案后点击"保存"按钮，文案无法更新，但已有记录编辑保存正常
+  - **根本原因**: sharingRecord 持有过期的对象引用
+    - addRecord() 创建新记录 → 返回 newRecord 对象
+    - 排序时创建新数组 sortedRecords（包含复制的对象）
+    - 用户点击新记录 → sharingRecord 持有 step 2 的对象引用
+    - 用户点击"保存" → updateRecord 执行 map 操作又创建新对象
+    - 问题：sharingRecord 仍然持有旧引用，无法获取更新后的数据
+    - ShareCardModal 的 useEffect 检测不到对象变化 → UI 不更新
+  - **修复方案**: 将 sharingRecord 从"存储对象引用"改为"存储 ID + 动态查找"
+  - **修改文件**: `app/practice/page.tsx`
+  - **修改内容**:
+    1. **state 类型定义** (line 2407):
+       ```typescript
+       const [sharingRecordId, setSharingRecordId] = useState<string | null>(null)
+       ```
+    2. **添加计算属性** (line 2417-2422):
+       ```typescript
+       const sharingRecord = useMemo(() => {
+         return sharingRecordId
+           ? practiceHistory.find(r => r.id === sharingRecordId) || null
+           : null
+       }, [sharingRecordId, practiceHistory])
+       ```
+    3. **handleRightClick 修改** (line 2488):
+       ```typescript
+       setSharingRecordId(record.id)
+       ```
+    4. **ShareCardModal onClose 修改** (line 2604):
+       ```typescript
+       onClose={() => setSharingRecordId(null)}
+       ```
+  - **关键优势**:
+    - 通过存储 ID 而非对象引用，确保始终获取最新数据
+    - useMemo 动态查找机制让 useEffect 能正确检测到数据变化
+    - 对已有记录无影响，向后兼容
+
