@@ -238,7 +238,7 @@ function MoonDayButton({
         // 只有未练习的月相日期才显示月相图标背景
         isMoonDayNotPracticed ? {
           backgroundImage: `url(${moonInfo!.icon})`,
-          backgroundSize: 'contain',
+          backgroundSize: '105%',
           backgroundRepeat: 'no-repeat',
           backgroundPosition: 'center',
           boxShadow: 'none'
