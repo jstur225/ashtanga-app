@@ -6,6 +6,7 @@ import { supabase, TABLES } from '@/lib/supabase'
 import type { PracticeRecord, PracticeOption, UserProfile } from '@/lib/supabase'
 
 type SyncStatus = 'idle' | 'syncing' | 'success' | 'error'
+type ConflictStrategy = 'remote' | 'local' | 'merge'
 
 export function useSync(
   user: any,
@@ -14,7 +15,8 @@ export function useSync(
     options: PracticeOption[]
     profile: UserProfile
   },
-  onSyncComplete: (data: any) => void
+  onSyncComplete: (data: any) => void,
+  onConflictDetected?: (localCount: number, remoteCount: number) => void
 ) {
   const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle')
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null)
@@ -32,7 +34,7 @@ export function useSync(
 
   // ==================== 应用级自动同步 ====================
   useEffect(() => {
-    if (user && localData.records.length > 0) {
+    if (user && localData.records.length >= 0) {
       // 用户登录后，立即启动自动同步
       autoSync()
     }
@@ -52,26 +54,55 @@ export function useSync(
         throw new Error('下载云端数据失败')
       }
 
-      // 2. 对比本地和云端数据
-      const localIds = new Set(localData.records.map(r => r.id))
-      const remoteIds = new Set(remoteData.records.map(r => r.id))
+      const localCount = localData.records.length
+      const remoteCount = remoteData.records.length
 
-      const localOnly = localData.records.filter(r => !remoteIds.has(r.id))
-      const remoteOnly = remoteData.records.filter(r => !localIds.has(r.id))
-
-      // 3. 检查是否需要同步
-      if (localOnly.length === 0 && remoteOnly.length === 0) {
-        // 数据一致，无需同步
-        setSyncStatus('success')
-        setLastSyncStatus('success')
-        setLastSyncTime(new Date())
-        addLog('数据已是最新', 'success')
+      // 2. 检测数据冲突
+      // 规则：只有云端有数据 → 使用云端
+      //       只有本地有数据 → 上传到云端
+      //       两边都有数据 → 触发冲突对话框
+      if (remoteCount > 0 && localCount > 0) {
+        // 两边都有数据，触发冲突处理
+        addLog(`检测到冲突：本地${localCount}条，云端${remoteCount}条`, 'success')
+        if (onConflictDetected) {
+          onConflictDetected(localCount, remoteCount)
+        }
+        setSyncStatus('idle') // 等待用户选择
         return
       }
 
-      // 4. 有数据差异，自动合并
-      addLog(`检测到差异：本地${localOnly.length}条，云端${remoteOnly.length}条`, 'success')
-      await smartMerge(localOnly, remoteOnly, remoteData)
+      // 3. 只有云端有数据 → 使用云端
+      if (remoteCount > 0 && localCount === 0) {
+        addLog(`使用云端数据：${remoteCount}条记录`, 'success')
+        onSyncComplete({
+          records: remoteData.records,
+          options: remoteData.options || [],
+          profile: remoteData.profile || { name: '阿斯汤加习练者', signature: '', avatar: null, is_pro: false }
+        })
+        setSyncStatus('success')
+        setLastSyncStatus('success')
+        setLastSyncTime(new Date())
+        return
+      }
+
+      // 4. 只有本地有数据 → 上传到云端
+      if (localCount > 0 && remoteCount === 0) {
+        addLog(`上传本地数据：${localCount}条记录`, 'success')
+        const success = await uploadLocalData(user.id, localData)
+        if (success) {
+          setSyncStatus('success')
+          setLastSyncStatus('success')
+          setLastSyncTime(new Date())
+        } else {
+          throw new Error('上传本地数据失败')
+        }
+        return
+      }
+
+      // 5. 两边都没有数据 → 无需操作
+      addLog('两端都没有数据', 'success')
+      setSyncStatus('success')
+      setLastSyncStatus('success')
 
     } catch (error: any) {
       console.error('Auto sync failed:', error)
@@ -271,6 +302,60 @@ export function useSync(
     }
   }
 
+  // ==================== 处理冲突策略 ====================
+  const resolveConflict = async (strategy: ConflictStrategy) => {
+    if (!user) return
+
+    setSyncStatus('syncing')
+
+    try {
+      const remoteData = await downloadRemoteData(user.id)
+      if (!remoteData) {
+        throw new Error('下载云端数据失败')
+      }
+
+      switch (strategy) {
+        case 'remote':
+          // 使用云端数据
+          addLog('使用云端数据', 'success')
+          onSyncComplete({
+            records: remoteData.records,
+            options: remoteData.options || [],
+            profile: remoteData.profile || { name: '阿斯汤加习练者', signature: '', avatar: null, is_pro: false }
+          })
+          break
+
+        case 'local':
+          // 使用本地数据，上传到云端
+          addLog('使用本地数据', 'success')
+          await uploadLocalData(user.id, localData)
+          break
+
+        case 'merge':
+          // 智能合并
+          addLog('智能合并', 'success')
+          const localIds = new Set(localData.records.map(r => r.id))
+          const remoteIds = new Set(remoteData.records.map(r => r.id))
+
+          const localOnly = localData.records.filter(r => !remoteIds.has(r.id))
+          const remoteOnly = remoteData.records.filter(r => !localIds.has(r.id))
+
+          await smartMerge(localOnly, remoteOnly, remoteData)
+          break
+      }
+
+      setSyncStatus('success')
+      setLastSyncStatus('success')
+      setLastSyncTime(new Date())
+
+    } catch (error: any) {
+      console.error('Resolve conflict failed:', error)
+      addLog('处理冲突失败', 'error', undefined, error.message)
+      setSyncStatus('error')
+      setLastSyncStatus('error')
+    }
+  }
+
   // ==================== 添加日志（限制大小） ====================
   const addLog = (action: string, status: 'success' | 'error', recordId?: string, error?: string) => {
     // 限制错误消息长度（200字符）
@@ -306,5 +391,6 @@ export function useSync(
     syncLogs,
     autoSync, // 手动触发同步
     uploadLocalData, // 手动上传本地数据
+    resolveConflict, // ⭐ 新增：处理数据冲突
   }
 }

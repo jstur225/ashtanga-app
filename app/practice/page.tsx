@@ -15,6 +15,7 @@ import { XiaohongshuInviteModal, INVITE_VERSION } from "@/components/Xiaohongshu
 import { PWAInstallBanner } from "@/components/PWAInstallBanner"
 import { AccountBindingSection } from "@/components/AccountBindingSection"
 import { AuthModal } from "@/components/AuthModal"
+import { DataConflictModal } from "@/components/DataConflictModal"
 import { toast } from 'sonner'
 import { trackEvent } from '@/lib/analytics'
 import { captureWithFallback, formatErrorForUser } from '@/lib/screenshot'
@@ -1706,6 +1707,8 @@ function SettingsModal({
   practiceOptionsData, // ⭐ 新增
   initialSection, // ⭐ 新增：初始标签页（用于从云图标快速打开）
   onShowClearDataConfirm, // ⭐ 新增：显示清空数据确认弹窗
+  onOpenLoginModal, // ⭐ 新增：打开登录弹窗
+  onOpenRegisterModal, // ⭐ 新增：打开注册弹窗
 }: {
   isOpen: boolean
   onClose: () => void
@@ -1720,6 +1723,8 @@ function SettingsModal({
   practiceOptionsData?: PracticeOption[] // ⭐ 新增
   initialSection?: 'profile' | 'account' | 'data' // ⭐ 新增：初始标签页
   onShowClearDataConfirm?: () => void // ⭐ 新增
+  onOpenLoginModal?: () => void // ⭐ 新增
+  onOpenRegisterModal?: () => void // ⭐ 新增
 }) {
   const [name, setName] = useState(profile.name)
   const [signature, setSignature] = useState(profile.signature)
@@ -1927,14 +1932,8 @@ function SettingsModal({
                     console.log('Sync completed:', data)
                   }}
                   onClose={onClose}
-                  onOpenLoginModal={() => {
-                    setShowAuthModal(true)
-                    setAuthMode('login')
-                  }}
-                  onOpenRegisterModal={() => {
-                    setShowAuthModal(true)
-                    setAuthMode('register')
-                  }}
+                  onOpenLoginModal={onOpenLoginModal}
+                  onOpenRegisterModal={onOpenRegisterModal}
                 />
               )}
 
@@ -3270,6 +3269,11 @@ export default function AshtangaTracker() {
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [authMode, setAuthMode] = useState<'login' | 'register' | 'forgot-password'>('login')
 
+  // 数据冲突处理状态
+  const [showDataConflict, setShowDataConflict] = useState(false)
+  const [conflictLocalCount, setConflictLocalCount] = useState(0)
+  const [conflictRemoteCount, setConflictRemoteCount] = useState(0)
+
   // 清空数据确认弹窗状态
   const [showClearDataConfirm, setShowClearDataConfirm] = useState(false)
   const [clearDataStep, setClearDataStep] = useState<1 | 2 | 3>(1)
@@ -3299,7 +3303,7 @@ export default function AshtangaTracker() {
     profile: userProfile
   }
 
-  const { syncStatus, lastSyncTime, failedSyncIds, setFailedSyncIds, setLastSyncStatus } = useSync(
+  const { syncStatus, lastSyncTime, failedSyncIds, setFailedSyncIds, setLastSyncStatus, resolveConflict } = useSync(
     user,
     localDataForSync,
     (data) => {
@@ -3308,6 +3312,12 @@ export default function AshtangaTracker() {
         // 这里可以处理同步完成后的逻辑
         console.log('Sync completed:', data)
       }
+    },
+    (localCount, remoteCount) => {
+      // 检测到数据冲突
+      setConflictLocalCount(localCount)
+      setConflictRemoteCount(remoteCount)
+      setShowDataConflict(true)
     }
   )
 
@@ -3526,6 +3536,13 @@ export default function AshtangaTracker() {
   const handleVoteCloud = () => {
     // Update the votedCloud state directly
     setVotedCloud(true)
+  }
+
+  const handleResolveConflict = (strategy: 'remote' | 'local' | 'merge') => {
+    setShowDataConflict(false)
+    if (resolveConflict) {
+      resolveConflict(strategy)
+    }
   }
 
   const handleExportDebugLog = () => {
@@ -4069,6 +4086,14 @@ export default function AshtangaTracker() {
           setConfirmPhrase('')
           setShowClearDataConfirm(true)
         }}
+        onOpenLoginModal={() => {
+          setShowAuthModal(true)
+          setAuthMode('login')
+        }}
+        onOpenRegisterModal={() => {
+          setShowAuthModal(true)
+          setAuthMode('register')
+        }}
       />
 
       {/* Account & Sync Modal */}
@@ -4314,6 +4339,14 @@ export default function AshtangaTracker() {
         mode={authMode}
         onAuthSuccess={() => setShowAuthModal(false)}
         onModeChange={(newMode) => setAuthMode(newMode)}
+      />
+
+      {/* Data Conflict Modal - 数据冲突处理 */}
+      <DataConflictModal
+        isOpen={showDataConflict}
+        localCount={conflictLocalCount}
+        remoteCount={conflictRemoteCount}
+        onSelect={handleResolveConflict}
       />
     </div>
   )
