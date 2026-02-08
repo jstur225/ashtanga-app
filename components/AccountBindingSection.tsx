@@ -119,7 +119,21 @@ export function AccountBindingSection({
     if (!user) return
 
     // 手动触发自动同步
+    console.log('🔄 触发立即同步...')
     await autoSync()
+    console.log('✅ 同步完成')
+  }
+
+  // ==================== 修改密码 ====================
+  const handleChangePassword = () => {
+    console.log('📝 打开修改密码弹窗')
+    console.log('   当前用户状态:', user ? '已登录' : '未登录')
+
+    setShowChangePassword(true)
+    setPasswordError('')
+    setOldPassword('')
+    setNewPassword('')
+    setConfirmPassword('')
   }
 
   // ==================== 退出登录 ====================
@@ -176,9 +190,9 @@ export function AccountBindingSection({
             <div className="bg-gradient-to-br from-amber-50/80 to-orange-50/80 backdrop-blur-sm rounded-xl p-3 border border-amber-200/50">
               <div className="flex items-center gap-2 mb-2">
                 <CheckCircle className="w-4 h-4 text-amber-600" />
-                <span className="text-sm font-medium text-foreground">已绑定邮箱</span>
+                <span className="text-xs font-medium text-foreground">已绑定邮箱</span>
               </div>
-              <p className="text-sm text-muted-foreground truncate leading-tight" title={user.email || ''}>
+              <p className="text-xs text-muted-foreground truncate leading-tight" title={user.email || ''}>
                 {maskEmail(user.email || '')}
               </p>
             </div>
@@ -193,12 +207,12 @@ export function AccountBindingSection({
                   syncStatus === 'error' ? 'bg-red-400' :
                   'bg-stone-400'
                 }`} />
-                <p className="text-sm text-foreground">
+                <p className="text-xs text-foreground">
                   最近同步时间
                 </p>
               </div>
               {lastSyncTime && (
-                <p className="text-sm text-muted-foreground leading-tight">
+                <p className="text-xs text-muted-foreground leading-tight">
                   {new Date(lastSyncTime).toLocaleString('zh-CN')}
                 </p>
               )}
@@ -226,7 +240,7 @@ export function AccountBindingSection({
 
           {/* 修改密码按钮 */}
           <button
-            onClick={() => setShowChangePassword(true)}
+            onClick={handleChangePassword}
             className="w-full flex items-center justify-center gap-2 px-4 py-3 border border-dashed border-border hover:border-primary/50 rounded-xl hover:bg-secondary/50 transition-all text-sm text-muted-foreground hover:text-foreground"
           >
             <Key className="w-4 h-4" />
@@ -549,8 +563,8 @@ export function AccountBindingSection({
                           }, 1500)
                         }
                       } catch (err: any) {
-                        const elapsed = Date.now() - startTime
-                        console.error(`❌ 修改密码异常（${elapsed/1000}秒）:`, err)
+                        const elapsedCatch = Date.now() - startTime
+                        console.error(`❌ 修改密码异常（${elapsedCatch/1000}秒）:`, err)
                         console.error('   错误详情:', err.message)
                         const translatedError = translateErrorMessage(err.message)
                         console.log('   翻译后的错误:', translatedError)

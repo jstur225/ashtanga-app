@@ -223,12 +223,19 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
 
   // ==================== 发送验证码 ====================
   const handleSendVerificationCode = async () => {
+    const startTime = Date.now()
+    console.log('📧 忘记密码流程 - 发送验证码')
+    console.log('   目标邮箱:', email)
+
     if (!email) {
+      console.log('   ❌ 错误：邮箱地址为空')
       setError('请输入邮箱地址')
       return
     }
 
     setLoading(true)
+    console.log('   步骤1: 调用 /api/auth/send-verification-code...')
+
     try {
       const response = await fetch('/api/auth/send-verification-code', {
         method: 'POST',
@@ -236,14 +243,23 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
         body: JSON.stringify({ email }),
       })
 
+      const elapsed = Date.now() - startTime
+      console.log(`   步骤2: API 响应收到（耗时: ${elapsed/1000}秒）`)
+      console.log('   HTTP 状态码:', response.status)
+
       const data = await response.json()
+      console.log('   响应数据:', data)
 
       if (!response.ok) {
+        console.log('   ❌ API 返回错误:', data.error)
         throw new Error(data.error || '发送失败')
       }
 
+      console.log('   ✅ 验证码发送成功')
+
       // 开发环境显示验证码
       if (data.code) {
+        console.log('   开发环境 - 验证码:', data.code)
         toast.success(`✅ 验证码：${data.code}`, {
           description: '（开发环境）请查收邮件或使用上方验证码',
           duration: 8000,
@@ -255,9 +271,11 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
         })
       }
 
+      console.log('   步骤3: 切换到验证码输入步骤')
       setFpStep('verify')
 
       // 开始倒计时（60秒）
+      console.log('   步骤4: 开始60秒倒计时')
       setCountdown(60)
       const timer = setInterval(() => {
         setCountdown((prev) => {
@@ -269,20 +287,34 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
         })
       }, 1000)
     } catch (err: any) {
-      setError(translateErrorMessage(err.message) || '发送失败，请重试')
+      const elapsed = Date.now() - startTime
+      console.error(`   ❌ 发送验证码异常（${elapsed/1000}秒）:`, err)
+      console.error('   错误信息:', err.message)
+      const translatedError = translateErrorMessage(err.message)
+      console.log('   翻译后的错误:', translatedError)
+      setError(translatedError || '发送失败，请重试')
     } finally {
+      console.log('   步骤5: 结束发送验证码流程，重置loading状态')
       setLoading(false)
     }
   }
 
   // ==================== 验证验证码 ====================
   const handleVerifyCode = async () => {
+    const startTime = Date.now()
+    console.log('🔍 忘记密码流程 - 验证验证码')
+    console.log('   目标邮箱:', email)
+    console.log('   输入的验证码:', verifyCode)
+
     if (!verifyCode || verifyCode.length !== 6) {
+      console.log('   ❌ 验证失败：验证码格式错误（需要6位）')
       setError('请输入6位验证码')
       return
     }
 
     setLoading(true)
+    console.log('   步骤1: 调用 /api/auth/verify-code...')
+
     try {
       const response = await fetch('/api/auth/verify-code', {
         method: 'POST',
@@ -290,30 +322,49 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
         body: JSON.stringify({ email, code: verifyCode }),
       })
 
+      const elapsed = Date.now() - startTime
+      console.log(`   步骤2: API 响应收到（耗时: ${elapsed/1000}秒）`)
+      console.log('   HTTP 状态码:', response.status)
+
       const data = await response.json()
+      console.log('   响应数据:', data)
 
       if (!response.ok) {
+        console.log('   ❌ API 返回错误:', data.error)
         throw new Error(data.error || '验证失败')
       }
+
+      console.log('   ✅ 验证码验证通过')
+      console.log('   步骤3: 切换到设置新密码步骤')
 
       // 验证成功，进入设置新密码步骤
       setFpStep('new-password')
       setError('')
     } catch (err: any) {
+      const elapsed = Date.now() - startTime
+      console.error(`   ❌ 验证码验证异常（${elapsed/1000}秒）:`, err)
+      console.error('   错误信息:', err.message)
       setError(err.message || '验证码错误或已过期')
     } finally {
+      console.log('   步骤4: 结束验证码验证流程，重置loading状态')
       setLoading(false)
     }
   }
 
   // ==================== 更新密码 ====================
   const handleUpdatePassword = async () => {
+    const startTime = Date.now()
+    console.log('🔑 忘记密码流程 - 开始更新密码')
+    console.log('   步骤1: 验证输入...')
+
     if (!newPassword || !confirmNewPassword) {
+      console.log('   ❌ 验证失败：未填写所有字段')
       setError('请填写所有字段')
       return
     }
 
     if (newPassword !== confirmNewPassword) {
+      console.log('   ❌ 验证失败：两次输入的密码不一致')
       setError('两次输入的密码不一致')
       return
     }
@@ -321,19 +372,41 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
     // 密码强度验证
     const validation = validatePassword(newPassword)
     if (!validation.valid) {
+      console.log('   ❌ 验证失败：密码格式不正确 -', validation.error)
       setError(validation.error || '密码格式不正确')
       return
     }
 
+    console.log('   ✅ 输入验证通过')
+
     setLoading(true)
+    console.log('   步骤2: 调用后端 API 更新密码...')
+
     try {
-      const { error } = await supabase.auth.updateUser({
-        password: newPassword
+      const response = await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          newPassword
+        }),
       })
 
-      if (error) throw error
+      const elapsed = Date.now() - startTime
+      console.log(`   步骤3: API 响应收到（耗时: ${elapsed/1000}秒）`)
+      console.log('   HTTP 状态码:', response.status)
 
-      toast.success('✅ 密码修改成功，请使用新密码登录')
+      const data = await response.json()
+      console.log('   响应数据:', data)
+
+      if (!response.ok) {
+        console.log('   ❌ API 返回错误:', data.error)
+        throw new Error(data.error || '更新失败')
+      }
+
+      console.log('   ✅ 密码更新成功！')
+      console.log('   步骤4: 切换到登录页面...')
+      toast.success('✅ 密码重置成功，请使用新密码登录')
       onModeChange('login')
       setFpStep('email')
       setEmail('')
@@ -342,8 +415,14 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
       setConfirmNewPassword('')
       setError('')
     } catch (err: any) {
-      setError(translateErrorMessage(err.message) || '修改失败，请重试')
+      const elapsed = Date.now() - startTime
+      console.error(`   ❌ 更新密码异常（${elapsed/1000}秒）:`, err)
+      console.error('   错误信息:', err.message)
+      const translatedError = translateErrorMessage(err.message)
+      console.log('   翻译后的错误:', translatedError)
+      setError(translatedError || '修改失败，请重试')
     } finally {
+      console.log('   步骤5: 结束更新密码流程，重置loading状态')
       setLoading(false)
     }
   }
@@ -367,16 +446,29 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[24px] z-50 p-6 pb-10 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] max-h-[calc(100vh-2rem)] overflow-y-auto relative"
+            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[24px] z-50 p-6 pb-32 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] max-h-[calc(100vh-2rem)] overflow-y-auto relative"
           >
-            {/* 标题栏 - 带关闭按钮（忘记密码模式不显示关闭按钮） */}
+            {/* 标题栏 - 带关闭按钮（忘记密码模式显示返回登录按钮） */}
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-serif text-foreground">
                 {mode === 'register' ? '📧 绑定邮箱账号' :
                  mode === 'forgot-password' ? '🔑 忘记密码' :
                  '🔐 登录'}
               </h2>
-              {mode !== 'forgot-password' && (
+
+              {mode === 'forgot-password' ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onModeChange('login')
+                    setFpStep('email')
+                    setError('')
+                  }}
+                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  返回登录
+                </button>
+              ) : (
                 <button onClick={onClose} className="p-2 -mr-2 text-muted-foreground hover:text-foreground transition-colors">
                   <X className="w-5 h-5" />
                 </button>
@@ -792,6 +884,8 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
                         <button
                           type="button"
                           onClick={() => {
+                            console.log('🔑 用户点击"忘记密码？"链接')
+                            console.log('   当前登录邮箱:', email)
                             onModeChange('forgot-password')
                             setFpStep('email')
                             setError('')
@@ -831,23 +925,6 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
                   </>
                 )}
               </form>
-            )}
-
-            {/* 忘记密码：返回登录按钮（放在关闭按钮位置） */}
-            {mode === 'forgot-password' && fpStep === 'email' && (
-              <button
-                type="button"
-                onClick={() => {
-                  onModeChange('login')
-                  setFpStep('email')
-                  setError('')
-                }}
-                className="absolute left-6 top-6 text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <span className="text-sm flex items-center gap-1">
-                  ← 返回登录
-                </span>
-              </button>
             )}
           </motion.div>
         </>
