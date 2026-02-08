@@ -440,6 +440,7 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
               exit={{ opacity: 0 }}
               onClick={onClose}
               className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50"
+            style={{ touchAction: 'none' }}
             />
 
             {/* Modal - 从下往上滑进来 */}
