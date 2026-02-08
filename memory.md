@@ -1673,3 +1673,65 @@
 - AuthModal.tsx 语法错误（第552行）- 移除错位的JSX代码
 - 添加缺失的 CheckCircle 图标导入
 - 注册提示文本放回表单内部正确位置
+
+---
+
+## 待修复的Bug（2026-02-09）
+
+### Bug 1: 同步后数据结构错误
+**现象**:
+- 刷新浏览器后，"今日练习"页面的选项只显示备注，没有选项标签
+- 出现重复的"自定义"选项（两个custom）
+- 觉觉日记中某条记录多出了 \`breakthrough: false\` 字段
+
+**React错误**:
+\`\`
+Encountered two children with the same key, \`custom\`
+\`\`
+
+**可能原因**:
+1. \`importData\` 函数导入数据时字段映射错误
+2. 云端数据结构与本地不一致
+3. \`breakthrough\` 字段默认值处理问题
+
+**需要检查的文件**:
+- \`hooks/usePracticeData.ts\` - importData 函数
+- 数据同步时的字段转换逻辑
+
+---
+
+### Bug 2: 自动同步未触发
+**现象**:
+- 点击"立即同步"按钮后一直转圈
+- 控制台没有任何同步日志
+- autoSync 函数似乎没有执行
+
+**可能原因**:
+1. useEffect 依赖问题
+2. 函数执行卡在某个异步操作
+3. 状态更新导致渲染中断
+
+**已添加的调试日志**:
+\`\`typescript
+console.log('==================================================')
+console.log('🔄 [autoSync] 函数开始执行')
+// ... 更多详细日志
+\`\`
+
+**需要排查**:
+- 检查是否有日志输出
+- 验证 useEffect 是否触发
+- 确认 async/await 是否正常执行
+
+---
+
+### Bug 3: user_profiles 表缺少 email 字段
+**状态**: 已在代码中添加 email 字段上传，但数据库表可能没有此字段
+
+**解决方案**: 需要在 Supabase 控制台给 user_profiles 表添加 email 字段
+
+**待办**:
+- [ ] 执行 SQL: \`ALTER TABLE user_profiles ADD COLUMN email text\`
+- [ ] 或使用 Table Editor 添加字段
+- [ ] 取消注释 useSync.ts 中的 email 上传代码（第239行）
+

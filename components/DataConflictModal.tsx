@@ -1,7 +1,8 @@
 "use client"
 
+import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Cloud, HardDrive, Merge, ArrowLeft } from 'lucide-react'
+import { Cloud, HardDrive, Merge, ArrowLeft, AlertTriangle } from 'lucide-react'
 
 interface DataConflictModalProps {
   isOpen: boolean
@@ -18,6 +19,10 @@ export function DataConflictModal({
   onSelect,
   onBack
 }: DataConflictModalProps) {
+  const [showConfirmLocal, setShowConfirmLocal] = useState(false)
+
+  // 判断是否需要警告（云端数据明显多于本地）
+  const needWarning = remoteCount > localCount * 2
   return (
     <AnimatePresence>
       {isOpen && (
@@ -115,18 +120,35 @@ export function DataConflictModal({
               </button>
 
               {/* 保留本地数据 */}
-              <button
-                onClick={() => onSelect('local')}
-                className="w-full p-4 bg-green-50 text-green-900 rounded-xl border-2 border-green-200 hover:bg-green-100 transition-all"
-              >
-                <div className="flex items-center gap-3">
-                  <HardDrive className="w-6 h-6 text-green-600" />
-                  <div className="text-left flex-1">
-                    <span className="font-bold font-serif text-base">保留本地数据</span>
-                    <p className="text-xs text-green-600 mt-1">保留本地的 {localCount} 条记录</p>
+              {needWarning ? (
+                // 危险模式：云端数据明显多于本地
+                <button
+                  onClick={() => setShowConfirmLocal(true)}
+                  className="w-full p-4 bg-red-50 text-red-900 rounded-xl border-2 border-red-200 hover:bg-red-100 transition-all"
+                >
+                  <div className="flex items-center gap-3">
+                    <AlertTriangle className="w-6 h-6 text-red-600" />
+                    <div className="text-left flex-1">
+                      <span className="font-bold font-serif text-base">保留本地数据</span>
+                      <p className="text-xs text-red-600 mt-1">⚠️ 将删除云端 {remoteCount} 条记录</p>
+                    </div>
                   </div>
-                </div>
-              </button>
+                </button>
+              ) : (
+                // 正常模式：两端数据量差不多
+                <button
+                  onClick={() => onSelect('local')}
+                  className="w-full p-4 bg-green-50 text-green-900 rounded-xl border-2 border-green-200 hover:bg-green-100 transition-all"
+                >
+                  <div className="flex items-center gap-3">
+                    <HardDrive className="w-6 h-6 text-green-600" />
+                    <div className="text-left flex-1">
+                      <span className="font-bold font-serif text-base">保留本地数据</span>
+                      <p className="text-xs text-green-600 mt-1">保留本地的 {localCount} 条记录</p>
+                    </div>
+                  </div>
+                </button>
+              )}
             </div>
 
             {/* 提示 */}
@@ -135,6 +157,58 @@ export function DataConflictModal({
                 💡 提示：选择后会覆盖目标数据，操作无法撤销。如果不确定，建议选择"智能合并"。
               </p>
             </div>
+
+            {/* 二次确认对话框 */}
+            <AnimatePresence>
+              {showConfirmLocal && (
+                <>
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70]"
+                    onClick={() => setShowConfirmLocal(false)}
+                  />
+                  <motion.div
+                    initial={{ scale: 0.9, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0.9, opacity: 0 }}
+                    className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl p-6 z-[80] max-w-sm w-full shadow-2xl"
+                  >
+                    <div className="text-center">
+                      <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+                      <h3 className="text-lg font-bold font-serif text-foreground mb-2">
+                        ⚠️ 危险操作
+                      </h3>
+                      <p className="text-sm font-serif text-gray-600 mb-4 leading-relaxed">
+                        云端有 <span className="font-bold text-red-600">{remoteCount}</span> 条记录，<br/>
+                        本地只有 <span className="font-bold text-green-600">{localCount}</span> 条记录。
+                      </p>
+                      <p className="text-sm font-serif text-gray-600 mb-6 leading-relaxed">
+                        确定要删除云端的 {remoteCount} 条记录，只保留本地的 {localCount} 条吗？
+                      </p>
+                      <div className="flex gap-3">
+                        <button
+                          onClick={() => setShowConfirmLocal(false)}
+                          className="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-all font-serif"
+                        >
+                          取消
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowConfirmLocal(false)
+                            onSelect('local')
+                          }}
+                          className="flex-1 px-4 py-3 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-all font-serif"
+                        >
+                          确认删除
+                        </button>
+                      </div>
+                    </div>
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
           </motion.div>
         </>
       )}

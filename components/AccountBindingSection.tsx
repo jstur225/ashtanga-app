@@ -206,9 +206,13 @@ export function AccountBindingSection({
                   最近同步时间
                 </p>
               </div>
-              {lastSyncTime && (
+              {lastSyncTime ? (
                 <p className="text-xs font-serif text-muted-foreground leading-tight">
                   {new Date(lastSyncTime).toLocaleString('zh-CN')}
+                </p>
+              ) : (
+                <p className="text-xs font-serif text-muted-foreground leading-tight">
+                  尚未同步
                 </p>
               )}
             </div>

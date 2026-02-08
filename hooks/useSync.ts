@@ -42,20 +42,42 @@ export function useSync(
 
   // ==================== 自动同步函数 ====================
   const autoSync = async () => {
-    if (!user) return
+    console.log('='.repeat(50))
+    console.log('🔄 [autoSync] 函数开始执行')
+    console.log('='.repeat(50))
 
+    if (!user) {
+      console.log('❌ [autoSync] 用户未登录，退出')
+      return
+    }
+
+    console.log('✅ [autoSync] 用户已登录，开始同步')
+    console.log('   user_id:', user.id)
+    console.log('   localData.records.length:', localData.records.length)
+
+    console.log('⏳ [autoSync] 设置状态为 syncing...')
     setSyncStatus('syncing')
+    console.log('✅ [autoSync] 状态已设置为 syncing')
+
+    console.log('📝 [autoSync] 添加日志...')
     addLog('启动自动同步', 'success')
+    console.log('✅ [autoSync] 日志已添加')
 
     try {
+      console.log('📡 [autoSync] 开始下载云端数据...')
       // 1. 下载云端数据
       const remoteData = await downloadRemoteData(user.id)
       if (!remoteData) {
         throw new Error('下载云端数据失败')
       }
 
+      console.log('✅ [autoSync] 云端数据下载成功')
+      console.log('   remoteData.records.length:', remoteData.records?.length)
+
       const localCount = localData.records.length
       const remoteCount = remoteData.records.length
+
+      console.log(`📊 [autoSync] 数据对比：本地${localCount}条，云端${remoteCount}条`)
 
       // 2. 检测数据冲突
       // 规则：只有云端有数据 → 使用云端
@@ -88,7 +110,7 @@ export function useSync(
       // 4. 只有本地有数据 → 上传到云端
       if (localCount > 0 && remoteCount === 0) {
         addLog(`上传本地数据：${localCount}条记录`, 'success')
-        const success = await uploadLocalData(user.id, localData)
+        const success = await uploadLocalData(user.id, localData, user)
         if (success) {
           setSyncStatus('success')
           setLastSyncStatus('success')
@@ -103,6 +125,7 @@ export function useSync(
       addLog('两端都没有数据', 'success')
       setSyncStatus('success')
       setLastSyncStatus('success')
+      setLastSyncTime(new Date()) // ⭐ 更新同步时间
 
     } catch (error: any) {
       console.error('Auto sync failed:', error)
@@ -174,10 +197,9 @@ export function useSync(
       date: r.date,
       type: r.type,
       duration: r.duration,
-      notes: r.notes,
-      photos: [], // ⚠️ 强制为空，暂不同步照片
-      breakthrough: r.breakthrough,
-      deleted_at: null, // ⚠️ 添加 deleted_at 字段
+      notes: r.notes || '',
+      photos: null, // ⚠️ 照片暂不同步
+      breakthrough: r.breakthrough || false,
     }))
 
     const { error } = await supabase
@@ -209,42 +231,59 @@ export function useSync(
       records: PracticeRecord[]
       options: PracticeOption[]
       profile: UserProfile
-    }
+    },
+    user: any // ⭐ 新增：user 对象，用于获取邮箱
   ) => {
     setSyncStatus('syncing')
     const failedIds: string[] = []
 
     try {
-      // 1. 上传用户资料（不上传 email 和 avatar）
+      // 确保数据存在，提供默认值
+      const records = localData.records || []
+      const options = localData.options || []
+      const profile = localData.profile || {
+        name: '阿斯汤加习练者',
+        signature: '练习、练习，一切随之而来。',
+        avatar: null,
+        is_pro: false
+      }
+
+      // 1. 上传用户资料（包含邮箱）
+
       const { error: profileError } = await supabase
         .from(TABLES.USER_PROFILES)
         .upsert({
           user_id: userId,
-          name: localData.profile.name,
-          signature: localData.profile.signature,
-          avatar: null, // ⚠️ 头像只存本地，不上传云端
-          is_pro: localData.profile.is_pro,
+          name: profile.name,
+          signature: profile.signature || '',
+          avatar: null, // ⚠️ 头像只存本地，不上传云端（Base64太大）
+          is_pro: profile.is_pro || false,
+          // email: user?.email || null, // ⚠️ 暂时注释：数据库表可能没有此字段
         }, {
           onConflict: 'user_id'
         })
 
       if (profileError) {
+        console.error('❌ 上传用户资料失败:', profileError)
+        console.error('   错误详情:', JSON.stringify(profileError, null, 2))
+        console.error('   user_id:', userId)
+        console.error('   email:', user?.email)
         addLog('上传用户资料', 'error', undefined, profileError.message)
         throw profileError
       }
       addLog('上传用户资料', 'success')
 
-      // 2. 批量上传练习记录（使用 upsert，强制忽略 photos）
-      if (localData.records.length > 0) {
-        const recordsToUpload = localData.records.map(r => ({
+      // 2. 批量上传练习记录（使用 upsert）
+      if (records.length > 0) {
+        const recordsToUpload = records.map(r => ({
           id: r.id,
           user_id: userId,
           date: r.date,
           type: r.type,
           duration: r.duration,
-          notes: r.notes,
-          photos: [], // ⚠️ 强制为空，暂不同步照片
-          breakthrough: r.breakthrough,
+          notes: r.notes || '',
+          photos: r.photos && r.photos.length > 0 ? JSON.stringify(r.photos) : null, // ⚠️ 转换为 JSON 字符串
+          breakthrough: r.breakthrough || false,
         }))
 
         const { error: recordsError } = await supabase
@@ -255,22 +294,22 @@ export function useSync(
 
         if (recordsError) {
           // 记录失败的记录ID
-          localData.records.forEach(r => failedIds.push(r.id))
+          records.forEach(r => failedIds.push(r.id))
           addLog('批量上传记录', 'error', undefined, recordsError.message)
         } else {
-          addLog(`批量上传${localData.records.length}条记录`, 'success')
+          addLog(`批量上传${records.length}条记录`, 'success')
         }
       }
 
       // 3. 批量上传练习选项（包括默认和自定义，全部同步）
-      if (localData.options.length > 0) {
-        const optionsToUpload = localData.options.map(o => ({
+      if (options.length > 0) {
+        const optionsToUpload = options.map(o => ({
           id: o.id,
           user_id: userId,
-          label: o.label,
-          label_zh: o.label_zh,
-          notes: o.notes,
-          is_custom: o.is_custom,
+          label: o.label || '',
+          label_zh: o.label_zh || '',
+          notes: o.notes || null,
+          is_custom: o.is_custom || false,
         }))
 
         const { error: optionsError } = await supabase
@@ -280,9 +319,12 @@ export function useSync(
           })
 
         if (optionsError) {
+          console.error('❌ 批量上传选项失败:', optionsError)
+          console.error('   错误详情:', JSON.stringify(optionsError, null, 2))
+          console.error('   上传的数据:', JSON.stringify(optionsToUpload, null, 2))
           addLog('批量上传选项', 'error', undefined, optionsError.message)
         } else {
-          addLog(`批量上传${localData.options.length}个选项`, 'success')
+          addLog(`批量上传${options.length}个选项`, 'success')
         }
       }
 
@@ -295,7 +337,10 @@ export function useSync(
       return failedIds.length === 0
     } catch (error: any) {
       console.error('Upload failed:', error)
-      addLog('同步失败', 'error', undefined, error.message)
+      console.error('Error details:', JSON.stringify(error, null, 2))
+      console.error('Error message:', error?.message)
+      console.error('Error name:', error?.name)
+      addLog('同步失败', 'error', undefined, error?.message || JSON.stringify(error))
       setSyncStatus('error')
       setLastSyncStatus('error')
       return false
@@ -326,9 +371,25 @@ export function useSync(
           break
 
         case 'local':
-          // 使用本地数据，上传到云端
-          addLog('使用本地数据', 'success')
-          await uploadLocalData(user.id, localData)
+          // 使用本地数据，覆盖云端
+          addLog('使用本地数据，覆盖云端', 'success')
+
+          // 1. 先删除云端所有数据
+          const { error: deleteError } = await supabase
+            .from(TABLES.PRACTICE_RECORDS)
+            .delete()
+            .eq('user_id', user.id)
+
+          if (deleteError) {
+            throw new Error(`删除云端数据失败: ${deleteError.message}`)
+          }
+          addLog('云端数据已清空', 'success')
+
+          // 2. 上传本地数据
+          const success = await uploadLocalData(user.id, localData, user)
+          if (!success) {
+            throw new Error('上传本地数据失败')
+          }
           break
 
         case 'merge':

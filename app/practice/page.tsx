@@ -3306,11 +3306,37 @@ export default function AshtangaTracker() {
   const { syncStatus, lastSyncTime, failedSyncIds, setFailedSyncIds, setLastSyncStatus, resolveConflict } = useSync(
     user,
     localDataForSync,
-    (data) => {
+    async (data) => {
       // 同步完成后的回调：更新本地数据
       if (data.records) {
-        // 这里可以处理同步完成后的逻辑
-        console.log('Sync completed:', data)
+        console.log('🔄 同步完成，更新本地数据...')
+        console.log('   云端记录数:', data.records.length)
+
+        try {
+          // 清空本地数据
+          clearAllData()
+          console.log('   ✅ 本地数据已清空')
+
+          // 导入云端数据（importData 需要 JSON 字符串）
+          const jsonData = JSON.stringify(data)
+          const importResult = importData(jsonData)
+
+          if (importResult) {
+            console.log('   ✅ 云端数据已导入')
+            toast.success(`✅ 已同步${data.records.length}条云端数据`, {
+              duration: 3000,
+              position: 'top-center'
+            })
+          } else {
+            throw new Error('导入云端数据失败')
+          }
+        } catch (error: any) {
+          console.error('   ❌ 更新本地数据失败:', error)
+          toast.error('❌ 同步数据失败，请重试', {
+            duration: 3000,
+            position: 'top-center'
+          })
+        }
       }
     },
     (localCount, remoteCount) => {
