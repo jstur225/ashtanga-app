@@ -419,6 +419,12 @@ export function AccountBindingSection({
                         return
                       }
 
+                      if (oldPassword === newPassword) {
+                        console.log('验证失败：新旧密码相同')
+                        setPasswordError('新密码不能与当前密码相同')
+                        return
+                      }
+
                       if (newPassword !== confirmPassword) {
                         console.log('验证失败：密码不一致')
                         setPasswordError('两次输入的新密码不一致')
@@ -458,20 +464,20 @@ export function AccountBindingSection({
                         if (result.error) {
                           console.error('修改密码失败:', result.error)
                           setPasswordError(result.error.message || '修改失败，请检查当前密码是否正确')
-                          return
+                          // 不要 return，让 finally 执行
+                        } else {
+                          console.log('修改密码成功')
+                          toast.success('✅ 密码修改成功')
+                          setShowChangePassword(false)
+                          setOldPassword('')
+                          setNewPassword('')
+                          setConfirmPassword('')
                         }
-
-                        console.log('修改密码成功')
-                        toast.success('✅ 密码修改成功')
-                        setShowChangePassword(false)
-                        setOldPassword('')
-                        setNewPassword('')
-                        setConfirmPassword('')
                       } catch (err: any) {
                         console.error('修改密码异常:', err)
                         setPasswordError(err.message || '修改失败，请重试')
                       } finally {
-                        console.log('结束修改密码流程')
+                        console.log('结束修改密码流程，重置loading状态')
                         setIsChangingPassword(false)
                       }
                     }}
