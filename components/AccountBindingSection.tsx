@@ -517,21 +517,16 @@ export function AccountBindingSection({
 
                         console.log('2. 原密码验证通过，开始更新密码...')
 
-                        // 步骤2: 更新密码
-                        const timeoutPromise = new Promise((_, reject) => {
-                          setTimeout(() => {
-                            const elapsed = Date.now() - startTime
-                            reject(new Error(`请求超时（${elapsed/1000}秒），请检查网络连接或稍后重试`))
-                          }, 30000)
-                        })
-
+                        // 步骤2: 更新密码（不设置超时，或设置更长超时）
                         console.log('3. 调用 supabase.auth.updateUser...')
-                        const updatePromise = supabase.auth.updateUser({
+                        const result = await supabase.auth.updateUser({
                           password: newPassword
                         })
 
-                        console.log('4. 等待 API 响应...')
-                        const result = await Promise.race([updatePromise, timeoutPromise]) as any
+                        const elapsed = Date.now() - startTime
+                        console.log(`4. API 响应收到（耗时: ${elapsed/1000}秒）`)
+                        console.log('   是否有错误:', result.error ? '是' : '否')
+                        if (result.error) console.log('   错误信息:', result.error)
 
                         const elapsed = Date.now() - startTime
                         console.log(`5. API 响应收到（耗时: ${elapsed/1000}秒）`)
