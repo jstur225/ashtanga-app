@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase'
 // 验证验证码
 export async function POST(request: NextRequest) {
   try {
-    const { email, code } = await request.json()
+    const { email, code, type = 'reset_password' } = await request.json()
 
     if (!email || !code) {
       return NextResponse.json(
@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
       .select('*')
       .eq('email', email)
       .eq('code', code)
-      .eq('type', 'reset_password')
+      .eq('type', type) // 使用传入的 type 参数
       .gte('expires_at', new Date().toISOString())
       .eq('used', false)
       .order('created_at', { ascending: false })

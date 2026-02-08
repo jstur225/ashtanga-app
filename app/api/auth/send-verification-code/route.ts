@@ -9,7 +9,7 @@ function generateVerificationCode(): string {
 // 发送验证码
 export async function POST(request: NextRequest) {
   try {
-    const { email } = await request.json()
+    const { email, type = 'reset_password' } = await request.json()
 
     if (!email) {
       return NextResponse.json(
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
       .insert({
         email,
         code,
-        type: 'reset_password',
+        type, // 'reset_password' 或 'email_verification'
         expires_at: expiresAt,
       })
 

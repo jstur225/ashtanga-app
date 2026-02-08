@@ -18,6 +18,9 @@ interface AuthModalProps {
 // 忘记密码的步骤
 type ForgotPasswordStep = 'email' | 'verify' | 'new-password'
 
+// 注册的步骤
+type RegisterStep = 'form' | 'verify'
+
 export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }: AuthModalProps) {
   const { signIn, signUp } = useAuth()
   const [email, setEmail] = useState('')
@@ -32,6 +35,11 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
   const [confirmNewPassword, setConfirmNewPassword] = useState('')
   const [countdown, setCountdown] = useState(0)
   const [fpSuccessMsg, setFpSuccessMsg] = useState('')
+
+  // 注册相关状态
+  const [registerStep, setRegisterStep] = useState<RegisterStep>('form')
+  const [registerVerifyCode, setRegisterVerifyCode] = useState('')
+  const [registerCountdown, setRegisterCountdown] = useState(0)
 
   // ==================== 密码强度验证 ====================
   const validatePassword = (password: string): { valid: boolean; error?: string } => {
@@ -66,8 +74,8 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
     setLoading(true)
 
     try {
-      // 注册
-      if (mode === 'register') {
+      // 注册 - 第1步：发送验证码
+      if (mode === 'register' && registerStep === 'form') {
         const validation = validatePassword(password)
         if (!validation.valid) {
           setError(validation.error || '密码格式不正确')
@@ -75,18 +83,88 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
           return
         }
 
+        // 发送验证码
+        const response = await fetch('/api/auth/send-verification-code', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, type: 'email_verification' }),
+        })
+
+        const data = await response.json()
+
+        if (!response.ok) {
+          throw new Error(data.error || '发送失败')
+        }
+
+        // 开发环境显示验证码
+        if (data.code) {
+          toast.success(`📧 验证码：${data.code}`, {
+            description: '（开发环境）请查收邮件或使用上方验证码',
+            duration: 8000,
+          })
+        } else {
+          toast.success('📧 验证码已发送到您的邮箱', {
+            description: '请查收邮件获取验证码',
+            duration: 5000,
+          })
+        }
+
+        setRegisterStep('verify')
+
+        // 开始倒计时（60秒）
+        setRegisterCountdown(60)
+        const timer = setInterval(() => {
+          setRegisterCountdown((prev) => {
+            if (prev <= 1) {
+              clearInterval(timer)
+              return 0
+            }
+            return prev - 1
+          })
+        }, 1000)
+
+        setLoading(false)
+        return
+      }
+
+      // 注册 - 第2步：验证码验证并注册
+      if (mode === 'register' && registerStep === 'verify') {
+        if (!registerVerifyCode || registerVerifyCode.length !== 6) {
+          setError('请输入6位验证码')
+          setLoading(false)
+          return
+        }
+
+        // 先验证验证码
+        const verifyResponse = await fetch('/api/auth/verify-code', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, code: registerVerifyCode, type: 'email_verification' }),
+        })
+
+        const verifyData = await verifyResponse.json()
+
+        if (!verifyResponse.ok) {
+          throw new Error(verifyData.error || '验证码错误或已过期')
+        }
+
+        // 验证码正确，开始注册
         const { data, error } = await signUp(email, password)
         if (error) throw error
 
-        toast.success(
-          '📧 验证邮件已发送',
-          {
-            description: '请查收邮件并点击验证链接。验证后请返回，点击「登录」按钮',
-            duration: 6000,
-          }
-        )
+        toast.success('✅ 注册成功', {
+          description: '账号绑定成功，已自动登录',
+          duration: 3000,
+        })
 
+        onAuthSuccess()
         onClose()
+
+        // 重置注册步骤
+        setRegisterStep('form')
+        setRegisterVerifyCode('')
+
+        setLoading(false)
         return
       }
 
@@ -438,45 +516,239 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
             ) : (
               // ==================== 登录/注册表单 ====================
               <form onSubmit={handleSubmit} className="space-y-4">
-                {/* 邮箱输入 */}
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">
-                    邮箱地址
-                  </label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="your@email.com"
-                      className="w-full pl-10 pr-4 py-3 border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-transparent bg-secondary"
-                      required
-                    />
-                  </div>
-                </div>
+                {/* 注册模式 - 第1步：输入邮箱密码 */}
+                {mode === 'register' && registerStep === 'form' && (
+                  <>
+                    {/* 邮箱输入 */}
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-2">
+                        邮箱地址
+                      </label>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                        <input
+                          type="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          placeholder="your@email.com"
+                          className="w-full pl-10 pr-4 py-3 border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-transparent bg-secondary"
+                          required
+                        />
+                      </div>
+                    </div>
 
-                {/* 密码输入（仅在登录和注册模式显示） */}
-                {mode !== 'forgot-password' && (
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">
-                      密码
-                    </label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                    {/* 密码输入 */}
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-2">
+                        密码
+                      </label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                        <input
+                          type="password"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          placeholder="至少8位字符"
+                          minLength={8}
+                          className="w-full pl-10 pr-4 py-3 border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-transparent bg-secondary"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    {/* 密码强度提示 */}
+                    {password && (
+                      <div className="text-xs text-muted-foreground space-y-1 bg-secondary rounded-lg p-3">
+                        <p className="font-medium">密码要求：</p>
+                        <ul className="pl-4 space-y-1">
+                          <li className={password.length >= 8 ? 'text-green-600' : 'text-red-600'}>
+                            {password.length >= 8 ? '✓' : '✗'} 至少8位字符
+                          </li>
+                          <li className={/[a-zA-Z]/.test(password) ? 'text-green-600' : 'text-red-600'}>
+                            {/[a-zA-Z]/.test(password) ? '✓' : '✗'} 包含字母
+                          </li>
+                          <li className={/\d/.test(password) ? 'text-green-600' : 'text-red-600'}>
+                            {/\d/.test(password) ? '✓' : '✗'} 包含数字
+                          </li>
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* 错误提示 */}
+                    {error && (
+                      <div className="flex items-center gap-2 text-red-500 text-sm bg-red-50 p-3 rounded-lg">
+                        <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                        {error}
+                      </div>
+                    )}
+
+                    {/* 按钮 */}
+                    <div className="flex gap-3 pt-4">
+                      <button
+                        type="button"
+                        onClick={onClose}
+                        className="flex-1 px-4 py-3 bg-secondary text-foreground rounded-xl border border-border hover:bg-secondary/80 transition-all"
+                      >
+                        取消
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={loading}
+                        className="flex-1 px-4 py-3 green-gradient backdrop-blur-md text-white rounded-xl border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] hover:opacity-90 transition-all disabled:opacity-50"
+                      >
+                        {loading ? '发送中...' : '发送验证码'}
+                      </button>
+                    </div>
+
+                    {/* 提示文本 */}
+                    <p className="text-xs text-muted-foreground text-center mt-4">
+                      绑定后可开启云同步，数据永不丢失
+                    </p>
+                    <p className="text-[10px] text-muted-foreground text-center mt-2 leading-relaxed">
+                      🔒 注册即表示您同意我们仅为提供数据同步服务而存储您的加密数据。
+                    </p>
+                  </>
+                )}
+
+                {/* 注册模式 - 第2步：输入验证码 */}
+                {mode === 'register' && registerStep === 'verify' && (
+                  <>
+                    <div className="bg-blue-50 rounded-xl p-4 border border-blue-200 mb-4">
+                      <p className="text-sm text-blue-700">验证码已发送到：</p>
+                      <p className="text-sm text-blue-900 font-medium break-all">{email}</p>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-2">
+                        请输入6位验证码
+                      </label>
                       <input
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="至少8位字符"
-                        minLength={8}
-                        className="w-full pl-10 pr-4 py-3 border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-transparent bg-secondary"
+                        type="text"
+                        value={registerVerifyCode}
+                        onChange={(e) => {
+                          // 只允许输入数字
+                          const value = e.target.value.replace(/\D/g, '').slice(0, 6)
+                          setRegisterVerifyCode(value)
+                        }}
+                        placeholder="______"
+                        maxLength={6}
+                        className="w-full px-4 py-3 border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-transparent bg-secondary text-center text-2xl tracking-widest"
                         required
                       />
                     </div>
 
-                    {/* 忘记密码链接（仅在登录模式显示） */}
-                    {mode === 'login' && (
+                    <button
+                      type="submit"
+                      disabled={loading || registerVerifyCode.length !== 6}
+                      className="w-full px-4 py-3 green-gradient backdrop-blur-md text-white rounded-xl border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] hover:opacity-90 transition-all disabled:opacity-50"
+                    >
+                      {loading ? '验证中...' : '确认并注册'}
+                    </button>
+
+                    <div className="text-center">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          setLoading(true)
+                          try {
+                            const response = await fetch('/api/auth/send-verification-code', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ email, type: 'email_verification' }),
+                            })
+
+                            const data = await response.json()
+
+                            if (!response.ok) {
+                              throw new Error(data.error || '发送失败')
+                            }
+
+                            if (data.code) {
+                              toast.success(`📧 验证码：${data.code}`, {
+                                description: '（开发环境）请查收邮件或使用上方验证码',
+                                duration: 8000,
+                              })
+                            } else {
+                              toast.success('📧 验证码已重新发送', {
+                                description: '请查收邮件获取验证码',
+                                duration: 5000,
+                              })
+                            }
+
+                            // 重置倒计时
+                            setRegisterCountdown(60)
+                            const timer = setInterval(() => {
+                              setRegisterCountdown((prev) => {
+                                if (prev <= 1) {
+                                  clearInterval(timer)
+                                  return 0
+                                }
+                                return prev - 1
+                              })
+                            }, 1000)
+                          } catch (err: any) {
+                            setError(err.message || '发送失败，请重试')
+                          } finally {
+                            setLoading(false)
+                          }
+                        }}
+                        disabled={registerCountdown > 0}
+                        className="text-xs text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {registerCountdown > 0 ? `重新发送(${registerCountdown}s)` : '重新发送验证码'}
+                      </button>
+                    </div>
+
+                    {/* 错误提示 */}
+                    {error && (
+                      <div className="flex items-center gap-2 text-red-500 text-sm bg-red-50 p-3 rounded-lg">
+                        <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                        {error}
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {/* 登录模式 */}
+                {mode === 'login' && (
+                  <>
+                    {/* 邮箱输入 */}
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-2">
+                        邮箱地址
+                      </label>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                        <input
+                          type="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          placeholder="your@email.com"
+                          className="w-full pl-10 pr-4 py-3 border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-transparent bg-secondary"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    {/* 密码输入 */}
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-2">
+                        密码
+                      </label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                        <input
+                          type="password"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          placeholder="至少8位字符"
+                          minLength={8}
+                          className="w-full pl-10 pr-4 py-3 border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-transparent bg-secondary"
+                          required
+                        />
+                      </div>
+
+                      {/* 忘记密码链接 */}
                       <div className="mt-2 text-right">
                         <button
                           type="button"
@@ -490,51 +762,33 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
                           忘记密码？
                         </button>
                       </div>
+                    </div>
+
+                    {/* 错误提示 */}
+                    {error && (
+                      <div className="flex items-center gap-2 text-red-500 text-sm bg-red-50 p-3 rounded-lg">
+                        <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                        {error}
+                      </div>
                     )}
-                  </div>
-                )}
 
-                {/* 错误提示 */}
-                {error && (
-                  <div className="flex items-center gap-2 text-red-500 text-sm bg-red-50 p-3 rounded-lg">
-                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                    {error}
-                  </div>
-                )}
-
-                {/* 按钮 */}
-                <div className="flex gap-3 pt-4">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onClose()
-                      if (mode === 'forgot-password') {
-                        setFpStep('email')
-                        setError('')
-                      }
-                    }}
-                    className="flex-1 px-4 py-3 bg-secondary text-foreground rounded-xl border border-border hover:bg-secondary/80 transition-all"
-                  >
-                    {mode === 'forgot-password' ? '关闭' : '取消'}
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="flex-1 px-4 py-3 green-gradient backdrop-blur-md text-white rounded-xl border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] hover:opacity-90 transition-all disabled:opacity-50"
-                  >
-                    {loading ? '处理中...' : mode === 'register' ? '绑定账号' : '登录'}
-                  </button>
-                </div>
-
-                {/* 注册模式提示文本 */}
-                {mode === 'register' && (
-                  <>
-                    <p className="text-xs text-muted-foreground text-center mt-4">
-                      绑定后可开启云同步，数据永不丢失
-                    </p>
-                    <p className="text-[10px] text-muted-foreground text-center mt-2 leading-relaxed">
-                      🔒 注册即表示您同意我们仅为提供数据同步服务而存储您的加密数据。
-                    </p>
+                    {/* 按钮 */}
+                    <div className="flex gap-3 pt-4">
+                      <button
+                        type="button"
+                        onClick={onClose}
+                        className="flex-1 px-4 py-3 bg-secondary text-foreground rounded-xl border border-border hover:bg-secondary/80 transition-all"
+                      >
+                        取消
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={loading}
+                        className="flex-1 px-4 py-3 green-gradient backdrop-blur-md text-white rounded-xl border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] hover:opacity-90 transition-all disabled:opacity-50"
+                      >
+                        {loading ? '登录中...' : '登录'}
+                      </button>
+                    </div>
                   </>
                 )}
               </form>

@@ -21,6 +21,21 @@ interface AccountBindingSectionProps {
   onClose: () => void // ⭐ 新增：onClose 回调
 }
 
+// 隐藏邮箱地址的辅助函数
+function maskEmail(email: string): string {
+  if (!email) return ''
+
+  const [username, domain] = email.split('@')
+  if (!username || !domain) return email
+
+  // 用户名只显示前2个字符，其余用***代替
+  const maskedUsername = username.length <= 2
+    ? username
+    : username.slice(0, 2) + '***'
+
+  return `${maskedUsername}@${domain}`
+}
+
 export function AccountBindingSection({
   profile,
   localData,
@@ -102,8 +117,8 @@ export function AccountBindingSection({
                 <CheckCircle className="w-4 h-4 text-amber-600" />
                 <span className="text-sm font-medium text-foreground">已绑定邮箱</span>
               </div>
-              <p className="text-sm text-muted-foreground truncate leading-tight">
-                {user.email}
+              <p className="text-sm text-muted-foreground truncate leading-tight" title={user.email || ''}>
+                {maskEmail(user.email || '')}
               </p>
             </div>
 
