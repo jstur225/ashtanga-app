@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Mail, Lock, AlertCircle, X, CheckCircle } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
@@ -40,6 +40,20 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
   const [registerStep, setRegisterStep] = useState<RegisterStep>('form')
   const [registerVerifyCode, setRegisterVerifyCode] = useState('')
   const [registerCountdown, setRegisterCountdown] = useState(0)
+
+  // ==================== 模式切换时重置状态 ====================
+  useEffect(() => {
+    // 当模式切换时，重置所有步骤和错误
+    setRegisterStep('form')
+    setRegisterVerifyCode('')
+    setRegisterCountdown(0)
+    setFpStep('email')
+    setVerifyCode('')
+    setNewPassword('')
+    setConfirmNewPassword('')
+    setCountdown(0)
+    setError('')
+  }, [mode])
 
   // ==================== 密码强度验证 ====================
   const validatePassword = (password: string): { valid: boolean; error?: string } => {
