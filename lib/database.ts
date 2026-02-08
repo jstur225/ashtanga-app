@@ -2,13 +2,21 @@ import { supabase, TABLES, PracticeRecord, PracticeOption, UserProfile } from '.
 
 // ==================== Practice Records ====================
 
-// 获取所有练习记录
-export async function getAllPracticeRecords(): Promise<PracticeRecord[]> {
+// 获取所有练习记录（添加 user_id 过滤 + 软删除过滤）
+export async function getAllPracticeRecords(userId?: string): Promise<PracticeRecord[]> {
   try {
-    const { data, error } = await supabase
+    let query = supabase
       .from(TABLES.PRACTICE_RECORDS)
       .select('*')
-      .order('date', { ascending: false })
+      .is('deleted_at', null) // ⚠️ 只查询未删除的记录
+
+    // ⚠️ 重要：只有在提供了 userId 时才应用用户过滤
+    // 未登录时（无 userId），不应用过滤，返回所有数据（兼容现有逻辑）
+    if (userId) {
+      query = query.eq('user_id', userId)
+    }
+
+    const { data, error } = await query.order('date', { ascending: false })
 
     if (error) {
       // Silently log error, don't break the app
@@ -27,14 +35,23 @@ export async function getAllPracticeRecords(): Promise<PracticeRecord[]> {
 // 根据日期获取练习记录
 export async function getPracticeRecordsByDateRange(
   startDate: string,
-  endDate: string
+  endDate: string,
+  userId?: string
 ): Promise<PracticeRecord[]> {
-  const { data, error } = await supabase
+  let query = supabase
     .from(TABLES.PRACTICE_RECORDS)
     .select('*')
+    .is('deleted_at', null) // ⚠️ 只查询未删除的记录
     .gte('date', startDate)
     .lte('date', endDate)
     .order('date', { ascending: true })
+
+  // ⚠️ 只有在提供了 userId 时才应用用户过滤
+  if (userId) {
+    query = query.eq('user_id', userId)
+  }
+
+  const { data, error } = await query
 
   if (error) {
     console.error('Error fetching practice records by date range:', error)
@@ -46,7 +63,7 @@ export async function getPracticeRecordsByDateRange(
 
 // 创建练习记录
 export async function createPracticeRecord(
-  record: Omit<PracticeRecord, 'id' | 'created_at'>
+  record: Omit<PracticeRecord, 'id' | 'created_at' | 'deleted_at'>
 ): Promise<PracticeRecord | null> {
   const { data, error } = await supabase
     .from(TABLES.PRACTICE_RECORDS)
@@ -70,12 +87,12 @@ export async function createPracticeRecord(
 
 // 更新练习记录
 export async function updatePracticeRecord(
-  id: number,
-  updates: Partial<Omit<PracticeRecord, 'id' | 'created_at'>>
+  id: string, // 改：number → string (UUID)
+  updates: Partial<Omit<PracticeRecord, 'id' | 'created_at' | 'deleted_at'>>
 ): Promise<PracticeRecord | null> {
   const { data, error } = await supabase
     .from(TABLES.PRACTICE_RECORDS)
-    .update(updates)
+    .update({ ...updates, updated_at: new Date().toISOString() }) // ⚠️ 自动更新 updated_at
     .eq('id', id)
     .select()
     .single()
@@ -88,8 +105,8 @@ export async function updatePracticeRecord(
   return data
 }
 
-// 删除练习记录
-export async function deletePracticeRecord(id: number): Promise<boolean> {
+// 删除练习记录（软删除：设置 deleted_at）
+export async function deletePracticeRecord(id: string): Promise<boolean> { // 改：number → string
   try {
     // 1. 先获取记录的照片列表
     const { data: record } = await supabase
@@ -129,11 +146,12 @@ export async function deletePracticeRecord(id: number): Promise<boolean> {
       }
     }
 
-    // 3. 删除数据库记录
+    // 3. 软删除数据库记录（设置 deleted_at）
     const { error } = await supabase
       .from(TABLES.PRACTICE_RECORDS)
-      .delete()
+      .update({ deleted_at: new Date().toISOString() }) // ⚠️ 软删除
       .eq('id', id)
+      .is('deleted_at', null) // 只删除未被删除的记录
 
     if (error) {
       console.error('Error deleting practice record:', JSON.stringify(error, null, 2))
@@ -146,7 +164,7 @@ export async function deletePracticeRecord(id: number): Promise<boolean> {
       return false
     }
 
-    console.log('[Database] ✅ 记录和照片已删除')
+    console.log('[Database] ✅ 记录已软删除')
     return true
   } catch (err) {
     console.error('Unexpected error in deletePracticeRecord:', err)
@@ -156,12 +174,19 @@ export async function deletePracticeRecord(id: number): Promise<boolean> {
 
 // ==================== Practice Options ====================
 
-// 获取所有练习选项（包括默认和自定义）
-export async function getAllPracticeOptions(): Promise<PracticeOption[]> {
-  const { data, error } = await supabase
+// 获取所有练习选项（包括默认和自定义，添加 user_id 过滤）
+export async function getAllPracticeOptions(userId?: string): Promise<PracticeOption[]> {
+  let query = supabase
     .from(TABLES.PRACTICE_OPTIONS)
     .select('*')
     .order('is_custom', { ascending: true })
+
+  // ⚠️ 只有在提供了 userId 时才应用用户过滤
+  if (userId) {
+    query = query.eq('user_id', userId)
+  }
+
+  const { data, error } = await query
 
   if (error) {
     console.error('Error fetching practice options:', error)
@@ -191,7 +216,7 @@ export async function createPracticeOption(
 
 // 更新练习选项
 export async function updatePracticeOption(
-  id: number,
+  id: string, // 改：number → string
   updates: Partial<Omit<PracticeOption, 'id' | 'created_at'>>
 ): Promise<PracticeOption | null> {
   const { data, error } = await supabase
@@ -210,7 +235,7 @@ export async function updatePracticeOption(
 }
 
 // 删除练习选项
-export async function deletePracticeOption(id: number): Promise<boolean> {
+export async function deletePracticeOption(id: string): Promise<boolean> { // 改：number → string
   const { error } = await supabase
     .from(TABLES.PRACTICE_OPTIONS)
     .delete()
@@ -226,15 +251,22 @@ export async function deletePracticeOption(id: number): Promise<boolean> {
 
 // ==================== User Profile ====================
 
-// 获取用户信息
-export async function getUserProfile(): Promise<UserProfile | null> {
+// 获取用户信息（添加 user_id 过滤）
+export async function getUserProfile(userId?: string): Promise<UserProfile | null> {
   try {
-    const { data, error } = await supabase
+    let query = supabase
       .from(TABLES.USER_PROFILES)
       .select('*')
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle() // 使用 maybeSingle() 而不是 single()，避免空记录报错
+
+    // ⚠️ 只有在提供了 userId 时才应用用户过滤
+    if (userId) {
+      query = query.eq('user_id', userId)
+    }
+
+    const { data, error } = await query
 
     if (error) {
       console.error('Error fetching user profile:', JSON.stringify(error))
@@ -268,12 +300,12 @@ export async function createUserProfile(
 
 // 更新用户信息
 export async function updateUserProfile(
-  id: number,
-  updates: Partial<Omit<UserProfile, 'id' | 'created_at'>>
+  id: string, // 改：number → string
+  updates: Partial<Omit<UserProfile, 'id' | 'created_at' | 'user_id'>>
 ): Promise<UserProfile | null> {
   const { data, error } = await supabase
     .from(TABLES.USER_PROFILES)
-    .update(updates)
+    .update({ ...updates, updated_at: new Date().toISOString() }) // ⚠️ 自动更新 updated_at
     .eq('id', id)
     .select()
     .single()

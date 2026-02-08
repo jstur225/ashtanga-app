@@ -5,16 +5,20 @@ import { useLocalStorage, useInterval } from 'react-use';
 import { motion, AnimatePresence } from "framer-motion"
 import { usePracticeData, type PracticeRecord, type PracticeOption, type UserProfile } from "@/hooks/usePracticeData"
 import { usePWAInstall } from "@/hooks/usePWAInstall"
+import { useAuth } from "@/hooks/useAuth"
+import { useSync } from "@/hooks/useSync"
 import { BookOpen, BarChart3, Calendar, X, Camera, Pause, Play, Trash2, User, Settings, ChevronLeft, ChevronRight, ChevronUp, Cloud, Download, Upload, Plus, Share2, Sparkles, Check, Copy, ClipboardPaste, MessageCircle } from "lucide-react"
 import { FakeDoorModal } from "@/components/FakeDoorModal"
 import { ImportModal } from "@/components/ImportModal"
 import { ExportModal } from "@/components/ExportModal"
 import { XiaohongshuInviteModal, INVITE_VERSION } from "@/components/XiaohongshuInviteModal"
 import { PWAInstallBanner } from "@/components/PWAInstallBanner"
+import { AccountBindingSection } from "@/components/AccountBindingSection"
 import { toast } from 'sonner'
 import { trackEvent } from '@/lib/analytics'
 import { captureWithFallback, formatErrorForUser } from '@/lib/screenshot'
 import { MOON_DAYS_2026 } from '@/lib/moon-phase-data'
+import { supabase } from '@/lib/supabase'
 
 // 月相图标路径
 const NEW_MOON_ICON = '/moon-phase/new-moon.png'
@@ -1695,6 +1699,11 @@ function SettingsModal({
   onOpenExport,
   onOpenImport,
   onExportLog,
+  onClearData,
+  user, // ⭐ 新增：用户信息（用于重置同步状态）
+  practiceHistory, // ⭐ 新增
+  practiceOptionsData, // ⭐ 新增
+  initialSection, // ⭐ 新增：初始标签页（用于从云图标快速打开）
 }: {
   isOpen: boolean
   onClose: () => void
@@ -1703,12 +1712,24 @@ function SettingsModal({
   onOpenExport: () => void
   onOpenImport: () => void
   onExportLog?: () => void
+  onClearData?: () => void
+  user?: any // ⭐ 新增
+  practiceHistory?: PracticeRecord[] // ⭐ 新增
+  practiceOptionsData?: PracticeOption[] // ⭐ 新增
+  initialSection?: 'profile' | 'account' | 'data' // ⭐ 新增：初始标签页
 }) {
   const [name, setName] = useState(profile.name)
   const [signature, setSignature] = useState(profile.signature)
   const [avatar, setAvatar] = useState<string | null>(profile.avatar)
-  const [activeSection, setActiveSection] = useState<'profile' | 'data'>('profile')
+  const [activeSection, setActiveSection] = useState<'profile' | 'account' | 'data'>(initialSection || 'profile')
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // 当 initialSection 变化时，切换到对应标签页
+  useEffect(() => {
+    if (initialSection) {
+      setActiveSection(initialSection)
+    }
+  }, [initialSection])
 
   useEffect(() => {
     setName(profile.name)
@@ -1807,18 +1828,28 @@ function SettingsModal({
               <button
                 onClick={() => setActiveSection('profile')}
                 className={`flex-1 py-2 rounded-full text-sm font-serif transition-all ${
-                  activeSection === 'profile' 
-                    ? 'green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white' 
+                  activeSection === 'profile'
+                    ? 'green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white'
                     : 'bg-secondary text-foreground'
                 }`}
               >
                 个人资料
               </button>
               <button
+                onClick={() => setActiveSection('account')}
+                className={`flex-1 py-2 rounded-full text-sm font-serif transition-all ${
+                  activeSection === 'account'
+                    ? 'green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white'
+                    : 'bg-secondary text-foreground'
+                }`}
+              >
+                账户与同步
+              </button>
+              <button
                 onClick={() => setActiveSection('data')}
                 className={`flex-1 py-2 rounded-full text-sm font-serif transition-all ${
-                  activeSection === 'data' 
-                    ? 'green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white' 
+                  activeSection === 'data'
+                    ? 'green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white'
                     : 'bg-secondary text-foreground'
                 }`}
               >
@@ -1880,13 +1911,40 @@ function SettingsModal({
                 </>
               )}
 
+              {activeSection === 'account' && (
+                <AccountBindingSection
+                  profile={profile}
+                  localData={{
+                    records: practiceHistory,
+                    options: practiceOptionsData
+                  }}
+                  onSyncComplete={(data) => {
+                    // 同步完成后的回调
+                    // TODO: 实现智能合并逻辑（方案A：用户选择）
+                    console.log('Sync completed:', data)
+                  }}
+                  onClose={onClose}
+                />
+              )}
+
+              {/* 临时注释：测试其他Tab是否正常
+              {activeSection === 'account' && (
+                <div className="text-center py-8">
+                  <p>账户与同步功能开发中...</p>
+                </div>
+              )}
+              */}
+
               {activeSection === 'data' && (
                 <div className="space-y-4">
-                  <div className="p-4 rounded-2xl bg-orange-50 border border-orange-100 mb-2">
-                    <p className="text-xs text-orange-600 font-serif leading-relaxed">
-                      隐私安全原因，所有数据保存在本地。卸载浏览器或清除缓存前，一定要备份。
-                    </p>
-                  </div>
+                  {/* 只有未登录时才显示备份提示 */}
+                  {!user && (
+                    <div className="p-4 rounded-2xl bg-orange-50 border border-orange-100 mb-2">
+                      <p className="text-xs text-orange-600 font-serif leading-relaxed">
+                        💡 未开启云端同步，建议定期备份数据，防止意外丢失
+                      </p>
+                    </div>
+                  )}
 
                   {/* 导出按钮 */}
                   <button
@@ -1940,18 +1998,149 @@ function SettingsModal({
                       <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
                     </button>
                   )}
+
+                  {/* 清空数据按钮 - 三层安全防护 */}
+                  {onClearData && (
+                    <button
+                      onClick={() => {
+                        // 🛡️ 第一层：后果告知（系统级确认框）
+                        const step1 = confirm(
+                          '⚠️ 危险操作警告 ⚠️\n\n' +
+                          '您正在尝试清空本机所有数据。\n' +
+                          '此操作将永久删除：\n' +
+                          '• 所有练习记录\n' +
+                          '• 练习选项\n' +
+                          '• 个人信息\n' +
+                          '• 同步日志\n\n' +
+                          '⚠️ 此操作不可撤销！\n\n' +
+                          '是否继续？'
+                        )
+
+                        if (!step1) return
+
+                        // 🛡️ 第二层：强制输入确认词（机械锁）
+                        const confirmation = prompt(
+                          '⚠️ 二次确认 ⚠️\n\n' +
+                          '为防止误操作，请输入确认词。\n\n' +
+                          '确认词：确认删除（不含引号）\n' +
+                          '或点击"取消"放弃操作'
+                        )
+
+                        if (confirmation !== '确认删除') {
+                          if (confirmation === null) {
+                            // 用户点击取消
+                            toast.info('操作已取消')
+                          } else {
+                            // 用户输入错误
+                            toast.error('确认词输入错误，操作已取消')
+                          }
+                          return
+                        }
+
+                        // 🛡️ 第三层：最终确认
+                        if (confirm('🚨 最终确认：确认要清空所有数据吗？此操作不可撤销！')) {
+                          // 清空本地数据
+                          localStorage.clear()
+
+                          // 如果已登录，重置云端同步状态（通过 hook 的返回值）
+                          if (user && onClearData) {
+                            onClearData()
+                          }
+
+                          toast.success('数据已清空，应用将重新加载')
+
+                          // 延迟1秒后重新加载页面
+                          setTimeout(() => {
+                            window.location.reload()
+                          }, 1000)
+                        }
+                      }}
+                      className="w-full flex items-center justify-between p-4 rounded-2xl bg-red-50 hover:bg-red-100 transition-all group border border-red-200"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-xl bg-red-100 text-red-600">
+                          <Trash2 className="w-5 h-5" />
+                        </div>
+                        <div className="text-left">
+                          <div className="text-sm font-serif text-red-700">清空数据胶囊</div>
+                          <div className="text-[10px] text-red-600 font-serif">删除所有记录，恢复初始状态</div>
+                        </div>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-red-400 group-hover:translate-x-1 transition-transform" />
+                    </button>
+                  )}
                 </div>
               )}
 
               <div className="pt-4">
-                <button
-                  onClick={handleSave}
-                  className="w-full py-4 rounded-full green-gradient text-white font-serif shadow-lg hover:opacity-90 active:scale-[0.98] transition-all"
-                >
-                  保存设置
-                </button>
+                {/* 只在"个人资料"Tab显示保存按钮 */}
+                {activeSection === 'profile' && (
+                  <button
+                    onClick={handleSave}
+                    className="w-full py-4 rounded-full green-gradient text-white font-serif shadow-lg hover:opacity-90 active:scale-[0.98] transition-all"
+                  >
+                    保存设置
+                  </button>
+                )}
               </div>
             </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  )
+}
+
+// Account & Sync Modal - 专门用于云图标点击
+function AccountSyncModal({
+  isOpen,
+  onClose,
+  profile,
+  practiceHistory,
+  practiceOptionsData,
+}: {
+  isOpen: boolean
+  onClose: () => void
+  profile: UserProfile
+  practiceHistory: PracticeRecord[]
+  practiceOptionsData: PracticeOption[]
+}) {
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/30 z-40"
+            onClick={onClose}
+          />
+          <motion.div
+            initial={{ y: "100%" }}
+            animate={{ y: 0 }}
+            exit={{ y: "100%" }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="fixed bottom-0 left-0 right-0 bg-card rounded-t-[24px] z-50 p-6 pb-10 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] max-h-[calc(100vh-2rem)] overflow-y-auto"
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-lg font-serif text-foreground">账户与同步</h2>
+              <button onClick={onClose} className="p-2 -mr-2 text-muted-foreground hover:text-foreground transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <AccountBindingSection
+              profile={profile}
+              localData={{
+                records: practiceHistory,
+                options: practiceOptionsData
+              }}
+              onSyncComplete={(data) => {
+                console.log('Sync completed:', data)
+              }}
+              onClose={onClose}
+            />
           </motion.div>
         </>
       )}
@@ -2139,13 +2328,17 @@ function MonthlyHeatmap({
   onDayClick,
   onOpenFakeDoor,
   onAddRecord,
-  votedCloud
+  votedCloud,
+  syncStatus,
+  user
 }: {
   practiceHistory: PracticeRecord[]
   onDayClick: (dateStr: string) => void
   onOpenFakeDoor: () => void
   onAddRecord: () => void
   votedCloud: boolean
+  syncStatus: 'idle' | 'syncing' | 'success' | 'error'
+  user: any
 }) {
   const today = new Date()
   const todayStr = getLocalDateStr()
@@ -2240,7 +2433,7 @@ function MonthlyHeatmap({
       <div className="flex items-center justify-between px-4 py-3 border-b border-stone-100 bg-lime-50">
         {/* Left: Sync Status - aligned with calendar first column */}
         <div className="w-[calc((100%-12px)/7)] flex justify-center">
-          <SyncButton onOpenFakeDoor={onOpenFakeDoor} hasVoted={votedCloud || false} />
+          <SyncButton onOpenFakeDoor={onOpenFakeDoor} syncStatus={syncStatus} hasVoted={!!user} />
         </div>
         
         {/* Center: Month Navigation - takes remaining space */}
@@ -2351,32 +2544,58 @@ function MonthlyHeatmap({
 }
 
 // Sync Button - Cream cloud icon with colored status dot below
-function SyncButton({ onOpenFakeDoor, hasVoted }: { onOpenFakeDoor: () => void; hasVoted: boolean }) {
-  const [isSpinning, setIsSpinning] = useState(false)
-  
+function SyncButton({ onOpenFakeDoor, syncStatus, hasVoted }: { onOpenFakeDoor: () => void; syncStatus: 'idle' | 'syncing' | 'success' | 'error'; hasVoted: boolean }) {
+  const [isClickSpinning, setIsClickSpinning] = useState(false)
+
   const handleClick = () => {
-    setIsSpinning(true)
-    onOpenFakeDoor()
-    setTimeout(() => setIsSpinning(false), 800)
+    // 点击时触发一次旋转动画（1秒）
+    setIsClickSpinning(true)
+    setTimeout(() => setIsClickSpinning(false), 1000)
+
+    // 延迟打开弹窗，让用户先看到旋转动画
+    setTimeout(() => {
+      onOpenFakeDoor()
+    }, 100)
   }
-  
+
+  // 根据同步状态决定颜色
+  const getStatusColor = () => {
+    // 未登录：红色
+    if (!hasVoted) return 'bg-red-400'
+
+    // 已登录 - 只在有明确状态时显示对应颜色
+    if (syncStatus === 'syncing') return 'bg-blue-400' // 同步中：蓝色
+    if (syncStatus === 'success') return 'bg-green-400' // 同步成功：绿色
+    if (syncStatus === 'error') return 'bg-red-400' // 同步失败：红色
+
+    // 默认：等待同步或空闲状态 - 显示灰色
+    return 'bg-stone-400'
+  }
+
+  // 是否应该旋转：正在同步 或 点击动画
+  const shouldSpin = syncStatus === 'syncing' || isClickSpinning
+
   return (
     <button
       onClick={handleClick}
       className={`relative w-8 h-8 rounded-full backdrop-blur-md border border-white/20 shadow-[0_2px_8px_rgba(45,90,39,0.2)] flex items-center justify-center transition-all ${
-        hasVoted 
-          ? 'green-gradient' 
+        hasVoted
+          ? 'green-gradient'
           : 'bg-stone-400'
       }`}
     >
       <motion.div
-        animate={isSpinning ? { rotate: 360 } : { rotate: 0 }}
-        transition={{ duration: 0.8, ease: "easeInOut" }}
+        animate={shouldSpin ? { rotate: 360 } : { rotate: 0 }}
+        transition={{
+          duration: 0.8,
+          ease: "easeInOut",
+          repeat: syncStatus === 'syncing' ? Infinity : (isClickSpinning ? 1 : 0)
+        }}
       >
         <Cloud className={`w-4 h-4 ${hasVoted ? 'text-[#FAF7F2]' : 'text-stone-200'}`} />
       </motion.div>
-      {/* Status dot */}
-      <div className={`absolute bottom-1 left-1/2 -translate-x-1/2 rounded-full w-1 h-1 ${hasVoted ? 'bg-green-400' : 'bg-red-400'}`} />
+      {/* Status dot - 根据同步状态显示不同颜色 */}
+      <div className={`absolute bottom-1 left-1/2 -translate-x-1/2 rounded-full w-1 h-1 ${getStatusColor()}`} />
     </button>
   )
 }
@@ -2397,6 +2616,8 @@ function JournalTab({
   onSetEditingRecord,
   showAddModal,
   onSetShowAddModal,
+  syncStatus,
+  user,
 }: {
   practiceHistory: PracticeRecord[]
   practiceOptions: PracticeOption[]
@@ -2412,6 +2633,8 @@ function JournalTab({
   onSetEditingRecord: (record: PracticeRecord | null) => void
   showAddModal: boolean
   onSetShowAddModal: (show: boolean) => void
+  syncStatus: 'idle' | 'syncing' | 'success' | 'error'
+  user: any
 }) {
   const [sharingRecordId, setSharingRecordId] = useState<string | null>(null)
   const [childModalOpen, setChildModalOpen] = useState(false)
@@ -2517,6 +2740,8 @@ function JournalTab({
           onOpenFakeDoor={onOpenFakeDoor}
           onAddRecord={() => onSetShowAddModal(true)}
           votedCloud={votedCloud}
+          syncStatus={syncStatus}
+          user={user}
         />
       </div>
       
@@ -3016,8 +3241,12 @@ export default function AshtangaTracker() {
     updateOption,
     deleteOption,
     exportData,
-    importData
+    importData,
+    clearAllData
   } = usePracticeData()
+
+  // ==================== 认证状态 ====================
+  const { user, loading: authLoading } = useAuth()
 
   const [practiceOptions, setPracticeOptions] = useState<PracticeOption[]>([])
   const [selectedOption, setSelectedOption] = useState<string | null>(null)
@@ -3038,6 +3267,8 @@ export default function AshtangaTracker() {
   const [finalDuration, setFinalDuration] = useState("")
   const [activeTab, setActiveTab] = useState<'practice' | 'journal' | 'stats'>('practice')
   const [showSettings, setShowSettings] = useState(false)
+  const [settingsInitialSection, setSettingsInitialSection] = useState<'profile' | 'account' | 'data'>('profile')
+  const [showAccountSync, setShowAccountSync] = useState(false)
   const [showFakeDoor, setShowFakeDoor] = useState<{ type: 'cloud' | 'pro', isOpen: boolean }>({ type: 'cloud', isOpen: false })
   const [showImportModal, setShowImportModal] = useState(false)
   const [showExportModal, setShowExportModal] = useState(false)
@@ -3060,6 +3291,25 @@ export default function AshtangaTracker() {
 
   // 派生状态：判断是否显示红点（版本号不同时显示）
   const hasNewXhsMessage = readInviteVersion !== INVITE_VERSION
+
+  // ==================== 同步状态 ====================
+  const localDataForSync = {
+    records: practiceHistory,
+    options: practiceOptions,
+    profile: userProfile
+  }
+
+  const { syncStatus, lastSyncTime, failedSyncIds, setFailedSyncIds, setLastSyncStatus } = useSync(
+    user,
+    localDataForSync,
+    (data) => {
+      // 同步完成后的回调：更新本地数据
+      if (data.records) {
+        // 这里可以处理同步完成后的逻辑
+        console.log('Sync completed:', data)
+      }
+    }
+  )
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
   const lastTapRef = useRef<{ id: string; time: number } | null>(null)
@@ -3697,7 +3947,15 @@ export default function AshtangaTracker() {
           onEditRecord={handleEditRecord}
           onDeleteRecord={handleDeleteRecord}
           onAddRecord={handleAddRecord}
-          onOpenFakeDoor={() => setShowFakeDoor({ type: 'cloud', isOpen: true })}
+          onOpenFakeDoor={() => {
+            if (user) {
+              // 已登录：打开账户与同步弹窗
+              setShowAccountSync(true)
+            } else {
+              // 未登录：提示操作路径
+              toast.info('📧 启动云同步需要登录：进入「我的数据」→ 右上角齿轮图标 → 账户与同步 → 登录账号')
+            }
+          }}
           onAddOption={handleAddOption}
           votedCloud={votedCloud}
           onLogExport={(log) => setExportLogs([...exportLogs, log])}
@@ -3705,6 +3963,8 @@ export default function AshtangaTracker() {
           onSetEditingRecord={setEditingRecord}
           showAddModal={showAddModal}
           onSetShowAddModal={setShowAddModal}
+          syncStatus={syncStatus}
+          user={user}
         />
       )}
       {activeTab === 'stats' && (
@@ -3779,17 +4039,39 @@ export default function AshtangaTracker() {
       {/* Settings Modal */}
       <SettingsModal
         isOpen={showSettings}
-        onClose={() => setShowSettings(false)}
+        onClose={() => {
+          setShowSettings(false)
+          setSettingsInitialSection('profile') // 重置初始标签页
+        }}
+        initialSection={settingsInitialSection}
         profile={userProfile}
         onSave={updateProfile}
         onOpenExport={() => {
           const data = exportData()
           setExportedData(data)
           setShowExportModal(true)
-          trackEvent('export_data')
         }}
         onOpenImport={() => setShowImportModal(true)}
-        onExportLog={handleExportDebugLog}
+        onExportLog={() => {
+          const logs = exportLogs.map(log =>
+            `[${log.timestamp}] ${log.success ? '✅' : '❌'} ${log.recordDate ? `记录${log.recordDate}` : '批量操作'} ${log.error ? `- ${log.error}` : ''}`
+          ).join('\n')
+          navigator.clipboard.writeText(logs)
+          toast.success('运行日志已复制到剪贴板')
+        }}
+        onClearData={clearAllData}
+        user={user}
+        practiceHistory={practiceHistory}
+        practiceOptionsData={practiceOptionsData}
+      />
+
+      {/* Account & Sync Modal */}
+      <AccountSyncModal
+        isOpen={showAccountSync}
+        onClose={() => setShowAccountSync(false)}
+        profile={userProfile}
+        practiceHistory={practiceHistory}
+        practiceOptionsData={practiceOptionsData}
       />
 
       {/* Import Modal */}

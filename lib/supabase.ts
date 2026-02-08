@@ -36,7 +36,8 @@ export const supabase = new Proxy({} as ReturnType<typeof createClient>, {
 
 // Database types
 export interface PracticeRecord {
-  id: number
+  id: string // UUID (string)
+  user_id: string // 新增：用户ID，用于数据隔离
   created_at: string
   date: string
   type: string
@@ -44,10 +45,12 @@ export interface PracticeRecord {
   notes: string
   photos: string[]
   breakthrough?: string
+  deleted_at?: string | null // 软删除字段
 }
 
 export interface PracticeOption {
-  id: number
+  id: string // UUID (string)
+  user_id: string // 新增：用户ID，用于数据隔离
   created_at: string
   label: string
   label_zh: string
@@ -56,14 +59,19 @@ export interface PracticeOption {
 }
 
 export interface UserProfile {
-  id: number
+  id: string // UUID (string)
+  user_id: string // 新增：用户ID，关联到 auth.users
   created_at: string
   name: string
   signature: string
-  avatar: string | null
+  avatar: string | null // ⚠️ 头像只存本地，不上传云端（存本地URL或null）
   phone?: string
-  email?: string
   is_pro: boolean
+  logged_in_devices?: Array<{ // 新增：已登录设备列表（最多1台）
+    id: string
+    name: string
+    last_seen: string
+  }>
 }
 
 // Tables

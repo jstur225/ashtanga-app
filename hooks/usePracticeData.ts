@@ -124,7 +124,10 @@ export const usePracticeData = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // 只在组件挂载时执行一次
 
-  const addRecord = (record: Omit<PracticeRecord, 'id' | 'created_at' | 'photos'>) => {
+  const addRecord = (
+    record: Omit<PracticeRecord, 'id' | 'created_at' | 'photos'>,
+    onSync?: (record: PracticeRecord) => void // ⭐ 新增：同步回调
+  ) => {
     const newRecord: PracticeRecord = {
       ...record,
       id: uuidv4(),
@@ -142,19 +145,47 @@ export const usePracticeData = () => {
 
     setRecords(sortedRecords);
 
+    // ⭐ 触发同步回调
+    onSync?.(newRecord);
+
     return newRecord;
   };
 
-  const updateRecord = (id: string, data: Partial<PracticeRecord>) => {
+  const updateRecord = (
+    id: string,
+    data: Partial<PracticeRecord>,
+    onSync?: (record: PracticeRecord) => void // ⭐ 新增：同步回调
+  ) => {
     setRecords((records || []).map(r => r.id === id ? { ...r, ...data } : r));
+
+    // ⭐ 触发同步回调
+    const updatedRecord = records?.find(r => r.id === id);
+    if (updatedRecord) {
+      onSync?.({ ...updatedRecord, ...data });
+    }
   };
 
-  const deleteRecord = (id: string) => {
+  const deleteRecord = (
+    id: string,
+    onSync?: (id: string) => void // ⭐ 新增：同步回调
+  ) => {
     setRecords((records || []).filter(r => r.id !== id));
+
+    // ⭐ 触发同步回调
+    onSync?.(id);
   };
 
-  const updateProfile = (data: Partial<UserProfile>) => {
-    setProfile({ ...(profile!), ...data });
+  const updateProfile = (
+    data: Partial<UserProfile>,
+    onSync?: (profile: UserProfile) => void // ⭐ 新增：同步回调
+  ) => {
+    const updatedProfile = { ...profile!, ...data };
+    setProfile(updatedProfile);
+
+    // ⭐ 触发同步回调
+    onSync?.(updatedProfile);
+
+    return updatedProfile;
   };
 
   const addOption = (label: string, label_zh: string) => {
@@ -221,6 +252,20 @@ export const usePracticeData = () => {
     }
   };
 
+  const clearAllData = () => {
+    // 清空所有数据，但保留默认选项
+    setRecords([]);
+    setOptions(DEFAULT_OPTIONS);
+    setProfile({
+      id: '',
+      created_at: new Date().toISOString(),
+      name: '阿斯汤加习练者',
+      signature: '练习、练习，一切随之而来。',
+      avatar: null,
+      is_pro: false,
+    });
+  };
+
   return {
     records: records || [],
     options: options || [],
@@ -234,5 +279,6 @@ export const usePracticeData = () => {
     deleteOption,
     exportData,
     importData,
+    clearAllData,
   };
 };

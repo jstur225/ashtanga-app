@@ -27,15 +27,17 @@ export function FakeDoorModal({ type, isOpen, onClose, onVote }: FakeDoorModalPr
 
     if (type === 'cloud') {
       setVotedCloud(true)
-      trackEvent('vote_for_cloud_sync', {
-        vote: 'yes',
-        choice: choice!
-      })
+      // ⚠️ 已注释云同步埋点 - 云同步功能已上线
+      // trackEvent('vote_for_cloud_sync', {
+      //   vote: 'yes',
+      //   choice: choice!
+      // })
       toast.success('收到你的心意啦~')
       onVote?.()
     } else {
       setVotedPro(true)
-      trackEvent('vote_for_cloud_sync', { vote: 'yes' })
+      // ⚠️ 已注释云同步埋点
+      // trackEvent('vote_for_cloud_sync', { vote: 'yes' })
       toast.success('收到你的心意啦~')
     }
 
@@ -44,10 +46,11 @@ export function FakeDoorModal({ type, isOpen, onClose, onVote }: FakeDoorModalPr
   }
 
   const handleSecondary = () => {
-    trackEvent('vote_for_cloud_sync', {
-      vote: 'no',
-      choice: 'none'
-    })
+    // ⚠️ 已注释云同步埋点
+    // trackEvent('vote_for_cloud_sync', {
+    //   vote: 'no',
+    //   choice: 'none'
+    // })
     toast.success('收到你的心意啦~')
     onClose()
   }
