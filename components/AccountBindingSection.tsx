@@ -55,6 +55,7 @@ export function AccountBindingSection({
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [passwordError, setPasswordError] = useState('')
+  const [isChangingPassword, setIsChangingPassword] = useState(false)
 
   // ==================== 立即同步 ====================
   const handleSync = async () => {
@@ -388,6 +389,9 @@ export function AccountBindingSection({
                   </button>
                   <button
                     onClick={async () => {
+                      // 清空之前的错误
+                      setPasswordError('')
+
                       // 验证
                       if (!oldPassword || !newPassword || !confirmPassword) {
                         setPasswordError('请填写所有字段')
@@ -409,26 +413,37 @@ export function AccountBindingSection({
                         return
                       }
 
-                      // 更新密码
-                      const { error } = await supabase.auth.updateUser({
-                        password: newPassword
-                      })
+                      // 开始修改密码
+                      setIsChangingPassword(true)
 
-                      if (error) {
-                        setPasswordError(error.message || '修改失败，请检查当前密码是否正确')
-                        return
+                      try {
+                        // 更新密码
+                        const { error } = await supabase.auth.updateUser({
+                          password: newPassword
+                        })
+
+                        if (error) {
+                          console.error('修改密码失败:', error)
+                          setPasswordError(error.message || '修改失败，请检查当前密码是否正确')
+                          return
+                        }
+
+                        toast.success('✅ 密码修改成功')
+                        setShowChangePassword(false)
+                        setOldPassword('')
+                        setNewPassword('')
+                        setConfirmPassword('')
+                      } catch (err: any) {
+                        console.error('修改密码异常:', err)
+                        setPasswordError(err.message || '修改失败，请重试')
+                      } finally {
+                        setIsChangingPassword(false)
                       }
-
-                      toast.success('✅ 密码修改成功')
-                      setShowChangePassword(false)
-                      setPasswordError('')
-                      setOldPassword('')
-                      setNewPassword('')
-                      setConfirmPassword('')
                     }}
-                    className="flex-1 px-4 py-3 green-gradient backdrop-blur-md text-white rounded-xl border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] hover:opacity-90 transition-all"
+                    disabled={isChangingPassword}
+                    className="flex-1 px-4 py-3 green-gradient backdrop-blur-md text-white rounded-xl border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] hover:opacity-90 transition-all disabled:opacity-50"
                   >
-                    确认修改
+                    {isChangingPassword ? '修改中...' : '确认修改'}
                   </button>
                 </div>
               </div>
