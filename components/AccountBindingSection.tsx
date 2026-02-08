@@ -483,9 +483,10 @@ export function AccountBindingSection({
                       // 开始修改密码
                       setIsChangingPassword(true)
 
+                      const startTime = Date.now()
+
                       try {
                         console.log('1. 开始请求 Supabase API...')
-                        const startTime = Date.now()
 
                         // 设置超时（30秒）
                         const timeoutPromise = new Promise((_, reject) => {
