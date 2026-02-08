@@ -528,11 +528,6 @@ export function AccountBindingSection({
                         console.log('   是否有错误:', result.error ? '是' : '否')
                         if (result.error) console.log('   错误信息:', result.error)
 
-                        const elapsed = Date.now() - startTime
-                        console.log(`5. API 响应收到（耗时: ${elapsed/1000}秒）`)
-                        console.log('   是否有错误:', result.error ? '是' : '否')
-                        if (result.error) console.log('   错误信息:', result.error)
-
                         if (result.error) {
                           console.error('修改密码失败:', result.error)
                           const translatedError = translateErrorMessage(result.error.message)
