@@ -492,7 +492,7 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
                           placeholder="your@email.com"
-                          className="w-full pl-10 pr-4 py-3 border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-transparent bg-secondary"
+                          className="w-full pl-10 pr-4 py-3 border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-transparent bg-secondary font-serif"
                           required
                         />
                       </div>
@@ -530,7 +530,7 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
                         }}
                         placeholder="______"
                         maxLength={6}
-                        className="w-full px-4 py-3 border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-transparent bg-secondary text-center text-2xl tracking-widest"
+                        className="w-full px-4 py-3 border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-transparent bg-secondary text-center text-2xl tracking-widest font-serif"
                         required
                       />
                     </div>
@@ -581,7 +581,7 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
                           }}
                           placeholder="至少8位字符，包含字母和数字"
                           minLength={8}
-                          className="w-full pl-10 pr-4 py-3 border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-transparent bg-secondary"
+                          className="w-full pl-10 pr-4 py-3 border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-transparent bg-secondary font-serif"
                           required
                         />
                       </div>
@@ -602,7 +602,7 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
                           }}
                           placeholder="再次输入新密码"
                           minLength={8}
-                          className="w-full pl-10 pr-4 py-3 border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-transparent bg-secondary"
+                          className="w-full pl-10 pr-4 py-3 border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-transparent bg-secondary font-serif"
                           required
                         />
                       </div>
@@ -662,7 +662,7 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
                           placeholder="your@email.com"
-                          className="w-full pl-10 pr-4 py-3 border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-transparent bg-secondary"
+                          className="w-full pl-10 pr-4 py-3 border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-transparent bg-secondary font-serif"
                           required
                         />
                       </div>
@@ -681,7 +681,7 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
                           onChange={(e) => setPassword(e.target.value)}
                           placeholder="至少8位字符"
                           minLength={8}
-                          className="w-full pl-10 pr-4 py-3 border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-transparent bg-secondary"
+                          className="w-full pl-10 pr-4 py-3 border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-transparent bg-secondary font-serif"
                           required
                         />
                       </div>
@@ -763,7 +763,7 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
                         }}
                         placeholder="______"
                         maxLength={6}
-                        className="w-full px-4 py-3 border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-transparent bg-secondary text-center text-2xl tracking-widest"
+                        className="w-full px-4 py-3 border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-transparent bg-secondary text-center text-2xl tracking-widest font-serif"
                         required
                       />
                     </div>
@@ -855,7 +855,7 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
                           placeholder="your@email.com"
-                          className="w-full pl-10 pr-4 py-3 border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-transparent bg-secondary"
+                          className="w-full pl-10 pr-4 py-3 border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-transparent bg-secondary font-serif"
                           required
                         />
                       </div>
@@ -874,7 +874,7 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
                           onChange={(e) => setPassword(e.target.value)}
                           placeholder="至少8位字符"
                           minLength={8}
-                          className="w-full pl-10 pr-4 py-3 border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-transparent bg-secondary"
+                          className="w-full pl-10 pr-4 py-3 border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-transparent bg-secondary font-serif"
                           required
                         />
                       </div>
