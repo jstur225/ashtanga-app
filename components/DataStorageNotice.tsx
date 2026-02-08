@@ -27,7 +27,7 @@ export function DataStorageNotice({ isCloudSynced }: DataStorageNoticeProps) {
   return (
     <div className="bg-amber-50 border-2 border-amber-200 rounded-xl p-4 mb-6">
       <div className="flex-1">
-        <h3 className="font-bold text-amber-800 mb-2">📱 当前数据仅保存在浏览器本地</h3>
+        <h3 className="font-bold font-serif text-amber-800 mb-2">📱 当前数据仅保存在浏览器本地</h3>
         <p className="text-sm font-serif text-amber-700 leading-relaxed">
           如删除浏览器或清除浏览器缓存，数据无法找回，建议开启云端同步功能。
         </p>

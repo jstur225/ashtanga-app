@@ -482,7 +482,7 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
                 {fpStep === 'email' && (
                   <>
                     <div>
-                      <label className="block text-sm font-medium text-foreground mb-2">
+                      <label className="block text-sm font-medium font-serif text-foreground mb-2">
                         邮箱地址
                       </label>
                       <div className="relative">
@@ -517,7 +517,7 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-foreground mb-2">
+                      <label className="block text-sm font-medium font-serif text-foreground mb-2">
                         请输入6位验证码
                       </label>
                       <input
@@ -567,7 +567,7 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-foreground mb-2">
+                      <label className="block text-sm font-medium font-serif text-foreground mb-2">
                         新密码
                       </label>
                       <div className="relative">
@@ -588,7 +588,7 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-foreground mb-2">
+                      <label className="block text-sm font-medium font-serif text-foreground mb-2">
                         确认新密码
                       </label>
                       <div className="relative">
@@ -652,7 +652,7 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
                   <>
                     {/* 邮箱输入 */}
                     <div>
-                      <label className="block text-sm font-medium text-foreground mb-2">
+                      <label className="block text-sm font-medium font-serif text-foreground mb-2">
                         邮箱地址
                       </label>
                       <div className="relative">
@@ -670,7 +670,7 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
 
                     {/* 密码输入 */}
                     <div>
-                      <label className="block text-sm font-medium text-foreground mb-2">
+                      <label className="block text-sm font-medium font-serif text-foreground mb-2">
                         密码
                       </label>
                       <div className="relative">
@@ -750,7 +750,7 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-foreground mb-2">
+                      <label className="block text-sm font-medium font-serif text-foreground mb-2">
                         请输入6位验证码
                       </label>
                       <input
@@ -845,7 +845,7 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
                   <>
                     {/* 邮箱输入 */}
                     <div>
-                      <label className="block text-sm font-medium text-foreground mb-2">
+                      <label className="block text-sm font-medium font-serif text-foreground mb-2">
                         邮箱地址
                       </label>
                       <div className="relative">
@@ -863,7 +863,7 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
 
                     {/* 密码输入 */}
                     <div>
-                      <label className="block text-sm font-medium text-foreground mb-2">
+                      <label className="block text-sm font-medium font-serif text-foreground mb-2">
                         密码
                       </label>
                       <div className="relative">
