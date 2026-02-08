@@ -1,12 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-// 使用 Service Role Key 创建客户端（可以绕过认证限制）
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
-
 /**
  * 重置密码 API（忘记密码功能）
  * POST /api/auth/reset-password
@@ -16,6 +10,13 @@ export async function POST(request: NextRequest) {
   const startTime = Date.now()
   console.log('🔑 后端 API - 重置密码请求')
   console.log('   时间:', new Date().toISOString())
+
+  // 使用 Service Role Key 创建客户端（可以绕过认证限制）
+  // 在函数内部创建，避免构建时环境变量未加载的问题
+  const supabaseAdmin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
 
   try {
     const { email, newPassword } = await request.json()
