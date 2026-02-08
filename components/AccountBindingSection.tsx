@@ -486,9 +486,29 @@ export function AccountBindingSection({
                       const startTime = Date.now()
 
                       try {
-                        console.log('1. 开始请求 Supabase API...')
+                        // 步骤1: 先验证原密码是否正确
+                        console.log('1. 验证原密码...')
+                        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+                          email: user?.email || '',
+                          password: oldPassword
+                        })
 
-                        // 设置超时（30秒）
+                        if (signInError) {
+                          console.error('原密码验证失败:', signInError)
+                          const translatedError = translateErrorMessage(signInError.message)
+                          // 如果是密码错误，显示更友好的提示
+                          if (signInError.message.includes('Invalid login credentials')) {
+                            setPasswordError('当前密码输入错误，请重新输入')
+                          } else {
+                            setPasswordError(translatedError)
+                          }
+                          setIsChangingPassword(false)
+                          return
+                        }
+
+                        console.log('2. 原密码验证通过，开始更新密码...')
+
+                        // 步骤2: 更新密码
                         const timeoutPromise = new Promise((_, reject) => {
                           setTimeout(() => {
                             const elapsed = Date.now() - startTime
@@ -496,31 +516,33 @@ export function AccountBindingSection({
                           }, 30000)
                         })
 
-                        // 更新密码
-                        console.log('2. 调用 supabase.auth.updateUser...')
+                        console.log('3. 调用 supabase.auth.updateUser...')
                         const updatePromise = supabase.auth.updateUser({
                           password: newPassword
                         })
 
-                        console.log('3. 等待 API 响应...')
+                        console.log('4. 等待 API 响应...')
                         const result = await Promise.race([updatePromise, timeoutPromise]) as any
 
                         const elapsed = Date.now() - startTime
-                        console.log(`4. API 响应收到（耗时: ${elapsed/1000}秒）:`, result)
+                        console.log(`5. API 响应收到（耗时: ${elapsed/1000}秒）:`, result)
 
                         if (result.error) {
                           console.error('修改密码失败:', result.error)
                           const translatedError = translateErrorMessage(result.error.message)
                           console.log('翻译后的错误消息:', translatedError)
                           setPasswordError(translatedError)
-                          // 不要 return，让 finally 执行
                         } else {
                           console.log('修改密码成功')
-                          toast.success('✅ 密码修改成功')
-                          setShowChangePassword(false)
-                          setOldPassword('')
-                          setNewPassword('')
-                          setConfirmPassword('')
+                          toast.success('✅ 密码修改成功，请使用新密码登录')
+
+                          // 延迟关闭弹窗，让用户看到成功提示
+                          setTimeout(() => {
+                            setShowChangePassword(false)
+                            setOldPassword('')
+                            setNewPassword('')
+                            setConfirmPassword('')
+                          }, 1500)
                         }
                       } catch (err: any) {
                         const elapsed = Date.now() - startTime
