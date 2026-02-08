@@ -457,7 +457,7 @@ export function AccountBindingSection({
 
                       if (oldPassword === newPassword) {
                         console.log('验证失败：新旧密码相同')
-                        setPasswordError('新密码不能与当前密码相同')
+                        setPasswordError('新密码不能与原密码相同')
                         return
                       }
 
