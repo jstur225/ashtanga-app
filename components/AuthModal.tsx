@@ -41,6 +41,29 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
   const [registerVerifyCode, setRegisterVerifyCode] = useState('')
   const [registerCountdown, setRegisterCountdown] = useState(0)
 
+  // ==================== 翻译 Supabase 错误消息 ====================
+  const translateErrorMessage = (message: string): string => {
+    const errorMap: Record<string, string> = {
+      'New password should be different from the old password.': '新密码不能与当前密码相同',
+      'Invalid login credentials': '邮箱或密码错误',
+      'Email not confirmed': '邮箱未验证',
+      'User already registered': '该邮箱已注册',
+      'Password should be at least 6 characters': '密码至少需要6个字符',
+      'Unable to validate email address: invalid format': '邮箱格式不正确',
+      'Signups not allowed': '暂不允许注册',
+      'Email rate limit exceeded': '发送邮件过于频繁，请稍后再试',
+      'User not found': '用户不存在',
+    }
+
+    for (const [english, chinese] of Object.entries(errorMap)) {
+      if (message.includes(english)) {
+        return chinese
+      }
+    }
+
+    return message // 如果没有匹配到，返回原消息
+  }
+
   // ==================== 模式切换时重置状态 ====================
   useEffect(() => {
     // 当模式切换时，重置所有步骤和错误
@@ -190,7 +213,7 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
         onClose()
       }
     } catch (err: any) {
-      setError(err.message || '操作失败，请重试')
+      setError(translateErrorMessage(err.message) || '操作失败，请重试')
     } finally {
       setLoading(false)
     }
@@ -244,7 +267,7 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
         })
       }, 1000)
     } catch (err: any) {
-      setError(err.message || '发送失败，请重试')
+      setError(translateErrorMessage(err.message) || '发送失败，请重试')
     } finally {
       setLoading(false)
     }
@@ -317,7 +340,7 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
       setConfirmNewPassword('')
       setError('')
     } catch (err: any) {
-      setError(err.message || '修改失败，请重试')
+      setError(translateErrorMessage(err.message) || '修改失败，请重试')
     } finally {
       setLoading(false)
     }

@@ -71,6 +71,28 @@ export function AccountBindingSection({
     }
   }
 
+  // 翻译 Supabase 错误消息
+  const translateErrorMessage = (message: string): string => {
+    const errorMap: Record<string, string> = {
+      'New password should be different from the old password.': '新密码不能与当前密码相同',
+      'Invalid login credentials': '邮箱或密码错误',
+      'Email not confirmed': '邮箱未验证',
+      'User already registered': '该邮箱已注册',
+      'Password should be at least 6 characters': '密码至少需要6个字符',
+      'Unable to validate email address: invalid format': '邮箱格式不正确',
+      'Signups not allowed': '暂不允许注册',
+      'Email rate limit exceeded': '发送邮件过于频繁，请稍后再试',
+    }
+
+    for (const [english, chinese] of Object.entries(errorMap)) {
+      if (message.includes(english)) {
+        return chinese
+      }
+    }
+
+    return message // 如果没有匹配到，返回原消息
+  }
+
   // 组件挂载时测试连接
   console.log('AccountBindingSection 组件已挂载')
   console.log('当前用户状态:', user)
@@ -463,7 +485,8 @@ export function AccountBindingSection({
 
                         if (result.error) {
                           console.error('修改密码失败:', result.error)
-                          setPasswordError(result.error.message || '修改失败，请检查当前密码是否正确')
+                          const translatedError = translateErrorMessage(result.error.message)
+                          setPasswordError(translatedError)
                           // 不要 return，让 finally 执行
                         } else {
                           console.log('修改密码成功')
