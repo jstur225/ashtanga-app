@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { createPortal } from 'react-dom'
 import { Mail, Lock, AlertCircle, X, CheckCircle } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
@@ -428,20 +429,21 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
   }
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          {/* Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50"
-          />
+    typeof window !== 'undefined' && createPortal(
+      <AnimatePresence>
+        {isOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={onClose}
+              className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50"
+            />
 
-          {/* Modal - 从下往上滑进来 */}
-          <motion.div
+            {/* Modal - 从下往上滑进来 */}
+            <motion.div
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
@@ -930,5 +932,6 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
         </>
       )}
     </AnimatePresence>
+    , document.body)
   )
 }
