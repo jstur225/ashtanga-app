@@ -274,7 +274,7 @@ export function AccountBindingSection({
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[24px] z-50 p-6 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]"
+              className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[24px] z-50 p-6 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] max-h-[calc(100vh-2rem)] overflow-y-auto relative"
             >
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-lg font-serif text-foreground">退出登录</h2>
@@ -340,7 +340,7 @@ export function AccountBindingSection({
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[24px] z-50 p-6 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]"
+              className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[24px] z-50 p-6 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] max-h-[calc(100vh-2rem)] overflow-y-auto relative"
             >
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-lg font-serif text-foreground">🔑 修改密码</h2>
@@ -603,7 +603,7 @@ export function AccountBindingSection({
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[24px] z-50 p-6 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]"
+              className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[24px] z-50 p-6 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] max-h-[calc(100vh-2rem)] overflow-y-auto relative"
             >
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-lg font-serif text-foreground">⚠️ 设备登录提醒</h2>
