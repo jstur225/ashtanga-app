@@ -488,18 +488,25 @@ export function AccountBindingSection({
                       try {
                         // 步骤1: 先验证原密码是否正确
                         console.log('1. 验证原密码...')
+                        console.log('   用户邮箱:', user?.email)
+
                         const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
                           email: user?.email || '',
                           password: oldPassword
                         })
 
+                        console.log('   验证结果:', signInError ? '失败' : '成功')
+
                         if (signInError) {
                           console.error('原密码验证失败:', signInError)
                           const translatedError = translateErrorMessage(signInError.message)
+                          console.log('   翻译后的错误:', translatedError)
                           // 如果是密码错误，显示更友好的提示
                           if (signInError.message.includes('Invalid login credentials')) {
+                            console.log('   显示错误：当前密码输入错误')
                             setPasswordError('当前密码输入错误，请重新输入')
                           } else {
+                            console.log('   显示错误:', translatedError)
                             setPasswordError(translatedError)
                           }
                           setIsChangingPassword(false)
@@ -525,19 +532,24 @@ export function AccountBindingSection({
                         const result = await Promise.race([updatePromise, timeoutPromise]) as any
 
                         const elapsed = Date.now() - startTime
-                        console.log(`5. API 响应收到（耗时: ${elapsed/1000}秒）:`, result)
+                        console.log(`5. API 响应收到（耗时: ${elapsed/1000}秒）`)
+                        console.log('   是否有错误:', result.error ? '是' : '否')
+                        if (result.error) console.log('   错误信息:', result.error)
 
                         if (result.error) {
                           console.error('修改密码失败:', result.error)
                           const translatedError = translateErrorMessage(result.error.message)
-                          console.log('翻译后的错误消息:', translatedError)
+                          console.log('   翻译后的错误:', translatedError)
+                          console.log('   显示错误提示')
                           setPasswordError(translatedError)
                         } else {
-                          console.log('修改密码成功')
+                          console.log('✅ 修改密码成功！')
+                          console.log('   显示成功提示')
                           toast.success('✅ 密码修改成功，请使用新密码登录')
 
                           // 延迟关闭弹窗，让用户看到成功提示
                           setTimeout(() => {
+                            console.log('   关闭修改密码弹窗')
                             setShowChangePassword(false)
                             setOldPassword('')
                             setNewPassword('')
@@ -546,12 +558,14 @@ export function AccountBindingSection({
                         }
                       } catch (err: any) {
                         const elapsed = Date.now() - startTime
-                        console.error(`修改密码异常（${elapsed/1000}秒）:`, err)
+                        console.error(`❌ 修改密码异常（${elapsed/1000}秒）:`, err)
+                        console.error('   错误详情:', err.message)
                         const translatedError = translateErrorMessage(err.message)
-                        console.log('翻译后的错误消息:', translatedError)
+                        console.log('   翻译后的错误:', translatedError)
+                        console.log('   显示错误提示')
                         setPasswordError(translatedError)
                       } finally {
-                        console.log('结束修改密码流程，重置loading状态')
+                        console.log('6. 结束修改密码流程，重置loading状态')
                         setIsChangingPassword(false)
                       }
                     }}
