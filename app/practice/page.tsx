@@ -2848,6 +2848,7 @@ function StatsTab({
   showXiaohongshuModal,
   setShowXiaohongshuModal,
   hasNewXhsMessage,
+  user,
 }: {
   practiceHistory: PracticeRecord[]
   profile: UserProfile
@@ -2856,7 +2857,17 @@ function StatsTab({
   showXiaohongshuModal: boolean
   setShowXiaohongshuModal: (value: boolean) => void
   hasNewXhsMessage: boolean
+  user?: any
 }) {
+  // 隐藏邮箱的辅助函数
+  const maskEmail = (email: string): string => {
+    if (!email) return ''
+    const [username, domain] = email.split('@')
+    if (!username || !domain) return email
+    const maskedUsername = username.length <= 2 ? username : username.slice(0, 2) + '***'
+    return `${maskedUsername}@${domain}`
+  }
+
   const { isInstallable, promptInstall } = usePWAInstall()
 
   const handleInstallClick = async () => {
@@ -3076,7 +3087,9 @@ function StatsTab({
             <h2 className="text-xl font-serif text-[#e67e22]">{profile.name}</h2>
             <ProBadge isPro={hasVotedPro} />
           </div>
-          <p className="text-[10px] font-mono text-gray-400 mt-1">ID: {profile.id?.slice(0, 8) || 'ANONYMOUS'}</p>
+          <p className="text-[10px] font-mono text-gray-400 mt-1">
+            {user?.email ? maskEmail(user.email) : `ID: ${profile.id?.slice(0, 8) || 'ANONYMOUS'}`}
+          </p>
           <p className="text-sm text-muted-foreground font-serif mt-1">{profile.signature}</p>
         </div>
 
@@ -3933,6 +3946,7 @@ export default function AshtangaTracker() {
           showXiaohongshuModal={showXiaohongshuModal}
           setShowXiaohongshuModal={setShowXiaohongshuModal}
           hasNewXhsMessage={hasNewXhsMessage}
+          user={user}
         />
       )}
 
