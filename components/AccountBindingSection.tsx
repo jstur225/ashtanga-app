@@ -57,6 +57,25 @@ export function AccountBindingSection({
   const [passwordError, setPasswordError] = useState('')
   const [isChangingPassword, setIsChangingPassword] = useState(false)
 
+  // 测试 Supabase 连接
+  const testSupabaseConnection = async () => {
+    console.log('测试 Supabase 连接...')
+    console.log('当前用户:', user)
+    console.log('Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL)
+
+    try {
+      const { data, error } = await supabase.auth.getSession()
+      console.log('Session 测试结果:', { data, error })
+    } catch (err) {
+      console.error('Session 测试异常:', err)
+    }
+  }
+
+  // 组件挂载时测试连接
+  console.log('AccountBindingSection 组件已挂载')
+  console.log('当前用户状态:', user)
+  testSupabaseConnection()
+
   // ==================== 立即同步 ====================
   const handleSync = async () => {
     if (!user) return
@@ -391,43 +410,58 @@ export function AccountBindingSection({
                     onClick={async () => {
                       // 清空之前的错误
                       setPasswordError('')
+                      console.log('开始修改密码...')
 
                       // 验证
                       if (!oldPassword || !newPassword || !confirmPassword) {
+                        console.log('验证失败：未填写所有字段')
                         setPasswordError('请填写所有字段')
                         return
                       }
 
                       if (newPassword !== confirmPassword) {
+                        console.log('验证失败：密码不一致')
                         setPasswordError('两次输入的新密码不一致')
                         return
                       }
 
                       if (newPassword.length < 8) {
+                        console.log('验证失败：密码长度不足')
                         setPasswordError('密码至少需要8位字符')
                         return
                       }
 
                       if (!/[a-zA-Z]/.test(newPassword) || !/\d/.test(newPassword)) {
+                        console.log('验证失败：密码格式错误')
                         setPasswordError('密码必须包含字母和数字')
                         return
                       }
 
+                      console.log('验证通过，开始调用 Supabase API...')
                       // 开始修改密码
                       setIsChangingPassword(true)
 
                       try {
+                        // 设置超时
+                        const timeoutPromise = new Promise((_, reject) => {
+                          setTimeout(() => reject(new Error('请求超时（10秒）')), 10000)
+                        })
+
                         // 更新密码
-                        const { error } = await supabase.auth.updateUser({
+                        const updatePromise = supabase.auth.updateUser({
                           password: newPassword
                         })
 
-                        if (error) {
-                          console.error('修改密码失败:', error)
-                          setPasswordError(error.message || '修改失败，请检查当前密码是否正确')
+                        const result = await Promise.race([updatePromise, timeoutPromise]) as any
+                        console.log('Supabase API 返回结果:', result)
+
+                        if (result.error) {
+                          console.error('修改密码失败:', result.error)
+                          setPasswordError(result.error.message || '修改失败，请检查当前密码是否正确')
                           return
                         }
 
+                        console.log('修改密码成功')
                         toast.success('✅ 密码修改成功')
                         setShowChangePassword(false)
                         setOldPassword('')
@@ -437,6 +471,7 @@ export function AccountBindingSection({
                         console.error('修改密码异常:', err)
                         setPasswordError(err.message || '修改失败，请重试')
                       } finally {
+                        console.log('结束修改密码流程')
                         setIsChangingPassword(false)
                       }
                     }}
