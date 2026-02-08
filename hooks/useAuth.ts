@@ -42,6 +42,10 @@ export function useAuth() {
     name: string
     last_seen: string
   } | null>(null)
+  const [deviceConflict, setDeviceConflict] = useState<{
+    oldDevice: { id: string; name: string; last_seen: string }
+    newDevice: { id: string; name: string }
+  } | null>(null)
 
   // ==================== 初始化：检查登录状态 ====================
   useEffect(() => {
@@ -145,22 +149,22 @@ export function useAuth() {
     if (devices.length > 0) {
       const oldDevice = devices[0] // 只有1台设备
 
-      const confirmed = confirm(
-        `⚠️ 设备登录提醒\n\n` +
-        `您的账号已在以下设备登录：\n` +
-        `• ${oldDevice.name} (${new Date(oldDevice.last_seen).toLocaleDateString('zh-CN')})\n\n` +
-        `在新设备登录后，以上设备将被退出登录。\n\n` +
-        `💡 建议先在旧设备上导出数据（设置 → 数据管理 → 导出数据）\n\n` +
-        `是否继续登录？`
-      )
+      // 设置设备冲突状态，让调用方显示自定义弹窗
+      setDeviceConflict({
+        oldDevice,
+        newDevice: {
+          id: deviceId,
+          name: deviceName
+        }
+      })
 
-      if (!confirmed) {
-        await supabase.auth.signOut()
-        throw new Error('登录已取消')
-      }
+      // 不自动更新设备列表，等待用户确认
+      // 返回登录成功的数据，但不标记设备已更新
+      setCurrentDevice(null) // 还没有更新设备
+      return data
     }
 
-    // 5. 清空旧设备，只保留当前设备
+    // 5. 没有旧设备，直接更新
     const newDevice = {
       id: deviceId,
       name: deviceName,
@@ -189,14 +193,45 @@ export function useAuth() {
     if (error) throw error
 
     setCurrentDevice(null)
+    setDeviceConflict(null)
+  }
+
+  // ==================== 确认设备冲突，继续登录 ====================
+  const confirmDeviceConflict = async () => {
+    if (!deviceConflict || !user) return
+
+    const { newDevice } = deviceConflict
+
+    // 清空旧设备，只保留当前设备
+    const updatedDevice = {
+      id: newDevice.id,
+      name: newDevice.name,
+      last_seen: new Date().toISOString(),
+    }
+
+    await supabase
+      .from('user_profiles')
+      .update({ logged_in_devices: [updatedDevice] })
+      .eq('user_id', user.id)
+
+    setCurrentDevice(updatedDevice)
+    setDeviceConflict(null)
+  }
+
+  // ==================== 取消设备冲突，保持退出状态 ====================
+  const cancelDeviceConflict = () => {
+    setDeviceConflict(null)
   }
 
   return {
     user,
     loading,
     currentDevice,
+    deviceConflict,
     signUp,
     signIn,
     signOut,
+    confirmDeviceConflict,
+    cancelDeviceConflict,
   }
 }

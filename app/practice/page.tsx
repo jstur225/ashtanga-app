@@ -1724,6 +1724,11 @@ function SettingsModal({
   const [activeSection, setActiveSection] = useState<'profile' | 'account' | 'data'>(initialSection || 'profile')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // 清空数据确认弹窗状态
+  const [showClearDataConfirm, setShowClearDataConfirm] = useState(false)
+  const [clearDataStep, setClearDataStep] = useState<1 | 2 | 3>(1)
+  const [confirmPhrase, setConfirmPhrase] = useState('')
+
   // 当 initialSection 变化时，切换到对应标签页
   useEffect(() => {
     if (initialSection) {
@@ -2003,57 +2008,9 @@ function SettingsModal({
                   {onClearData && (
                     <button
                       onClick={() => {
-                        // 🛡️ 第一层：后果告知（系统级确认框）
-                        const step1 = confirm(
-                          '⚠️ 危险操作警告 ⚠️\n\n' +
-                          '您正在尝试清空本机所有数据。\n' +
-                          '此操作将永久删除：\n' +
-                          '• 所有练习记录\n' +
-                          '• 练习选项\n' +
-                          '• 个人信息\n' +
-                          '• 同步日志\n\n' +
-                          '⚠️ 此操作不可撤销！\n\n' +
-                          '是否继续？'
-                        )
-
-                        if (!step1) return
-
-                        // 🛡️ 第二层：强制输入确认词（机械锁）
-                        const confirmation = prompt(
-                          '⚠️ 二次确认 ⚠️\n\n' +
-                          '为防止误操作，请输入确认词。\n\n' +
-                          '确认词：确认删除（不含引号）\n' +
-                          '或点击"取消"放弃操作'
-                        )
-
-                        if (confirmation !== '确认删除') {
-                          if (confirmation === null) {
-                            // 用户点击取消
-                            toast.info('操作已取消')
-                          } else {
-                            // 用户输入错误
-                            toast.error('确认词输入错误，操作已取消')
-                          }
-                          return
-                        }
-
-                        // 🛡️ 第三层：最终确认
-                        if (confirm('🚨 最终确认：确认要清空所有数据吗？此操作不可撤销！')) {
-                          // 清空本地数据
-                          localStorage.clear()
-
-                          // 如果已登录，重置云端同步状态（通过 hook 的返回值）
-                          if (user && onClearData) {
-                            onClearData()
-                          }
-
-                          toast.success('数据已清空，应用将重新加载')
-
-                          // 延迟1秒后重新加载页面
-                          setTimeout(() => {
-                            window.location.reload()
-                          }, 1000)
-                        }
+                        setClearDataStep(1)
+                        setConfirmPhrase('')
+                        setShowClearDataConfirm(true)
                       }}
                       className="w-full flex items-center justify-between p-4 rounded-2xl bg-red-50 hover:bg-red-100 transition-all group border border-red-200"
                     >
@@ -2142,6 +2099,175 @@ function AccountSyncModal({
               onClose={onClose}
             />
           </motion.div>
+
+          {/* 清空数据确认弹窗 - 从下往上滑入 */}
+          <AnimatePresence>
+            {showClearDataConfirm && (
+              <>
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50"
+                  onClick={() => setShowClearDataConfirm(false)}
+                />
+                <motion.div
+                  initial={{ y: "100%" }}
+                  animate={{ y: 0 }}
+                  exit={{ y: "100%" }}
+                  transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                  className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[24px] z-50 p-6 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]"
+                >
+                  {/* 第一层：警告 */}
+                  {clearDataStep === 1 && (
+                    <>
+                      <div className="flex items-center justify-between mb-6">
+                        <h2 className="text-lg font-serif text-foreground">⚠️ 危险操作警告</h2>
+                        <button onClick={() => setShowClearDataConfirm(false)} className="p-2 -mr-2 text-muted-foreground hover:text-foreground transition-colors">
+                          <X className="w-5 h-5" />
+                        </button>
+                      </div>
+
+                      <div className="space-y-4">
+                        <p className="text-sm text-foreground text-center leading-relaxed">
+                          您正在尝试清空本机所有数据。
+                        </p>
+
+                        <div className="bg-red-50 rounded-xl p-4 border border-red-200">
+                          <p className="text-sm text-red-700 font-medium mb-2">此操作将永久删除：</p>
+                          <ul className="text-sm text-red-600 space-y-1 pl-4">
+                            <li>• 所有练习记录</li>
+                            <li>• 练习选项</li>
+                            <li>• 个人信息</li>
+                            <li>• 同步日志</li>
+                          </ul>
+                        </div>
+
+                        <p className="text-xs text-red-600 text-center font-medium">
+                          ⚠️ 此操作不可撤销！
+                        </p>
+
+                        <div className="flex gap-3 pt-2">
+                          <button
+                            onClick={() => setShowClearDataConfirm(false)}
+                            className="flex-1 px-4 py-3 bg-secondary text-foreground rounded-xl border border-border hover:bg-secondary/80 transition-all"
+                          >
+                            取消
+                          </button>
+                          <button
+                            onClick={() => setClearDataStep(2)}
+                            className="flex-1 px-4 py-3 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-all"
+                          >
+                            继续操作
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  {/* 第二层：输入确认词 */}
+                  {clearDataStep === 2 && (
+                    <>
+                      <div className="flex items-center justify-between mb-6">
+                        <h2 className="text-lg font-serif text-foreground">⚠️ 二次确认</h2>
+                        <button onClick={() => setShowClearDataConfirm(false)} className="p-2 -mr-2 text-muted-foreground hover:text-foreground transition-colors">
+                          <X className="w-5 h-5" />
+                        </button>
+                      </div>
+
+                      <div className="space-y-4">
+                        <p className="text-sm text-foreground text-center leading-relaxed">
+                          为防止误操作，请输入确认词。
+                        </p>
+
+                        <div className="bg-amber-50 rounded-xl p-4 border border-amber-200">
+                          <p className="text-xs text-amber-700 text-center mb-2">确认词：</p>
+                          <p className="text-lg text-amber-800 text-center font-bold">确认删除</p>
+                        </div>
+
+                        <input
+                          type="text"
+                          value={confirmPhrase}
+                          onChange={(e) => setConfirmPhrase(e.target.value)}
+                          placeholder="请输入确认词（不含引号）"
+                          className="w-full px-4 py-3 border border-border rounded-xl focus:ring-2 focus:ring-red-500/20 focus:border-red-500 bg-secondary"
+                          autoFocus
+                        />
+
+                        <div className="flex gap-3 pt-2">
+                          <button
+                            onClick={() => setClearDataStep(1)}
+                            className="flex-1 px-4 py-3 bg-secondary text-foreground rounded-xl border border-border hover:bg-secondary/80 transition-all"
+                          >
+                            返回
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (confirmPhrase === '确认删除') {
+                                setClearDataStep(3)
+                              } else {
+                                toast.error('确认词输入错误，请重新输入')
+                              }
+                            }}
+                            className="flex-1 px-4 py-3 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-all"
+                          >
+                            确认
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  {/* 第三层：最终确认 */}
+                  {clearDataStep === 3 && (
+                    <>
+                      <div className="flex items-center justify-between mb-6">
+                        <h2 className="text-lg font-serif text-foreground">🚨 最终确认</h2>
+                        <button onClick={() => setShowClearDataConfirm(false)} className="p-2 -mr-2 text-muted-foreground hover:text-foreground transition-colors">
+                          <X className="w-5 h-5" />
+                        </button>
+                      </div>
+
+                      <div className="space-y-4">
+                        <p className="text-sm text-foreground text-center leading-relaxed">
+                          确认要清空所有数据吗？
+                        </p>
+
+                        <p className="text-xs text-red-600 text-center font-medium">
+                          此操作不可撤销！
+                        </p>
+
+                        <div className="flex gap-3 pt-2">
+                          <button
+                            onClick={() => setShowClearDataConfirm(false)}
+                            className="flex-1 px-4 py-3 bg-secondary text-foreground rounded-xl border border-border hover:bg-secondary/80 transition-all"
+                          >
+                            取消
+                          </button>
+                          <button
+                            onClick={async () => {
+                              localStorage.clear()
+                              if (user && onClearData) {
+                                onClearData()
+                              }
+                              setShowClearDataConfirm(false)
+                              toast.success('数据已清空，应用将重新加载')
+                              setTimeout(() => {
+                                window.location.reload()
+                              }, 1000)
+                            }}
+                            className="flex-1 px-4 py-3 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-all"
+                          >
+                            确认清空
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
         </>
       )}
     </AnimatePresence>
