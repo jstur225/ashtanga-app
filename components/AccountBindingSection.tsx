@@ -164,7 +164,7 @@ export function AccountBindingSection({
               toast.success('✅ 已选择继续使用本地存储')
               onClose()
             }}
-            className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-secondary text-foreground rounded-xl hover:bg-secondary/80 transition-colors font-medium border border-border"
+            className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-secondary text-foreground rounded-xl hover:bg-secondary/80 transition-colors font-medium font-serif border border-border"
           >
             <Smartphone className="w-5 h-5" />
             继续使用本地存储
@@ -175,7 +175,7 @@ export function AccountBindingSection({
                 setAuthMode('login')
                 setAuthModalOpen(true)
               }}
-              className="text-primary hover:underline"
+              className="text-primary font-serif hover:underline"
             >
               点击登录
             </button>
@@ -190,7 +190,7 @@ export function AccountBindingSection({
             <div className="bg-gradient-to-br from-amber-50/80 to-orange-50/80 backdrop-blur-sm rounded-xl p-3 border border-amber-200/50">
               <div className="flex items-center gap-2 mb-2">
                 <CheckCircle className="w-4 h-4 text-amber-600" />
-                <span className="text-xs font-medium text-foreground">已绑定邮箱</span>
+                <span className="text-xs font-medium font-serif text-foreground">已绑定邮箱</span>
               </div>
               <p className="text-xs font-serif text-muted-foreground truncate leading-tight" title={user.email || ''}>
                 {maskEmail(user.email || '')}
@@ -224,14 +224,14 @@ export function AccountBindingSection({
             <button
               onClick={handleSync}
               disabled={syncStatus === 'syncing'}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 green-gradient backdrop-blur-md text-white rounded-xl border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 green-gradient backdrop-blur-md text-white rounded-xl border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-serif"
             >
               <RefreshCw className={`w-4 h-4 ${syncStatus === 'syncing' ? 'animate-spin' : ''}`} />
               立即同步
             </button>
             <button
               onClick={handleSignOut}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-secondary text-foreground rounded-xl border border-border hover:bg-secondary/80 transition-all"
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-secondary text-foreground rounded-xl border border-border hover:bg-secondary/80 transition-all font-serif"
             >
               <LogOut className="w-4 h-4" />
               退出登录
@@ -297,7 +297,7 @@ export function AccountBindingSection({
                 <div className="flex gap-3 pt-2">
                   <button
                     onClick={() => setShowSignOutConfirm(false)}
-                    className="flex-1 px-4 py-3 bg-secondary text-foreground rounded-xl border border-border hover:bg-secondary/80 transition-all"
+                    className="flex-1 px-4 py-3 bg-secondary text-foreground rounded-xl border border-border hover:bg-secondary/80 transition-all font-serif"
                   >
                     取消
                   </button>
@@ -307,7 +307,7 @@ export function AccountBindingSection({
                       setShowSignOutConfirm(false)
                       toast.success('✅ 已退出登录')
                     }}
-                    className="flex-1 px-4 py-3 green-gradient backdrop-blur-md text-white rounded-xl border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] hover:opacity-90 transition-all"
+                    className="flex-1 px-4 py-3 green-gradient backdrop-blur-md text-white rounded-xl border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] hover:opacity-90 transition-all font-serif"
                   >
                     确定退出
                   </button>
@@ -361,7 +361,7 @@ export function AccountBindingSection({
               <div className="space-y-4">
                 {/* 旧密码 */}
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">
+                  <label className="block text-sm font-medium font-serif text-foreground mb-2">
                     当前密码
                   </label>
                   <div className="relative">
@@ -378,7 +378,7 @@ export function AccountBindingSection({
 
                 {/* 新密码 */}
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">
+                  <label className="block text-sm font-medium font-serif text-foreground mb-2">
                     新密码
                   </label>
                   <div className="relative">
@@ -399,7 +399,7 @@ export function AccountBindingSection({
 
                 {/* 确认新密码 */}
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">
+                  <label className="block text-sm font-medium font-serif text-foreground mb-2">
                     确认新密码
                   </label>
                   <div className="relative">
@@ -420,7 +420,7 @@ export function AccountBindingSection({
 
                 {/* 错误提示 */}
                 {passwordError && (
-                  <div className="flex items-center gap-2 text-red-500 text-sm bg-red-50 p-3 rounded-lg">
+                  <div className="flex items-center gap-2 text-red-500 text-sm font-serif bg-red-50 p-3 rounded-lg">
                     <AlertCircle className="w-4 h-4 flex-shrink-0" />
                     {passwordError}
                   </div>
@@ -429,15 +429,15 @@ export function AccountBindingSection({
                 {/* 密码强度提示 */}
                 {newPassword && (
                   <div className="text-xs font-serif text-muted-foreground space-y-1">
-                    <p>密码要求：</p>
+                    <p className="font-serif">密码要求：</p>
                     <ul className="pl-4 space-y-1">
-                      <li className={newPassword.length >= 8 ? 'text-green-600' : 'text-red-600'}>
+                      <li className={`font-serif ${newPassword.length >= 8 ? 'text-green-600' : 'text-red-600'}`}>
                         {newPassword.length >= 8 ? '✓' : '✗'} 至少8位字符
                       </li>
-                      <li className={/[a-zA-Z]/.test(newPassword) ? 'text-green-600' : 'text-red-600'}>
+                      <li className={`font-serif ${/[a-zA-Z]/.test(newPassword) ? 'text-green-600' : 'text-red-600'}`}>
                         {/[a-zA-Z]/.test(newPassword) ? '✓' : '✗'} 包含字母
                       </li>
-                      <li className={/\d/.test(newPassword) ? 'text-green-600' : 'text-red-600'}>
+                      <li className={`font-serif ${/\d/.test(newPassword) ? 'text-green-600' : 'text-red-600'}`}>
                         {/\d/.test(newPassword) ? '✓' : '✗'} 包含数字
                       </li>
                     </ul>
@@ -454,7 +454,7 @@ export function AccountBindingSection({
                       setNewPassword('')
                       setConfirmPassword('')
                     }}
-                    className="flex-1 px-4 py-3 bg-secondary text-foreground rounded-xl border border-border hover:bg-secondary/80 transition-all"
+                    className="flex-1 px-4 py-3 bg-secondary text-foreground rounded-xl border border-border hover:bg-secondary/80 transition-all font-serif"
                   >
                     取消
                   </button>
@@ -576,7 +576,7 @@ export function AccountBindingSection({
                       }
                     }}
                     disabled={isChangingPassword}
-                    className="flex-1 px-4 py-3 green-gradient backdrop-blur-md text-white rounded-xl border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] hover:opacity-90 transition-all disabled:opacity-50"
+                    className="flex-1 px-4 py-3 green-gradient backdrop-blur-md text-white rounded-xl border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] hover:opacity-90 transition-all disabled:opacity-50 font-serif"
                   >
                     {isChangingPassword ? '修改中...' : '确认修改'}
                   </button>
@@ -621,7 +621,7 @@ export function AccountBindingSection({
                   <div className="flex items-center gap-3">
                     <Smartphone className="w-5 h-5 text-amber-600" />
                     <div>
-                      <p className="text-sm font-medium text-amber-800">{deviceConflict.oldDevice.name}</p>
+                      <p className="text-sm font-medium font-serif text-amber-800">{deviceConflict.oldDevice.name}</p>
                       <p className="text-xs font-serif text-amber-600">
                         {new Date(deviceConflict.oldDevice.last_seen).toLocaleDateString('zh-CN')}
                       </p>
@@ -647,7 +647,7 @@ export function AccountBindingSection({
                       await signOut()
                       toast.info('已取消登录')
                     }}
-                    className="flex-1 px-4 py-3 bg-secondary text-foreground rounded-xl border border-border hover:bg-secondary/80 transition-all"
+                    className="flex-1 px-4 py-3 bg-secondary text-foreground rounded-xl border border-border hover:bg-secondary/80 transition-all font-serif"
                   >
                     取消
                   </button>
@@ -656,7 +656,7 @@ export function AccountBindingSection({
                       await confirmDeviceConflict()
                       toast.success('✅ 登录成功')
                     }}
-                    className="flex-1 px-4 py-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl hover:from-orange-600 hover:to-amber-600 transition-all"
+                    className="flex-1 px-4 py-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl hover:from-orange-600 hover:to-amber-600 transition-all font-serif"
                   >
                     继续登录
                   </button>
