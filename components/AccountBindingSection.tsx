@@ -28,12 +28,15 @@ function maskEmail(email: string): string {
   const [username, domain] = email.split('@')
   if (!username || !domain) return email
 
-  // 用户名只显示前2个字符，其余用***代替
-  const maskedUsername = username.length <= 2
-    ? username
-    : username.slice(0, 2) + '***'
+  // 用户名长度处理：前3位 + *** + 后3位
+  if (username.length <= 6) {
+    // 用户名太短，只显示前3位
+    return username.slice(0, 3) + '***@' + domain
+  }
 
-  return `${maskedUsername}@${domain}`
+  const prefix = username.slice(0, 3)
+  const suffix = username.slice(-3)
+  return `${prefix}****${suffix}@${domain}`
 }
 
 export function AccountBindingSection({

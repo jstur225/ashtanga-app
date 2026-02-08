@@ -2862,10 +2862,19 @@ function StatsTab({
   // 隐藏邮箱的辅助函数
   const maskEmail = (email: string): string => {
     if (!email) return ''
+
     const [username, domain] = email.split('@')
     if (!username || !domain) return email
-    const maskedUsername = username.length <= 2 ? username : username.slice(0, 2) + '***'
-    return `${maskedUsername}@${domain}`
+
+    // 用户名长度处理：前3位 + **** + 后3位
+    if (username.length <= 6) {
+      // 用户名太短，只显示前3位
+      return username.slice(0, 3) + '***@' + domain
+    }
+
+    const prefix = username.slice(0, 3)
+    const suffix = username.slice(-3)
+    return `${prefix}****${suffix}@${domain}`
   }
 
   const { isInstallable, promptInstall } = usePWAInstall()
@@ -3088,7 +3097,7 @@ function StatsTab({
             <ProBadge isPro={hasVotedPro} />
           </div>
           <p className="text-[10px] font-mono text-gray-400 mt-1">
-            {user?.email ? maskEmail(user.email) : `ID: ${profile.id?.slice(0, 8) || 'ANONYMOUS'}`}
+            ID: {user?.email ? maskEmail(user.email) : (profile.id?.slice(0, 8) || 'ANONYMOUS')}
           </p>
           <p className="text-sm text-muted-foreground font-serif mt-1">{profile.signature}</p>
         </div>
