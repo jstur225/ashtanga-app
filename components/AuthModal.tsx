@@ -446,7 +446,7 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[24px] z-50 p-6 pb-32 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] max-h-[calc(100vh-2rem)] overflow-y-auto relative"
+            className="fixed bottom-0 left-0 right-0 sm:left-1/2 sm:-translate-x-1/2 sm:max-w-lg sm:rounded-[24px] bg-white rounded-t-[24px] z-50 p-6 pb-32 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] max-h-[calc(100vh-2rem)] overflow-y-auto relative"
           >
             {/* 标题栏 - 带关闭按钮（忘记密码模式显示返回登录按钮） */}
             <div className="flex items-center justify-between mb-6">
@@ -464,7 +464,7 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
                     setFpStep('email')
                     setError('')
                   }}
-                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  className="text-sm font-serif text-muted-foreground hover:text-foreground transition-colors"
                 >
                   返回登录
                 </button>
@@ -501,7 +501,7 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
                     <button
                       onClick={handleSendVerificationCode}
                       disabled={loading}
-                      className="w-full px-4 py-3 green-gradient backdrop-blur-md text-white rounded-xl border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] hover:opacity-90 transition-all disabled:opacity-50"
+                      className="w-full px-4 py-3 green-gradient backdrop-blur-md text-white rounded-xl border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] hover:opacity-90 transition-all disabled:opacity-50 font-serif"
                     >
                       {loading ? '发送中...' : '发送验证码'}
                     </button>
@@ -512,8 +512,8 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
                 {fpStep === 'verify' && (
                   <>
                     <div className="bg-blue-50 rounded-xl p-4 border border-blue-200 mb-4">
-                      <p className="text-sm text-blue-700">验证码已发送到：</p>
-                      <p className="text-sm text-blue-900 font-medium break-all">{email}</p>
+                      <p className="text-sm font-serif text-blue-700">验证码已发送到：</p>
+                      <p className="text-sm font-serif text-blue-900 font-medium break-all">{email}</p>
                     </div>
 
                     <div>
@@ -538,7 +538,7 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
                     <button
                       onClick={handleVerifyCode}
                       disabled={loading || verifyCode.length !== 6}
-                      className="w-full px-4 py-3 green-gradient backdrop-blur-md text-white rounded-xl border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] hover:opacity-90 transition-all disabled:opacity-50"
+                      className="w-full px-4 py-3 green-gradient backdrop-blur-md text-white rounded-xl border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] hover:opacity-90 transition-all disabled:opacity-50 font-serif"
                     >
                       {loading ? '验证中...' : '下一步'}
                     </button>
@@ -548,7 +548,7 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
                         type="button"
                         onClick={handleSendVerificationCode}
                         disabled={countdown > 0}
-                        className="text-xs text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="text-xs font-serif text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {countdown > 0 ? `重新发送(${countdown}s)` : '重新发送验证码'}
                       </button>
@@ -560,7 +560,7 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
                 {fpStep === 'new-password' && (
                   <>
                     <div className="bg-green-50 rounded-xl p-4 border border-green-200 mb-4">
-                      <p className="text-sm text-green-700 flex items-center gap-2">
+                      <p className="text-sm font-serif text-green-700 flex items-center gap-2">
                         <CheckCircle className="w-4 h-4" />
                         验证成功，请设置新密码
                       </p>
@@ -610,16 +610,16 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
 
                     {/* 密码强度提示 */}
                     {newPassword && (
-                      <div className="text-xs text-muted-foreground space-y-1 bg-secondary rounded-lg p-3">
+                      <div className="text-xs font-serif text-muted-foreground space-y-1 bg-secondary rounded-lg p-3">
                         <p className="font-medium">密码要求：</p>
                         <ul className="pl-4 space-y-1">
-                          <li className={newPassword.length >= 8 ? 'text-green-600' : 'text-red-600'}>
+                          <li className={`font-serif ${newPassword.length >= 8 ? 'text-green-600' : 'text-red-600'}`}>
                             {newPassword.length >= 8 ? '✓' : '✗'} 至少8位字符
                           </li>
-                          <li className={/[a-zA-Z]/.test(newPassword) ? 'text-green-600' : 'text-red-600'}>
+                          <li className={`font-serif ${/[a-zA-Z]/.test(newPassword) ? 'text-green-600' : 'text-red-600'}`}>
                             {/[a-zA-Z]/.test(newPassword) ? '✓' : '✗'} 包含字母
                           </li>
-                          <li className={/\d/.test(newPassword) ? 'text-green-600' : 'text-red-600'}>
+                          <li className={`font-serif ${/\d/.test(newPassword) ? 'text-green-600' : 'text-red-600'}`}>
                             {/\d/.test(newPassword) ? '✓' : '✗'} 包含数字
                           </li>
                         </ul>
@@ -629,7 +629,7 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
                     <button
                       onClick={handleUpdatePassword}
                       disabled={loading}
-                      className="w-full px-4 py-3 green-gradient backdrop-blur-md text-white rounded-xl border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] hover:opacity-90 transition-all disabled:opacity-50"
+                      className="w-full px-4 py-3 green-gradient backdrop-blur-md text-white rounded-xl border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] hover:opacity-90 transition-all disabled:opacity-50 font-serif"
                     >
                       {loading ? '修改中...' : '确认修改'}
                     </button>
@@ -638,7 +638,7 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
 
                 {/* 错误提示 */}
                 {error && (
-                  <div className="flex items-center gap-2 text-red-500 text-sm bg-red-50 p-3 rounded-lg">
+                  <div className="flex items-center gap-2 text-red-500 text-sm font-serif bg-red-50 p-3 rounded-lg">
                     <AlertCircle className="w-4 h-4 flex-shrink-0" />
                     {error}
                   </div>
@@ -689,16 +689,16 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
 
                     {/* 密码强度提示 */}
                     {password && (
-                      <div className="text-xs text-muted-foreground space-y-1 bg-secondary rounded-lg p-3">
+                      <div className="text-xs font-serif text-muted-foreground space-y-1 bg-secondary rounded-lg p-3">
                         <p className="font-medium">密码要求：</p>
                         <ul className="pl-4 space-y-1">
-                          <li className={password.length >= 8 ? 'text-green-600' : 'text-red-600'}>
+                          <li className={`font-serif ${password.length >= 8 ? 'text-green-600' : 'text-red-600'}`}>
                             {password.length >= 8 ? '✓' : '✗'} 至少8位字符
                           </li>
-                          <li className={/[a-zA-Z]/.test(password) ? 'text-green-600' : 'text-red-600'}>
+                          <li className={`font-serif ${/[a-zA-Z]/.test(password) ? 'text-green-600' : 'text-red-600'}`}>
                             {/[a-zA-Z]/.test(password) ? '✓' : '✗'} 包含字母
                           </li>
-                          <li className={/\d/.test(password) ? 'text-green-600' : 'text-red-600'}>
+                          <li className={`font-serif ${/\d/.test(password) ? 'text-green-600' : 'text-red-600'}`}>
                             {/\d/.test(password) ? '✓' : '✗'} 包含数字
                           </li>
                         </ul>
@@ -707,7 +707,7 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
 
                     {/* 错误提示 */}
                     {error && (
-                      <div className="flex items-center gap-2 text-red-500 text-sm bg-red-50 p-3 rounded-lg">
+                      <div className="flex items-center gap-2 text-red-500 text-sm font-serif bg-red-50 p-3 rounded-lg">
                         <AlertCircle className="w-4 h-4 flex-shrink-0" />
                         {error}
                       </div>
@@ -718,21 +718,21 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
                       <button
                         type="button"
                         onClick={onClose}
-                        className="flex-1 px-4 py-3 bg-secondary text-foreground rounded-xl border border-border hover:bg-secondary/80 transition-all"
+                        className="flex-1 px-4 py-3 bg-secondary text-foreground rounded-xl border border-border hover:bg-secondary/80 transition-all font-serif"
                       >
                         取消
                       </button>
                       <button
                         type="submit"
                         disabled={loading}
-                        className="flex-1 px-4 py-3 green-gradient backdrop-blur-md text-white rounded-xl border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] hover:opacity-90 transition-all disabled:opacity-50"
+                        className="flex-1 px-4 py-3 green-gradient backdrop-blur-md text-white rounded-xl border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] hover:opacity-90 transition-all disabled:opacity-50 font-serif"
                       >
                         {loading ? '发送中...' : '发送验证码'}
                       </button>
                     </div>
 
                     {/* 提示文本 */}
-                    <p className="text-xs text-muted-foreground text-center mt-4">
+                    <p className="text-xs font-serif text-muted-foreground text-center mt-4">
                       绑定后可开启云同步，数据永不丢失
                     </p>
                     <p className="text-[10px] text-muted-foreground text-center mt-2 leading-relaxed">
@@ -745,8 +745,8 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
                 {mode === 'register' && registerStep === 'verify' && (
                   <>
                     <div className="bg-blue-50 rounded-xl p-4 border border-blue-200 mb-4">
-                      <p className="text-sm text-blue-700">验证码已发送到：</p>
-                      <p className="text-sm text-blue-900 font-medium break-all">{email}</p>
+                      <p className="text-sm font-serif text-blue-700">验证码已发送到：</p>
+                      <p className="text-sm font-serif text-blue-900 font-medium break-all">{email}</p>
                     </div>
 
                     <div>
@@ -771,7 +771,7 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
                     <button
                       type="submit"
                       disabled={loading || registerVerifyCode.length !== 6}
-                      className="w-full px-4 py-3 green-gradient backdrop-blur-md text-white rounded-xl border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] hover:opacity-90 transition-all disabled:opacity-50"
+                      className="w-full px-4 py-3 green-gradient backdrop-blur-md text-white rounded-xl border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] hover:opacity-90 transition-all disabled:opacity-50 font-serif"
                     >
                       {loading ? '验证中...' : '确认并注册'}
                     </button>
@@ -824,7 +824,7 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
                           }
                         }}
                         disabled={registerCountdown > 0}
-                        className="text-xs text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="text-xs font-serif text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {registerCountdown > 0 ? `重新发送(${registerCountdown}s)` : '重新发送验证码'}
                       </button>
@@ -832,7 +832,7 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
 
                     {/* 错误提示 */}
                     {error && (
-                      <div className="flex items-center gap-2 text-red-500 text-sm bg-red-50 p-3 rounded-lg">
+                      <div className="flex items-center gap-2 text-red-500 text-sm font-serif bg-red-50 p-3 rounded-lg">
                         <AlertCircle className="w-4 h-4 flex-shrink-0" />
                         {error}
                       </div>
@@ -890,7 +890,7 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
                             setFpStep('email')
                             setError('')
                           }}
-                          className="text-xs text-primary hover:underline"
+                          className="text-xs font-serif text-primary hover:underline"
                         >
                           忘记密码？
                         </button>
@@ -899,7 +899,7 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
 
                     {/* 错误提示 */}
                     {error && (
-                      <div className="flex items-center gap-2 text-red-500 text-sm bg-red-50 p-3 rounded-lg">
+                      <div className="flex items-center gap-2 text-red-500 text-sm font-serif bg-red-50 p-3 rounded-lg">
                         <AlertCircle className="w-4 h-4 flex-shrink-0" />
                         {error}
                       </div>
@@ -910,14 +910,14 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
                       <button
                         type="button"
                         onClick={onClose}
-                        className="flex-1 px-4 py-3 bg-secondary text-foreground rounded-xl border border-border hover:bg-secondary/80 transition-all"
+                        className="flex-1 px-4 py-3 bg-secondary text-foreground rounded-xl border border-border hover:bg-secondary/80 transition-all font-serif"
                       >
                         取消
                       </button>
                       <button
                         type="submit"
                         disabled={loading}
-                        className="flex-1 px-4 py-3 green-gradient backdrop-blur-md text-white rounded-xl border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] hover:opacity-90 transition-all disabled:opacity-50"
+                        className="flex-1 px-4 py-3 green-gradient backdrop-blur-md text-white rounded-xl border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] hover:opacity-90 transition-all disabled:opacity-50 font-serif"
                       >
                         {loading ? '登录中...' : '登录'}
                       </button>
