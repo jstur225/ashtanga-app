@@ -94,6 +94,8 @@ export function AccountBindingSection({
       'Signups not allowed': '暂不允许注册',
       'Email rate limit exceeded': '发送邮件过于频繁，请稍后再试',
       '请求超时': '请求超时，请检查网络连接后重试',
+      'Auth session missing': '登录已过期，请重新登录',
+      'Auth session missing!': '登录已过期，请重新登录',
     }
 
     for (const [english, chinese] of Object.entries(errorMap)) {

@@ -53,6 +53,8 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
       'Signups not allowed': '暂不允许注册',
       'Email rate limit exceeded': '发送邮件过于频繁，请稍后再试',
       'User not found': '用户不存在',
+      'Auth session missing': '登录已过期，请重新登录',
+      'Auth session missing!': '登录已过期，请重新登录',
     }
 
     for (const [english, chinese] of Object.entries(errorMap)) {
