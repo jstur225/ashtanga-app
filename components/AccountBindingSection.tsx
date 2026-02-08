@@ -2,12 +2,13 @@
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Mail, CheckCircle, LogOut, RefreshCw, Smartphone, X, LogOut as LogOutIcon } from 'lucide-react'
+import { Mail, CheckCircle, LogOut, RefreshCw, Smartphone, X, LogOut as LogOutIcon, Key, Lock, AlertCircle } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useSync } from '@/hooks/useSync'
 import { DataStorageNotice } from './DataStorageNotice'
 import { AuthModal } from './AuthModal'
 import { toast } from 'sonner'
+import { supabase } from '@/lib/supabase'
 import type { User } from '@supabase/supabase-js'
 
 interface AccountBindingSectionProps {
@@ -29,8 +30,13 @@ export function AccountBindingSection({
   const { user, signOut, deviceConflict, confirmDeviceConflict, cancelDeviceConflict } = useAuth()
   const { syncStatus, lastSyncTime, uploadLocalData, autoSync } = useSync(user, localData, onSyncComplete)
   const [authModalOpen, setAuthModalOpen] = useState(false)
-  const [authMode, setAuthMode] = useState<'login' | 'register'>('register')
+  const [authMode, setAuthMode] = useState<'login' | 'register' | 'forgot-password'>('register')
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false)
+  const [showChangePassword, setShowChangePassword] = useState(false)
+  const [oldPassword, setOldPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [passwordError, setPasswordError] = useState('')
 
   // ==================== 立即同步 ====================
   const handleSync = async () => {
@@ -141,6 +147,15 @@ export function AccountBindingSection({
               退出登录
             </button>
           </div>
+
+          {/* 修改密码按钮 */}
+          <button
+            onClick={() => setShowChangePassword(true)}
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 border border-dashed border-border hover:border-primary/50 rounded-xl hover:bg-secondary/50 transition-all text-sm text-muted-foreground hover:text-foreground"
+          >
+            <Key className="w-4 h-4" />
+            修改密码
+          </button>
         </div>
       )}
 
@@ -150,6 +165,7 @@ export function AccountBindingSection({
         onClose={() => setAuthModalOpen(false)}
         mode={authMode}
         onAuthSuccess={() => setAuthModalOpen(false)}
+        onModeChange={(newMode) => setAuthMode(newMode)}
       />
 
       {/* 退出登录确认弹窗 */}
@@ -204,6 +220,197 @@ export function AccountBindingSection({
                     className="flex-1 px-4 py-3 green-gradient backdrop-blur-md text-white rounded-xl border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] hover:opacity-90 transition-all"
                   >
                     确定退出
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* 修改密码弹窗 - 从下往上滑入 */}
+      <AnimatePresence>
+        {showChangePassword && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50"
+              onClick={() => {
+                setShowChangePassword(false)
+                setPasswordError('')
+                setOldPassword('')
+                setNewPassword('')
+                setConfirmPassword('')
+              }}
+            />
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[24px] z-50 p-6 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]"
+            >
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-lg font-serif text-foreground">🔑 修改密码</h2>
+                <button
+                  onClick={() => {
+                    setShowChangePassword(false)
+                    setPasswordError('')
+                    setOldPassword('')
+                    setNewPassword('')
+                    setConfirmPassword('')
+                  }}
+                  className="p-2 -mr-2 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                {/* 旧密码 */}
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">
+                    当前密码
+                  </label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                    <input
+                      type="password"
+                      value={oldPassword}
+                      onChange={(e) => setOldPassword(e.target.value)}
+                      placeholder="请输入当前密码"
+                      className="w-full pl-10 pr-4 py-3 border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-transparent bg-secondary"
+                    />
+                  </div>
+                </div>
+
+                {/* 新密码 */}
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">
+                    新密码
+                  </label>
+                  <div className="relative">
+                    <Key className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                    <input
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => {
+                        setNewPassword(e.target.value)
+                        setPasswordError('')
+                      }}
+                      placeholder="至少8位字符，包含字母和数字"
+                      minLength={8}
+                      className="w-full pl-10 pr-4 py-3 border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-transparent bg-secondary"
+                    />
+                  </div>
+                </div>
+
+                {/* 确认新密码 */}
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">
+                    确认新密码
+                  </label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                    <input
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => {
+                        setConfirmPassword(e.target.value)
+                        setPasswordError('')
+                      }}
+                      placeholder="再次输入新密码"
+                      minLength={8}
+                      className="w-full pl-10 pr-4 py-3 border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-transparent bg-secondary"
+                    />
+                  </div>
+                </div>
+
+                {/* 错误提示 */}
+                {passwordError && (
+                  <div className="flex items-center gap-2 text-red-500 text-sm bg-red-50 p-3 rounded-lg">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                    {passwordError}
+                  </div>
+                )}
+
+                {/* 密码强度提示 */}
+                {newPassword && (
+                  <div className="text-xs text-muted-foreground space-y-1">
+                    <p>密码要求：</p>
+                    <ul className="pl-4 space-y-1">
+                      <li className={newPassword.length >= 8 ? 'text-green-600' : 'text-red-600'}>
+                        {newPassword.length >= 8 ? '✓' : '✗'} 至少8位字符
+                      </li>
+                      <li className={/[a-zA-Z]/.test(newPassword) ? 'text-green-600' : 'text-red-600'}>
+                        {/[a-zA-Z]/.test(newPassword) ? '✓' : '✗'} 包含字母
+                      </li>
+                      <li className={/\d/.test(newPassword) ? 'text-green-600' : 'text-red-600'}>
+                        {/\d/.test(newPassword) ? '✓' : '✗'} 包含数字
+                      </li>
+                    </ul>
+                  </div>
+                )}
+
+                {/* 按钮 */}
+                <div className="flex gap-3 pt-2">
+                  <button
+                    onClick={() => {
+                      setShowChangePassword(false)
+                      setPasswordError('')
+                      setOldPassword('')
+                      setNewPassword('')
+                      setConfirmPassword('')
+                    }}
+                    className="flex-1 px-4 py-3 bg-secondary text-foreground rounded-xl border border-border hover:bg-secondary/80 transition-all"
+                  >
+                    取消
+                  </button>
+                  <button
+                    onClick={async () => {
+                      // 验证
+                      if (!oldPassword || !newPassword || !confirmPassword) {
+                        setPasswordError('请填写所有字段')
+                        return
+                      }
+
+                      if (newPassword !== confirmPassword) {
+                        setPasswordError('两次输入的新密码不一致')
+                        return
+                      }
+
+                      if (newPassword.length < 8) {
+                        setPasswordError('密码至少需要8位字符')
+                        return
+                      }
+
+                      if (!/[a-zA-Z]/.test(newPassword) || !/\d/.test(newPassword)) {
+                        setPasswordError('密码必须包含字母和数字')
+                        return
+                      }
+
+                      // 更新密码
+                      const { error } = await supabase.auth.updateUser({
+                        password: newPassword
+                      })
+
+                      if (error) {
+                        setPasswordError(error.message || '修改失败，请检查当前密码是否正确')
+                        return
+                      }
+
+                      toast.success('✅ 密码修改成功')
+                      setShowChangePassword(false)
+                      setPasswordError('')
+                      setOldPassword('')
+                      setNewPassword('')
+                      setConfirmPassword('')
+                    }}
+                    className="flex-1 px-4 py-3 green-gradient backdrop-blur-md text-white rounded-xl border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] hover:opacity-90 transition-all"
+                  >
+                    确认修改
                   </button>
                 </div>
               </div>
