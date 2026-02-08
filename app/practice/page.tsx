@@ -14,6 +14,7 @@ import { ExportModal } from "@/components/ExportModal"
 import { XiaohongshuInviteModal, INVITE_VERSION } from "@/components/XiaohongshuInviteModal"
 import { PWAInstallBanner } from "@/components/PWAInstallBanner"
 import { AccountBindingSection } from "@/components/AccountBindingSection"
+import { AuthModal } from "@/components/AuthModal"
 import { toast } from 'sonner'
 import { trackEvent } from '@/lib/analytics'
 import { captureWithFallback, formatErrorForUser } from '@/lib/screenshot'
@@ -1926,6 +1927,14 @@ function SettingsModal({
                     console.log('Sync completed:', data)
                   }}
                   onClose={onClose}
+                  onOpenLoginModal={() => {
+                    setShowAuthModal(true)
+                    setAuthMode('login')
+                  }}
+                  onOpenRegisterModal={() => {
+                    setShowAuthModal(true)
+                    setAuthMode('register')
+                  }}
                 />
               )}
 
@@ -2092,6 +2101,14 @@ function AccountSyncModal({
                 console.log('Sync completed:', data)
               }}
               onClose={onClose}
+              onOpenLoginModal={() => {
+                setShowAuthModal(true)
+                setAuthMode('login')
+              }}
+              onOpenRegisterModal={() => {
+                setShowAuthModal(true)
+                setAuthMode('register')
+              }}
             />
           </motion.div>
         </>
@@ -3249,6 +3266,10 @@ export default function AshtangaTracker() {
   const [exportedData, setExportedData] = useState('')
   const [votedCloud, setVotedCloud] = useLocalStorage('voted_cloud_sync', false)
 
+  // Auth Modal 状态
+  const [showAuthModal, setShowAuthModal] = useState(false)
+  const [authMode, setAuthMode] = useState<'login' | 'register' | 'forgot-password'>('login')
+
   // 清空数据确认弹窗状态
   const [showClearDataConfirm, setShowClearDataConfirm] = useState(false)
   const [clearDataStep, setClearDataStep] = useState<1 | 2 | 3>(1)
@@ -4284,6 +4305,15 @@ export default function AshtangaTracker() {
           setShowXiaohongshuModal(false)
           // 已在点击气泡时标记已读，这里无需重复
         }}
+      />
+
+      {/* Auth Modal - 登录/注册/忘记密码 */}
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        mode={authMode}
+        onAuthSuccess={() => setShowAuthModal(false)}
+        onModeChange={(newMode) => setAuthMode(newMode)}
       />
     </div>
   )

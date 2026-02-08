@@ -6,7 +6,6 @@ import { Mail, CheckCircle, LogOut, RefreshCw, Smartphone, X, LogOut as LogOutIc
 import { useAuth } from '@/hooks/useAuth'
 import { useSync } from '@/hooks/useSync'
 import { DataStorageNotice } from './DataStorageNotice'
-import { AuthModal } from './AuthModal'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
 import type { User } from '@supabase/supabase-js'
@@ -19,6 +18,8 @@ interface AccountBindingSectionProps {
   }
   onSyncComplete: (data: any) => void
   onClose: () => void // ⭐ 新增：onClose 回调
+  onOpenLoginModal: () => void
+  onOpenRegisterModal: () => void
 }
 
 // 隐藏邮箱地址的辅助函数
@@ -44,11 +45,11 @@ export function AccountBindingSection({
   localData,
   onSyncComplete,
   onClose,
+  onOpenLoginModal,
+  onOpenRegisterModal,
 }: AccountBindingSectionProps) {
   const { user, signOut, deviceConflict, confirmDeviceConflict, cancelDeviceConflict } = useAuth()
   const { syncStatus, lastSyncTime, uploadLocalData, autoSync } = useSync(user, localData, onSyncComplete)
-  const [authModalOpen, setAuthModalOpen] = useState(false)
-  const [authMode, setAuthMode] = useState<'login' | 'register' | 'forgot-password'>('register')
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false)
   const [showChangePassword, setShowChangePassword] = useState(false)
   const [oldPassword, setOldPassword] = useState('')
@@ -150,10 +151,7 @@ export function AccountBindingSection({
       {!user ? (
         <div className="space-y-3">
           <button
-            onClick={() => {
-              setAuthMode('register')
-              setAuthModalOpen(true)
-            }}
+            onClick={onOpenRegisterModal}
             className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl hover:from-orange-600 hover:to-amber-600 transition-all font-medium font-serif backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)]"
           >
             <Mail className="w-5 h-5" />
@@ -171,10 +169,7 @@ export function AccountBindingSection({
           </button>
           <p className="text-xs font-serif text-center text-muted-foreground">
             已有账号？<button
-              onClick={() => {
-                setAuthMode('login')
-                setAuthModalOpen(true)
-              }}
+              onClick={onOpenLoginModal}
               className="text-primary font-serif hover:underline"
             >
               点击登录
@@ -248,15 +243,6 @@ export function AccountBindingSection({
           </button>
         </div>
       )}
-
-      {/* 认证弹窗 */}
-      <AuthModal
-        isOpen={authModalOpen}
-        onClose={() => setAuthModalOpen(false)}
-        mode={authMode}
-        onAuthSuccess={() => setAuthModalOpen(false)}
-        onModeChange={(newMode) => setAuthMode(newMode)}
-      />
 
       {/* 退出登录确认弹窗 */}
       <AnimatePresence>
