@@ -446,7 +446,7 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[24px] z-50 p-6 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] max-h-[calc(100vh-2rem)] overflow-y-auto relative"
+            className="fixed bottom-0 left-0 right-0 w-full bg-white rounded-t-[24px] z-50 p-6 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] max-h-[calc(100vh-2rem)] overflow-y-auto relative"
           >
             {/* 标题栏 - 带关闭按钮（忘记密码模式显示返回登录按钮） */}
             <div className="flex items-center justify-between mb-6">
