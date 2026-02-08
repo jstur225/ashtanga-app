@@ -65,9 +65,18 @@ export function AccountBindingSection({
 
     try {
       const { data, error } = await supabase.auth.getSession()
-      console.log('Session 测试结果:', { data, error })
-    } catch (err) {
-      console.error('Session 测试异常:', err)
+      if (error) {
+        console.error('Session 测试错误:', error)
+      } else {
+        console.log('Session 测试结果:', { data, error })
+      }
+    } catch (err: any) {
+      // 忽略 AbortError（开发环境热重载导致的错误）
+      if (err.name === 'AbortError') {
+        console.log('Session 测试被中断（开发环境热重载）')
+      } else {
+        console.error('Session 测试异常:', err)
+      }
     }
   }
 
@@ -84,6 +93,7 @@ export function AccountBindingSection({
       'Unable to validate email address: invalid format': '邮箱格式不正确',
       'Signups not allowed': '暂不允许注册',
       'Email rate limit exceeded': '发送邮件过于频繁，请稍后再试',
+      '请求超时': '请求超时，请检查网络连接后重试',
     }
 
     for (const [english, chinese] of Object.entries(errorMap)) {
@@ -476,7 +486,7 @@ export function AccountBindingSection({
                       try {
                         // 设置超时
                         const timeoutPromise = new Promise((_, reject) => {
-                          setTimeout(() => reject(new Error('请求超时（10秒）')), 10000)
+                          setTimeout(() => reject(new Error('请求超时，请检查网络连接后重试')), 10000)
                         })
 
                         // 更新密码
