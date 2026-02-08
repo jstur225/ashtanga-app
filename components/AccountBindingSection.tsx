@@ -154,7 +154,7 @@ export function AccountBindingSection({
               setAuthMode('register')
               setAuthModalOpen(true)
             }}
-            className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl hover:from-orange-600 hover:to-amber-600 transition-all font-medium backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)]"
+            className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl hover:from-orange-600 hover:to-amber-600 transition-all font-medium font-serif backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)]"
           >
             <Mail className="w-5 h-5" />
             去绑定邮箱
@@ -169,7 +169,7 @@ export function AccountBindingSection({
             <Smartphone className="w-5 h-5" />
             继续使用本地存储
           </button>
-          <p className="text-xs text-center text-muted-foreground">
+          <p className="text-xs font-serif text-center text-muted-foreground">
             已有账号？<button
               onClick={() => {
                 setAuthMode('login')
@@ -192,7 +192,7 @@ export function AccountBindingSection({
                 <CheckCircle className="w-4 h-4 text-amber-600" />
                 <span className="text-xs font-medium text-foreground">已绑定邮箱</span>
               </div>
-              <p className="text-xs text-muted-foreground truncate leading-tight" title={user.email || ''}>
+              <p className="text-xs font-serif text-muted-foreground truncate leading-tight" title={user.email || ''}>
                 {maskEmail(user.email || '')}
               </p>
             </div>
@@ -207,12 +207,12 @@ export function AccountBindingSection({
                   syncStatus === 'error' ? 'bg-red-400' :
                   'bg-stone-400'
                 }`} />
-                <p className="text-xs text-foreground">
+                <p className="text-xs font-serif text-foreground">
                   最近同步时间
                 </p>
               </div>
               {lastSyncTime && (
-                <p className="text-xs text-muted-foreground leading-tight">
+                <p className="text-xs font-serif text-muted-foreground leading-tight">
                   {new Date(lastSyncTime).toLocaleString('zh-CN')}
                 </p>
               )}
@@ -241,7 +241,7 @@ export function AccountBindingSection({
           {/* 修改密码按钮 */}
           <button
             onClick={handleChangePassword}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3 border border-dashed border-border hover:border-primary/50 rounded-xl hover:bg-secondary/50 transition-all text-sm text-muted-foreground hover:text-foreground"
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 border border-dashed border-border hover:border-primary/50 rounded-xl hover:bg-secondary/50 transition-all text-sm font-serif text-muted-foreground hover:text-foreground"
           >
             <Key className="w-4 h-4" />
             修改密码
@@ -284,12 +284,12 @@ export function AccountBindingSection({
               </div>
 
               <div className="space-y-4">
-                <p className="text-sm text-foreground text-center leading-relaxed">
+                <p className="text-sm font-serif text-foreground text-center leading-relaxed">
                   退出登录后，您的数据仍安全保留在本机。
                 </p>
 
                 {user && (
-                  <p className="text-xs text-muted-foreground text-center">
+                  <p className="text-xs font-serif text-muted-foreground text-center">
                     如需清空数据，请前往「数据管理」
                   </p>
                 )}
@@ -428,7 +428,7 @@ export function AccountBindingSection({
 
                 {/* 密码强度提示 */}
                 {newPassword && (
-                  <div className="text-xs text-muted-foreground space-y-1">
+                  <div className="text-xs font-serif text-muted-foreground space-y-1">
                     <p>密码要求：</p>
                     <ul className="pl-4 space-y-1">
                       <li className={newPassword.length >= 8 ? 'text-green-600' : 'text-red-600'}>
@@ -613,7 +613,7 @@ export function AccountBindingSection({
               </div>
 
               <div className="space-y-4">
-                <p className="text-sm text-foreground text-center leading-relaxed">
+                <p className="text-sm font-serif text-foreground text-center leading-relaxed">
                   您的账号已在以下设备登录：
                 </p>
 
@@ -622,19 +622,19 @@ export function AccountBindingSection({
                     <Smartphone className="w-5 h-5 text-amber-600" />
                     <div>
                       <p className="text-sm font-medium text-amber-800">{deviceConflict.oldDevice.name}</p>
-                      <p className="text-xs text-amber-600">
+                      <p className="text-xs font-serif text-amber-600">
                         {new Date(deviceConflict.oldDevice.last_seen).toLocaleDateString('zh-CN')}
                       </p>
                     </div>
                   </div>
                 </div>
 
-                <p className="text-sm text-foreground text-center leading-relaxed">
+                <p className="text-sm font-serif text-foreground text-center leading-relaxed">
                   在新设备登录后，以上设备将被退出登录。
                 </p>
 
                 <div className="bg-blue-50 rounded-xl p-3 border border-blue-200">
-                  <p className="text-xs text-blue-700 text-center leading-relaxed">
+                  <p className="text-xs font-serif text-blue-700 text-center leading-relaxed">
                     💡 建议先在旧设备上导出数据<br />
                     （设置 → 数据管理 → 导出数据）
                   </p>
