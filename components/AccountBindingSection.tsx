@@ -73,6 +73,8 @@ export function AccountBindingSection({
 
   // 翻译 Supabase 错误消息
   const translateErrorMessage = (message: string): string => {
+    console.log('翻译错误消息:', message)
+
     const errorMap: Record<string, string> = {
       'New password should be different from the old password.': '新密码不能与当前密码相同',
       'Invalid login credentials': '邮箱或密码错误',
@@ -86,10 +88,12 @@ export function AccountBindingSection({
 
     for (const [english, chinese] of Object.entries(errorMap)) {
       if (message.includes(english)) {
+        console.log('找到匹配:', english, '→', chinese)
         return chinese
       }
     }
 
+    console.log('未找到匹配，返回原消息')
     return message // 如果没有匹配到，返回原消息
   }
 
@@ -486,6 +490,7 @@ export function AccountBindingSection({
                         if (result.error) {
                           console.error('修改密码失败:', result.error)
                           const translatedError = translateErrorMessage(result.error.message)
+                          console.log('翻译后的错误消息:', translatedError)
                           setPasswordError(translatedError)
                           // 不要 return，让 finally 执行
                         } else {
