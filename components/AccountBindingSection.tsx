@@ -484,18 +484,28 @@ export function AccountBindingSection({
                       setIsChangingPassword(true)
 
                       try {
-                        // 设置超时
+                        console.log('1. 开始请求 Supabase API...')
+                        const startTime = Date.now()
+
+                        // 设置超时（30秒）
                         const timeoutPromise = new Promise((_, reject) => {
-                          setTimeout(() => reject(new Error('请求超时，请检查网络连接后重试')), 10000)
+                          setTimeout(() => {
+                            const elapsed = Date.now() - startTime
+                            reject(new Error(`请求超时（${elapsed/1000}秒），请检查网络连接或稍后重试`))
+                          }, 30000)
                         })
 
                         // 更新密码
+                        console.log('2. 调用 supabase.auth.updateUser...')
                         const updatePromise = supabase.auth.updateUser({
                           password: newPassword
                         })
 
+                        console.log('3. 等待 API 响应...')
                         const result = await Promise.race([updatePromise, timeoutPromise]) as any
-                        console.log('Supabase API 返回结果:', result)
+
+                        const elapsed = Date.now() - startTime
+                        console.log(`4. API 响应收到（耗时: ${elapsed/1000}秒）:`, result)
 
                         if (result.error) {
                           console.error('修改密码失败:', result.error)
@@ -512,8 +522,11 @@ export function AccountBindingSection({
                           setConfirmPassword('')
                         }
                       } catch (err: any) {
-                        console.error('修改密码异常:', err)
-                        setPasswordError(err.message || '修改失败，请重试')
+                        const elapsed = Date.now() - startTime
+                        console.error(`修改密码异常（${elapsed/1000}秒）:`, err)
+                        const translatedError = translateErrorMessage(err.message)
+                        console.log('翻译后的错误消息:', translatedError)
+                        setPasswordError(translatedError)
                       } finally {
                         console.log('结束修改密码流程，重置loading状态')
                         setIsChangingPassword(false)
