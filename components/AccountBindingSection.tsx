@@ -292,6 +292,5 @@ export function AccountBindingSection({
         )}
       </AnimatePresence>
     </div>
-    </div>
   )
 }
