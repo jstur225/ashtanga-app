@@ -85,7 +85,7 @@ export function AccountBindingSection({
     console.log('翻译错误消息:', message)
 
     const errorMap: Record<string, string> = {
-      'New password should be different from the old password.': '新密码不能与当前密码相同',
+      'New password should be different from the old password.': '新密码不能与原密码相同',
       'Invalid login credentials': '邮箱或密码错误',
       'Email not confirmed': '邮箱未验证',
       'User already registered': '该邮箱已注册',
