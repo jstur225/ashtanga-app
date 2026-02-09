@@ -3999,8 +3999,18 @@ export default function AshtangaTracker() {
               // 已登录：打开账户与同步弹窗
               setShowAccountSync(true)
             } else {
-              // 未登录：提示操作路径
-              toast.info('📧 启动云同步需要登录：进入「我的数据」→ 右上角齿轮图标 → 账户与同步 → 登录账号')
+              // 未登录：显示绿色提示框
+              toast.custom(
+                (t) => (
+                  <div className="bg-white border border-green-200 rounded-lg shadow-lg p-4 max-w-sm mx-auto">
+                    <div className="flex flex-col gap-1">
+                      <div className="text-sm font-semibold text-green-900">☁️ 启动云同步</div>
+                      <div className="text-xs text-green-700">进入「我的数据」→ 右上角齿轮图标 → 账户与同步 → 登录账号</div>
+                    </div>
+                  </div>
+                ),
+                { duration: 5000 }
+              )
             }
           }}
           onAddOption={handleAddOption}

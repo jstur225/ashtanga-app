@@ -223,7 +223,18 @@ export const usePracticeData = () => {
         setRecords(sortedRecords);
       }
 
-      if (data.options) setOptions(data.options);
+      // 修复：迁移旧的选项数据结构（label_zh → label）
+      if (data.options) {
+        const migratedOptions = data.options.map((opt: any) => ({
+          ...opt,
+          // 如果有 label_zh，用它替换 label（中文覆盖英文）
+          label: opt.label_zh || opt.label || '',
+          // 删除旧的 label_zh 字段
+          delete (opt as any).label_zh
+        }));
+        setOptions(migratedOptions);
+      }
+
       if (data.profile) setProfile(data.profile);
 
       console.log('Data imported successfully');
