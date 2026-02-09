@@ -23,9 +23,9 @@ export function useSync(
   console.log('   localData.records.length:', localData?.records?.length)
 
   const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle')
-  const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null)
 
   // 持久化状态（存储到 localStorage）
+  const [lastSyncTime, setLastSyncTime] = useLocalStorage<number | null>('last_sync_time', null)
   const [lastSyncStatus, setLastSyncStatus] = useLocalStorage<SyncStatus>('last_sync_status', 'idle')
   const [failedSyncIds, setFailedSyncIds] = useLocalStorage<string[]>('failed_sync_ids', [])
   const [syncLogs, setSyncLogs] = useLocalStorage<Array<{
@@ -93,17 +93,60 @@ export function useSync(
 
       console.log(`📊 [autoSync] 数据对比：本地${localCount}条，云端${remoteCount}条`)
 
-      // 2. 检测数据冲突
-      // 规则：只有云端有数据 → 使用云端
-      //       只有本地有数据 → 上传到云端
-      //       两边都有数据 → 触发冲突对话框
+      // 2. 智能同步策略
       if (remoteCount > 0 && localCount > 0) {
-        // 两边都有数据，触发冲突处理
-        addLog(`检测到冲突：本地${localCount}条，云端${remoteCount}条`, 'success')
+        // 两边都有数据，检查是否有差异需要同步
+        const localIds = new Set(localData.records.map(r => r.id))
+        const remoteIds = new Set(remoteData.records.map(r => r.id))
+
+        const localOnly = localData.records.filter(r => !remoteIds.has(r.id))
+        const remoteOnly = remoteData.records.filter(r => !localIds.has(r.id))
+
+        if (localOnly.length === 0 && remoteOnly.length === 0) {
+          // 没有差异，数据已一致
+          console.log('✅ [autoSync] 数据已一致，无需同步')
+          setSyncStatus('success')
+          return
+        }
+
+        // 有差异：本地有新增数据 → 上传到云端
+        if (localOnly.length > 0 && remoteOnly.length === 0) {
+          console.log(`📤 [autoSync] 本地有${localOnly.length}条新数据，上传到云端`)
+          addLog(`上传本地新增：${localOnly.length}条记录`, 'success')
+          const success = await uploadLocalData(user.id, localData, user)
+          if (success) {
+            setSyncStatus('success')
+            setLastSyncStatus('success')
+            setLastSyncTime(Date.now())
+          } else {
+            setSyncStatus('error')
+            setLastSyncStatus('error')
+          }
+          return
+        }
+
+        // 有差异：云端有新数据 → 使用云端数据
+        if (remoteOnly.length > 0 && localOnly.length === 0) {
+          console.log(`📥 [autoSync] 云端有${remoteOnly.length}条新数据，下载到本地`)
+          addLog(`下载云端新增：${remoteOnly.length}条记录`, 'success')
+          onSyncComplete({
+            records: remoteData.records,
+            options: remoteData.options || [],
+            profile: remoteData.profile || { name: '阿斯汤加习练者', signature: '', avatar: null, is_pro: false }
+          })
+          setSyncStatus('success')
+          setLastSyncStatus('success')
+          setLastSyncTime(Date.now())
+          return
+        }
+
+        // 两边都有新数据 → 真正的冲突，需要用户选择
+        console.log(`⚠️ [autoSync] 双方都有新数据：本地${localOnly.length}条，云端${remoteOnly.length}条`)
+        addLog(`检测到冲突：本地${localOnly.length}条新，云端${remoteOnly.length}条新`, 'success')
         if (onConflictDetected) {
           onConflictDetected(localCount, remoteCount)
         }
-        setSyncStatus('idle') // 等待用户选择
+        setSyncStatus('idle')
         return
       }
 
@@ -117,7 +160,7 @@ export function useSync(
         })
         setSyncStatus('success')
         setLastSyncStatus('success')
-        setLastSyncTime(new Date())
+        setLastSyncTime(Date.now())
         return
       }
 
@@ -128,7 +171,7 @@ export function useSync(
         if (success) {
           setSyncStatus('success')
           setLastSyncStatus('success')
-          setLastSyncTime(new Date())
+          setLastSyncTime(Date.now())
         } else {
           throw new Error('上传本地数据失败')
         }
@@ -139,7 +182,7 @@ export function useSync(
       addLog('两端都没有数据', 'success')
       setSyncStatus('success')
       setLastSyncStatus('success')
-      setLastSyncTime(new Date()) // ⭐ 更新同步时间
+      setLastSyncTime(Date.now()) // ⭐ 更新同步时间
 
     } catch (error: any) {
       console.error('Auto sync failed:', error)
@@ -172,7 +215,7 @@ export function useSync(
 
     setSyncStatus('success')
     setLastSyncStatus('success')
-    setLastSyncTime(new Date())
+    setLastSyncTime(Date.now())
   }
 
   // ==================== 下载云端数据 ====================
@@ -366,7 +409,7 @@ export function useSync(
       setFailedSyncIds(failedIds)
       setLastSyncStatus(failedIds.length === 0 ? 'success' : 'error')
       setSyncStatus(failedIds.length === 0 ? 'success' : 'error')
-      setLastSyncTime(new Date())
+      setLastSyncTime(Date.now())
 
       return failedIds.length === 0
     } catch (error: any) {
@@ -441,7 +484,7 @@ export function useSync(
 
       setSyncStatus('success')
       setLastSyncStatus('success')
-      setLastSyncTime(new Date())
+      setLastSyncTime(Date.now())
 
     } catch (error: any) {
       console.error('Resolve conflict failed:', error)
