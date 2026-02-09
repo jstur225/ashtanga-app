@@ -18,6 +18,10 @@ export function useSync(
   onSyncComplete: (data: any) => void,
   onConflictDetected?: (localCount: number, remoteCount: number) => void
 ) {
+  console.log('🔍 [useSync] Hook 被调用了')
+  console.log('   user:', user)
+  console.log('   localData.records.length:', localData?.records?.length)
+
   const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle')
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null)
 
@@ -34,14 +38,24 @@ export function useSync(
 
   // ==================== 应用级自动同步 ====================
   useEffect(() => {
+    console.log('🔍 [useEffect] 触发', {
+      hasUser: !!user,
+      userId: user?.id,
+      localDataLength: localData.records.length
+    })
+
     if (user && localData.records.length >= 0) {
+      console.log('✅ [useEffect] 条件满足，准备调用 autoSync')
       // 用户登录后，立即启动自动同步
       autoSync()
+    } else {
+      console.log('⏸️ [useEffect] 条件不满足，跳过自动同步')
     }
   }, [user]) // 只监听 user 变化
 
   // ==================== 自动同步函数 ====================
   const autoSync = async () => {
+    console.log('🚨🚨🚨 [autoSync] 函数被调用了！🚨🚨🚨')
     console.log('='.repeat(50))
     console.log('🔄 [autoSync] 函数开始执行')
     console.log('='.repeat(50))
@@ -174,9 +188,30 @@ export function useSync(
       if (optionsRes.error) throw optionsRes.error
       if (profileRes.error && profileRes.error.code !== 'PGRST116') throw profileRes.error // PGRST116 表示没有找到，可以忽略
 
+      // 修复：解析 photos JSON 字符串为数组
+      const records = (recordsRes.data || []).map(r => ({
+        ...r,
+        photos: r.photos ? (typeof r.photos === 'string' ? JSON.parse(r.photos) : r.photos) : []
+      }))
+
+      // 调试：打印云端选项数据
+      console.log('📦 [downloadRemoteData] 云端选项数据:', optionsRes.data)
+      console.log('   选项数量:', optionsRes.data?.length)
+
+      // 修复：过滤掉无效的选项（id 必须存在）
+      const options = (optionsRes.data || []).filter(o => {
+        const isValid = o.id && (o.label || o.notes)
+        if (!isValid) {
+          console.log('   ⚠️ 过滤掉无效选项:', o)
+        }
+        return isValid
+      })
+
+      console.log('   ✅ 有效选项数量:', options.length)
+
       return {
-        records: recordsRes.data || [],
-        options: optionsRes.data || [],
+        records,
+        options,
         profile: profileRes.data || { name: '阿斯汤加习练者', signature: '', avatar: null, is_pro: false }, // 如果没有 profile，使用默认值
       }
     } catch (error: any) {
@@ -199,7 +234,7 @@ export function useSync(
       duration: r.duration,
       notes: r.notes || '',
       photos: null, // ⚠️ 照片暂不同步
-      breakthrough: r.breakthrough || false,
+      breakthrough: r.breakthrough || null,
     }))
 
     const { error } = await supabase
@@ -258,7 +293,7 @@ export function useSync(
           signature: profile.signature || '',
           avatar: null, // ⚠️ 头像只存本地，不上传云端（Base64太大）
           is_pro: profile.is_pro || false,
-          // email: user?.email || null, // ⚠️ 暂时注释：数据库表可能没有此字段
+          email: user?.email || null
         }, {
           onConflict: 'user_id'
         })
@@ -283,7 +318,7 @@ export function useSync(
           duration: r.duration,
           notes: r.notes || '',
           photos: r.photos && r.photos.length > 0 ? JSON.stringify(r.photos) : null, // ⚠️ 转换为 JSON 字符串
-          breakthrough: r.breakthrough || false,
+          breakthrough: r.breakthrough || null,
         }))
 
         const { error: recordsError } = await supabase
@@ -307,7 +342,6 @@ export function useSync(
           id: o.id,
           user_id: userId,
           label: o.label || '',
-          label_zh: o.label_zh || '',
           notes: o.notes || null,
           is_custom: o.is_custom || false,
         }))

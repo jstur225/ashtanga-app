@@ -117,12 +117,28 @@ export function AccountBindingSection({
 
   // ==================== 立即同步 ====================
   const handleSync = async () => {
-    if (!user) return
+    console.log('🚨🚨🚨 [handleSync] 按钮被点击了！🚨🚨🚨')
 
-    // 手动触发自动同步
-    console.log('🔄 触发立即同步...')
-    await autoSync()
-    console.log('✅ 同步完成')
+    if (!user) {
+      console.log('❌ [handleSync] 用户未登录，退出')
+      return
+    }
+
+    console.log('✅ [handleSync] 用户已登录')
+    console.log('   user_id:', user.id)
+    console.log('   autoSync 函数:', autoSync)
+    console.log('   autoSync 类型:', typeof autoSync)
+
+    try {
+      // 手动触发自动同步
+      console.log('🔄 [handleSync] 准备调用 autoSync...')
+      await autoSync()
+      console.log('✅ [handleSync] autoSync 执行完成')
+    } catch (error: any) {
+      console.error('❌ [handleSync] autoSync 执行失败:', error)
+      console.error('   错误消息:', error?.message)
+      console.error('   错误堆栈:', error?.stack)
+    }
   }
 
   // ==================== 修改密码 ====================

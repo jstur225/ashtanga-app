@@ -44,7 +44,7 @@ export interface PracticeRecord {
   duration: number
   notes: string
   photos: string[]
-  breakthrough?: string
+  breakthrough?: string | null
   deleted_at?: string | null // 软删除字段
 }
 
@@ -52,9 +52,8 @@ export interface PracticeOption {
   id: string // UUID (string)
   user_id: string // 新增：用户ID，用于数据隔离
   created_at: string
-  label: string
-  label_zh: string
-  notes?: string
+  label: string  // 练习类型名称（中文）
+  notes?: string  // 备注说明
   is_custom: boolean
 }
 

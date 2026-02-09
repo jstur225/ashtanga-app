@@ -388,7 +388,7 @@ function EditOptionModal({
 
   useEffect(() => {
     if (option) {
-      setName(option.labelZh)
+      setName(option.label)
       setNotes(option.notes || "")
     }
   }, [option])
@@ -1318,10 +1318,10 @@ function TypeSelectorModal({
       // 点击自定义按钮，通知父组件
       onClose("__custom__")
     } else {
-      // 点击普通按钮，返回 labelZh + notes 组合以区分同名选项
+      // 点击普通按钮，返回 label + notes 组合以区分同名选项
       const typeValue = option.notes
-        ? `${option.labelZh || option.label} ${option.notes}`
-        : (option.labelZh || option.label)
+        ? `${option.label} ${option.notes}`
+        : option.label
       onClose(typeValue)
     }
   }
@@ -1362,10 +1362,14 @@ function TypeSelectorModal({
             <div className="flex-1 overflow-y-auto px-6 py-6">
               <div className="grid grid-cols-3 gap-3">
                 {practiceOptions.map((option) => {
-                  // 使用 labelZh + notes 组合来精确匹配，避免同名选项同时高亮
-                  const optionTypeValue = option.notes
-                    ? `${option.labelZh || option.label} ${option.notes}`
-                    : (option.labelZh || option.label)
+                  // 显示逻辑：label（名称）+ notes（备注）
+                  const displayName = option.label || ''
+                  const displayNotes = option.notes || ''
+
+                  // 使用 label + notes 组合来精确匹配，避免同名选项同时高亮
+                  const optionTypeValue = displayNotes
+                    ? `${displayName} ${displayNotes}`
+                    : displayName
                   const isSelected = selectedType === optionTypeValue
                   const isCustomButton = option.id === "custom"
 
@@ -1386,15 +1390,15 @@ function TypeSelectorModal({
                         }
                       `}
                     >
-                      <span className="text-[14px] leading-snug break-words w-full line-clamp-2">
-                        {isCustomButton ? "+ 自定义" : option.labelZh}
+                      <span className="text-[14px] leading-snug break-words w-full">
+                        {displayName}
                       </span>
-                      {!isCustomButton && option.notes && (
+                      {displayNotes && (
                         <span className={`
                           text-[11px] mt-1 leading-snug break-words w-full line-clamp-1
                           ${isSelected ? 'text-primary-foreground/70' : 'text-muted-foreground'}
                         `}>
-                          {option.notes}
+                          {displayNotes}
                         </span>
                       )}
                     </motion.button>
@@ -1455,7 +1459,7 @@ function AddPracticeModal({
   const typeOptions = useMemo(() => {
     return practiceOptions
       .filter(o => o.id !== "custom")
-      .map(o => ({ value: o.labelZh || o.label, label: o.labelZh || o.label }))
+      .map(o => ({ value: o.label, label: o.label }))
   }, [practiceOptions])
 
   // 处理自定义练习确认
@@ -3380,15 +3384,16 @@ export default function AshtangaTracker() {
 
   // Initialize practice options from hook data
   useEffect(() => {
+    const hasCustom = practiceOptionsData.some(o => o.id === "custom")
+
     setPracticeOptions([
       ...practiceOptionsData.map(o => ({
         id: o.id,
         label: o.label,
-        labelZh: o.label_zh,
         notes: o.notes,
         isCustom: o.is_custom
       })),
-      { id: "custom", label: "Custom", labelZh: "自定义" }
+      ...(!hasCustom ? [{ id: "custom", label: "自定义", notes: null, isCustom: false }] : [])
     ])
   }, [practiceOptionsData])
 
@@ -3478,9 +3483,9 @@ export default function AshtangaTracker() {
     }
 
     // Create a new permanent custom option and save to localStorage
-    const newOption = addOption(name, name)
+    const newOption = addOption(name)
     if (notes) {
-      updateOption(newOption.id, name, name, notes)
+      updateOption(newOption.id, name, notes)
     }
 
     // Update local state will be handled by useEffect when practiceOptionsData changes
@@ -3492,11 +3497,11 @@ export default function AshtangaTracker() {
 
   const handleEditSave = (id: string, name: string, notes: string) => {
     // Update localStorage
-    updateOption(id, name, name, notes)
+    updateOption(id, name, notes)
 
     // Update local state
     setPracticeOptions(prev => prev.map(o =>
-      o.id === id ? { ...o, labelZh: name, label: name, notes } : o
+      o.id === id ? { ...o, label: name, notes } : o
     ))
 
     toast.success('已保存修改')
@@ -3549,10 +3554,10 @@ export default function AshtangaTracker() {
 
   const handleAddOption = (name: string, notes: string) => {
     console.log('handleAddOption called with:', name, notes)
-    const newOption = addOption(name, name)
+    const newOption = addOption(name)
     console.log('newOption created:', newOption)
     if (notes) {
-      updateOption(newOption.id, name, name, notes)
+      updateOption(newOption.id, name, notes)
       console.log('updated option with notes:', notes)
     }
     console.log('current practiceOptionsData after add:', practiceOptionsData)
@@ -3591,7 +3596,6 @@ export default function AshtangaTracker() {
       optionsList: practiceOptions.map(o => ({
         id: o.id,
         label: o.label,
-        labelZh: o.label_zh || '',
         notes: o.notes || '',
         isCustom: o.is_custom
       }))
@@ -3699,7 +3703,7 @@ export default function AshtangaTracker() {
       return customPracticeName
     }
     const option = practiceOptions.find((o) => o.id === selectedOption)
-    return option?.labelZh || option?.label || ""
+    return option?.label || ""
   }, [selectedOption, customPracticeName, practiceOptions])
 
   const getSelectedNotes = useCallback(() => {
@@ -3924,7 +3928,7 @@ export default function AshtangaTracker() {
                     }
                   `}
                 >
-                  <span className="text-[14px] leading-snug break-words w-full line-clamp-2">{isCustomButton ? "+ 自定义" : option.labelZh}</span>
+                  <span className="text-[14px] leading-snug break-words w-full line-clamp-2">{isCustomButton ? "+ 自定义" : option.label}</span>
                   {!isCustomButton && option.notes && (
                     <span className={`text-[11px] mt-0.5 leading-snug break-words w-full line-clamp-2 ${isSelected ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
                       {option.notes}

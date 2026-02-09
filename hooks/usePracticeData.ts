@@ -19,7 +19,6 @@ export interface PracticeOption {
   id: string;
   created_at: string;
   label: string;
-  label_zh: string;
   notes?: string;
   is_custom: boolean;
 }
@@ -36,12 +35,12 @@ export interface UserProfile {
 }
 
 const DEFAULT_OPTIONS: PracticeOption[] = [
-  { id: '1', created_at: new Date().toISOString(), label: 'Primary 1', label_zh: '一序列', notes: 'Mysore', is_custom: false },
-  { id: '2', created_at: new Date().toISOString(), label: 'Primary 2', label_zh: '一序列', notes: 'Led class', is_custom: false },
-  { id: '3', created_at: new Date().toISOString(), label: 'Intermediate 1', label_zh: '二序列', notes: 'Mysore', is_custom: false },
-  { id: '4', created_at: new Date().toISOString(), label: 'Intermediate 2', label_zh: '二序列', notes: 'Led class', is_custom: false },
-  { id: '5', created_at: new Date().toISOString(), label: 'Half', label_zh: '半序列', notes: '站立+休息', is_custom: false },
-  { id: '6', created_at: new Date().toISOString(), label: 'Rest', label_zh: '休息日', notes: '满月/新月', is_custom: false },
+  { id: '1', created_at: new Date().toISOString(), label: '一序列', notes: 'Mysore', is_custom: false },
+  { id: '2', created_at: new Date().toISOString(), label: '一序列', notes: 'Led class', is_custom: false },
+  { id: '3', created_at: new Date().toISOString(), label: '二序列', notes: 'Mysore', is_custom: false },
+  { id: '4', created_at: new Date().toISOString(), label: '二序列', notes: 'Led class', is_custom: false },
+  { id: '5', created_at: new Date().toISOString(), label: '半序列', notes: '站立+休息', is_custom: false },
+  { id: '6', created_at: new Date().toISOString(), label: '休息日', notes: '满月/新月', is_custom: false },
 ];
 
 export const usePracticeData = () => {
@@ -62,22 +61,6 @@ export const usePracticeData = () => {
     const stored = localStorage.getItem('ashtanga_options');
     if (!stored || stored === '[]') {
       setOptions(DEFAULT_OPTIONS);
-    } else {
-      // 数据迁移：将旧的 labelZh 字段转换为 label_zh
-      try {
-        const parsedOptions = JSON.parse(stored);
-        const needsMigration = parsedOptions.some((opt: any) => opt.labelZh && !opt.label_zh);
-
-        if (needsMigration) {
-          const migratedOptions = parsedOptions.map((opt: any) => ({
-            ...opt,
-            label_zh: opt.label_zh || opt.labelZh || '',
-          }));
-          setOptions(migratedOptions);
-        }
-      } catch (e) {
-        console.error('Failed to migrate options data:', e);
-      }
     }
 
     // 为首次用户添加教程记录
@@ -188,21 +171,20 @@ export const usePracticeData = () => {
     return updatedProfile;
   };
 
-  const addOption = (label: string, label_zh: string) => {
+  const addOption = (label: string) => {
     const newOption: PracticeOption = {
       id: uuidv4(),
       created_at: new Date().toISOString(),
       label,
-      label_zh,
       is_custom: true,
     };
     setOptions([...(options || []), newOption]);
     return newOption;
   };
 
-  const updateOption = (id: string, label: string, label_zh: string, notes?: string) => {
+  const updateOption = (id: string, label: string, notes?: string) => {
     setOptions((options || []).map(o =>
-      o.id === id ? { ...o, label, label_zh, notes } : o
+      o.id === id ? { ...o, label, notes } : o
     ));
   };
 
