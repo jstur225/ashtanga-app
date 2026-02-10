@@ -3764,7 +3764,32 @@ export default function AshtangaTracker() {
       selectedOption,
       isPaused,
       elapsedTime,
-      totalPausedTime
+      totalPausedTime,
+      // 选项状态（用于诊断新增选项问题）
+      optionsStatus: {
+        totalCount: practiceOptions.length,
+        customCount: practiceOptions.filter(o => o.is_custom).length,
+        systemCount: practiceOptions.filter(o => !o.is_custom).length,
+        isFull: practiceOptions.filter(o => o.id !== "custom").length >= 8,
+        canDelete: practiceOptions.filter(o => o.id !== "custom").length > 2,
+        selectedOptionId: selectedOption,
+        customPracticeName: customPracticeName || null
+      },
+      // 弹窗状态
+      modals: {
+        showAddOptionModal: showAddOptionModal,
+        showImportModal: showImportModal,
+        showExportModal: showExportModal,
+        showDebugLogModal: showDebugLogModal,
+        showCompletion: showCompletion,
+        showFakeDoor: showFakeDoor.isOpen
+      },
+      // 数据存储状态
+      storage: {
+        hasLocalData: practiceHistory.length > 0,
+        localStorageKeysCount: Object.keys(localStorage).length,
+        sessionStorageKeysCount: Object.keys(sessionStorage).length
+      }
     }
 
     // ===== 12. 同步日志（如果有） =====
