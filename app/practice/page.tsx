@@ -4236,13 +4236,13 @@ export default function AshtangaTracker() {
                   </div>
 
                   <div className="space-y-4">
-                    <p className="text-sm text-foreground text-center leading-relaxed">
+                    <p className="text-sm font-serif text-foreground text-center leading-relaxed">
                       您正在尝试清空本地数据胶囊。
                     </p>
 
                     <div className="bg-red-50 rounded-xl p-4 border border-red-200">
-                      <p className="text-sm text-red-700 font-medium mb-2">此操作将永久删除：</p>
-                      <ul className="text-sm text-red-600 space-y-1 pl-4">
+                      <p className="text-sm font-serif text-red-700 font-medium mb-2">此操作将永久删除：</p>
+                      <ul className="text-sm font-serif text-red-600 space-y-1 pl-4">
                         <li>• 所有练习记录</li>
                         <li>• 练习选项</li>
                         <li>• 个人信息</li>
@@ -4250,20 +4250,20 @@ export default function AshtangaTracker() {
                       </ul>
                     </div>
 
-                    <p className="text-xs text-red-600 text-center font-medium">
+                    <p className="text-sm font-serif text-red-600 text-center font-medium">
                       ⚠️ 此操作不可撤销！
                     </p>
 
                     <div className="flex gap-3 pt-2">
                       <button
                         onClick={() => setShowClearDataConfirm(false)}
-                        className="flex-1 px-4 py-3 bg-secondary text-foreground rounded-xl border border-border hover:bg-secondary/80 transition-all"
+                        className="flex-1 px-4 py-3 bg-secondary text-foreground rounded-xl border border-border hover:bg-secondary/80 transition-all font-serif"
                       >
                         取消
                       </button>
                       <button
                         onClick={() => setClearDataStep(2)}
-                        className="flex-1 px-4 py-3 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-all"
+                        className="flex-1 px-4 py-3 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-all font-serif"
                       >
                         继续操作
                       </button>
@@ -4283,13 +4283,13 @@ export default function AshtangaTracker() {
                   </div>
 
                   <div className="space-y-4">
-                    <p className="text-sm text-foreground text-center leading-relaxed">
+                    <p className="text-sm font-serif text-foreground text-center leading-relaxed">
                       为防止误操作，请输入确认词。
                     </p>
 
                     <div className="bg-amber-50 rounded-xl p-4 border border-amber-200">
-                      <p className="text-xs text-amber-700 text-center mb-2">确认词：</p>
-                      <p className="text-lg text-amber-800 text-center font-bold">确认删除</p>
+                      <p className="text-sm font-serif text-amber-700 text-center mb-2">确认词：</p>
+                      <p className="text-lg font-serif text-amber-800 text-center font-bold">确认删除</p>
                     </div>
 
                     <input
@@ -4297,14 +4297,14 @@ export default function AshtangaTracker() {
                       value={confirmPhrase}
                       onChange={(e) => setConfirmPhrase(e.target.value)}
                       placeholder="请输入确认词（不含引号）"
-                      className="w-full px-4 py-3 border border-border rounded-xl focus:ring-2 focus:ring-red-500/20 focus:border-red-500 bg-secondary"
+                      className="w-full px-4 py-3 border border-border rounded-xl focus:ring-2 focus:ring-red-500/20 focus:border-red-500 bg-secondary font-serif"
                       autoFocus
                     />
 
                     <div className="flex gap-3 pt-2">
                       <button
                         onClick={() => setClearDataStep(1)}
-                        className="flex-1 px-4 py-3 bg-secondary text-foreground rounded-xl border border-border hover:bg-secondary/80 transition-all"
+                        className="flex-1 px-4 py-3 bg-secondary text-foreground rounded-xl border border-border hover:bg-secondary/80 transition-all font-serif"
                       >
                         返回
                       </button>
@@ -4316,7 +4316,7 @@ export default function AshtangaTracker() {
                             toast.error('确认词输入错误，请重新输入')
                           }
                         }}
-                        className="flex-1 px-4 py-3 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-all"
+                        className="flex-1 px-4 py-3 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-all font-serif"
                       >
                         确认
                       </button>
@@ -4336,18 +4336,18 @@ export default function AshtangaTracker() {
                   </div>
 
                   <div className="space-y-4">
-                    <p className="text-sm text-foreground text-center leading-relaxed">
+                    <p className="text-sm font-serif text-foreground text-center leading-relaxed">
                       确认要清空所有数据吗？
                     </p>
 
-                    <p className="text-xs text-red-600 text-center font-medium">
+                    <p className="text-sm font-serif text-red-600 text-center font-medium">
                       此操作不可撤销！
                     </p>
 
                     <div className="flex gap-3 pt-2">
                       <button
                         onClick={() => setShowClearDataConfirm(false)}
-                        className="flex-1 px-4 py-3 bg-secondary text-foreground rounded-xl border border-border hover:bg-secondary/80 transition-all"
+                        className="flex-1 px-4 py-3 bg-secondary text-foreground rounded-xl border border-border hover:bg-secondary/80 transition-all font-serif"
                       >
                         取消
                       </button>
@@ -4363,7 +4363,7 @@ export default function AshtangaTracker() {
                             window.location.reload()
                           }, 1000)
                         }}
-                        className="flex-1 px-4 py-3 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-all"
+                        className="flex-1 px-4 py-3 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-all font-serif"
                       >
                         确认清空
                       </button>
