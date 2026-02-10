@@ -4161,7 +4161,7 @@ export default function AshtangaTracker() {
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[24px] z-50 p-6 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]"
+              className="fixed bottom-0 left-0 right-0 bg-card rounded-t-[24px] z-50 p-6 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]"
             >
               {/* 第一层：警告 */}
               {clearDataStep === 1 && (
@@ -4368,7 +4368,8 @@ export default function AshtangaTracker() {
         isOpen={showXiaohongshuModal}
         onClose={() => {
           setShowXiaohongshuModal(false)
-          // 已在点击气泡时标记已读，这里无需重复
+          // 关闭时再次确保标记为已读（双重保险）
+          setReadInviteVersion(INVITE_VERSION)
         }}
       />
 

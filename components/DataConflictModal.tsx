@@ -42,7 +42,7 @@ export function DataConflictModal({
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[24px] z-[60] p-6 pb-10 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] max-h-[calc(100vh-2rem)] overflow-y-auto"
+            className="fixed bottom-0 left-0 right-0 bg-card rounded-t-[24px] z-[60] p-6 pb-10 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] max-h-[calc(100vh-2rem)] overflow-y-auto"
           >
             {/* 标题栏 */}
             <div className="flex items-center justify-between mb-6">
@@ -173,7 +173,7 @@ export function DataConflictModal({
                     initial={{ scale: 0.9, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     exit={{ scale: 0.9, opacity: 0 }}
-                    className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl p-6 z-[80] max-w-sm w-full shadow-2xl"
+                    className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-card rounded-2xl p-6 z-[80] max-w-sm w-full shadow-2xl"
                   >
                     <div className="text-center">
                       <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />

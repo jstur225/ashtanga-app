@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Mail, CheckCircle, LogOut, RefreshCw, Smartphone, X, LogOut as LogOutIcon, Key, Lock, AlertCircle } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
@@ -110,10 +111,37 @@ export function AccountBindingSection({
     return message // 如果没有匹配到，返回原消息
   }
 
-  // 组件挂载时测试连接
-  console.log('AccountBindingSection 组件已挂载')
-  console.log('当前用户状态:', user)
-  testSupabaseConnection()
+  // 组件挂载时测试连接（只在挂载时执行一次）
+  useEffect(() => {
+    console.log('AccountBindingSection 组件已挂载')
+    console.log('当前用户状态:', user)
+    testSupabaseConnection()
+  }, []) // 空依赖数组 = 只在挂载时执行一次
+
+  // 弹窗打开时阻止背景滚动
+  useEffect(() => {
+    const isAnyModalOpen = showSignOutConfirm || showChangePassword || !!deviceConflict
+
+    if (isAnyModalOpen) {
+      // 保存当前滚动位置
+      const scrollY = window.scrollY
+
+      // 阻止滚动
+      document.body.style.overflow = 'hidden'
+      document.body.style.position = 'fixed'
+      document.body.style.top = `-${scrollY}px`
+      document.body.style.width = '100%'
+
+      return () => {
+        // 恢复滚动
+        document.body.style.overflow = ''
+        document.body.style.position = ''
+        document.body.style.top = ''
+        document.body.style.width = ''
+        window.scrollTo(0, scrollY)
+      }
+    }
+  }, [showSignOutConfirm, showChangePassword, deviceConflict])
 
   // ==================== 立即同步 ====================
   const handleSync = async () => {
@@ -265,89 +293,91 @@ export function AccountBindingSection({
       )}
 
       {/* 退出登录确认弹窗 */}
-      <AnimatePresence>
-        {showSignOutConfirm && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50"
-              onClick={() => setShowSignOutConfirm(false)}
-            />
-            <motion.div
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[24px] z-50 p-6 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] max-h-[calc(100vh-2rem)] overflow-y-auto relative"
-            >
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-serif text-foreground">退出登录</h2>
-                <button onClick={() => setShowSignOutConfirm(false)} className="p-2 -mr-2 text-muted-foreground hover:text-foreground transition-colors">
-                  <X className="w-5 h-5" />
+      {showSignOutConfirm && createPortal(
+        <AnimatePresence>
+          <motion.div
+            key="signout-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100]"
+            onClick={() => setShowSignOutConfirm(false)}
+          />
+          <motion.div
+            key="signout-modal"
+            initial={{ y: "100%" }}
+            animate={{ y: 0 }}
+            exit={{ y: "100%" }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="fixed bottom-0 left-0 right-0 bg-card rounded-t-[24px] z-[110] p-6 pb-10 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] max-h-[calc(100vh-2rem)] overflow-y-auto relative"
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-lg font-serif text-foreground">退出登录</h2>
+              <button onClick={() => setShowSignOutConfirm(false)} className="p-2 -mr-2 text-muted-foreground hover:text-foreground transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <p className="text-sm font-serif text-foreground text-center leading-relaxed">
+                退出登录后，您的数据仍安全保留在本机。
+              </p>
+
+              {user && (
+                <p className="text-xs font-serif text-muted-foreground text-center">
+                  如需清空数据，请前往「数据管理」
+                </p>
+              )}
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => setShowSignOutConfirm(false)}
+                  className="flex-1 px-4 py-3 bg-secondary text-foreground rounded-xl border border-border hover:bg-secondary/80 transition-all font-serif"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={async () => {
+                    await signOut()
+                    setShowSignOutConfirm(false)
+                    toast.success('✅ 已退出登录')
+                  }}
+                  className="flex-1 px-4 py-3 green-gradient backdrop-blur-md text-white rounded-xl border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] hover:opacity-90 transition-all font-serif"
+                >
+                  确定退出
                 </button>
               </div>
-
-              <div className="space-y-4">
-                <p className="text-sm font-serif text-foreground text-center leading-relaxed">
-                  退出登录后，您的数据仍安全保留在本机。
-                </p>
-
-                {user && (
-                  <p className="text-xs font-serif text-muted-foreground text-center">
-                    如需清空数据，请前往「数据管理」
-                  </p>
-                )}
-
-                <div className="flex gap-3 pt-2">
-                  <button
-                    onClick={() => setShowSignOutConfirm(false)}
-                    className="flex-1 px-4 py-3 bg-secondary text-foreground rounded-xl border border-border hover:bg-secondary/80 transition-all font-serif"
-                  >
-                    取消
-                  </button>
-                  <button
-                    onClick={async () => {
-                      await signOut()
-                      setShowSignOutConfirm(false)
-                      toast.success('✅ 已退出登录')
-                    }}
-                    className="flex-1 px-4 py-3 green-gradient backdrop-blur-md text-white rounded-xl border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] hover:opacity-90 transition-all font-serif"
-                  >
-                    确定退出
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+            </div>
+          </motion.div>
+        </AnimatePresence>,
+        document.body
+      )}
 
       {/* 修改密码弹窗 - 从下往上滑入 */}
-      <AnimatePresence>
-        {showChangePassword && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50"
-              onClick={() => {
-                setShowChangePassword(false)
-                setPasswordError('')
-                setOldPassword('')
-                setNewPassword('')
-                setConfirmPassword('')
-              }}
-            />
-            <motion.div
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[24px] z-50 p-6 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] max-h-[calc(100vh-2rem)] overflow-y-auto relative"
-            >
+      {showChangePassword && createPortal(
+        <AnimatePresence>
+          <motion.div
+            key="changepassword-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100]"
+            onClick={() => {
+              setShowChangePassword(false)
+              setPasswordError('')
+              setOldPassword('')
+              setNewPassword('')
+              setConfirmPassword('')
+            }}
+          />
+          <motion.div
+            key="changepassword-modal"
+            initial={{ y: "100%" }}
+            animate={{ y: 0 }}
+            exit={{ y: "100%" }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="fixed bottom-0 left-0 right-0 bg-card rounded-t-[24px] z-[110] p-6 pb-10 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] max-h-[calc(100vh-2rem)] overflow-y-auto relative"
+          >
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-lg font-serif text-foreground">🔑 修改密码</h2>
                 <button
@@ -589,89 +619,90 @@ export function AccountBindingSection({
                 </div>
               </div>
             </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+          </AnimatePresence>,
+        document.body
+      )}
 
       {/* 设备冲突确认弹窗 - 从下往上滑入 */}
-      <AnimatePresence>
-        {deviceConflict && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50"
-              onClick={cancelDeviceConflict}
-            />
-            <motion.div
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[24px] z-50 p-6 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] max-h-[calc(100vh-2rem)] overflow-y-auto relative"
-            >
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-serif text-foreground">⚠️ 设备登录提醒</h2>
-                <button onClick={cancelDeviceConflict} className="p-2 -mr-2 text-muted-foreground hover:text-foreground transition-colors">
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
+      {deviceConflict && createPortal(
+        <AnimatePresence>
+          <motion.div
+            key="deviceconflict-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100]"
+            onClick={cancelDeviceConflict}
+          />
+          <motion.div
+            key="deviceconflict-modal"
+            initial={{ y: "100%" }}
+            animate={{ y: 0 }}
+            exit={{ y: "100%" }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="fixed bottom-0 left-0 right-0 bg-card rounded-t-[24px] z-[110] p-6 pb-10 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] max-h-[calc(100vh-2rem)] overflow-y-auto relative"
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-lg font-serif text-foreground">⚠️ 设备登录提醒</h2>
+              <button onClick={cancelDeviceConflict} className="p-2 -mr-2 text-muted-foreground hover:text-foreground transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
 
-              <div className="space-y-4">
-                <p className="text-sm font-serif text-foreground text-center leading-relaxed">
-                  您的账号已在以下设备登录：
-                </p>
+            <div className="space-y-4">
+              <p className="text-sm font-serif text-foreground text-center leading-relaxed">
+                您的账号已在以下设备登录：
+              </p>
 
-                <div className="bg-amber-50 rounded-xl p-4 border border-amber-200">
-                  <div className="flex items-center gap-3">
-                    <Smartphone className="w-5 h-5 text-amber-600" />
-                    <div>
-                      <p className="text-sm font-medium font-serif text-amber-800">{deviceConflict.oldDevice.name}</p>
-                      <p className="text-xs font-serif text-amber-600">
-                        {new Date(deviceConflict.oldDevice.last_seen).toLocaleDateString('zh-CN')}
-                      </p>
-                    </div>
+              <div className="bg-amber-50 rounded-xl p-4 border border-amber-200">
+                <div className="flex items-center gap-3">
+                  <Smartphone className="w-5 h-5 text-amber-600" />
+                  <div>
+                    <p className="text-sm font-medium font-serif text-amber-800">{deviceConflict.oldDevice.name}</p>
+                    <p className="text-xs font-serif text-amber-600">
+                      {new Date(deviceConflict.oldDevice.last_seen).toLocaleDateString('zh-CN')}
+                    </p>
                   </div>
                 </div>
-
-                <p className="text-sm font-serif text-foreground text-center leading-relaxed">
-                  在新设备登录后，以上设备将被退出登录。
-                </p>
-
-                <div className="bg-blue-50 rounded-xl p-3 border border-blue-200">
-                  <p className="text-xs font-serif text-blue-700 text-center leading-relaxed">
-                    💡 建议先在旧设备上导出数据<br />
-                    （设置 → 数据管理 → 导出数据）
-                  </p>
-                </div>
-
-                <div className="flex gap-3 pt-2">
-                  <button
-                    onClick={async () => {
-                      await cancelDeviceConflict()
-                      await signOut()
-                      toast.info('已取消登录')
-                    }}
-                    className="flex-1 px-4 py-3 bg-secondary text-foreground rounded-xl border border-border hover:bg-secondary/80 transition-all font-serif"
-                  >
-                    取消
-                  </button>
-                  <button
-                    onClick={async () => {
-                      await confirmDeviceConflict()
-                      toast.success('✅ 登录成功')
-                    }}
-                    className="flex-1 px-4 py-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl hover:from-orange-600 hover:to-amber-600 transition-all font-serif"
-                  >
-                    继续登录
-                  </button>
-                </div>
               </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+
+              <p className="text-sm font-serif text-foreground text-center leading-relaxed">
+                在新设备登录后，以上设备将被退出登录。
+              </p>
+
+              <div className="bg-blue-50 rounded-xl p-3 border border-blue-200">
+                <p className="text-xs font-serif text-blue-700 text-center leading-relaxed">
+                  💡 建议先在旧设备上导出数据<br />
+                  （设置 → 数据管理 → 导出数据）
+                </p>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={async () => {
+                    await cancelDeviceConflict()
+                    await signOut()
+                    toast.info('已取消登录')
+                  }}
+                  className="flex-1 px-4 py-3 bg-secondary text-foreground rounded-xl border border-border hover:bg-secondary/80 transition-all font-serif"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={async () => {
+                    await confirmDeviceConflict()
+                    toast.success('✅ 登录成功')
+                  }}
+                  className="flex-1 px-4 py-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl hover:from-orange-600 hover:to-amber-600 transition-all font-serif"
+                >
+                  继续登录
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </AnimatePresence>,
+        document.body
+      )}
     </div>
   )
 }

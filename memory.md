@@ -1735,3 +1735,297 @@ console.log('🔄 [autoSync] 函数开始执行')
 - [ ] 或使用 Table Editor 添加字段
 - [ ] 取消注释 useSync.ts 中的 email 上传代码（第239行）
 
+
+
+## 2026-02-09 注册504超时问题（未解决）
+
+### 问题描述
+用户注册时，Supabase Auth API 返回 504 Gateway Timeout 错误，导致注册失败。
+
+### 错误信息
+```
+POST https://xojbgxvwgvjanxsowqik.supabase.co/auth/v1/signup 504 (Gateway Timeout)
+AuthRetryableFetchError: {}
+status: 504
+```
+
+### 已尝试的解决方案
+1. ✅ 增加 Supabase 客户端超时时间（120秒）- 无效
+2. ✅ 改进 504 错误识别逻辑（isTimeout 标记）- 已实现
+3. ✅ 尝试智能登录验证（超时后尝试登录）- 用户要求移除
+4. ✅ 禁用邮箱确认时注册成功 - 但用户需要生产环境真实配置
+
+### 根本原因分析
+- **禁用邮箱确认时**：注册成功 ✅
+- **启用邮箱确认时**：504 超时 ❌
+
+结论：问题出在 Supabase Auth 发送确认邮件这一步。
+
+### 可能的原因
+1. **Custom SMTP 配置问题** - Resend 邮件服务响应慢
+2. **Supabase Auth API 限制** - 邮件发送是同步操作，需要等待完成
+3. **网络问题** - 从中国访问 Supabase 服务器不稳定
+
+### 待办事项
+- [ ] 检查 Supabase Dashboard 中是否启用了 Custom SMTP
+- [ ] 临时禁用 Custom SMTP，用默认邮件服务测试
+- [ ] 或接受 504 限制，提供更友好的错误提示
+- [ ] 或联系 Supabase 支持寻求解决方案
+
+### 用户要求
+- 保持生产环境真实配置（启用邮箱确认）
+- 不要禁用邮箱确认进行测试
+- 暂时搁置，明天继续处理
+
+### 相关文件
+- `lib/supabase.ts` - Supabase 客户端配置（超时设置）
+- `hooks/useAuth.ts` - 注册逻辑（错误识别）
+- `components/AuthModal.tsx` - 注册 UI（错误处理）
+- `检查SMTP配置.md` - SMTP 配置检查指南
+
+---
+
+## 2026-02-10 服务端验证码验证 - 安全升级
+
+### 背景
+用户数达到100人，需要提升注册接口的安全性，防止绕过前端验证直接调用 Supabase API。
+
+### 问题分析
+**之前的流程（存在安全漏洞）：**
+```typescript
+// 前端：AuthModal.tsx
+1. 验证验证码（前端调用 /api/auth/verify-code）
+2. 调用 signUp(email, password)
+3. ❌ 攻击者可以跳过步骤1，直接在控制台调用 signUp()
+```
+
+**攻击方法：**
+```javascript
+// 在浏览器控制台直接执行
+const { data, error } = await supabase.auth.signUp({
+  email: 'hacker@test.com',
+  password: 'password123'
+})
+// ⬆️ 不需要验证码！直接注册成功
+```
+
+### 解决方案
+**创建服务端注册 API，强制验证验证码：**
+
+1. **新建 API 路由**：`app/api/auth/register/route.ts`
+2. **验证流程**：
+   - ✅ 在服务端验证验证码（无法绕过）
+   - ✅ 验证码正确后才调用 Supabase signUp
+   - ✅ 标记验证码为已使用
+   - ✅ 密码强度验证也在服务端进行
+
+3. **前端修改**：直接调用新的服务端 API
+
+### 修改内容
+
+**新文件**：`app/api/auth/register/route.ts`
+```typescript
+export async function POST(request: NextRequest) {
+  const { email, password, verificationCode } = await request.json()
+
+  // 1. 参数验证
+  if (!email || !password || !verificationCode) {
+    return NextResponse.json({ error: '请提供邮箱、密码和验证码' }, { status: 400 })
+  }
+
+  // 2. 密码强度验证
+  // - 至少8位
+  // - 必须包含字母
+  // - 必须包含数字
+
+  // 3. 服务端验证验证码（无法绕过）
+  const { data: verificationData } = await supabase
+    .from('verification_codes')
+    .select('*')
+    .eq('email', email)
+    .eq('code', verificationCode)
+    .eq('type', 'email_verification')
+    .eq('used', false)
+    .gte('expires_at', now)
+    .single()
+
+  if (!verificationData) {
+    return NextResponse.json({ error: '验证码错误或已过期' }, { status: 400 })
+  }
+
+  // 4. 验证码正确，开始注册
+  const { data, error } = await supabase.auth.signUp({ email, password })
+
+  // 5. 标记验证码为已使用
+  await supabase.from('verification_codes').update({ used: true }).eq('id', verificationData.id)
+
+  return NextResponse.json({ success: true, data })
+}
+```
+
+**修改文件**：`components/AuthModal.tsx`
+```typescript
+// 修改前：
+const verifyResponse = await fetch('/api/auth/verify-code', {...})
+const { data, error } = await signUp(email, password)
+
+// 修改后：
+const registerResponse = await fetch('/api/auth/register', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    email,
+    password,
+    verificationCode: registerVerifyCode,
+  }),
+})
+```
+
+### 安全性提升
+
+| 项目 | 之前 | 现在 |
+|------|------|------|
+| **验证码验证** | 前端（可绕过） | ✅ 服务端（无法绕过） |
+| **密码强度** | 前端验证 | ✅ 服务端验证 |
+| **批量注册风险** | 🟡 高 | ✅ 低 |
+| **开发成本** | - | ✅ 1小时 |
+| **服务器成本** | - | ✅ 无额外成本 |
+
+### 结果
+✅ 防止绕过前端直接调用 Supabase API
+✅ 防止批量注册攻击
+✅ 密码强度在服务端强制验证
+✅ 无需额外服务器成本（仍使用 Supabase）
+✅ 为未来扩张做好准备
+
+### 相关文件
+- `app/api/auth/register/route.ts` - 服务端注册 API（新建）
+- `components/AuthModal.tsx` - 前端调用逻辑修改
+- `hooks/useAuth.ts` - 保留用于登录功能
+
+---
+
+## 2026-02-10 注册/登录后状态未及时更新
+
+### 问题描述
+用户注册或登录成功后，虽然提示"已登录"，但设置页面的账户区域仍显示"绑定邮箱"的未登录状态，需要手动刷新才能看到已登录状态。
+
+### 根本原因
+`useAuth` hook 中的 `signUp` 和 `signIn` 函数在成功后只是返回了数据，但没有立即更新 `user` 状态。而是依赖 `onAuthStateChange` 事件来更新，但这个事件可能有延迟，导致 UI 不同步。
+
+### 修复方案
+在注册/登录成功后，**立即手动更新 `user` 状态**，而不是等待 `onAuthStateChange` 事件触发。
+
+### 修改内容
+
+**文件**: `hooks/useAuth.ts`
+
+**位置1**: `signUp` 函数（第166-183行）
+```typescript
+// 添加前：
+console.log('[useAuth] 注册成功:', data)
+console.log('[useAuth] 用户ID:', data.user?.id)
+return data
+
+// 添加后：
+console.log('[useAuth] 注册成功:', data)
+console.log('[useAuth] 用户ID:', data.user?.id)
+
+// ⭐ 立即更新用户状态（不等待 onAuthStateChange 事件）
+if (data.user) {
+  console.log('[useAuth] 立即更新用户状态')
+  setUser(data.user)
+  // 如果有 session，也加载设备信息
+  if (data.session) {
+    await loadDeviceInfo(data.user.id)
+  }
+}
+
+return data
+```
+
+**位置2**: `signIn` 函数（第201-210行）
+```typescript
+// 添加前：
+const { data, error } = await supabase.auth.signInWithPassword({...})
+if (error) throw error
+
+// 添加后：
+const { data, error } = await supabase.auth.signInWithPassword({...})
+if (error) throw error
+
+// ⭐ 立即更新用户状态
+console.log('[useAuth] 登录成功，立即更新用户状态')
+if (data.user) {
+  setUser(data.user)
+}
+```
+
+### 结果
+✅ 注册/登录成功后，设置页面的账户区域立即显示已登录状态
+✅ 无需手动刷新页面
+✅ 用户体验更流畅
+
+### 测试建议
+1. 注册新账号，检查账户区域是否立即更新
+2. 登录已有账号，检查账户区域是否立即更新
+3. 在不同网络环境下测试（VPN/关闭VPN）
+
+---
+
+## 2026-02-10 AuthModal.tsx 语法错误修复
+
+### 问题描述
+`components/AuthModal.tsx` 编译失败，报错：
+```
+Parsing ecmascript source code failed
+Expected '}', got '<eof>'
+```
+
+### 根本原因
+1. 第210-234行有一个嵌套的 `try-finally` 结构导致外层 try-catch 结构混乱
+2. 第171行的 `if (mode === 'register' && registerStep === 'verify') {` 缺少闭合括号
+
+### 修复方案
+1. **移除嵌套 try-finally**：将注册逻辑直接放在 if 块中，移除多余的 try-finally 包裹
+2. **添加缺失的闭合括号**：在第231行 `return` 之后添加 `}` 闭合第171行的 if 块
+
+### 修改内容
+**文件**: `components/AuthModal.tsx`
+
+**位置1**: 第210-231行，移除嵌套 try-finally
+```typescript
+// 修改前：
+try {
+  const { data, error } = await signUp(email, password)
+  if (error) throw error
+  // ...
+} finally {
+  clearInterval(timer)
+  setRegisteringCountdown(0)
+}
+
+// 修改后：
+const { data, error } = await signUp(email, password)
+// 注册成功，停止倒计时
+clearInterval(timer)
+setRegisteringCountdown(0)
+if (error) throw error
+// ...
+```
+
+**位置2**: 第231行之后，添加闭合括号
+```typescript
+setLoading(false)
+return
+}  // <- 添加这个括号
+
+// 登录
+if (mode === 'login') {
+```
+
+### 结果
+✅ 编译成功
+✅ 开发服务器正常运行（http://localhost:3000）
+
+

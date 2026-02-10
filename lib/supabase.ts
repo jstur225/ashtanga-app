@@ -22,7 +22,17 @@ let supabaseInstance: ReturnType<typeof createClient> | null = null
 
 const getSupabaseInstance = () => {
   if (!supabaseInstance) {
-    supabaseInstance = createClient(getSupabaseUrl(), getSupabaseAnonKey())
+    supabaseInstance = createClient(getSupabaseUrl(), getSupabaseAnonKey(), {
+      global: {
+        fetch: (url, options = {}) => {
+          return fetch(url, {
+            ...options,
+            // 增加超时时间到 120 秒（注册时需要等待邮件发送）
+            signal: AbortSignal.timeout(120000),
+          })
+        },
+      },
+    })
   }
   return supabaseInstance
 }
@@ -33,6 +43,35 @@ export const supabase = new Proxy({} as ReturnType<typeof createClient>, {
     return getSupabaseInstance()[prop as keyof ReturnType<typeof createClient>]
   }
 })
+
+// ==================== Service Role Client（绕过 RLS） ====================
+// ⚠️ 仅在服务端 API 中使用，不要暴露给客户端
+
+const getServiceRoleKey = () => {
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!key) {
+    throw new Error('Missing env.SUPABASE_SERVICE_ROLE_KEY')
+  }
+  return key
+}
+
+let supabaseServiceInstance: ReturnType<typeof createClient> | null = null
+
+export const getSupabaseServiceClient = () => {
+  if (!supabaseServiceInstance) {
+    supabaseServiceInstance = createClient(
+      getSupabaseUrl(),
+      getServiceRoleKey(),
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    )
+  }
+  return supabaseServiceInstance
+}
 
 // Database types
 export interface PracticeRecord {

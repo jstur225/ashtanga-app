@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useLocalStorage } from 'react-use'
 import { supabase, TABLES } from '@/lib/supabase'
 import type { PracticeRecord, PracticeOption, UserProfile } from '@/lib/supabase'
@@ -18,11 +18,15 @@ export function useSync(
   onSyncComplete: (data: any) => void,
   onConflictDetected?: (localCount: number, remoteCount: number) => void
 ) {
-  console.log('🔍 [useSync] Hook 被调用了')
-  console.log('   user:', user)
-  console.log('   localData.records.length:', localData?.records?.length)
+  // 移除这些日志，它们在每次渲染时都会输出
+  // console.log('🔍 [useSync] Hook 被调用了')
+  // console.log('   user:', user)
+  // console.log('   localData.records.length:', localData?.records?.length)
 
   const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle')
+
+  // 防止重复调用的 ref
+  const isSyncingRef = useRef(false)
 
   // 持久化状态（存储到 localStorage）
   const [lastSyncTime, setLastSyncTime] = useLocalStorage<number | null>('last_sync_time', null)
@@ -41,8 +45,15 @@ export function useSync(
     console.log('🔍 [useEffect] 触发', {
       hasUser: !!user,
       userId: user?.id,
-      localDataLength: localData.records.length
+      localDataLength: localData.records.length,
+      isSyncing: isSyncingRef.current
     })
+
+    // 如果正在同步中，跳过
+    if (isSyncingRef.current) {
+      console.log('⏸️ [useEffect] 正在同步中，跳过重复调用')
+      return
+    }
 
     if (user && localData.records.length >= 0) {
       console.log('✅ [useEffect] 条件满足，准备调用 autoSync')
@@ -51,10 +62,16 @@ export function useSync(
     } else {
       console.log('⏸️ [useEffect] 条件不满足，跳过自动同步')
     }
-  }, [user]) // 只监听 user 变化
+  }, [user?.id]) // 只监听 user.id 变化，而不是整个 user 对象
 
   // ==================== 自动同步函数 ====================
   const autoSync = async () => {
+    // 防止重复调用
+    if (isSyncingRef.current) {
+      console.log('⏸️ [autoSync] 已有同步任务在执行，跳过')
+      return
+    }
+
     console.log('🚨🚨🚨 [autoSync] 函数被调用了！🚨🚨🚨')
     console.log('='.repeat(50))
     console.log('🔄 [autoSync] 函数开始执行')
@@ -64,6 +81,10 @@ export function useSync(
       console.log('❌ [autoSync] 用户未登录，退出')
       return
     }
+
+    // 设置同步标志
+    isSyncingRef.current = true
+    console.log('🔒 [autoSync] 设置同步标志')
 
     console.log('✅ [autoSync] 用户已登录，开始同步')
     console.log('   user_id:', user.id)
@@ -132,7 +153,9 @@ export function useSync(
           onSyncComplete({
             records: remoteData.records,
             options: remoteData.options || [],
-            profile: remoteData.profile || { name: '阿斯汤加习练者', signature: '', avatar: null, is_pro: false }
+            profile: remoteData.profile && remoteData.profile.name && !remoteData.profile.name.match(/^\d+$/)
+              ? remoteData.profile
+              : { name: '阿斯汤加习练者', signature: remoteData.profile?.signature || '练习、练习，一切随之而来。', avatar: null, is_pro: false }
           })
           setSyncStatus('success')
           setLastSyncStatus('success')
@@ -189,6 +212,10 @@ export function useSync(
       addLog('自动同步失败', 'error', undefined, error.message)
       setSyncStatus('error')
       setLastSyncStatus('error')
+    } finally {
+      // 清理同步标志，允许下次同步
+      isSyncingRef.current = false
+      console.log('✅ [autoSync] 同步完成，清理标志')
     }
   }
 
@@ -255,7 +282,9 @@ export function useSync(
       return {
         records,
         options,
-        profile: profileRes.data || { name: '阿斯汤加习练者', signature: '', avatar: null, is_pro: false }, // 如果没有 profile，使用默认值
+        profile: (profileRes.data && profileRes.data.name && !profileRes.data.name.match(/^\d+$/))
+          ? profileRes.data
+          : { name: '阿斯汤加习练者', signature: profileRes.data?.signature || '练习、练习，一切随之而来。', avatar: null, is_pro: false }, // 如果没有 profile 或 name 是数字，使用默认值
       }
     } catch (error: any) {
       addLog('下载数据失败', 'error', undefined, error.message)
@@ -326,29 +355,29 @@ export function useSync(
         is_pro: false
       }
 
-      // 1. 上传用户资料（包含邮箱）
+      // 1. 上传用户资料（使用服务端 API 绕过 RLS）
+      console.log('📤 开始上传用户资料（服务端 API）...')
 
-      const { error: profileError } = await supabase
-        .from(TABLES.USER_PROFILES)
-        .upsert({
-          user_id: userId,
-          name: profile.name,
-          signature: profile.signature || '',
-          avatar: null, // ⚠️ 头像只存本地，不上传云端（Base64太大）
-          is_pro: profile.is_pro || false,
-          email: user?.email || null
-        }, {
-          onConflict: 'user_id'
-        })
+      const profileResponse = await fetch('/api/sync/upload-profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          profile: {
+            ...profile,
+            email: user?.email || null
+          }
+        }),
+      })
 
-      if (profileError) {
-        console.error('❌ 上传用户资料失败:', profileError)
-        console.error('   错误详情:', JSON.stringify(profileError, null, 2))
-        console.error('   user_id:', userId)
-        console.error('   email:', user?.email)
-        addLog('上传用户资料', 'error', undefined, profileError.message)
-        throw profileError
+      const profileResult = await profileResponse.json()
+
+      if (!profileResponse.ok) {
+        console.error('❌ 上传用户资料失败:', profileResult.error)
+        throw new Error(profileResult.error || '上传用户资料失败')
       }
+
+      console.log('✅ 用户资料上传成功:', profileResult)
       addLog('上传用户资料', 'success')
 
       // 2. 批量上传练习记录（使用 upsert）
@@ -443,7 +472,9 @@ export function useSync(
           onSyncComplete({
             records: remoteData.records,
             options: remoteData.options || [],
-            profile: remoteData.profile || { name: '阿斯汤加习练者', signature: '', avatar: null, is_pro: false }
+            profile: remoteData.profile && remoteData.profile.name && !remoteData.profile.name.match(/^\d+$/)
+              ? remoteData.profile
+              : { name: '阿斯汤加习练者', signature: remoteData.profile?.signature || '练习、练习，一切随之而来。', avatar: null, is_pro: false }
           })
           break
 
