@@ -1951,10 +1951,10 @@ function SettingsModal({
               */}
 
               {activeSection === 'data' && (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {/* 只有未登录时才显示备份提示 */}
                   {!user && (
-                    <div className="p-4 rounded-2xl bg-orange-50 border border-orange-100 mb-2">
+                    <div className="p-4 rounded-2xl bg-orange-50 border border-orange-100">
                       <p className="text-xs text-orange-600 font-serif leading-relaxed">
                         💡 未开启云端同步，建议定期备份数据，防止意外丢失
                       </p>
@@ -3777,7 +3777,7 @@ export default function AshtangaTracker() {
       },
       // 弹窗状态
       modals: {
-        showAddOptionModal: showAddOptionModal,
+        showCustomModal: showCustomModal,
         showImportModal: showImportModal,
         showExportModal: showExportModal,
         showDebugLogModal: showDebugLogModal,

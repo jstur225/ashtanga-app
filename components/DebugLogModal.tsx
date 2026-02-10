@@ -37,8 +37,8 @@ export function DebugLogModal({ isOpen, onClose, logContent }: DebugLogModalProp
       {/* 弹窗内容 - 居中显示 */}
       <div className="fixed inset-0 flex items-center justify-center z-[101] p-4 pointer-events-none">
         <div className="bg-card rounded-[24px] shadow-[0_8px_32px_rgba(0,0,0,0.12)] w-full max-w-lg pointer-events-auto max-h-[85vh] flex flex-col">
-          {/* 固定头部 */}
-          <div className="flex-shrink-0 p-6 pb-4">
+          {/* 固定头部 - 只包含标题和X按钮 */}
+          <div className="flex-shrink-0 p-6 pb-2">
             {/* 右上角X按钮 */}
             <button
               onClick={onClose}
@@ -48,7 +48,7 @@ export function DebugLogModal({ isOpen, onClose, logContent }: DebugLogModalProp
             </button>
 
             {/* 标题 */}
-            <div className="flex items-center gap-3 mb-4">
+            <div className="flex items-center gap-3 mb-2">
               <div className="p-2 rounded-xl bg-orange-50 text-orange-500">
                 <Bug className="w-5 h-5" />
               </div>
@@ -59,18 +59,19 @@ export function DebugLogModal({ isOpen, onClose, logContent }: DebugLogModalProp
                 </p>
               </div>
             </div>
+          </div>
 
+          {/* 可滚动内容区域 - 包含提示框、输入框 */}
+          <div className="flex-1 overflow-y-auto px-6 pb-4">
             {/* 提示信息 */}
-            <div className="p-3 rounded-xl bg-amber-50 border border-amber-100 mb-3">
+            <div className="p-3 rounded-xl bg-amber-50 border border-amber-100 mb-4">
               <p className="text-xs text-amber-700 font-serif leading-relaxed">
                 💡 点击下方按钮复制，或手动选择文本复制
               </p>
             </div>
-          </div>
 
-          {/* 可滚动内容区域 */}
-          <div className="flex-1 overflow-y-auto px-6 pb-4">
-            <div className="mb-3">
+            {/* 输入框 */}
+            <div>
               <label className="block text-xs font-serif text-muted-foreground mb-1.5">
                 日志内容
               </label>
@@ -90,7 +91,7 @@ export function DebugLogModal({ isOpen, onClose, logContent }: DebugLogModalProp
               className={`w-full flex items-center justify-center gap-2 p-3 rounded-xl font-serif transition-all ${
                 copied
                   ? 'bg-green-500 text-white'
-                  : 'bg-gradient-to-br from-orange-500 to-amber-500 text-white hover:opacity-90'
+                  : 'bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] text-white hover:opacity-90'
               }`}
             >
               {copied ? (
