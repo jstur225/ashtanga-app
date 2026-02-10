@@ -3385,16 +3385,18 @@ export default function AshtangaTracker() {
 
   // Initialize practice options from hook data
   useEffect(() => {
-    const hasCustom = practiceOptionsData.some(o => o.id === "custom")
+    // 先过滤掉id为"custom"的选项（如果存在）
+    const regularOptions = practiceOptionsData.filter(o => o.id !== "custom")
 
     setPracticeOptions([
-      ...practiceOptionsData.map(o => ({
+      ...regularOptions.map(o => ({
         id: o.id,
         label: o.label,
         notes: o.notes,
         isCustom: o.is_custom
       })),
-      ...(!hasCustom ? [{ id: "custom", label: "自定义", notes: null, isCustom: false }] : [])
+      // 始终在最后添加"自定义"按钮
+      { id: "custom", label: "自定义", notes: null, isCustom: false }
     ])
   }, [practiceOptionsData])
 
