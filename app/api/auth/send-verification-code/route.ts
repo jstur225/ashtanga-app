@@ -13,6 +13,12 @@ function generateVerificationCode(): string {
   return Math.floor(100000 + Math.random() * 900000).toString()
 }
 
+// 验证邮箱格式
+function isValidEmail(email: string): boolean {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  return emailRegex.test(email)
+}
+
 // 使用 Resend 发送邮件
 async function sendVerificationEmail(email: string, code: string, type: string) {
   const RESEND_API_KEY = process.env.RESEND_API_KEY
@@ -170,6 +176,15 @@ export async function POST(request: NextRequest) {
     if (!email) {
       return NextResponse.json(
         { error: '请提供邮箱地址' },
+        { status: 400 }
+      )
+    }
+
+    // 验证邮箱格式
+    if (!isValidEmail(email)) {
+      console.log('⚠️ 邮箱格式不正确:', email)
+      return NextResponse.json(
+        { error: '邮箱格式不正确' },
         { status: 400 }
       )
     }

@@ -2063,12 +2063,16 @@ function AccountSyncModal({
   profile,
   practiceHistory,
   practiceOptionsData,
+  onOpenLoginModal,
+  onOpenRegisterModal,
 }: {
   isOpen: boolean
   onClose: () => void
   profile: UserProfile
   practiceHistory: PracticeRecord[]
   practiceOptionsData: PracticeOption[]
+  onOpenLoginModal: () => void
+  onOpenRegisterModal: () => void
 }) {
   return (
     <AnimatePresence>
@@ -2105,14 +2109,8 @@ function AccountSyncModal({
                 console.log('Sync completed:', data)
               }}
               onClose={onClose}
-              onOpenLoginModal={() => {
-                setShowAuthModal(true)
-                setAuthMode('login')
-              }}
-              onOpenRegisterModal={() => {
-                setShowAuthModal(true)
-                setAuthMode('register')
-              }}
+              onOpenLoginModal={onOpenLoginModal}
+              onOpenRegisterModal={onOpenRegisterModal}
             />
           </motion.div>
         </>
@@ -4159,23 +4157,8 @@ export default function AshtangaTracker() {
           onDeleteRecord={handleDeleteRecord}
           onAddRecord={handleAddRecord}
           onOpenFakeDoor={() => {
-            if (user) {
-              // 已登录：打开账户与同步弹窗
-              setShowAccountSync(true)
-            } else {
-              // 未登录：显示绿色提示框
-              toast.custom(
-                (t) => (
-                  <div className="bg-white border border-green-200 rounded-lg shadow-lg p-4 max-w-sm mx-auto">
-                    <div className="flex flex-col gap-1">
-                      <div className="text-sm font-semibold text-green-900">☁️ 启动云同步</div>
-                      <div className="text-xs text-green-700">进入「我的数据」→ 右上角齿轮图标 → 账户与同步 → 登录账号</div>
-                    </div>
-                  </div>
-                ),
-                { duration: 5000 }
-              )
-            }
+            // 无论是否登录，都直接打开账户与同步弹窗
+            setShowAccountSync(true)
           }}
           onAddOption={handleAddOption}
           votedCloud={votedCloud}
@@ -4301,6 +4284,14 @@ export default function AshtangaTracker() {
         profile={userProfile}
         practiceHistory={practiceHistory}
         practiceOptionsData={practiceOptionsData}
+        onOpenLoginModal={() => {
+          setShowAuthModal(true)
+          setAuthMode('login')
+        }}
+        onOpenRegisterModal={() => {
+          setShowAuthModal(true)
+          setAuthMode('register')
+        }}
       />
 
       {/* 清空数据确认弹窗 - 居中显示 */}
