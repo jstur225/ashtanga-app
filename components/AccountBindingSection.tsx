@@ -331,18 +331,12 @@ export function AccountBindingSection({
 
               <div className="flex gap-3 pt-2">
                 <button
-                  onClick={() => setShowSignOutConfirm(false)}
-                  className="flex-1 px-4 py-3 bg-secondary text-foreground rounded-xl border border-border hover:bg-secondary/80 transition-all font-serif"
-                >
-                  取消
-                </button>
-                <button
                   onClick={async () => {
                     await signOut()
                     setShowSignOutConfirm(false)
                     toast.success('✅ 已退出登录')
                   }}
-                  className="flex-1 px-4 py-3 green-gradient backdrop-blur-md text-white rounded-xl border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] hover:opacity-90 transition-all font-serif"
+                  className="w-full px-4 py-3 green-gradient backdrop-blur-md text-white rounded-xl border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] hover:opacity-90 transition-all font-serif"
                 >
                   确定退出
                 </button>

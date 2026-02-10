@@ -1,5 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
+import { createClient } from '@supabase/supabase-js'
+
+// 创建 Service Role 客户端（用于查询用户列表）
+const supabaseServiceRole = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
 
 // 生成6位随机验证码
 function generateVerificationCode(): string {
@@ -179,6 +186,34 @@ export async function POST(request: NextRequest) {
     console.log('类型:', type)
     console.log('生成时间(ISO):', now.toISOString())
     console.log('过期时间(ISO):', expiresAt)
+
+    // 检查邮箱是否已注册（仅在 email_verification 类型时检查）
+    if (type === 'email_verification') {
+      const { data: existingUser, error: userCheckError } = await supabaseServiceRole
+        .auth
+        .admin
+        .listUsers()
+
+      if (userCheckError) {
+        console.error('查询用户列表失败:', userCheckError)
+        return NextResponse.json(
+          { error: '查询失败，请重试' },
+          { status: 500 }
+        )
+      }
+
+      const userEmailExists = existingUser.users.some(
+        (user) => user.email?.toLowerCase() === email.toLowerCase()
+      )
+
+      if (userEmailExists) {
+        console.log('⚠️ 邮箱已注册:', email)
+        return NextResponse.json(
+          { error: '该邮箱已注册，请直接登录' },
+          { status: 400 }
+        )
+      }
+    }
 
     // 保存到数据库
     const { error: dbError } = await supabase

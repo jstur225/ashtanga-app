@@ -3641,20 +3641,89 @@ export default function AshtangaTracker() {
 
     // 5. 转换为JSON并复制到剪贴板
     const jsonString = JSON.stringify(debugLog, null, 2)
-    navigator.clipboard.writeText(jsonString).then(() => {
-      toast.success('✅ 日志已复制到剪贴板', {
-        duration: 3000,
-        position: 'top-center'
-      })
-    }).catch(() => {
-      // 降级方案
-      const textarea = document.createElement('textarea')
-      textarea.value = jsonString
-      document.body.appendChild(textarea)
-      textarea.select()
-      document.execCommand('copy')
-      document.body.removeChild(textarea)
-      toast.success('✅ 日志已复制到剪贴板')
+
+    // 尝试多种复制方式
+    const tryCopy = async (): Promise<boolean> => {
+      // 方式1: 现代 Clipboard API
+      if (navigator.clipboard && window.isSecureContext) {
+        try {
+          await navigator.clipboard.writeText(jsonString)
+          return true
+        } catch (err) {
+          console.log('Clipboard API 失败，尝试降级方案')
+        }
+      }
+
+      // 方式2: 传统的 execCommand
+      try {
+        const textarea = document.createElement('textarea')
+        textarea.value = jsonString
+        textarea.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0'
+        document.body.appendChild(textarea)
+        textarea.focus()
+        textarea.select()
+
+        const result = document.execCommand('copy')
+        document.body.removeChild(textarea)
+
+        if (result) return true
+      } catch (err) {
+        console.log('execCommand 复制失败')
+      }
+
+      // 方式3: 尝试使用 range + selection
+      try {
+        const textarea = document.createElement('textarea')
+        textarea.value = jsonString
+        textarea.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0'
+        document.body.appendChild(textarea)
+
+        const range = document.createRange()
+        range.selectNode(textarea)
+
+        const selection = window.getSelection()
+        if (selection) {
+          selection.removeAllRanges()
+          selection.addRange(range)
+        }
+
+        const result = document.execCommand('copy')
+        document.body.removeChild(textarea)
+
+        if (result) return true
+      } catch (err) {
+        console.log('Range 复制失败')
+      }
+
+      return false
+    }
+
+    // 执行复制
+    tryCopy().then((success) => {
+      if (success) {
+        toast.success('✅ 调试日志已复制到剪贴板', {
+          duration: 3000,
+          position: 'top-center'
+        })
+      } else {
+        // 如果都失败，提供下载选项
+        toast.error('复制失败，请手动复制', {
+          duration: 3000,
+          position: 'top-center'
+        })
+
+        // 打开新窗口显示日志内容，让用户手动复制
+        const newWindow = window.open('', '_blank')
+        if (newWindow) {
+          newWindow.document.write(`
+            <html>
+              <head><title>熬汤日记调试日志</title></head>
+              <body style="padding:20px;font-family:monospace;white-space:pre-wrap;">${jsonString.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</body>
+            </html>
+          `)
+          newWindow.document.close()
+        }
+      }
     })
   }
 
