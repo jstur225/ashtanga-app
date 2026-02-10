@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { createPortal } from 'react-dom'
 import { Mail, Lock, AlertCircle, X, CheckCircle } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
@@ -478,26 +479,27 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
   }
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          {/* Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50"
-          />
+    typeof window !== 'undefined' && createPortal(
+      <AnimatePresence>
+        {isOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={onClose}
+              className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50"
+            />
 
-          {/* Modal - 从下往上滑进来 */}
-          <motion.div
-          initial={{ y: "100%" }}
-          animate={{ y: 0 }}
-          exit={{ y: "100%" }}
-          transition={{ type: "spring", damping: 25, stiffness: 300 }}
-          className="fixed bottom-0 left-0 right-0 bg-card rounded-t-[24px] z-[60] p-6 pb-10 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] max-h-[calc(100vh-2rem)] overflow-y-auto"
-        >
+            {/* Modal - 从下往上滑进来 */}
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="fixed bottom-0 left-0 right-0 bg-card rounded-t-[24px] z-[60] p-6 pb-10 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] max-h-[calc(100vh-2rem)] overflow-y-auto"
+            >
             {/* 标题栏 - 带关闭按钮（忘记密码模式显示返回登录按钮） */}
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-serif text-foreground">
@@ -981,5 +983,6 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
         </>
       )}
     </AnimatePresence>
+    , document.body)
   )
 }
