@@ -3019,7 +3019,19 @@ export default function AshtangaTracker() {
       updateOption(newOption.id, name, name, notes)
     }
 
-    // Update local state will be handled by useEffect when practiceOptionsData changes
+    // Manually update local state to ensure UI updates immediately (same as handleEditSave)
+    setPracticeOptions(prev => [
+      ...prev.filter(o => o.id !== "custom"),
+      {
+        id: newOption.id,
+        label: name,
+        labelZh: name,
+        notes: notes || undefined,
+        isCustom: true
+      },
+      { id: "custom", label: "Custom", labelZh: "自定义" }
+    ])
+
     setCustomPracticeName(name)
     setShowCustomModal(false)
 
@@ -3090,6 +3102,20 @@ export default function AshtangaTracker() {
       updateOption(newOption.id, name, name, notes)
       console.log('updated option with notes:', notes)
     }
+
+    // Manually update local state to ensure UI updates immediately
+    setPracticeOptions(prev => [
+      ...prev.filter(o => o.id !== "custom"),
+      {
+        id: newOption.id,
+        label: name,
+        labelZh: name,
+        notes: notes || undefined,
+        isCustom: true
+      },
+      { id: "custom", label: "Custom", labelZh: "自定义" }
+    ])
+
     console.log('current practiceOptionsData after add:', practiceOptionsData)
     toast.success('已添加自定义选项')
   }
