@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
 import { createPortal } from 'react-dom'
 import { Mail, Lock, AlertCircle, X, CheckCircle } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
@@ -479,27 +478,18 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
   }
 
   return (
-    typeof window !== 'undefined' && createPortal(
-      <AnimatePresence>
-        {isOpen && (
-          <>
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={onClose}
-              className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50"
-            />
+    typeof window !== 'undefined' && isOpen && createPortal(
+      <>
+        {/* Backdrop */}
+        <div
+          onClick={onClose}
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50"
+        />
 
-            {/* Modal - 从下往上滑进来 */}
-            <motion.div
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="fixed bottom-0 left-0 right-0 bg-card rounded-t-[24px] z-[60] p-6 pb-10 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] max-h-[calc(100vh-2rem)] overflow-y-auto"
-            >
+        {/* Modal - 居中显示 */}
+        <div className="fixed inset-0 flex items-center justify-center z-[60] p-4 pointer-events-none">
+          <div className="bg-card rounded-[24px] shadow-[0_8px_32px_rgba(0,0,0,0.12)] w-full max-w-md max-h-[calc(100vh-2rem)] overflow-y-auto pointer-events-auto">
+            <div className="p-6 pb-10">
             {/* 标题栏 - 带关闭按钮（忘记密码模式显示返回登录按钮） */}
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-serif text-foreground">
@@ -979,10 +969,10 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
                 )}
               </form>
             )}
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+            </div>
+          </div>
+        </div>
+      </>
     , document.body)
   )
 }
