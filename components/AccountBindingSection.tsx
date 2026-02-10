@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { motion, AnimatePresence } from 'framer-motion'
 import { Mail, CheckCircle, LogOut, RefreshCw, Smartphone, X, LogOut as LogOutIcon, Key, Lock, AlertCircle } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useSync } from '@/hooks/useSync'
@@ -294,67 +293,57 @@ export function AccountBindingSection({
 
       {/* 退出登录确认弹窗 */}
       {showSignOutConfirm && createPortal(
-        <AnimatePresence>
-          <motion.div
-            key="signout-backdrop"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100]"
-            onClick={() => setShowSignOutConfirm(false)}
-          />
-          <motion.div
-            key="signout-modal"
-            initial={{ y: "100%" }}
-            animate={{ y: 0 }}
-            exit={{ y: "100%" }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 bg-card rounded-t-[24px] z-[110] p-6 pb-10 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] max-h-[calc(100vh-2rem)] overflow-y-auto relative"
-          >
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-serif text-foreground">退出登录</h2>
-              <button onClick={() => setShowSignOutConfirm(false)} className="p-2 -mr-2 text-muted-foreground hover:text-foreground transition-colors">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+        <>
+          {/* Backdrop */}
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100]" onClick={() => setShowSignOutConfirm(false)} />
 
-            <div className="space-y-4">
-              <p className="text-sm font-serif text-foreground text-center leading-relaxed">
-                退出登录后，您的数据仍安全保留在本机。
-              </p>
+          {/* Modal - 居中显示 */}
+          <div className="fixed inset-0 flex items-center justify-center z-[110] p-4 pointer-events-none">
+            <div className="bg-card rounded-[24px] shadow-[0_8px_32px_rgba(0,0,0,0.12)] w-full max-w-md pointer-events-auto">
+              <div className="p-6 pb-10">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-lg font-serif text-foreground">退出登录</h2>
+                  <button onClick={() => setShowSignOutConfirm(false)} className="p-2 -mr-2 text-muted-foreground hover:text-foreground transition-colors">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
 
-              {user && (
-                <p className="text-xs font-serif text-muted-foreground text-center">
-                  如需清空数据，请前往「数据管理」
-                </p>
-              )}
+                <div className="space-y-4">
+                  <p className="text-sm font-serif text-foreground text-center leading-relaxed">
+                    退出登录后，您的数据仍安全保留在本机。
+                  </p>
 
-              <div className="flex gap-3 pt-2">
-                <button
-                  onClick={async () => {
-                    await signOut()
-                    setShowSignOutConfirm(false)
-                    toast.success('✅ 已退出登录')
-                  }}
-                  className="w-full px-4 py-3 green-gradient backdrop-blur-md text-white rounded-xl border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] hover:opacity-90 transition-all font-serif"
-                >
-                  确定退出
-                </button>
+                  {user && (
+                    <p className="text-xs font-serif text-muted-foreground text-center">
+                      如需清空数据，请前往「数据管理」
+                    </p>
+                  )}
+
+                  <div className="flex gap-3 pt-2">
+                    <button
+                      onClick={async () => {
+                        await signOut()
+                        setShowSignOutConfirm(false)
+                        toast.success('✅ 已退出登录')
+                      }}
+                      className="w-full px-4 py-3 green-gradient backdrop-blur-md text-white rounded-xl border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] hover:opacity-90 transition-all font-serif"
+                    >
+                      确定退出
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
-          </motion.div>
-        </AnimatePresence>,
+          </div>
+        </>,
         document.body
       )}
 
-      {/* 修改密码弹窗 - 从下往上滑入 */}
+      {/* 修改密码弹窗 - 居中显示 */}
       {showChangePassword && createPortal(
-        <AnimatePresence>
-          <motion.div
-            key="changepassword-backdrop"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+        <>
+          {/* Backdrop */}
+          <div
             className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100]"
             onClick={() => {
               setShowChangePassword(false)
@@ -364,118 +353,13 @@ export function AccountBindingSection({
               setConfirmPassword('')
             }}
           />
-          <motion.div
-            key="changepassword-modal"
-            initial={{ y: "100%" }}
-            animate={{ y: 0 }}
-            exit={{ y: "100%" }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 bg-card rounded-t-[24px] z-[110] p-6 pb-10 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] max-h-[calc(100vh-2rem)] overflow-y-auto relative"
-          >
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-serif text-foreground">🔑 修改密码</h2>
-                <button
-                  onClick={() => {
-                    setShowChangePassword(false)
-                    setPasswordError('')
-                    setOldPassword('')
-                    setNewPassword('')
-                    setConfirmPassword('')
-                  }}
-                  className="p-2 -mr-2 text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
 
-              <div className="space-y-4">
-                {/* 旧密码 */}
-                <div>
-                  <label className="block text-sm font-medium font-serif text-foreground mb-2">
-                    当前密码
-                  </label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                    <input
-                      type="password"
-                      value={oldPassword}
-                      onChange={(e) => setOldPassword(e.target.value)}
-                      placeholder="请输入当前密码"
-                      className="w-full pl-10 pr-4 py-3 border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-transparent bg-secondary"
-                    />
-                  </div>
-                </div>
-
-                {/* 新密码 */}
-                <div>
-                  <label className="block text-sm font-medium font-serif text-foreground mb-2">
-                    新密码
-                  </label>
-                  <div className="relative">
-                    <Key className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                    <input
-                      type="password"
-                      value={newPassword}
-                      onChange={(e) => {
-                        setNewPassword(e.target.value)
-                        setPasswordError('')
-                      }}
-                      placeholder="至少8位字符，包含字母和数字"
-                      minLength={8}
-                      className="w-full pl-10 pr-4 py-3 border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-transparent bg-secondary"
-                    />
-                  </div>
-                </div>
-
-                {/* 确认新密码 */}
-                <div>
-                  <label className="block text-sm font-medium font-serif text-foreground mb-2">
-                    确认新密码
-                  </label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                    <input
-                      type="password"
-                      value={confirmPassword}
-                      onChange={(e) => {
-                        setConfirmPassword(e.target.value)
-                        setPasswordError('')
-                      }}
-                      placeholder="再次输入新密码"
-                      minLength={8}
-                      className="w-full pl-10 pr-4 py-3 border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-transparent bg-secondary"
-                    />
-                  </div>
-                </div>
-
-                {/* 错误提示 */}
-                {passwordError && (
-                  <div className="flex items-center gap-2 text-red-500 text-sm font-serif bg-red-50 p-3 rounded-lg">
-                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                    {passwordError}
-                  </div>
-                )}
-
-                {/* 密码强度提示 */}
-                {newPassword && (
-                  <div className="text-xs font-serif text-muted-foreground space-y-1">
-                    <p className="font-serif">密码要求：</p>
-                    <ul className="pl-4 space-y-1">
-                      <li className={`font-serif ${newPassword.length >= 8 ? 'text-green-600' : 'text-red-600'}`}>
-                        {newPassword.length >= 8 ? '✓' : '✗'} 至少8位字符
-                      </li>
-                      <li className={`font-serif ${/[a-zA-Z]/.test(newPassword) ? 'text-green-600' : 'text-red-600'}`}>
-                        {/[a-zA-Z]/.test(newPassword) ? '✓' : '✗'} 包含字母
-                      </li>
-                      <li className={`font-serif ${/\d/.test(newPassword) ? 'text-green-600' : 'text-red-600'}`}>
-                        {/\d/.test(newPassword) ? '✓' : '✗'} 包含数字
-                      </li>
-                    </ul>
-                  </div>
-                )}
-
-                {/* 按钮 */}
-                <div className="flex gap-3 pt-2">
+          {/* Modal - 居中显示 */}
+          <div className="fixed inset-0 flex items-center justify-center z-[110] p-4 pointer-events-none">
+            <div className="bg-card rounded-[24px] shadow-[0_8px_32px_rgba(0,0,0,0.12)] w-full max-w-md pointer-events-auto max-h-[calc(100vh-2rem)] overflow-y-auto">
+              <div className="p-6 pb-10">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-lg font-serif text-foreground">🔑 修改密码</h2>
                   <button
                     onClick={() => {
                       setShowChangePassword(false)
@@ -484,217 +368,314 @@ export function AccountBindingSection({
                       setNewPassword('')
                       setConfirmPassword('')
                     }}
-                    className="flex-1 px-4 py-3 bg-secondary text-foreground rounded-xl border border-border hover:bg-secondary/80 transition-all font-serif"
+                    className="p-2 -mr-2 text-muted-foreground hover:text-foreground transition-colors"
                   >
-                    取消
+                    <X className="w-5 h-5" />
                   </button>
-                  <button
-                    onClick={async () => {
-                      // 清空之前的错误
-                      setPasswordError('')
-                      console.log('开始修改密码...')
+                </div>
 
-                      // 验证
-                      if (!oldPassword || !newPassword || !confirmPassword) {
-                        console.log('验证失败：未填写所有字段')
-                        setPasswordError('请填写所有字段')
-                        return
-                      }
+                <div className="space-y-4">
+                  {/* 旧密码 */}
+                  <div>
+                    <label className="block text-sm font-medium font-serif text-foreground mb-2">
+                      当前密码
+                    </label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <input
+                        type="password"
+                        value={oldPassword}
+                        onChange={(e) => setOldPassword(e.target.value)}
+                        placeholder="请输入当前密码"
+                        className="w-full pl-10 pr-4 py-3 border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-transparent bg-secondary"
+                      />
+                    </div>
+                  </div>
 
-                      if (oldPassword === newPassword) {
-                        console.log('验证失败：新旧密码相同')
-                        setPasswordError('新密码不能与原密码相同')
-                        return
-                      }
+                  {/* 新密码 */}
+                  <div>
+                    <label className="block text-sm font-medium font-serif text-foreground mb-2">
+                      新密码
+                    </label>
+                    <div className="relative">
+                      <Key className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <input
+                        type="password"
+                        value={newPassword}
+                        onChange={(e) => {
+                          setNewPassword(e.target.value)
+                          setPasswordError('')
+                        }}
+                        placeholder="至少8位字符，包含字母和数字"
+                        minLength={8}
+                        className="w-full pl-10 pr-4 py-3 border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-transparent bg-secondary"
+                      />
+                    </div>
+                  </div>
 
-                      if (newPassword !== confirmPassword) {
-                        console.log('验证失败：密码不一致')
-                        setPasswordError('两次输入的新密码不一致')
-                        return
-                      }
+                  {/* 确认新密码 */}
+                  <div>
+                    <label className="block text-sm font-medium font-serif text-foreground mb-2">
+                      确认新密码
+                    </label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <input
+                        type="password"
+                        value={confirmPassword}
+                        onChange={(e) => {
+                          setConfirmPassword(e.target.value)
+                          setPasswordError('')
+                        }}
+                        placeholder="再次输入新密码"
+                        minLength={8}
+                        className="w-full pl-10 pr-4 py-3 border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-transparent bg-secondary"
+                      />
+                    </div>
+                  </div>
 
-                      if (newPassword.length < 8) {
-                        console.log('验证失败：密码长度不足')
-                        setPasswordError('密码至少需要8位字符')
-                        return
-                      }
+                  {/* 错误提示 */}
+                  {passwordError && (
+                    <div className="flex items-center gap-2 text-red-500 text-sm font-serif bg-red-50 p-3 rounded-lg">
+                      <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                      {passwordError}
+                    </div>
+                  )}
 
-                      if (!/[a-zA-Z]/.test(newPassword) || !/\d/.test(newPassword)) {
-                        console.log('验证失败：密码格式错误')
-                        setPasswordError('密码必须包含字母和数字')
-                        return
-                      }
+                  {/* 密码强度提示 */}
+                  {newPassword && (
+                    <div className="text-xs font-serif text-muted-foreground space-y-1">
+                      <p className="font-serif">密码要求：</p>
+                      <ul className="pl-4 space-y-1">
+                        <li className={`font-serif ${newPassword.length >= 8 ? 'text-green-600' : 'text-red-600'}`}>
+                          {newPassword.length >= 8 ? '✓' : '✗'} 至少8位字符
+                        </li>
+                        <li className={`font-serif ${/[a-zA-Z]/.test(newPassword) ? 'text-green-600' : 'text-red-600'}`}>
+                          {/[a-zA-Z]/.test(newPassword) ? '✓' : '✗'} 包含字母
+                        </li>
+                        <li className={`font-serif ${/\d/.test(newPassword) ? 'text-green-600' : 'text-red-600'}`}>
+                          {/\d/.test(newPassword) ? '✓' : '✗'} 包含数字
+                        </li>
+                      </ul>
+                    </div>
+                  )}
 
-                      console.log('验证通过，开始调用 Supabase API...')
-                      // 开始修改密码
-                      setIsChangingPassword(true)
+                  {/* 按钮 */}
+                  <div className="flex gap-3 pt-2">
+                    <button
+                      onClick={() => {
+                        setShowChangePassword(false)
+                        setPasswordError('')
+                        setOldPassword('')
+                        setNewPassword('')
+                        setConfirmPassword('')
+                      }}
+                      className="flex-1 px-4 py-3 bg-secondary text-foreground rounded-xl border border-border hover:bg-secondary/80 transition-all font-serif"
+                    >
+                      取消
+                    </button>
+                    <button
+                      onClick={async () => {
+                        // 清空之前的错误
+                        setPasswordError('')
+                        console.log('开始修改密码...')
 
-                      const startTime = Date.now()
-
-                      try {
-                        // 步骤1: 先验证原密码是否正确
-                        console.log('1. 验证原密码...')
-                        console.log('   用户邮箱:', user?.email)
-
-                        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-                          email: user?.email || '',
-                          password: oldPassword
-                        })
-
-                        console.log('   验证结果:', signInError ? '失败' : '成功')
-
-                        if (signInError) {
-                          console.error('原密码验证失败:', signInError)
-                          const translatedError = translateErrorMessage(signInError.message)
-                          console.log('   翻译后的错误:', translatedError)
-                          // 如果是密码错误，显示更友好的提示
-                          if (signInError.message.includes('Invalid login credentials')) {
-                            console.log('   显示错误：当前密码输入错误')
-                            setPasswordError('当前密码输入错误，请重新输入')
-                          } else {
-                            console.log('   显示错误:', translatedError)
-                            setPasswordError(translatedError)
-                          }
-                          setIsChangingPassword(false)
+                        // 验证
+                        if (!oldPassword || !newPassword || !confirmPassword) {
+                          console.log('验证失败：未填写所有字段')
+                          setPasswordError('请填写所有字段')
                           return
                         }
 
-                        console.log('2. 原密码验证通过，开始更新密码...')
+                        if (oldPassword === newPassword) {
+                          console.log('验证失败：新旧密码相同')
+                          setPasswordError('新密码不能与原密码相同')
+                          return
+                        }
 
-                        // 步骤2: 更新密码（不设置超时，或设置更长超时）
-                        console.log('3. 调用 supabase.auth.updateUser...')
-                        const result = await supabase.auth.updateUser({
-                          password: newPassword
-                        })
+                        if (newPassword !== confirmPassword) {
+                          console.log('验证失败：密码不一致')
+                          setPasswordError('两次输入的新密码不一致')
+                          return
+                        }
 
-                        const elapsed = Date.now() - startTime
-                        console.log(`4. API 响应收到（耗时: ${elapsed/1000}秒）`)
-                        console.log('   是否有错误:', result.error ? '是' : '否')
-                        if (result.error) console.log('   错误信息:', result.error)
+                        if (newPassword.length < 8) {
+                          console.log('验证失败：密码长度不足')
+                          setPasswordError('密码至少需要8位字符')
+                          return
+                        }
 
-                        if (result.error) {
-                          console.error('修改密码失败:', result.error)
-                          const translatedError = translateErrorMessage(result.error.message)
+                        if (!/[a-zA-Z]/.test(newPassword) || !/\d/.test(newPassword)) {
+                          console.log('验证失败：密码格式错误')
+                          setPasswordError('密码必须包含字母和数字')
+                          return
+                        }
+
+                        console.log('验证通过，开始调用 Supabase API...')
+                        // 开始修改密码
+                        setIsChangingPassword(true)
+
+                        const startTime = Date.now()
+
+                        try {
+                          // 步骤1: 先验证原密码是否正确
+                          console.log('1. 验证原密码...')
+                          console.log('   用户邮箱:', user?.email)
+
+                          const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+                            email: user?.email || '',
+                            password: oldPassword
+                          })
+
+                          console.log('   验证结果:', signInError ? '失败' : '成功')
+
+                          if (signInError) {
+                            console.error('原密码验证失败:', signInError)
+                            const translatedError = translateErrorMessage(signInError.message)
+                            console.log('   翻译后的错误:', translatedError)
+                            // 如果是密码错误，显示更友好的提示
+                            if (signInError.message.includes('Invalid login credentials')) {
+                              console.log('   显示错误：当前密码输入错误')
+                              setPasswordError('当前密码输入错误，请重新输入')
+                            } else {
+                              console.log('   显示错误:', translatedError)
+                              setPasswordError(translatedError)
+                            }
+                            setIsChangingPassword(false)
+                            return
+                          }
+
+                          console.log('2. 原密码验证通过，开始更新密码...')
+
+                          // 步骤2: 更新密码（不设置超时，或设置更长超时）
+                          console.log('3. 调用 supabase.auth.updateUser...')
+                          const result = await supabase.auth.updateUser({
+                            password: newPassword
+                          })
+
+                          const elapsed = Date.now() - startTime
+                          console.log(`4. API 响应收到（耗时: ${elapsed/1000}秒）`)
+                          console.log('   是否有错误:', result.error ? '是' : '否')
+                          if (result.error) console.log('   错误信息:', result.error)
+
+                          if (result.error) {
+                            console.error('修改密码失败:', result.error)
+                            const translatedError = translateErrorMessage(result.error.message)
+                            console.log('   翻译后的错误:', translatedError)
+                            console.log('   显示错误提示')
+                            setPasswordError(translatedError)
+                          } else {
+                            console.log('✅ 修改密码成功！')
+                            console.log('   显示成功提示')
+                            toast.success('✅ 密码修改成功，请使用新密码登录')
+
+                            // 延迟关闭弹窗，让用户看到成功提示
+                            setTimeout(() => {
+                              console.log('   关闭修改密码弹窗')
+                              setShowChangePassword(false)
+                              setOldPassword('')
+                              setNewPassword('')
+                              setConfirmPassword('')
+                            }, 1500)
+                          }
+                        } catch (err: any) {
+                          const elapsedCatch = Date.now() - startTime
+                          console.error(`❌ 修改密码异常（${elapsedCatch/1000}秒）:`, err)
+                          console.error('   错误详情:', err.message)
+                          const translatedError = translateErrorMessage(err.message)
                           console.log('   翻译后的错误:', translatedError)
                           console.log('   显示错误提示')
                           setPasswordError(translatedError)
-                        } else {
-                          console.log('✅ 修改密码成功！')
-                          console.log('   显示成功提示')
-                          toast.success('✅ 密码修改成功，请使用新密码登录')
-
-                          // 延迟关闭弹窗，让用户看到成功提示
-                          setTimeout(() => {
-                            console.log('   关闭修改密码弹窗')
-                            setShowChangePassword(false)
-                            setOldPassword('')
-                            setNewPassword('')
-                            setConfirmPassword('')
-                          }, 1500)
+                        } finally {
+                          console.log('6. 结束修改密码流程，重置loading状态')
+                          setIsChangingPassword(false)
                         }
-                      } catch (err: any) {
-                        const elapsedCatch = Date.now() - startTime
-                        console.error(`❌ 修改密码异常（${elapsedCatch/1000}秒）:`, err)
-                        console.error('   错误详情:', err.message)
-                        const translatedError = translateErrorMessage(err.message)
-                        console.log('   翻译后的错误:', translatedError)
-                        console.log('   显示错误提示')
-                        setPasswordError(translatedError)
-                      } finally {
-                        console.log('6. 结束修改密码流程，重置loading状态')
-                        setIsChangingPassword(false)
-                      }
-                    }}
-                    disabled={isChangingPassword}
-                    className="flex-1 px-4 py-3 green-gradient backdrop-blur-md text-white rounded-xl border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] hover:opacity-90 transition-all disabled:opacity-50 font-serif"
-                  >
-                    {isChangingPassword ? '修改中...' : '确认修改'}
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </AnimatePresence>,
-        document.body
-      )}
-
-      {/* 设备冲突确认弹窗 - 从下往上滑入 */}
-      {deviceConflict && createPortal(
-        <AnimatePresence>
-          <motion.div
-            key="deviceconflict-backdrop"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100]"
-            onClick={cancelDeviceConflict}
-          />
-          <motion.div
-            key="deviceconflict-modal"
-            initial={{ y: "100%" }}
-            animate={{ y: 0 }}
-            exit={{ y: "100%" }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 bg-card rounded-t-[24px] z-[110] p-6 pb-10 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] max-h-[calc(100vh-2rem)] overflow-y-auto relative"
-          >
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-serif text-foreground">⚠️ 设备登录提醒</h2>
-              <button onClick={cancelDeviceConflict} className="p-2 -mr-2 text-muted-foreground hover:text-foreground transition-colors">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <p className="text-sm font-serif text-foreground text-center leading-relaxed">
-                您的账号已在以下设备登录：
-              </p>
-
-              <div className="bg-amber-50 rounded-xl p-4 border border-amber-200">
-                <div className="flex items-center gap-3">
-                  <Smartphone className="w-5 h-5 text-amber-600" />
-                  <div>
-                    <p className="text-sm font-medium font-serif text-amber-800">{deviceConflict.oldDevice.name}</p>
-                    <p className="text-xs font-serif text-amber-600">
-                      {new Date(deviceConflict.oldDevice.last_seen).toLocaleDateString('zh-CN')}
-                    </p>
+                      }}
+                      disabled={isChangingPassword}
+                      className="flex-1 px-4 py-3 green-gradient backdrop-blur-md text-white rounded-xl border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] hover:opacity-90 transition-all disabled:opacity-50 font-serif"
+                    >
+                      {isChangingPassword ? '修改中...' : '确认修改'}
+                    </button>
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </>,
+        document.body
+      )}
 
-              <p className="text-sm font-serif text-foreground text-center leading-relaxed">
-                在新设备登录后，以上设备将被退出登录。
-              </p>
+      {/* 设备冲突确认弹窗 - 居中显示 */}
+      {deviceConflict && createPortal(
+        <>
+          {/* Backdrop */}
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100]" onClick={cancelDeviceConflict} />
 
-              <div className="bg-blue-50 rounded-xl p-3 border border-blue-200">
-                <p className="text-xs font-serif text-blue-700 text-center leading-relaxed">
-                  💡 建议先在旧设备上导出数据<br />
-                  （设置 → 数据管理 → 导出数据）
-                </p>
-              </div>
+          {/* Modal - 居中显示 */}
+          <div className="fixed inset-0 flex items-center justify-center z-[110] p-4 pointer-events-none">
+            <div className="bg-card rounded-[24px] shadow-[0_8px_32px_rgba(0,0,0,0.12)] w-full max-w-md pointer-events-auto">
+              <div className="p-6 pb-10">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-lg font-serif text-foreground">⚠️ 设备登录提醒</h2>
+                  <button onClick={cancelDeviceConflict} className="p-2 -mr-2 text-muted-foreground hover:text-foreground transition-colors">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
 
-              <div className="flex gap-3 pt-2">
-                <button
-                  onClick={async () => {
-                    await cancelDeviceConflict()
-                    await signOut()
-                    toast.info('已取消登录')
-                  }}
-                  className="flex-1 px-4 py-3 bg-secondary text-foreground rounded-xl border border-border hover:bg-secondary/80 transition-all font-serif"
-                >
-                  取消
-                </button>
-                <button
-                  onClick={async () => {
-                    await confirmDeviceConflict()
-                    toast.success('✅ 登录成功')
-                  }}
-                  className="flex-1 px-4 py-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl hover:from-orange-600 hover:to-amber-600 transition-all font-serif"
-                >
-                  继续登录
-                </button>
+                <div className="space-y-4">
+                  <p className="text-sm font-serif text-foreground text-center leading-relaxed">
+                    您的账号已在以下设备登录：
+                  </p>
+
+                  <div className="bg-amber-50 rounded-xl p-4 border border-amber-200">
+                    <div className="flex items-center gap-3">
+                      <Smartphone className="w-5 h-5 text-amber-600" />
+                      <div>
+                        <p className="text-sm font-medium font-serif text-amber-800">{deviceConflict.oldDevice.name}</p>
+                        <p className="text-xs font-serif text-amber-600">
+                          {new Date(deviceConflict.oldDevice.last_seen).toLocaleDateString('zh-CN')}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <p className="text-sm font-serif text-foreground text-center leading-relaxed">
+                    在新设备登录后，以上设备将被退出登录。
+                  </p>
+
+                  <div className="bg-blue-50 rounded-xl p-3 border border-blue-200">
+                    <p className="text-xs font-serif text-blue-700 text-center leading-relaxed">
+                      💡 建议先在旧设备上导出数据<br />
+                      （设置 → 数据管理 → 导出数据）
+                    </p>
+                  </div>
+
+                  <div className="flex gap-3 pt-2">
+                    <button
+                      onClick={async () => {
+                        await cancelDeviceConflict()
+                        await signOut()
+                        toast.info('已取消登录')
+                      }}
+                      className="flex-1 px-4 py-3 bg-secondary text-foreground rounded-xl border border-border hover:bg-secondary/80 transition-all font-serif"
+                    >
+                      取消
+                    </button>
+                    <button
+                      onClick={async () => {
+                        await confirmDeviceConflict()
+                        toast.success('✅ 登录成功')
+                      }}
+                      className="flex-1 px-4 py-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl hover:from-orange-600 hover:to-amber-600 transition-all font-serif"
+                    >
+                      继续登录
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
-          </motion.div>
-        </AnimatePresence>,
+          </div>
+        </>,
         document.body
       )}
     </div>
