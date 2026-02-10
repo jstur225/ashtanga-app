@@ -4214,24 +4214,17 @@ export default function AshtangaTracker() {
         practiceOptionsData={practiceOptionsData}
       />
 
-      {/* 清空数据确认弹窗 - 从下往上滑入 */}
-      <AnimatePresence>
-        {showClearDataConfirm && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50"
-              onClick={() => setShowClearDataConfirm(false)}
-            />
-            <motion.div
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="fixed bottom-0 left-0 right-0 bg-card rounded-t-[24px] z-50 p-6 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]"
-            >
+      {/* 清空数据确认弹窗 - 居中显示 */}
+      {showClearDataConfirm && (
+        <>
+          <div
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50"
+            onClick={() => setShowClearDataConfirm(false)}
+          />
+          {/* Modal - 居中显示 */}
+          <div className="fixed inset-0 flex items-center justify-center z-50 p-4 pointer-events-none">
+            <div className="bg-card rounded-[24px] shadow-[0_8px_32px_rgba(0,0,0,0.12)] w-full max-w-md pointer-events-auto">
+              <div className="p-6 pb-10">
               {/* 第一层：警告 */}
               {clearDataStep === 1 && (
                 <>
@@ -4378,11 +4371,11 @@ export default function AshtangaTracker() {
                   </div>
                 </>
               )}
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-
+              </div>
+            </div>
+          </div>
+        </>
+      )}
       {/* Import Modal */}
       <ImportModal
         isOpen={showImportModal}
