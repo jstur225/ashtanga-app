@@ -4274,13 +4274,7 @@ export default function AshtangaTracker() {
           setShowExportModal(true)
         }}
         onOpenImport={() => setShowImportModal(true)}
-        onExportLog={() => {
-          const logs = exportLogs.map(log =>
-            `[${log.timestamp}] ${log.success ? '✅' : '❌'} ${log.recordDate ? `记录${log.recordDate}` : '批量操作'} ${log.error ? `- ${log.error}` : ''}`
-          ).join('\n')
-          navigator.clipboard.writeText(logs)
-          toast.success('运行日志已复制到剪贴板')
-        }}
+        onExportLog={handleExportDebugLog}
         onClearData={clearAllData}
         user={user}
         practiceHistory={practiceHistory}
