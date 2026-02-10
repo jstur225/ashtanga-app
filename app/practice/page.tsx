@@ -7,7 +7,7 @@ import { usePracticeData, type PracticeRecord, type PracticeOption, type UserPro
 import { usePWAInstall } from "@/hooks/usePWAInstall"
 import { useAuth } from "@/hooks/useAuth"
 import { useSync } from "@/hooks/useSync"
-import { BookOpen, BarChart3, Calendar, X, Camera, Pause, Play, Trash2, User, Settings, ChevronLeft, ChevronRight, ChevronUp, Cloud, Download, Upload, Plus, Share2, Sparkles, Check, Copy, ClipboardPaste, MessageCircle } from "lucide-react"
+import { BookOpen, BarChart3, Calendar, X, Camera, Pause, Play, Trash2, User, Settings, ChevronLeft, ChevronRight, ChevronUp, Cloud, Download, Upload, Plus, Share2, Sparkles, Check, Copy, ClipboardPaste, MessageCircle, Bug, AlertCircle } from "lucide-react"
 import { FakeDoorModal } from "@/components/FakeDoorModal"
 import { ImportModal } from "@/components/ImportModal"
 import { ExportModal } from "@/components/ExportModal"
@@ -2001,8 +2001,8 @@ function SettingsModal({
                       className="w-full flex items-center justify-between p-4 rounded-2xl bg-secondary hover:bg-secondary/80 transition-all group"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-xl bg-purple-50 text-purple-500">
-                          <Copy className="w-5 h-5" />
+                        <div className="p-2 rounded-xl bg-orange-50 text-orange-500">
+                          <Bug className="w-5 h-5" />
                         </div>
                         <div className="text-left">
                           <div className="text-sm font-serif text-foreground">运行日志</div>
@@ -3577,66 +3577,215 @@ export default function AshtangaTracker() {
   }
 
   const handleExportDebugLog = () => {
-    // 1. 收集环境信息
+    // ===== 1. 环境信息 =====
     const environment = {
-      browser: navigator.userAgent,
+      userAgent: navigator.userAgent,
+      browser: {
+        language: navigator.language,
+        languages: navigator.languages,
+        onLine: navigator.onLine,
+        cookieEnabled: navigator.cookieEnabled,
+        pdfViewerEnabled: navigator.pdfViewerEnabled
+      },
       deviceType: /mobile|tablet|android|iphone/i.test(navigator.userAgent) ? 'mobile' : 'desktop',
-      screenWidth: window.screen.width,
-      screenHeight: window.screen.height,
+      screen: {
+        width: window.screen.width,
+        height: window.screen.height,
+        availWidth: window.screen.availWidth,
+        availHeight: window.screen.availHeight,
+        colorDepth: window.screen.colorDepth,
+        pixelRatio: window.devicePixelRatio,
+        orientation: window.screen.orientation?.type || 'unknown'
+      },
+      viewport: {
+        width: window.innerWidth,
+        height: window.innerHeight,
+        visualViewport: {
+          width: window.visualViewport?.width,
+          height: window.visualViewport?.height,
+          scale: window.visualViewport?.scale
+        }
+      },
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      exportTime: new Date().toISOString()
+      timezoneOffset: new Date().getTimezoneOffset(),
+      exportTime: new Date().toISOString(),
+      appVersion: '1.0.1'
     }
 
-    // 2. 收集应用状态（包含完整选项列表）
+    // ===== 2. 网络状态 =====
+    const networkInfo = {
+      onLine: navigator.onLine,
+      connection: (navigator as any).connection ? {
+        effectiveType: (navigator as any).connection.effectiveType,
+        downlink: (navigator as any).connection.downlink,
+        rtt: (navigator as any).connection.rtt,
+        saveData: (navigator as any).connection.saveData
+      } : 'Not supported'
+    }
+
+    // ===== 3. 认证状态 =====
+    const authState = {
+      isLoggedIn: !!user,
+      userId: user?.id || null,
+      email: user?.email || null,
+      lastSignInAt: user?.last_sign_in_at || null,
+      createdAt: user?.created_at || null,
+      appMetadata: user?.app_metadata || null,
+      userMetadata: user?.user_metadata || null
+    }
+
+    // ===== 4. 同步状态 =====
+    const syncState = {
+      syncStatus,
+      lastSyncTime,
+      failedSyncIds: failedSyncIds || [],
+      failedSyncCount: failedSyncIds?.length || 0,
+      conflictLocalCount,
+      conflictRemoteCount,
+      showDataConflict
+    }
+
+    // ===== 5. 应用数据状态 =====
     const appState = {
-      recordsCount: practiceHistory.length,
-      optionsCount: practiceOptions.length,
-      totalDuration: practiceHistory.reduce((sum, r) => sum + (r.duration || 0), 0),
-      hasCustomOptions: practiceOptions.some(o => o.is_custom),
-      optionsList: practiceOptions.map(o => ({
-        id: o.id,
-        label: o.label,
-        notes: o.notes || '',
-        isCustom: o.is_custom
-      }))
-    }
-
-    // 3. 读取localStorage数据（只读统计）
-    const storageState = {
-      localStorageKeys: Object.keys(localStorage).filter(key =>
-        key.startsWith('ashtanga_') || key.includes('practice')
-      ),
-      estimatedSize: new Blob(Object.values(localStorage)).size
-    }
-
-    // 4. 生成日志（最近20条，增强字段）
-    const debugLog = {
-      environment,
-      appState,
-      storageState,
-      recentActivity: practiceHistory.slice(-20).map(r => ({
-        id: r.id,
-        date: r.date,
-        type: r.type,
-        duration: r.duration,
-        hasNotes: !!r.notes,
-        notesLength: r.notes?.length || 0,
-        hasPhotos: !!r.photos?.length,
-        photosCount: r.photos?.length || 0,
-        hasBreakthrough: !!r.breakthrough
-      })),
-      userProfile: {
+      records: {
+        totalCount: practiceHistory.length,
+        withPhotos: practiceHistory.filter(r => r.photos?.length > 0).length,
+        withNotes: practiceHistory.filter(r => r.notes?.trim()).length,
+        withBreakthrough: practiceHistory.filter(r => r.breakthrough).length,
+        totalDuration: practiceHistory.reduce((sum, r) => sum + (r.duration || 0), 0),
+        averageDuration: practiceHistory.length > 0
+          ? Math.round(practiceHistory.reduce((sum, r) => sum + (r.duration || 0), 0) / practiceHistory.length)
+          : 0,
+        dateRange: practiceHistory.length > 0 ? {
+          earliest: practiceHistory[practiceHistory.length - 1]?.date,
+          latest: practiceHistory[0]?.date
+        } : null
+      },
+      options: {
+        totalCount: practiceOptions.length,
+        customCount: practiceOptions.filter(o => o.is_custom).length,
+        systemCount: practiceOptions.filter(o => !o.is_custom).length,
+        list: practiceOptions.map(o => ({
+          id: o.id,
+          label: o.label.substring(0, 50),
+          hasNotes: !!o.notes,
+          isCustom: o.is_custom
+        }))
+      },
+      profile: {
         name: userProfile?.name || '未设置',
+        hasSignature: !!userProfile?.signature,
         hasAvatar: !!userProfile?.avatar,
         isPro: userProfile?.is_pro || false
+      }
+    }
+
+    // ===== 6. LocalStorage 完整分析 =====
+    const allKeys = Object.keys(localStorage)
+    const storageState = {
+      totalKeys: allKeys.length,
+      appKeys: allKeys.filter(key => key.startsWith('ashtanga_') || key.includes('practice')),
+      otherKeys: allKeys.filter(key => !key.startsWith('ashtanga_') && !key.includes('practice')).slice(0, 20),
+      keyDetails: allKeys
+        .filter(key => key.startsWith('ashtanga_') || key.includes('practice'))
+        .map(key => {
+          try {
+            const value = localStorage.getItem(key)
+            return {
+              key,
+              size: value ? new Blob([value]).size : 0,
+              type: value?.startsWith('{') || value?.startsWith('[') ? 'json' : 'string'
+            }
+          } catch (e) {
+            return { key, size: 0, type: 'error', error: String(e) }
+          }
+        }),
+      estimatedTotalSize: new Blob(Object.values(localStorage)).size
+    }
+
+    // ===== 7. 最近的练习记录（最近10条） =====
+    const recentRecords = practiceHistory.slice(0, 10).map(r => ({
+      id: r.id,
+      date: r.date,
+      type: r.type?.substring(0, 30),
+      duration: r.duration,
+      hasNotes: !!r.notes,
+      notesPreview: r.notes?.substring(0, 50) || null,
+      hasPhotos: !!r.photos?.length,
+      photosCount: r.photos?.length || 0,
+      hasBreakthrough: !!r.breakthrough,
+      breakthroughPreview: r.breakthrough?.substring(0, 50) || null,
+      createdAt: r.created_at
+    }))
+
+    // ===== 8. 导出历史（最近10条） =====
+    const recentExportLogs = exportLogs.slice(-10).map(log => ({
+      timestamp: log.timestamp,
+      success: log.success,
+      error: log.error,
+      recordDate: log.recordDate,
+      deviceType: log.userAgent ?
+        (/mobile|tablet|android|iphone/i.test(log.userAgent) ? 'mobile' : 'desktop') : 'unknown'
+    }))
+
+    // ===== 9. 错误历史（从 console 捕获） =====
+    const errorHistory = (window as any).__errorHistory || []
+
+    // ===== 10. 性能指标 =====
+    const performanceInfo = {
+      navigation: performance.getEntriesByType('navigation')[0] ? {
+        domComplete: Math.round((performance.getEntriesByType('navigation')[0] as any).domComplete),
+        loadEventEnd: Math.round((performance.getEntriesByType('navigation')[0] as any).loadEventEnd),
+        domInteractive: Math.round((performance.getEntriesByType('navigation')[0] as any).domInteractive)
+      } : 'Not available',
+      memory: (performance as any).memory ? {
+        usedJSHeapSize: Math.round((performance as any).memory.usedJSHeapSize / 1024 / 1024) + ' MB',
+        totalJSHeapSize: Math.round((performance as any).memory.totalJSHeapSize / 1024 / 1024) + ' MB'
+      } : 'Not available'
+    }
+
+    // ===== 11. 当前应用状态 =====
+    const currentAppState = {
+      activeTab,
+      isPracticing: false,
+      showSettings,
+      showAccountSync,
+      showAuthModal,
+      authMode,
+      showDataConflict,
+      showClearDataConfirm,
+      clearDataStep,
+      currentPath: window.location.pathname,
+      currentHash: window.location.hash,
+      // 练习状态
+      selectedOption,
+      isPaused,
+      elapsedTime,
+      totalPausedTime
+    }
+
+    // ===== 12. 同步日志（如果有） =====
+    const syncLogs = (window as any).__syncLogs || []
+
+    // 生成完整日志
+    const debugLog = {
+      _meta: {
+        version: '2.0',
+        exportTime: new Date().toISOString(),
+        description: '熬汤日记调试日志 - 用于问题排查'
       },
-      imageExportHistory: exportLogs.slice(-10).map(log => ({
-        timestamp: log.timestamp,
-        success: log.success,
-        error: log.error,
-        userAgent: log.userAgent.substring(0, 200), // 截断过长的 UA
-        recordDate: log.recordDate
-      }))
+      environment,
+      networkInfo,
+      authState,
+      syncState,
+      appState,
+      storageState,
+      recentRecords,
+      recentExportLogs,
+      errorHistory,
+      performanceInfo,
+      currentAppState,
+      syncLogs
     }
 
     // 5. 转换为JSON并复制到剪贴板
