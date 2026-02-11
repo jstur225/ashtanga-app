@@ -22,6 +22,7 @@ import { trackEvent } from '@/lib/analytics'
 import { captureWithFallback, formatErrorForUser } from '@/lib/screenshot'
 import { MOON_DAYS_2026 } from '@/lib/moon-phase-data'
 import { supabase } from '@/lib/supabase'
+import { deletePracticeRecord } from '@/lib/database'
 import { useRouter } from 'next/navigation'
 
 // 月相图标路径
@@ -451,7 +452,7 @@ function EditOptionModal({
                   </button>
                   <button
                     onClick={handleConfirmDelete}
-                    className="flex-1 py-3 rounded-full bg-destructive text-destructive-foreground font-serif transition-all hover:opacity-90 active:scale-[0.98]"
+                    className="flex-1 py-3 rounded-full font-serif transition-all active:scale-[0.98] bg-gradient-to-r from-red-500 to-red-600 text-white backdrop-blur-sm shadow-md hover:shadow-lg"
                   >
                     删除
                   </button>
@@ -582,9 +583,17 @@ function EditRecordModal({
     onChildModalOpen?.(true)
   }
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (record) {
+      // 1. 从本地状态移除
       onDelete(record.id)
+
+      // 2. 软删除 Supabase 中的记录
+      const success = await deletePracticeRecord(record.id)
+      if (!success) {
+        toast.error('删除同步失败，记录仅在本设备删除')
+      }
+
       setShowDeleteConfirm(false)
       onChildModalOpen?.(false)
       onClose()
@@ -644,7 +653,7 @@ function EditRecordModal({
                   </button>
                   <button
                     onClick={handleConfirmDelete}
-                    className="flex-1 py-3 rounded-full bg-destructive text-destructive-foreground font-serif transition-all hover:opacity-90 active:scale-[0.98]"
+                    className="flex-1 py-3 rounded-full font-serif transition-all active:scale-[0.98] bg-gradient-to-r from-red-500 to-red-600 text-white backdrop-blur-sm shadow-md hover:shadow-lg"
                   >
                     删除
                   </button>
@@ -3550,11 +3559,20 @@ export default function AshtangaTracker() {
     return result
   }
 
-  const handleDeleteRecord = (id: string) => {
+  const handleDeleteRecord = async (id: string) => {
     // Confirm before deleting
     if (!confirm('确定要删除这条记录吗？')) return
+
+    // 1. 从本地状态移除
     deleteRecord(id)
-    toast.success('已删除记录')
+
+    // 2. 软删除 Supabase 中的记录（设置 deleted_at）
+    const success = await deletePracticeRecord(id)
+    if (success) {
+      toast.success('已删除记录')
+    } else {
+      toast.error('删除同步失败，记录仅在本设备删除')
+    }
   }
 
   const handleAddRecord = (record: Omit<PracticeRecord, 'id' | 'created_at' | 'photos'>) => {

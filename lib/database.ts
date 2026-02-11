@@ -105,10 +105,10 @@ export async function updatePracticeRecord(
   return data
 }
 
-// 删除练习记录（软删除：设置 deleted_at）
+// 删除练习记录（软删除：通过 API 设置 deleted_at）
 export async function deletePracticeRecord(id: string): Promise<boolean> { // 改：number → string
   try {
-    // 1. 先获取记录的照片列表
+    // 1. 先获取记录的照片列表（用于删除 Storage 中的文件）
     const { data: record } = await supabase
       .from(TABLES.PRACTICE_RECORDS)
       .select('photos')
@@ -146,21 +146,17 @@ export async function deletePracticeRecord(id: string): Promise<boolean> { // �
       }
     }
 
-    // 3. 软删除数据库记录（设置 deleted_at）
-    const { error } = await supabase
-      .from(TABLES.PRACTICE_RECORDS)
-      .update({ deleted_at: new Date().toISOString() }) // ⚠️ 软删除
-      .eq('id', id)
-      .is('deleted_at', null) // 只删除未被删除的记录
+    // 3. 通过 API 软删除数据库记录（绕过 RLS）
+    const response = await fetch('/api/sync/delete-record', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ recordId: id }),
+    })
 
-    if (error) {
-      console.error('Error deleting practice record:', JSON.stringify(error, null, 2))
-      console.error('Error details:', {
-        message: error.message,
-        details: error.details,
-        hint: error.hint,
-        code: error.code,
-      })
+    const result = await response.json()
+
+    if (!response.ok || !result.success) {
+      console.error('Error deleting practice record:', result.error)
       return false
     }
 
