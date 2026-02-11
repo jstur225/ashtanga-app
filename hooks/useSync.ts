@@ -8,6 +8,9 @@ import type { PracticeRecord, PracticeOption, UserProfile } from '@/lib/supabase
 type SyncStatus = 'idle' | 'syncing' | 'success' | 'error'
 type ConflictStrategy = 'remote' | 'local' | 'merge'
 
+// ⭐ 内测版本同步限制配置
+const MAX_SYNC_RECORDS = 50
+
 export function useSync(
   user: any,
   localData: {
@@ -39,6 +42,31 @@ export function useSync(
     recordId?: string
     error?: string
   }>>('sync_logs', [])
+
+  // ⭐ 同步统计信息（用于UI显示限制提示）
+  const [syncStats, setSyncStats] = useState({
+    totalLocalRecords: 0,
+    syncedRecords: 0,
+    maxSyncRecords: MAX_SYNC_RECORDS,
+    localOnlyCount: 0, // 仅本地保留的记录数
+    hasLimitWarning: false
+  })
+
+  // ==================== 自动计算同步统计（当 localData 变化时）====================
+  useEffect(() => {
+    const localCount = localData.records.length
+    const sortedRecords = [...localData.records].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    const recordsToSync = sortedRecords.slice(0, MAX_SYNC_RECORDS)
+    const localOnlyCount = localCount - recordsToSync.length
+
+    setSyncStats({
+      totalLocalRecords: localCount,
+      syncedRecords: recordsToSync.length,
+      maxSyncRecords: MAX_SYNC_RECORDS,
+      localOnlyCount,
+      hasLimitWarning: localOnlyCount > 0
+    })
+  }, [localData.records.length])
 
   // ==================== 应用级自动同步 ====================
   useEffect(() => {
@@ -114,13 +142,34 @@ export function useSync(
 
       console.log(`📊 [autoSync] 数据对比：本地${localCount}条，云端${remoteCount}条`)
 
+      // ⭐ 计算同步统计（无论走哪个分支都显示）
+      const sortedRecords = [...localData.records].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      const recordsToSync = sortedRecords.slice(0, MAX_SYNC_RECORDS)
+      const localOnlyCount = localCount - recordsToSync.length
+
+      // 更新同步统计
+      setSyncStats({
+        totalLocalRecords: localCount,
+        syncedRecords: recordsToSync.length,
+        maxSyncRecords: MAX_SYNC_RECORDS,
+        localOnlyCount,
+        hasLimitWarning: localOnlyCount > 0
+      })
+
+      if (localOnlyCount > 0) {
+        console.log(`⚠️ [autoSync] 内测版本限制：${localOnlyCount}条最新记录仅保存在本地`)
+      }
+
       // 2. 智能同步策略
+      // ⭐ 使用截取后的 recordsToSync（最早的50条）进行比对，避免超过限制的记录触发冲突
+      const effectiveLocalRecords = localOnlyCount > 0 ? recordsToSync : localData.records
+
       if (remoteCount > 0 && localCount > 0) {
         // 两边都有数据，检查是否有差异需要同步
-        const localIds = new Set(localData.records.map(r => r.id))
+        const localIds = new Set(effectiveLocalRecords.map(r => r.id))
         const remoteIds = new Set(remoteData.records.map(r => r.id))
 
-        const localOnly = localData.records.filter(r => !remoteIds.has(r.id))
+        const localOnly = effectiveLocalRecords.filter(r => !remoteIds.has(r.id))
         const remoteOnly = remoteData.records.filter(r => !localIds.has(r.id))
 
         if (localOnly.length === 0 && remoteOnly.length === 0) {
@@ -134,8 +183,8 @@ export function useSync(
         if (localOnly.length > 0 && remoteOnly.length === 0) {
           console.log(`📤 [autoSync] 本地有${localOnly.length}条新数据，上传到云端`)
           addLog(`上传本地新增：${localOnly.length}条记录`, 'success')
-          const success = await uploadLocalData(user.id, localData, user)
-          if (success) {
+          const result = await uploadLocalData(user.id, localData, user)
+          if (result.success) {
             setSyncStatus('success')
             setLastSyncStatus('success')
             setLastSyncTime(Date.now())
@@ -184,14 +233,22 @@ export function useSync(
         setSyncStatus('success')
         setLastSyncStatus('success')
         setLastSyncTime(Date.now())
+        // 重置 syncStats（没有本地记录）
+        setSyncStats({
+          totalLocalRecords: 0,
+          syncedRecords: 0,
+          maxSyncRecords: MAX_SYNC_RECORDS,
+          localOnlyCount: 0,
+          hasLimitWarning: false
+        })
         return
       }
 
       // 4. 只有本地有数据 → 上传到云端
       if (localCount > 0 && remoteCount === 0) {
         addLog(`上传本地数据：${localCount}条记录`, 'success')
-        const success = await uploadLocalData(user.id, localData, user)
-        if (success) {
+        const result = await uploadLocalData(user.id, localData, user)
+        if (result.success) {
           setSyncStatus('success')
           setLastSyncStatus('success')
           setLastSyncTime(Date.now())
@@ -234,8 +291,8 @@ export function useSync(
     if (localOnly.length > 0) {
       // 本地有新数据，上传到云端
       addLog(`上传${localOnly.length}条本地记录`, 'success')
-      const success = await uploadLocalRecords(user.id, localOnly)
-      if (!success) {
+      const result = await uploadLocalRecords(user.id, localOnly)
+      if (!result.success) {
         throw new Error('上传本地记录失败')
       }
     }
@@ -294,11 +351,22 @@ export function useSync(
 
   // ==================== 上传本地记录 ====================
   const uploadLocalRecords = async (userId: string, records: PracticeRecord[]) => {
-    if (records.length === 0) return true
+    if (records.length === 0) return { success: true, localOnlyCount: 0 }
+
+    // ⭐ 新增：50条记录限制 - 保留最早的50条
+    // 按日期排序（最早的在前），然后截取前50条
+    const sortedRecords = [...records].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    const recordsToSync = sortedRecords.slice(0, MAX_SYNC_RECORDS)
+    const localOnlyCount = records.length - recordsToSync.length
+
+    if (localOnlyCount > 0) {
+      console.log(`⚠️ [uploadLocalRecords] 内测版本限制：只上传最早的${MAX_SYNC_RECORDS}条记录`)
+      addLog(`内测限制：${localOnlyCount}条记录仅本地保存`, 'success')
+    }
 
     const failedIds: string[] = []
 
-    const recordsToUpload = records.map(r => ({
+    const recordsToUpload = recordsToSync.map(r => ({
       id: crypto.randomUUID(), // ⚠️ 生成新的 UUID，替换本地数字 ID
       user_id: userId,
       date: r.date,
@@ -317,17 +385,17 @@ export function useSync(
       records.forEach(r => failedIds.push(r.id))
       addLog('批量上传失败', 'error', undefined, error.message)
     } else {
-      addLog(`批量上传${records.length}条记录成功`, 'success')
+      addLog(`批量上传${recordsToSync.length}条记录成功`, 'success')
     }
 
     if (failedIds.length > 0) {
       setFailedSyncIds(failedIds)
       setLastSyncStatus('error')
-      return false
+      return { success: false, localOnlyCount }
     } else {
       setFailedSyncIds([])
       setLastSyncStatus('success')
-      return true
+      return { success: true, localOnlyCount }
     }
   }
 
@@ -355,6 +423,17 @@ export function useSync(
         is_pro: false
       }
 
+      // ⭐ 新增：50条记录限制（内测版本）- 保留最早的50条
+      // 按日期排序（最早的在前），然后截取前50条
+      const sortedRecords = [...records].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      const recordsToSync = sortedRecords.slice(0, MAX_SYNC_RECORDS)
+      const localOnlyCount = records.length - recordsToSync.length // 仅本地保留的记录数
+
+      if (localOnlyCount > 0) {
+        console.log(`⚠️ [uploadLocalData] 内测版本限制：只同步最早的${MAX_SYNC_RECORDS}条记录，${localOnlyCount}条新记录仅保留在本地`)
+        addLog(`内测限制：${localOnlyCount}条记录仅本地保存`, 'success')
+      }
+
       // 1. 上传用户资料（使用服务端 API 绕过 RLS）
       console.log('📤 开始上传用户资料（服务端 API）...')
 
@@ -380,9 +459,9 @@ export function useSync(
       console.log('✅ 用户资料上传成功:', profileResult)
       addLog('上传用户资料', 'success')
 
-      // 2. 批量上传练习记录（使用 upsert）
-      if (records.length > 0) {
-        const recordsToUpload = records.map(r => ({
+      // 2. 批量上传练习记录（使用 upsert）- 使用限制后的 recordsToSync（最早的50条）
+      if (recordsToSync.length > 0) {
+        const recordsToUpload = recordsToSync.map(r => ({
           id: r.id,
           user_id: userId,
           date: r.date,
@@ -404,7 +483,7 @@ export function useSync(
           records.forEach(r => failedIds.push(r.id))
           addLog('批量上传记录', 'error', undefined, recordsError.message)
         } else {
-          addLog(`批量上传${records.length}条记录`, 'success')
+          addLog(`批量上传${recordsToSync.length}条记录`, 'success')
         }
       }
 
@@ -440,7 +519,21 @@ export function useSync(
       setSyncStatus(failedIds.length === 0 ? 'success' : 'error')
       setLastSyncTime(Date.now())
 
-      return failedIds.length === 0
+      // ⭐ 更新同步统计信息
+      setSyncStats({
+        totalLocalRecords: records.length,
+        syncedRecords: recordsToSync.length,
+        maxSyncRecords: MAX_SYNC_RECORDS,
+        localOnlyCount,
+        hasLimitWarning: localOnlyCount > 0
+      })
+
+      return {
+        success: failedIds.length === 0,
+        localOnlyCount, // ⭐ 返回仅本地保留的记录数
+        syncedCount: recordsToSync.length,
+        totalCount: records.length
+      }
     } catch (error: any) {
       console.error('Upload failed:', error)
       console.error('Error details:', JSON.stringify(error, null, 2))
@@ -449,7 +542,7 @@ export function useSync(
       addLog('同步失败', 'error', undefined, error?.message || JSON.stringify(error))
       setSyncStatus('error')
       setLastSyncStatus('error')
-      return false
+      return { success: false, localOnlyCount: 0, syncedCount: 0, totalCount: 0 }
     }
   }
 
@@ -494,8 +587,8 @@ export function useSync(
           addLog('云端数据已清空', 'success')
 
           // 2. 上传本地数据
-          const success = await uploadLocalData(user.id, localData, user)
-          if (!success) {
+          const result = await uploadLocalData(user.id, localData, user)
+          if (!result.success) {
             throw new Error('上传本地数据失败')
           }
           break
@@ -558,6 +651,7 @@ export function useSync(
     setFailedSyncIds, // ⭐ 新增：用于重置失败列表
     setLastSyncStatus, // ⭐ 新增：用于重置同步状态
     syncLogs,
+    syncStats, // ⭐ 新增：同步统计信息
     autoSync, // 手动触发同步
     uploadLocalData, // 手动上传本地数据
     resolveConflict, // ⭐ 新增：处理数据冲突

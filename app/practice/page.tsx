@@ -22,6 +22,7 @@ import { trackEvent } from '@/lib/analytics'
 import { captureWithFallback, formatErrorForUser } from '@/lib/screenshot'
 import { MOON_DAYS_2026 } from '@/lib/moon-phase-data'
 import { supabase } from '@/lib/supabase'
+import { useRouter } from 'next/navigation'
 
 // 月相图标路径
 const NEW_MOON_ICON = '/moon-phase/new-moon.png'
@@ -1939,6 +1940,7 @@ function SettingsModal({
                   onClose={onClose}
                   onOpenLoginModal={onOpenLoginModal}
                   onOpenRegisterModal={onOpenRegisterModal}
+                  onShowClearDataConfirm={onShowClearDataConfirm}
                 />
               )}
 
@@ -2065,6 +2067,7 @@ function AccountSyncModal({
   practiceOptionsData,
   onOpenLoginModal,
   onOpenRegisterModal,
+  onShowClearDataConfirm,
 }: {
   isOpen: boolean
   onClose: () => void
@@ -2073,6 +2076,7 @@ function AccountSyncModal({
   practiceOptionsData: PracticeOption[]
   onOpenLoginModal: () => void
   onOpenRegisterModal: () => void
+  onShowClearDataConfirm?: () => void
 }) {
   return (
     <AnimatePresence>
@@ -2111,6 +2115,7 @@ function AccountSyncModal({
               onClose={onClose}
               onOpenLoginModal={onOpenLoginModal}
               onOpenRegisterModal={onOpenRegisterModal}
+              onShowClearDataConfirm={onShowClearDataConfirm}
             />
           </motion.div>
         </>
@@ -2868,6 +2873,7 @@ function StatsTab({
   setShowXiaohongshuModal,
   hasNewXhsMessage,
   user,
+  setReadInviteVersion,
 }: {
   practiceHistory: PracticeRecord[]
   profile: UserProfile
@@ -2877,6 +2883,7 @@ function StatsTab({
   setShowXiaohongshuModal: (value: boolean) => void
   hasNewXhsMessage: boolean
   user?: any
+  setReadInviteVersion: (version: string) => void
 }) {
   // 隐藏邮箱的辅助函数
   const maskEmail = (email: string): string => {
@@ -3284,6 +3291,9 @@ export default function AshtangaTracker() {
   const [clearDataStep, setClearDataStep] = useState<1 | 2 | 3>(1)
   const [confirmPhrase, setConfirmPhrase] = useState('')
   const [isSaving, setIsSaving] = useState(false)
+
+  // 路由
+  const router = useRouter()
   const [exportLogs, setExportLogs] = useLocalStorage<{
     timestamp: string
     success: boolean
@@ -3308,7 +3318,7 @@ export default function AshtangaTracker() {
     profile: userProfile
   }
 
-  const { syncStatus, lastSyncTime, failedSyncIds, setFailedSyncIds, setLastSyncStatus, resolveConflict } = useSync(
+  const { syncStatus, lastSyncTime, failedSyncIds, setFailedSyncIds, setLastSyncStatus, resolveConflict, syncStats } = useSync(
     user,
     localDataForSync,
     async (data) => {
@@ -4183,6 +4193,7 @@ export default function AshtangaTracker() {
           setShowXiaohongshuModal={setShowXiaohongshuModal}
           hasNewXhsMessage={hasNewXhsMessage}
           user={user}
+          setReadInviteVersion={setReadInviteVersion}
         />
       )}
 
@@ -4293,6 +4304,10 @@ export default function AshtangaTracker() {
         onOpenRegisterModal={() => {
           setShowAuthModal(true)
           setAuthMode('register')
+        }}
+        onShowClearDataConfirm={() => {
+          setShowClearDataConfirm(true)
+          setClearDataStep(2) // 直接从 Step 2（输入确认词）开始
         }}
       />
 
@@ -4407,11 +4422,11 @@ export default function AshtangaTracker() {
                 </>
               )}
 
-              {/* 第三层：最终确认 */}
+              {/* 第三层：完成 */}
               {clearDataStep === 3 && (
                 <>
                   <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-lg font-serif text-foreground">🚨 最终确认</h2>
+                    <h2 className="text-lg font-serif text-foreground">✅ 数据已清空</h2>
                     <button onClick={() => setShowClearDataConfirm(false)} className="p-2 -mr-2 text-muted-foreground hover:text-foreground transition-colors">
                       <X className="w-5 h-5" />
                     </button>
@@ -4419,20 +4434,14 @@ export default function AshtangaTracker() {
 
                   <div className="space-y-4">
                     <p className="text-sm font-serif text-foreground text-center leading-relaxed">
-                      确认要清空所有数据吗？
+                      所有本地数据已成功删除。
                     </p>
 
-                    <p className="text-sm font-serif text-red-600 text-center font-medium">
-                      此操作不可撤销！
+                    <p className="text-sm font-serif text-muted-foreground text-center">
+                      点击完成后将退出登录并返回首页。
                     </p>
 
                     <div className="flex gap-3 pt-2">
-                      <button
-                        onClick={() => setShowClearDataConfirm(false)}
-                        className="flex-1 px-4 py-3 bg-secondary text-foreground rounded-xl border border-border hover:bg-secondary/80 transition-all font-serif"
-                      >
-                        取消
-                      </button>
                       <button
                         onClick={async () => {
                           localStorage.clear()
@@ -4440,14 +4449,13 @@ export default function AshtangaTracker() {
                             await clearAllData()
                           }
                           setShowClearDataConfirm(false)
-                          toast.success('数据已清空，应用将重新加载')
-                          setTimeout(() => {
-                            window.location.reload()
-                          }, 1000)
+                          setClearDataStep(1)
+                          await supabase.auth.signOut() // 确保退出登录
+                          router.push('/')
                         }}
-                        className="flex-1 px-4 py-3 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-all font-serif"
+                        className="w-full px-4 py-3 green-gradient backdrop-blur-md text-white rounded-xl border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] hover:opacity-90 transition-all font-serif"
                       >
-                        确认清空
+                        完成
                       </button>
                     </div>
                   </div>

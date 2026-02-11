@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { Mail, CheckCircle, LogOut, RefreshCw, Smartphone, X, LogOut as LogOutIcon, Key, Lock, AlertCircle } from 'lucide-react'
+import { Mail, CheckCircle, LogOut, RefreshCw, Smartphone, X, LogOut as LogOutIcon, Key, Lock, AlertCircle, ChevronRight, Trash2 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useSync } from '@/hooks/useSync'
 import { DataStorageNotice } from './DataStorageNotice'
@@ -20,6 +20,7 @@ interface AccountBindingSectionProps {
   onClose: () => void // ⭐ 新增：onClose 回调
   onOpenLoginModal: () => void
   onOpenRegisterModal: () => void
+  onShowClearDataConfirm?: () => void // ⭐ 新增：显示清空数据确认弹窗
 }
 
 // 隐藏邮箱地址的辅助函数
@@ -47,9 +48,14 @@ export function AccountBindingSection({
   onClose,
   onOpenLoginModal,
   onOpenRegisterModal,
+  onShowClearDataConfirm,
 }: AccountBindingSectionProps) {
   const { user, signOut, deviceConflict, confirmDeviceConflict, cancelDeviceConflict } = useAuth()
-  const { syncStatus, lastSyncTime, uploadLocalData, autoSync } = useSync(user, localData, onSyncComplete)
+  const { syncStatus, lastSyncTime, lastSyncStatus, uploadLocalData, autoSync, syncStats } = useSync(
+    user,
+    { ...localData, profile },
+    onSyncComplete
+  )
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false)
   const [showChangePassword, setShowChangePassword] = useState(false)
   const [oldPassword, setOldPassword] = useState('')
@@ -238,11 +244,12 @@ export function AccountBindingSection({
             {/* 同步状态卡片 - 金色米白色渐变 */}
             <div className="bg-gradient-to-br from-amber-50/80 to-orange-50/80 backdrop-blur-sm rounded-xl p-3 border border-amber-200/50">
               <div className="flex items-center gap-2 mb-2">
-                {/* 精致小灯 */}
+                {/* 精致小灯 - 使用 lastSyncStatus 来显示最后一次同步的结果 */}
                 <div className={`rounded-full w-2 h-2 flex-shrink-0 ${
-                  syncStatus === 'syncing' ? 'bg-blue-400' :
-                  syncStatus === 'success' ? 'bg-green-400' :
+                  syncStatus === 'syncing' ? 'bg-blue-400 animate-pulse' :
                   syncStatus === 'error' ? 'bg-red-400' :
+                  lastSyncStatus === 'success' ? 'bg-green-400' :
+                  lastSyncStatus === 'error' ? 'bg-red-400' :
                   'bg-stone-400'
                 }`} />
                 <p className="text-xs font-serif text-foreground">
@@ -260,6 +267,25 @@ export function AccountBindingSection({
               )}
             </div>
           </div>
+
+          {/* ⭐ 新增：内测版本限制提示（当本地记录超过50条时显示）- 放在按钮上方更直观 */}
+          {syncStats?.hasLimitWarning && (
+            <div className="p-3 rounded-xl bg-amber-50 border border-amber-200">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-xs font-medium font-serif text-amber-800">
+                    内测版本上限提示
+                  </p>
+                  <p className="text-[10px] text-amber-600 font-serif mt-1 leading-relaxed">
+                    当前有 <span className="font-medium">{syncStats.totalLocalRecords}</span> 条记录，
+                    其中 <span className="font-medium">{syncStats.localOnlyCount}</span> 条最新记录仅保存在本地。
+                    更多功能敬请期待。
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* 操作区 */}
           <div className="flex gap-3">
@@ -302,7 +328,7 @@ export function AccountBindingSection({
             <div className="bg-card rounded-[24px] shadow-[0_8px_32px_rgba(0,0,0,0.12)] w-full max-w-md pointer-events-auto">
               <div className="p-6 pb-10">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-lg font-serif text-foreground">退出登录</h2>
+                  <h2 className="text-lg font-serif text-foreground">退出选项</h2>
                   <button onClick={() => setShowSignOutConfirm(false)} className="p-2 -mr-2 text-muted-foreground hover:text-foreground transition-colors">
                     <X className="w-5 h-5" />
                   </button>
@@ -310,27 +336,45 @@ export function AccountBindingSection({
 
                 <div className="space-y-4">
                   <p className="text-sm font-serif text-foreground text-center leading-relaxed">
-                    退出登录后，您的数据仍安全保留在本机。
+                    请选择退出方式
                   </p>
 
-                  {user && (
-                    <p className="text-xs font-serif text-muted-foreground text-center">
-                      如需清空数据，请前往「数据管理」
-                    </p>
-                  )}
+                  {/* 选项1：仅退出 */}
+                  <button
+                    onClick={async () => {
+                      await signOut()
+                      setShowSignOutConfirm(false)
+                      toast.success('✅ 已退出登录')
+                    }}
+                    className="w-full flex items-center justify-between p-4 rounded-xl bg-secondary hover:bg-secondary/80 transition-all border border-border"
+                  >
+                    <div className="flex items-center gap-3">
+                      <LogOut className="w-5 h-5 text-muted-foreground" />
+                      <div className="text-left">
+                        <div className="text-sm font-serif text-foreground">仅退出登录</div>
+                        <div className="text-[10px] text-muted-foreground font-serif">数据保留在本地</div>
+                      </div>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                  </button>
 
-                  <div className="flex gap-3 pt-2">
-                    <button
-                      onClick={async () => {
-                        await signOut()
-                        setShowSignOutConfirm(false)
-                        toast.success('✅ 已退出登录')
-                      }}
-                      className="w-full px-4 py-3 green-gradient backdrop-blur-md text-white rounded-xl border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] hover:opacity-90 transition-all font-serif"
-                    >
-                      确定退出
-                    </button>
-                  </div>
+                  {/* 选项2：退出并清空 */}
+                  <button
+                    onClick={() => {
+                      setShowSignOutConfirm(false)
+                      onShowClearDataConfirm?.() // 调用父组件显示清空数据弹窗
+                    }}
+                    className="w-full flex items-center justify-between p-4 rounded-xl bg-red-50 hover:bg-red-100 transition-all border border-red-200"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Trash2 className="w-5 h-5 text-red-500" />
+                      <div className="text-left">
+                        <div className="text-sm font-serif text-red-600">退出并清空数据</div>
+                        <div className="text-[10px] text-red-400 font-serif">彻底删除所有本地数据</div>
+                      </div>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-red-400" />
+                  </button>
                 </div>
               </div>
             </div>
