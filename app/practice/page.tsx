@@ -452,7 +452,7 @@ function EditOptionModal({
                   </button>
                   <button
                     onClick={handleConfirmDelete}
-                    className="flex-1 py-3 rounded-full font-serif transition-all active:scale-[0.98] bg-gradient-to-r from-red-500 to-red-600 text-white backdrop-blur-sm shadow-md hover:shadow-lg"
+                    className="flex-1 py-3 rounded-full font-serif transition-all active:scale-[0.98] bg-red-500 text-white shadow-md hover:bg-red-600"
                   >
                     删除
                   </button>
@@ -562,6 +562,8 @@ function EditRecordModal({
       setDate(record.date)
       setType(record.type)
       setDuration(Math.floor(record.duration / 60)) // 转换为分钟
+      // ⭐ 重置删除确认状态，避免直接显示删除确认界面
+      setShowDeleteConfirm(false)
     }
   }, [record])
 
@@ -585,18 +587,13 @@ function EditRecordModal({
 
   const handleConfirmDelete = async () => {
     if (record) {
-      // 1. 从本地状态移除
-      onDelete(record.id)
-
-      // 2. 软删除 Supabase 中的记录
-      const success = await deletePracticeRecord(record.id)
-      if (!success) {
-        toast.error('删除同步失败，记录仅在本设备删除')
-      }
-
+      // 关闭弹窗
       setShowDeleteConfirm(false)
       onChildModalOpen?.(false)
       onClose()
+
+      // 调用父组件的删除处理（会自动同步）
+      onDelete(record.id)
     }
   }
 
@@ -653,7 +650,7 @@ function EditRecordModal({
                   </button>
                   <button
                     onClick={handleConfirmDelete}
-                    className="flex-1 py-3 rounded-full font-serif transition-all active:scale-[0.98] bg-gradient-to-r from-red-500 to-red-600 text-white backdrop-blur-sm shadow-md hover:shadow-lg"
+                    className="flex-1 py-3 rounded-full font-serif transition-all active:scale-[0.98] bg-red-500 text-white shadow-md hover:bg-red-600"
                   >
                     删除
                   </button>
@@ -3331,7 +3328,7 @@ export default function AshtangaTracker() {
     profile: userProfile
   }
 
-  const { syncStatus, lastSyncTime, failedSyncIds, setFailedSyncIds, setLastSyncStatus, resolveConflict, syncStats } = useSync(
+  const { syncStatus, lastSyncTime, failedSyncIds, setFailedSyncIds, setLastSyncStatus, resolveConflict, syncStats, autoSync } = useSync(
     user,
     localDataForSync,
     async (data) => {
@@ -3570,6 +3567,10 @@ export default function AshtangaTracker() {
     const success = await deletePracticeRecord(id)
     if (success) {
       toast.success('已删除记录')
+      // 3. 触发同步（如果用户已登录）
+      if (user) {
+        autoSync()
+      }
     } else {
       toast.error('删除同步失败，记录仅在本设备删除')
     }
@@ -3585,6 +3586,10 @@ export default function AshtangaTracker() {
       has_notes: !!record.notes && record.notes.length > 0
     })
     toast.success('补卡成功！')
+    // 触发同步（如果用户已登录）
+    if (user) {
+      autoSync()
+    }
   }
 
   const handleAddOption = (name: string, notes: string) => {
