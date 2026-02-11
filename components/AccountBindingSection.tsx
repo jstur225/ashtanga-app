@@ -290,19 +290,19 @@ export function AccountBindingSection({
           <div className="fixed inset-0 flex items-center justify-center z-[110] p-4 pointer-events-none">
             <div className="bg-card rounded-[24px] shadow-[0_8px_32px_rgba(0,0,0,0.12)] w-full max-w-md pointer-events-auto">
               <div className="p-6 pb-10">
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center justify-between mb-2">
                   <h2 className="text-lg font-serif text-foreground">退出选项</h2>
                   <button onClick={() => setShowSignOutConfirm(false)} className="p-2 -mr-2 text-muted-foreground hover:text-foreground transition-colors">
                     <X className="w-5 h-5" />
                   </button>
                 </div>
+                <p className="text-sm font-serif text-muted-foreground mb-4">
+                  请选择退出方式
+                </p>
 
-                <div className="space-y-4">
-                  <p className="text-sm font-serif text-foreground text-center leading-relaxed">
-                    请选择退出方式
-                  </p>
+                <div className="space-y-3">
 
-                  {/* 选项1：仅退出 */}
+                  {/* 选项1：仅退出 - 灰色背景 */}
                   <button
                     onClick={async () => {
                       await signOut()
@@ -321,7 +321,7 @@ export function AccountBindingSection({
                     <ChevronRight className="w-4 h-4 text-muted-foreground" />
                   </button>
 
-                  {/* 选项2：退出并清空 */}
+                  {/* 选项2：退出并清空 - 红色底红色框 */}
                   <button
                     onClick={() => {
                       setShowSignOutConfirm(false)
@@ -330,13 +330,13 @@ export function AccountBindingSection({
                     className="w-full flex items-center justify-between p-4 rounded-xl bg-red-50 hover:bg-red-100 transition-all border border-red-200"
                   >
                     <div className="flex items-center gap-3">
-                      <Trash2 className="w-5 h-5 text-red-500" />
+                      <Trash2 className="w-5 h-5 text-red-600" />
                       <div className="text-left">
-                        <div className="text-sm font-serif text-red-600">退出并清空数据</div>
-                        <div className="text-[10px] text-red-400 font-serif">彻底删除所有本地数据</div>
+                        <div className="text-sm font-serif text-red-700">退出并清空数据</div>
+                        <div className="text-[10px] text-red-600 font-serif">彻底删除所有本地数据</div>
                       </div>
                     </div>
-                    <ChevronRight className="w-4 h-4 text-red-400" />
+                    <ChevronRight className="w-4 h-4 text-red-500" />
                   </button>
                 </div>
               </div>

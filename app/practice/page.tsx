@@ -4365,7 +4365,7 @@ export default function AshtangaTracker() {
                       </button>
                       <button
                         onClick={() => setClearDataStep(2)}
-                        className="flex-1 px-4 py-3 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-all font-serif"
+                        className="flex-1 px-4 py-3 bg-gradient-to-r from-red-500/80 to-red-600/80 backdrop-blur-md text-white rounded-xl border border-white/20 shadow-[0_4px_16px_rgba(220,38,38,0.25)] hover:from-red-600/80 hover:to-red-700/80 transition-all font-serif"
                       >
                         继续操作
                       </button>
@@ -4389,9 +4389,9 @@ export default function AshtangaTracker() {
                       为防止误操作，请输入确认词。
                     </p>
 
-                    <div className="bg-amber-50 rounded-xl p-4 border border-amber-200">
-                      <p className="text-sm font-serif text-amber-700 text-center mb-2">确认词：</p>
-                      <p className="text-lg font-serif text-amber-800 text-center font-bold">确认删除</p>
+                    <div className="bg-red-50 rounded-xl p-4 border border-red-200">
+                      <p className="text-sm font-serif text-red-700 text-center mb-2">确认词：</p>
+                      <p className="text-lg font-serif text-red-800 text-center font-bold">确认删除</p>
                     </div>
 
                     <input
@@ -4418,7 +4418,7 @@ export default function AshtangaTracker() {
                             toast.error('确认词输入错误，请重新输入')
                           }
                         }}
-                        className="flex-1 px-4 py-3 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-all font-serif"
+                        className="flex-1 px-4 py-3 bg-gradient-to-r from-red-500/80 to-red-600/80 backdrop-blur-md text-white rounded-xl border border-white/20 shadow-[0_4px_16px_rgba(220,38,38,0.25)] hover:from-red-600/80 hover:to-red-700/80 transition-all font-serif"
                       >
                         确认
                       </button>

@@ -46,15 +46,15 @@ export function DataConflictModal({
             <div className="bg-card rounded-2xl p-4 w-full max-w-sm shadow-xl">
               {/* 标题 */}
               <div className="mb-3">
-                <h2 className="text-sm font-serif text-foreground font-medium">数据冲突</h2>
+                <h2 className="text-base font-serif text-foreground font-medium">数据冲突</h2>
               </div>
 
               {/* 说明 + 数据对比 */}
               <div className="mb-3 p-3 bg-muted/50 rounded-xl">
-                <p className="text-xs font-serif text-muted-foreground mb-2">
+                <p className="text-sm font-serif text-muted-foreground mb-2">
                   本地和云端都有数据，请选择处理方式：
                 </p>
-                <div className="flex items-center gap-4 text-xs font-serif">
+                <div className="flex items-center gap-4 text-sm font-serif">
                   <div className="flex items-center gap-1.5">
                     <Cloud className="w-3.5 h-3.5 text-blue-600" />
                     <span className="text-muted-foreground">云端</span>
@@ -72,47 +72,47 @@ export function DataConflictModal({
 
               {/* 选项 */}
               <div className="space-y-2">
-                {/* 智能合并（推荐）- 绿色毛玻璃 */}
+                {/* 智能合并（推荐）- 橙色琥珀色 */}
                 <button
                   onClick={() => onSelect('merge')}
-                  className="w-full p-3 green-gradient backdrop-blur-md text-white rounded-xl border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] flex items-center gap-3"
+                  className="w-full p-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl border border-white/20 shadow-[0_4px_16px_rgba(245,158,11,0.25)] flex items-center gap-3"
                 >
                   <Merge className="w-4 h-4" />
                   <div className="flex-1 text-left">
-                    <span className="text-xs font-medium font-serif">智能合并</span>
-                    <span className="text-xs opacity-80 ml-2">推荐</span>
+                    <span className="text-sm font-medium font-serif">智能合并</span>
+                    <span className="text-sm opacity-80 ml-2">推荐</span>
                   </div>
-                  <span className="text-xs opacity-80">保留两端不重复记录</span>
+                  <span className="text-sm opacity-80">保留两端不重复记录</span>
                 </button>
 
-                {/* 使用云端数据 - 蓝色边框 */}
+                {/* 使用云端数据 - 浅白到浅蓝渐变 */}
                 <button
                   onClick={() => onSelect('remote')}
-                  className="w-full p-3 bg-blue-50 text-blue-900 rounded-xl border-2 border-blue-300 flex items-center gap-3"
+                  className="w-full p-3 bg-gradient-to-r from-white to-blue-100 text-blue-900 rounded-xl border-2 border-blue-300 flex items-center gap-3"
                 >
                   <Cloud className="w-4 h-4 text-blue-600" />
-                  <span className="text-xs font-serif">使用云端数据</span>
-                  <span className="text-xs text-blue-600 ml-auto">{remoteCount} 条</span>
+                  <span className="text-sm font-serif">使用云端数据</span>
+                  <span className="text-sm text-blue-600 ml-auto">{remoteCount} 条</span>
                 </button>
 
-                {/* 保留本地数据 */}
+                {/* 保留本地数据 - 浅绿到绿色渐变 */}
                 {needWarning ? (
                   <button
                     onClick={() => setShowConfirmLocal(true)}
-                    className="w-full p-3 bg-red-50 text-red-900 rounded-xl border-2 border-red-300 flex items-center gap-3"
+                    className="w-full p-3 bg-gradient-to-r from-green-50 to-green-100 text-green-900 rounded-xl border-2 border-green-300 flex items-center gap-3"
                   >
-                    <AlertTriangle className="w-4 h-4 text-red-600" />
-                    <span className="text-xs font-serif">保留本地数据</span>
-                    <span className="text-xs text-red-600 ml-auto">将删除云端 {remoteCount} 条</span>
+                    <AlertTriangle className="w-4 h-4 text-green-600" />
+                    <span className="text-sm font-serif">保留本地数据</span>
+                    <span className="text-sm text-green-600 ml-auto">将删除云端 {remoteCount} 条</span>
                   </button>
                 ) : (
                   <button
                     onClick={() => onSelect('local')}
-                    className="w-full p-3 bg-muted text-foreground rounded-xl border-2 border-border flex items-center gap-3"
+                    className="w-full p-3 bg-gradient-to-r from-green-50 to-green-100 text-green-900 rounded-xl border-2 border-green-300 flex items-center gap-3"
                   >
-                    <HardDrive className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-xs font-serif">保留本地数据</span>
-                    <span className="text-xs text-muted-foreground ml-auto">{localCount} 条</span>
+                    <HardDrive className="w-4 h-4 text-green-600" />
+                    <span className="text-sm font-serif">保留本地数据</span>
+                    <span className="text-sm text-green-600 ml-auto">{localCount} 条</span>
                   </button>
                 )}
               </div>
@@ -136,16 +136,16 @@ export function DataConflictModal({
                     >
                       <div className="text-center">
                         <AlertTriangle className="w-8 h-8 text-red-500 mx-auto mb-3" />
-                        <h3 className="text-sm font-serif text-foreground font-medium mb-2">
+                        <h3 className="text-base font-serif text-foreground font-medium mb-2">
                           确认删除云端数据？
                         </h3>
-                        <p className="text-xs font-serif text-muted-foreground mb-4">
+                        <p className="text-sm font-serif text-muted-foreground mb-4">
                           云端 {remoteCount} 条，本地 {localCount} 条，操作不可撤销
                         </p>
                         <div className="flex gap-2">
                           <button
                             onClick={() => setShowConfirmLocal(false)}
-                            className="flex-1 px-3 py-2 bg-muted text-foreground rounded-xl text-xs font-serif"
+                            className="flex-1 px-3 py-2 bg-muted text-foreground rounded-xl text-sm font-serif"
                           >
                             取消
                           </button>
@@ -154,7 +154,7 @@ export function DataConflictModal({
                               setShowConfirmLocal(false)
                               onSelect('local')
                             }}
-                            className="flex-1 px-3 py-2 bg-red-500 text-white rounded-xl text-xs font-serif"
+                            className="flex-1 px-3 py-2 bg-gradient-to-r from-red-500/80 to-red-600/80 backdrop-blur-md text-white rounded-xl border border-white/20 shadow-[0_4px_16px_rgba(220,38,38,0.25)] text-sm font-serif"
                           >
                             确认
                           </button>
