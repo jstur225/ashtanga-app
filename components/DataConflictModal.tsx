@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Cloud, HardDrive, Merge, ArrowLeft, AlertTriangle } from 'lucide-react'
+import { Cloud, HardDrive, Merge, AlertTriangle } from 'lucide-react'
 
 interface DataConflictModalProps {
   isOpen: boolean
@@ -17,12 +17,12 @@ export function DataConflictModal({
   localCount,
   remoteCount,
   onSelect,
-  onBack
 }: DataConflictModalProps) {
   const [showConfirmLocal, setShowConfirmLocal] = useState(false)
 
   // 判断是否需要警告（云端数据明显多于本地）
   const needWarning = remoteCount > localCount * 2
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -32,183 +32,139 @@ export function DataConflictModal({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={() => {/* 禁止点击背景关闭 */}}
             className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50"
           />
 
-          {/* Modal */}
+          {/* Modal - 居中显示 */}
           <motion.div
-            initial={{ y: "100%" }}
-            animate={{ y: 0 }}
-            exit={{ y: "100%" }}
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.95, opacity: 0 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 bg-card rounded-t-[24px] z-[60] p-6 pb-10 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] max-h-[calc(100vh-2rem)] overflow-y-auto"
+            className="fixed inset-0 flex items-center justify-center z-[60] p-4"
           >
-            {/* 标题栏 */}
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-serif text-foreground font-bold">⚠️ 数据冲突</h2>
-              {onBack && (
-                <button
-                  onClick={onBack}
-                  className="flex items-center gap-1 text-sm font-serif text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  返回
-                </button>
-              )}
-            </div>
-
-            {/* 说明文字 */}
-            <div className="mb-6 p-4 bg-orange-50 border border-orange-100 rounded-2xl">
-              <p className="text-sm font-serif text-orange-900 leading-relaxed">
-                检测到您的本地和云端都有练习记录，请选择如何处理：
-              </p>
-            </div>
-
-            {/* 数据对比 */}
-            <div className="grid grid-cols-2 gap-3 mb-6">
-              <div className="p-4 bg-blue-50 border border-blue-100 rounded-xl">
-                <div className="flex items-center gap-2 mb-2">
-                  <Cloud className="w-5 h-5 text-blue-600" />
-                  <span className="text-sm font-serif font-medium text-blue-900">云端数据</span>
-                </div>
-                <p className="text-2xl font-bold text-blue-600">{remoteCount}</p>
-                <p className="text-xs text-blue-600 mt-1">条记录</p>
+            <div className="bg-card rounded-2xl p-4 w-full max-w-sm shadow-xl">
+              {/* 标题 */}
+              <div className="mb-3">
+                <h2 className="text-sm font-serif text-foreground font-medium">数据冲突</h2>
               </div>
 
-              <div className="p-4 bg-green-50 border border-green-100 rounded-xl">
-                <div className="flex items-center gap-2 mb-2">
-                  <HardDrive className="w-5 h-5 text-green-600" />
-                  <span className="text-sm font-serif font-medium text-green-900">本地数据</span>
+              {/* 说明 + 数据对比 */}
+              <div className="mb-3 p-3 bg-muted/50 rounded-xl">
+                <p className="text-xs font-serif text-muted-foreground mb-2">
+                  本地和云端都有数据，请选择处理方式：
+                </p>
+                <div className="flex items-center gap-4 text-xs font-serif">
+                  <div className="flex items-center gap-1.5">
+                    <Cloud className="w-3.5 h-3.5 text-blue-600" />
+                    <span className="text-muted-foreground">云端</span>
+                    <span className="font-medium text-foreground">{remoteCount}</span>
+                    <span className="text-muted-foreground">条</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <HardDrive className="w-3.5 h-3.5 text-green-600" />
+                    <span className="text-muted-foreground">本地</span>
+                    <span className="font-medium text-foreground">{localCount}</span>
+                    <span className="text-muted-foreground">条</span>
+                  </div>
                 </div>
-                <p className="text-2xl font-bold text-green-600">{localCount}</p>
-                <p className="text-xs text-green-600 mt-1">条记录</p>
               </div>
-            </div>
 
-            {/* 选项 */}
-            <div className="space-y-3">
-              {/* 智能合并（推荐） */}
-              <button
-                onClick={() => onSelect('merge')}
-                className="w-full p-4 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] hover:from-orange-600 hover:to-amber-600 transition-all"
-              >
-                <div className="flex items-center gap-3">
-                  <Merge className="w-6 h-6" />
-                  <div className="text-left">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold font-serif text-base">智能合并</span>
-                      <span className="px-2 py-0.5 bg-white/20 rounded text-xs">推荐</span>
-                    </div>
-                    <p className="text-xs opacity-90 mt-1">保留两端不重复的记录</p>
-                  </div>
-                </div>
-              </button>
-
-              {/* 使用云端数据 */}
-              <button
-                onClick={() => onSelect('remote')}
-                className="w-full p-4 bg-blue-50 text-blue-900 rounded-xl border-2 border-blue-200 hover:bg-blue-100 transition-all"
-              >
-                <div className="flex items-center gap-3">
-                  <Cloud className="w-6 h-6 text-blue-600" />
-                  <div className="text-left flex-1">
-                    <span className="font-bold font-serif text-base">使用云端数据</span>
-                    <p className="text-xs text-blue-600 mt-1">保留云端的 {remoteCount} 条记录</p>
-                  </div>
-                </div>
-              </button>
-
-              {/* 保留本地数据 */}
-              {needWarning ? (
-                // 危险模式：云端数据明显多于本地
+              {/* 选项 */}
+              <div className="space-y-2">
+                {/* 智能合并（推荐）- 绿色毛玻璃 */}
                 <button
-                  onClick={() => setShowConfirmLocal(true)}
-                  className="w-full p-4 bg-red-50 text-red-900 rounded-xl border-2 border-red-200 hover:bg-red-100 transition-all"
+                  onClick={() => onSelect('merge')}
+                  className="w-full p-3 green-gradient backdrop-blur-md text-white rounded-xl border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] flex items-center gap-3"
                 >
-                  <div className="flex items-center gap-3">
-                    <AlertTriangle className="w-6 h-6 text-red-600" />
-                    <div className="text-left flex-1">
-                      <span className="font-bold font-serif text-base">保留本地数据</span>
-                      <p className="text-xs text-red-600 mt-1">⚠️ 将删除云端 {remoteCount} 条记录</p>
-                    </div>
+                  <Merge className="w-4 h-4" />
+                  <div className="flex-1 text-left">
+                    <span className="text-xs font-medium font-serif">智能合并</span>
+                    <span className="text-xs opacity-80 ml-2">推荐</span>
                   </div>
+                  <span className="text-xs opacity-80">保留两端不重复记录</span>
                 </button>
-              ) : (
-                // 正常模式：两端数据量差不多
+
+                {/* 使用云端数据 - 蓝色边框 */}
                 <button
-                  onClick={() => onSelect('local')}
-                  className="w-full p-4 bg-green-50 text-green-900 rounded-xl border-2 border-green-200 hover:bg-green-100 transition-all"
+                  onClick={() => onSelect('remote')}
+                  className="w-full p-3 bg-blue-50 text-blue-900 rounded-xl border-2 border-blue-300 flex items-center gap-3"
                 >
-                  <div className="flex items-center gap-3">
-                    <HardDrive className="w-6 h-6 text-green-600" />
-                    <div className="text-left flex-1">
-                      <span className="font-bold font-serif text-base">保留本地数据</span>
-                      <p className="text-xs text-green-600 mt-1">保留本地的 {localCount} 条记录</p>
-                    </div>
-                  </div>
+                  <Cloud className="w-4 h-4 text-blue-600" />
+                  <span className="text-xs font-serif">使用云端数据</span>
+                  <span className="text-xs text-blue-600 ml-auto">{remoteCount} 条</span>
                 </button>
-              )}
-            </div>
 
-            {/* 提示 */}
-            <div className="mt-6 p-3 bg-gray-50 rounded-xl">
-              <p className="text-xs font-serif text-gray-600 leading-relaxed">
-                💡 提示：选择后会覆盖目标数据，操作无法撤销。如果不确定，建议选择"智能合并"。
-              </p>
-            </div>
-
-            {/* 二次确认对话框 */}
-            <AnimatePresence>
-              {showConfirmLocal && (
-                <>
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70]"
-                    onClick={() => setShowConfirmLocal(false)}
-                  />
-                  <motion.div
-                    initial={{ scale: 0.9, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    exit={{ scale: 0.9, opacity: 0 }}
-                    className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-card rounded-2xl p-6 z-[80] max-w-sm w-full shadow-2xl"
+                {/* 保留本地数据 */}
+                {needWarning ? (
+                  <button
+                    onClick={() => setShowConfirmLocal(true)}
+                    className="w-full p-3 bg-red-50 text-red-900 rounded-xl border-2 border-red-300 flex items-center gap-3"
                   >
-                    <div className="text-center">
-                      <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-                      <h3 className="text-lg font-bold font-serif text-foreground mb-2">
-                        ⚠️ 危险操作
-                      </h3>
-                      <p className="text-sm font-serif text-gray-600 mb-4 leading-relaxed">
-                        云端有 <span className="font-bold text-red-600">{remoteCount}</span> 条记录，<br/>
-                        本地只有 <span className="font-bold text-green-600">{localCount}</span> 条记录。
-                      </p>
-                      <p className="text-sm font-serif text-gray-600 mb-6 leading-relaxed">
-                        确定要删除云端的 {remoteCount} 条记录，只保留本地的 {localCount} 条吗？
-                      </p>
-                      <div className="flex gap-3">
-                        <button
-                          onClick={() => setShowConfirmLocal(false)}
-                          className="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-all font-serif"
-                        >
-                          取消
-                        </button>
-                        <button
-                          onClick={() => {
-                            setShowConfirmLocal(false)
-                            onSelect('local')
-                          }}
-                          className="flex-1 px-4 py-3 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-all font-serif"
-                        >
-                          确认删除
-                        </button>
+                    <AlertTriangle className="w-4 h-4 text-red-600" />
+                    <span className="text-xs font-serif">保留本地数据</span>
+                    <span className="text-xs text-red-600 ml-auto">将删除云端 {remoteCount} 条</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => onSelect('local')}
+                    className="w-full p-3 bg-muted text-foreground rounded-xl border-2 border-border flex items-center gap-3"
+                  >
+                    <HardDrive className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-xs font-serif">保留本地数据</span>
+                    <span className="text-xs text-muted-foreground ml-auto">{localCount} 条</span>
+                  </button>
+                )}
+              </div>
+
+              {/* 二次确认对话框 */}
+              <AnimatePresence>
+                {showConfirmLocal && (
+                  <>
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70]"
+                      onClick={() => setShowConfirmLocal(false)}
+                    />
+                    <motion.div
+                      initial={{ scale: 0.9, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      exit={{ scale: 0.9, opacity: 0 }}
+                      className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-card rounded-2xl p-5 z-[80] max-w-xs w-full shadow-2xl"
+                    >
+                      <div className="text-center">
+                        <AlertTriangle className="w-8 h-8 text-red-500 mx-auto mb-3" />
+                        <h3 className="text-sm font-serif text-foreground font-medium mb-2">
+                          确认删除云端数据？
+                        </h3>
+                        <p className="text-xs font-serif text-muted-foreground mb-4">
+                          云端 {remoteCount} 条，本地 {localCount} 条，操作不可撤销
+                        </p>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => setShowConfirmLocal(false)}
+                            className="flex-1 px-3 py-2 bg-muted text-foreground rounded-xl text-xs font-serif"
+                          >
+                            取消
+                          </button>
+                          <button
+                            onClick={() => {
+                              setShowConfirmLocal(false)
+                              onSelect('local')
+                            }}
+                            className="flex-1 px-3 py-2 bg-red-500 text-white rounded-xl text-xs font-serif"
+                          >
+                            确认
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  </motion.div>
-                </>
-              )}
-            </AnimatePresence>
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
           </motion.div>
         </>
       )}

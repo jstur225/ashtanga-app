@@ -383,11 +383,19 @@ export function useSync(
   // ==================== 下载云端数据 ====================
   const downloadRemoteData = async (userId: string) => {
     try {
+      console.log('📥 [downloadRemoteData] 开始下载，userId:', userId)
+
       const [recordsRes, optionsRes, profileRes] = await Promise.all([
         supabase.from(TABLES.PRACTICE_RECORDS).select('*').eq('user_id', userId).is('deleted_at', null),
         supabase.from(TABLES.PRACTICE_OPTIONS).select('*').eq('user_id', userId),
         supabase.from(TABLES.USER_PROFILES).select('*').eq('user_id', userId).maybeSingle(), // 改为 maybeSingle
       ])
+
+      console.log('📥 [downloadRemoteData] 查询完成')
+      console.log('   recordsRes.error:', recordsRes.error)
+      console.log('   optionsRes.error:', optionsRes.error)
+      console.log('   profileRes.error:', profileRes.error)
+      console.log('   recordsRes.data.length:', recordsRes.data?.length)
 
       if (recordsRes.error) throw recordsRes.error
       if (optionsRes.error) throw optionsRes.error
@@ -398,6 +406,8 @@ export function useSync(
         ...r,
         photos: r.photos ? (typeof r.photos === 'string' ? JSON.parse(r.photos) : r.photos) : []
       }))
+
+      console.log('📥 [downloadRemoteData] 记录处理完成，数量:', records.length)
 
       // 调试：打印云端选项数据
       console.log('📦 [downloadRemoteData] 云端选项数据:', optionsRes.data)
