@@ -7,6 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
 export interface PracticeRecord {
   id: string;
   created_at: string;
+  updated_at: string; // ⭐ 新增：最后修改时间，用于同步时判断最新版本
   date: string;
   type: string;
   duration: number;
@@ -108,13 +109,15 @@ export const usePracticeData = () => {
   }, []); // 只在组件挂载时执行一次
 
   const addRecord = (
-    record: Omit<PracticeRecord, 'id' | 'created_at' | 'photos'>,
+    record: Omit<PracticeRecord, 'id' | 'created_at' | 'updated_at' | 'photos'>,
     onSync?: (record: PracticeRecord) => void // ⭐ 新增：同步回调
   ) => {
+    const now = new Date().toISOString();
     const newRecord: PracticeRecord = {
       ...record,
       id: uuidv4(),
-      created_at: new Date().toISOString(),
+      created_at: now,
+      updated_at: now, // ⭐ 创建时设置更新时间
       photos: [], // MVP doesn't support photos
     };
 
@@ -139,12 +142,13 @@ export const usePracticeData = () => {
     data: Partial<PracticeRecord>,
     onSync?: (record: PracticeRecord) => void // ⭐ 新增：同步回调
   ) => {
-    setRecords((records || []).map(r => r.id === id ? { ...r, ...data } : r));
+    const now = new Date().toISOString();
+    setRecords((records || []).map(r => r.id === id ? { ...r, ...data, updated_at: now } : r));
 
     // ⭐ 触发同步回调
     const updatedRecord = records?.find(r => r.id === id);
     if (updatedRecord) {
-      onSync?.({ ...updatedRecord, ...data });
+      onSync?.({ ...updatedRecord, ...data, updated_at: now });
     }
   };
 

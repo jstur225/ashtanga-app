@@ -78,6 +78,7 @@ export interface PracticeRecord {
   id: string // UUID (string)
   user_id: string // 新增：用户ID，用于数据隔离
   created_at: string
+  updated_at: string // ⭐ 新增：最后修改时间，用于同步时判断最新版本
   date: string
   type: string
   duration: number

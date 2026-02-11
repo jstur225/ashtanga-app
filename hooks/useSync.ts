@@ -59,6 +59,13 @@ export function useSync(
     const recordsToSync = sortedRecords.slice(0, MAX_SYNC_RECORDS)
     const localOnlyCount = localCount - recordsToSync.length
 
+    console.log('📊 [useSync] 计算 syncStats:', {
+      localCount,
+      recordsToSyncLength: recordsToSync.length,
+      localOnlyCount,
+      hasLimitWarning: localOnlyCount > 0
+    })
+
     setSyncStats({
       totalLocalRecords: localCount,
       syncedRecords: recordsToSync.length,
@@ -164,25 +171,68 @@ export function useSync(
       // ⭐ 使用截取后的 recordsToSync（最早的50条）进行比对，避免超过限制的记录触发冲突
       const effectiveLocalRecords = localOnlyCount > 0 ? recordsToSync : localData.records
 
+      // ⭐ 云端数据也只取前50条进行比对（内测版本限制）
+      const effectiveRemoteRecords = remoteCount > MAX_SYNC_RECORDS
+        ? [...remoteData.records].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()).slice(0, MAX_SYNC_RECORDS)
+        : remoteData.records
+
       if (remoteCount > 0 && localCount > 0) {
         // 两边都有数据，检查是否有差异需要同步
         const localIds = new Set(effectiveLocalRecords.map(r => r.id))
-        const remoteIds = new Set(remoteData.records.map(r => r.id))
+        const remoteIds = new Set(effectiveRemoteRecords.map(r => r.id))
+        const remoteMap = new Map(effectiveRemoteRecords.map(r => [r.id, r]))
 
-        const localOnly = effectiveLocalRecords.filter(r => !remoteIds.has(r.id))
-        const remoteOnly = remoteData.records.filter(r => !localIds.has(r.id))
+        // ⭐ 改进的对比逻辑：同时检测内容变化
+        const localOnly: PracticeRecord[] = [] // 本地独有
+        const remoteOnly: PracticeRecord[] = [] // 云端独有
+        const localNewer: PracticeRecord[] = [] // 两边都有，但本地更新
+        const remoteNewer: PracticeRecord[] = [] // 两边都有，但云端更新
 
-        if (localOnly.length === 0 && remoteOnly.length === 0) {
+        for (const localRecord of effectiveLocalRecords) {
+          if (!remoteIds.has(localRecord.id)) {
+            localOnly.push(localRecord)
+          } else {
+            // ⭐ 两边都有，对比 updated_at
+            const remoteRecord = remoteMap.get(localRecord.id)
+            if (remoteRecord) {
+              const localTime = new Date(localRecord.updated_at || localRecord.created_at).getTime()
+              const remoteTime = new Date(remoteRecord.updated_at || remoteRecord.created_at).getTime()
+
+              if (localTime > remoteTime) {
+                localNewer.push(localRecord)
+                console.log(`📝 [autoSync] 记录 ${localRecord.id} 本地更新，本地时间: ${localTime}, 云端时间: ${remoteTime}`)
+              } else if (remoteTime > localTime) {
+                remoteNewer.push(remoteRecord)
+                console.log(`📝 [autoSync] 记录 ${remoteRecord.id} 云端更新，云端时间: ${remoteTime}, 本地时间: ${localTime}`)
+              }
+              // 时间相同，不需要同步
+            }
+          }
+        }
+
+        // 云端独有的记录
+        for (const remoteRecord of effectiveRemoteRecords) {
+          if (!localIds.has(remoteRecord.id)) {
+            remoteOnly.push(remoteRecord)
+          }
+        }
+
+        const totalLocalChanges = localOnly.length + localNewer.length
+        const totalRemoteChanges = remoteOnly.length + remoteNewer.length
+
+        console.log(`📊 [autoSync] 比对结果：本地独有${localOnly.length}条，云端独有${remoteOnly.length}条，本地更新${localNewer.length}条，云端更新${remoteNewer.length}条`)
+
+        if (totalLocalChanges === 0 && totalRemoteChanges === 0) {
           // 没有差异，数据已一致
           console.log('✅ [autoSync] 数据已一致，无需同步')
           setSyncStatus('success')
           return
         }
 
-        // 有差异：本地有新增数据 → 上传到云端
-        if (localOnly.length > 0 && remoteOnly.length === 0) {
-          console.log(`📤 [autoSync] 本地有${localOnly.length}条新数据，上传到云端`)
-          addLog(`上传本地新增：${localOnly.length}条记录`, 'success')
+        // 有差异：本地有新增/更新的数据 → 上传到云端
+        if (totalLocalChanges > 0 && totalRemoteChanges === 0) {
+          console.log(`📤 [autoSync] 本地有${totalLocalChanges}条变更（新增${localOnly.length}+更新${localNewer.length}），上传到云端`)
+          addLog(`上传本地变更：${totalLocalChanges}条记录`, 'success')
           const result = await uploadLocalData(user.id, localData, user)
           if (result.success) {
             setSyncStatus('success')
@@ -195,12 +245,30 @@ export function useSync(
           return
         }
 
-        // 有差异：云端有新数据 → 使用云端数据
-        if (remoteOnly.length > 0 && localOnly.length === 0) {
-          console.log(`📥 [autoSync] 云端有${remoteOnly.length}条新数据，下载到本地`)
-          addLog(`下载云端新增：${remoteOnly.length}条记录`, 'success')
+        // 有差异：云端有新增/更新的数据 → 合并到本地
+        if (totalRemoteChanges > 0 && totalLocalChanges === 0) {
+          console.log(`📥 [autoSync] 云端有${totalRemoteChanges}条变更（新增${remoteOnly.length}+更新${remoteNewer.length}）`)
+
+          // ⭐ 合并：本地记录 + 云端新增 + 云端更新的版本
+          const localMap = new Map(effectiveLocalRecords.map(r => [r.id, r]))
+          const mergedRecords = [...effectiveLocalRecords]
+
+          // 添加云端独有的记录
+          for (const record of remoteOnly) {
+            mergedRecords.push(record)
+          }
+
+          // 更新云端更新的记录
+          for (const record of remoteNewer) {
+            const index = mergedRecords.findIndex(r => r.id === record.id)
+            if (index >= 0) {
+              mergedRecords[index] = record
+            }
+          }
+
+          addLog(`同步云端变更：新增${remoteOnly.length}条，更新${remoteNewer.length}条`, 'success')
           onSyncComplete({
-            records: remoteData.records,
+            records: mergedRecords,
             options: remoteData.options || [],
             profile: remoteData.profile && remoteData.profile.name && !remoteData.profile.name.match(/^\d+$/)
               ? remoteData.profile
@@ -212,9 +280,9 @@ export function useSync(
           return
         }
 
-        // 两边都有新数据 → 真正的冲突，需要用户选择
-        console.log(`⚠️ [autoSync] 双方都有新数据：本地${localOnly.length}条，云端${remoteOnly.length}条`)
-        addLog(`检测到冲突：本地${localOnly.length}条新，云端${remoteOnly.length}条新`, 'success')
+        // 两边都有变更 → 真正的冲突，需要用户选择
+        console.log(`⚠️ [autoSync] 双方都有变更：本地${totalLocalChanges}条，云端${totalRemoteChanges}条`)
+        addLog(`检测到冲突：本地${totalLocalChanges}条变更，云端${totalRemoteChanges}条变更`, 'success')
         if (onConflictDetected) {
           onConflictDetected(localCount, remoteCount)
         }
@@ -222,11 +290,21 @@ export function useSync(
         return
       }
 
-      // 3. 只有云端有数据 → 使用云端
+      // 3. 只有云端有数据 → 使用云端（但只取前50条）
       if (remoteCount > 0 && localCount === 0) {
-        addLog(`使用云端数据：${remoteCount}条记录`, 'success')
+        // ⭐ 内测版本：只使用云端前50条数据
+        const remoteRecordsToUse = remoteCount > MAX_SYNC_RECORDS
+          ? [...remoteData.records].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()).slice(0, MAX_SYNC_RECORDS)
+          : remoteData.records
+
+        if (remoteCount > MAX_SYNC_RECORDS) {
+          console.log(`⚠️ [autoSync] 云端有${remoteCount}条记录，内测版本只使用前${MAX_SYNC_RECORDS}条`)
+          addLog(`内测限制：云端${remoteCount}条，只使用前50条`, 'success')
+        }
+
+        addLog(`使用云端数据：${remoteRecordsToUse.length}条记录`, 'success')
         onSyncComplete({
-          records: remoteData.records,
+          records: remoteRecordsToUse,
           options: remoteData.options || [],
           profile: remoteData.profile || { name: '阿斯汤加习练者', signature: '', avatar: null, is_pro: false }
         })
@@ -367,7 +445,7 @@ export function useSync(
     const failedIds: string[] = []
 
     const recordsToUpload = recordsToSync.map(r => ({
-      id: crypto.randomUUID(), // ⚠️ 生成新的 UUID，替换本地数字 ID
+      id: r.id, // ⭐ 使用原始 ID，不生成新的
       user_id: userId,
       date: r.date,
       type: r.type,
@@ -375,6 +453,7 @@ export function useSync(
       notes: r.notes || '',
       photos: null, // ⚠️ 照片暂不同步
       breakthrough: r.breakthrough || null,
+      updated_at: r.updated_at || r.created_at || new Date().toISOString(), // ⭐ 添加更新时间
     }))
 
     const { error } = await supabase
@@ -470,6 +549,7 @@ export function useSync(
           notes: r.notes || '',
           photos: r.photos && r.photos.length > 0 ? JSON.stringify(r.photos) : null, // ⚠️ 转换为 JSON 字符串
           breakthrough: r.breakthrough || null,
+          updated_at: r.updated_at || r.created_at || new Date().toISOString(), // ⭐ 添加更新时间
         }))
 
         const { error: recordsError } = await supabase
