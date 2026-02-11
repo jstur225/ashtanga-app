@@ -650,7 +650,7 @@ function EditRecordModal({
                   </button>
                   <button
                     onClick={handleConfirmDelete}
-                    className="flex-1 py-3 rounded-full font-serif transition-all active:scale-[0.98] bg-red-500 text-white shadow-md hover:bg-red-600"
+                    className="flex-1 py-3 rounded-full font-serif transition-all active:scale-[0.98] bg-gradient-to-br from-red-400 to-red-700 text-white backdrop-blur-md shadow-lg hover:shadow-xl border border-red-300/30"
                   >
                     删除
                   </button>
