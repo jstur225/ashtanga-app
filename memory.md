@@ -22,6 +22,38 @@
 - **better-auth-best-practices** - TypeScript 认证框架集成指南（2026-02-02 安装）
 
 ## 使用记录
+- **2026-02-11**: **增加50条觉察记录同步限制（内测版本）** - 为付费功能做铺垫
+  - **背景**: master2分支已实现账号登录和云同步，需要添加内测版本限制
+  - **核心功能**:
+    - ✅ 上传限制：最多同步最早的50条记录，超过的新记录仅保留在本地
+    - ✅ UI提示：当本地记录>50条时，显示黄色提示框告知用户仅本地保存的记录数
+    - ✅ 提示位置：放在"立即同步"按钮上方，更直观
+    - ✅ 冲突检测：使用截取后的50条记录进行比对，避免触发不必要的冲突弹窗
+    - ✅ 同步状态灯：修复同步后状态灯颜色不更新的问题（使用lastSyncStatus）
+  - **文件修改**:
+    - `hooks/useSync.ts`: 添加MAX_SYNC_RECORDS=50常量、syncStats状态、自动计算同步统计
+    - `components/AccountBindingSection.tsx`: 添加限制提示UI、修复状态灯颜色逻辑
+    - `app/practice/page.tsx`: 修复setReadInviteVersion prop传递
+  - **技术细节**:
+    - 按日期排序后截取前50条（最早的）
+    - syncStats在localData变化时自动计算
+    - 冲突检测使用effectiveLocalRecords（50条）而非全部记录
+  - **Git提交**: 7a72b78
+  - **下午继续**:
+    - ✅ 修复删除记录同步问题：删除后记录又回来的bug
+      - 原因：RLS策略阻止客户端直接更新数据库
+      - 方案：创建 `/api/sync/delete-record` API路由，使用service_role绕过RLS
+    - ✅ 修复删除后需要手动同步的问题：添加/删除记录后自动触发autoSync()
+    - ✅ 修复编辑弹窗直接显示删除确认的问题：useEffect中重置showDeleteConfirm状态
+    - ✅ 优化删除确认按钮样式：浅红到深红渐变+毛玻璃效果
+    - ✅ 创建生活教练导出桥：`sync_ashtanga_data.py`同步熬汤数据到生活教练系统
+    - ✅ 更新生活教练提示词：支持"同步数据"命令同时同步飞书和熬汤数据
+  - **Git提交**: 9c751b6, daecf6b, e9e1abe
+  - **记忆文件全局通用化** - 解决分支切换导致记忆丢失的问题
+    - 问题: `ashtang-app/memory.md` 与 `claude code/memory.md` 内容重复，切换分支时记忆不同步
+    - 解决方案: 创建全局记忆文件 `memory-global.md`，各分支统一指向
+    - 效果: 无论切换到哪个分支，记忆文件内容保持一致
+
 - **2026-02-02**: **技能配置更新** - 安装 better-auth-best-practices 技能
   - 使用命令：`npx skills add https://github.com/better-auth/skills --skill better-auth-best-practices --yes --global`
   - 安装位置：`~\.agents\skills\better-auth-best-practices`
