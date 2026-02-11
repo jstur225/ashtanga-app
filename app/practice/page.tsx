@@ -3181,10 +3181,22 @@ export default function AshtangaTracker() {
   }
 
   const handleCustomConfirm = (name: string, notes: string) => {
+    // 添加前记录 raw localStorage
+    const beforeRaw = localStorage.getItem('ashtanga_options')
+    const beforeParsed = JSON.parse(beforeRaw || '[]')
+    console.log('[handleCustomConfirm] 添加前 localStorage:', {
+      raw: beforeRaw,
+      parsed: beforeParsed,
+      count: beforeParsed.length
+    })
+
     // Check if we can add more options (max 9, excluding the "custom" button itself)
     const nonCustomOptions = practiceOptions.filter(o => o.id !== "custom")
+    console.log('[handleCustomConfirm] 当前非自定义选项数:', nonCustomOptions.length)
+
     if (nonCustomOptions.length >= 8) {
       // Options are full, just start practice without saving
+      console.log('[handleCustomConfirm] 选项已满，使用临时选项')
       setSelectedOption("custom-temp")
       setCustomPracticeName(name)
       setShowCustomModal(false)
@@ -3192,26 +3204,69 @@ export default function AshtangaTracker() {
     }
 
     // Create a new permanent custom option and save to localStorage
+    console.log('[handleCustomConfirm] 开始添加选项:', { name, notes })
     const newOption = addOption(name, name)
+    console.log('[handleCustomConfirm] addOption 返回:', newOption)
+
     if (notes) {
       updateOption(newOption.id, name, name, notes)
+      console.log('[handleCustomConfirm] 已更新 notes')
     }
 
     // Update local state will be handled by useEffect when practiceOptionsData changes
     setCustomPracticeName(name)
     setShowCustomModal(false)
 
+    // 延迟检查添加结果
+    setTimeout(() => {
+      const afterRaw = localStorage.getItem('ashtanga_options')
+      const afterParsed = JSON.parse(afterRaw || '[]')
+      console.log('[handleCustomConfirm] 添加后 localStorage:', {
+        raw: afterRaw,
+        parsed: afterParsed,
+        count: afterParsed.length,
+        addedOption: afterParsed.find((o: any) => o.id === newOption.id)
+      })
+
+      const beforeCount = beforeParsed.length
+      const afterCount = afterParsed.length
+      if (afterCount <= beforeCount) {
+        console.warn('[handleCustomConfirm] ⚠️ 警告: 选项数量未增加!', { beforeCount, afterCount })
+      } else {
+        console.log('[handleCustomConfirm] ✅ 选项添加成功', { beforeCount, afterCount })
+      }
+    }, 500)
+
     toast.success('已添加自定义选项')
   }
 
   const handleEditSave = (id: string, name: string, notes: string) => {
+    // 添加详细日志
+    console.log('[handleEditSave] 开始保存:', { id, name, notes })
+    const beforeRaw = localStorage.getItem('ashtanga_options')
+    console.log('[handleEditSave] 保存前 localStorage:', beforeRaw)
+
     // Update localStorage
     updateOption(id, name, name, notes)
 
-    // Update local state
-    setPracticeOptions(prev => prev.map(o =>
-      o.id === id ? { ...o, labelZh: name, label: name, notes } : o
-    ))
+    // Update local state - 修复字段名：使用 label_zh 而不是 labelZh
+    setPracticeOptions(prev => {
+      const updated = prev.map(o =>
+        o.id === id ? { ...o, label_zh: name, label: name, notes } : o
+      )
+      console.log('[handleEditSave] 更新后的选项:', updated)
+      return updated
+    })
+
+    // 延迟检查 localStorage 是否更新
+    setTimeout(() => {
+      const afterRaw = localStorage.getItem('ashtanga_options')
+      console.log('[handleEditSave] 保存后 localStorage:', afterRaw)
+      const beforeParsed = JSON.parse(beforeRaw || '[]')
+      const afterParsed = JSON.parse(afterRaw || '[]')
+      const changedOption = afterParsed.find((o: any) => o.id === id)
+      console.log('[handleEditSave] 被修改的选项:', changedOption)
+    }, 500)
 
     toast.success('已保存修改')
   }
@@ -3224,6 +3279,11 @@ export default function AshtangaTracker() {
       return
     }
 
+    console.log('[handleEditDelete] 开始删除:', { id })
+    const beforeRaw = localStorage.getItem('ashtanga_options')
+    const beforeParsed = JSON.parse(beforeRaw || '[]')
+    console.log('[handleEditDelete] 删除前选项数:', beforeParsed.length)
+
     // Update localStorage
     deleteOption(id)
 
@@ -3232,6 +3292,16 @@ export default function AshtangaTracker() {
     if (selectedOption === id) {
       setSelectedOption(null)
     }
+
+    // 延迟检查 localStorage 是否更新
+    setTimeout(() => {
+      const afterRaw = localStorage.getItem('ashtanga_options')
+      const afterParsed = JSON.parse(afterRaw || '[]')
+      console.log('[handleEditDelete] 删除后选项数:', afterParsed.length)
+      if (afterParsed.length >= beforeParsed.length) {
+        console.warn('[handleEditDelete] ⚠️ 警告: 选项数量未减少!')
+      }
+    }, 500)
 
     toast.success('已删除选项')
   }
@@ -3304,12 +3374,89 @@ export default function AshtangaTracker() {
       }))
     }
 
-    // 3. 读取localStorage数据（只读统计）
+    // 3. 读取localStorage原始数据（详细诊断）
+    const rawOptionsStr = localStorage.getItem('ashtanga_options')
+    let parsedOptions: any[] = []
+    let parseError = null
+    try {
+      if (rawOptionsStr) {
+        parsedOptions = JSON.parse(rawOptionsStr)
+      }
+    } catch (e: any) {
+      parseError = e.message
+    }
+
+    // 选项统计分析
+    const customOptionsCount = parsedOptions.filter((o: any) => o.is_custom).length
+    const defaultOptionsCount = parsedOptions.filter((o: any) => !o.is_custom).length
+    const hasCustomButton = parsedOptions.some((o: any) => o.id === 'custom')
+
+    // localStorage 健康检查
+    const ashtangaKeys = Object.keys(localStorage).filter(key => key.startsWith('ashtanga_'))
+    const keySizes = ashtangaKeys.map(key => {
+      const value = localStorage.getItem(key) || ''
+      return { key, size: new Blob([value]).size }
+    })
+    const totalSize = keySizes.reduce((sum, k) => sum + k.size, 0)
+
+    // 写入测试
+    let writeTestResult = 'unknown'
+    try {
+      const testKey = '_test_write_' + Date.now()
+      localStorage.setItem(testKey, 'test')
+      const readBack = localStorage.getItem(testKey)
+      localStorage.removeItem(testKey)
+      writeTestResult = readBack === 'test' ? 'success' : 'failed'
+    } catch (e: any) {
+      writeTestResult = 'error: ' + e.message
+    }
+
+    // 隐私模式检测（通过尝试写入并读取）
+    let isPrivateMode = false
+    try {
+      const testKey = '_pm_test_'
+      localStorage.setItem(testKey, '1')
+      localStorage.removeItem(testKey)
+    } catch (e) {
+      isPrivateMode = true
+    }
+
     const storageState = {
       localStorageKeys: Object.keys(localStorage).filter(key =>
         key.startsWith('ashtanga_') || key.includes('practice')
       ),
-      estimatedSize: new Blob(Object.values(localStorage)).size
+      estimatedSize: new Blob(Object.values(localStorage)).size,
+      // 详细诊断信息
+      rawOptions: {
+        rawString: rawOptionsStr,
+        parseError,
+        parsedLength: parsedOptions.length,
+        fullOptions: parsedOptions.map((o: any) => ({
+          id: o.id,
+          label: o.label,
+          label_zh: o.label_zh,
+          notes: o.notes,
+          is_custom: o.is_custom,
+          created_at: o.created_at
+        }))
+      },
+      optionsStats: {
+        total: parsedOptions.length,
+        customCount: customOptionsCount,
+        defaultCount: defaultOptionsCount,
+        hasCustomButton,
+        appStateOptionsCount: practiceOptions.length,
+        dataOptionsCount: practiceOptionsData.length,
+        isConsistent: practiceOptions.length === practiceOptionsData.length &&
+                      practiceOptions.length === parsedOptions.length
+      },
+      storageHealth: {
+        ashtangaKeys,
+        keySizes,
+        totalSize,
+        writeTest: writeTestResult,
+        isPrivateMode
+      }
     }
 
     // 4. 生成日志（最近20条，增强字段）
@@ -3846,7 +3993,8 @@ export default function AshtangaTracker() {
         isOpen={showXiaohongshuModal}
         onClose={() => {
           setShowXiaohongshuModal(false)
-          // 已在点击气泡时标记已读，这里无需重复
+          // 关闭时标记为已读，确保小红点消失
+          setReadInviteVersion(INVITE_VERSION)
         }}
       />
     </div>
