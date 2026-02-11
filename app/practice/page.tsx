@@ -1941,6 +1941,7 @@ function SettingsModal({
                   onOpenLoginModal={onOpenLoginModal}
                   onOpenRegisterModal={onOpenRegisterModal}
                   onShowClearDataConfirm={onShowClearDataConfirm}
+                  user={user}
                 />
               )}
 
@@ -2068,6 +2069,7 @@ function AccountSyncModal({
   onOpenLoginModal,
   onOpenRegisterModal,
   onShowClearDataConfirm,
+  user,
 }: {
   isOpen: boolean
   onClose: () => void
@@ -2077,6 +2079,7 @@ function AccountSyncModal({
   onOpenLoginModal: () => void
   onOpenRegisterModal: () => void
   onShowClearDataConfirm?: () => void
+  user?: any
 }) {
   return (
     <AnimatePresence>
@@ -2096,7 +2099,7 @@ function AccountSyncModal({
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
             className="fixed bottom-0 left-0 right-0 bg-card rounded-t-[24px] z-50 p-6 pb-10 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] max-h-[calc(100vh-2rem)] overflow-y-auto"
           >
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-3">
               <h2 className="text-lg font-serif text-foreground">账户与同步</h2>
               <button onClick={onClose} className="p-2 -mr-2 text-muted-foreground hover:text-foreground transition-colors">
                 <X className="w-5 h-5" />
@@ -2116,6 +2119,7 @@ function AccountSyncModal({
               onOpenLoginModal={onOpenLoginModal}
               onOpenRegisterModal={onOpenRegisterModal}
               onShowClearDataConfirm={onShowClearDataConfirm}
+              user={user}
             />
           </motion.div>
         </>
@@ -4309,6 +4313,7 @@ export default function AshtangaTracker() {
           setShowClearDataConfirm(true)
           setClearDataStep(2) // 直接从 Step 2（输入确认词）开始
         }}
+        user={user}
       />
 
       {/* 清空数据确认弹窗 - 居中显示 */}

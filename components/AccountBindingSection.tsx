@@ -21,6 +21,7 @@ interface AccountBindingSectionProps {
   onOpenLoginModal: () => void
   onOpenRegisterModal: () => void
   onShowClearDataConfirm?: () => void // ⭐ 新增：显示清空数据确认弹窗
+  user?: any // ⭐ 新增：用户状态从父组件传递
 }
 
 // 隐藏邮箱地址的辅助函数
@@ -49,8 +50,11 @@ export function AccountBindingSection({
   onOpenLoginModal,
   onOpenRegisterModal,
   onShowClearDataConfirm,
+  user: propUser,
 }: AccountBindingSectionProps) {
-  const { user, signOut, deviceConflict, confirmDeviceConflict, cancelDeviceConflict } = useAuth()
+  const { user: authUser, signOut, deviceConflict, confirmDeviceConflict, cancelDeviceConflict } = useAuth()
+  // 优先使用 prop 传递的 user，如果没有则使用 useAuth 获取的
+  const user = propUser || authUser
   const { syncStatus, lastSyncTime, lastSyncStatus, uploadLocalData, autoSync, syncStats } = useSync(
     user,
     { ...localData, profile },
@@ -193,8 +197,14 @@ export function AccountBindingSection({
 
   return (
     <div>
-      {/* 数据存储风险提示 */}
-      <DataStorageNotice isCloudSynced={!!user} />
+      {/* 数据存储风险提示 - 包含已绑定邮箱、同步提醒、进度条 */}
+      <DataStorageNotice
+        isCloudSynced={!!user}
+        email={user?.email}
+        syncStats={syncStats}
+        syncStatus={syncStatus}
+        lastSyncTime={lastSyncTime}
+      />
 
       {/* 未登录状态 */}
       {!user ? (
@@ -227,54 +237,14 @@ export function AccountBindingSection({
         </div>
       ) : (
         /* 已登录状态 */
-        <div className="space-y-4">
-          {/* 用户信息和同步状态 - 并排显示 */}
-          <div className="grid grid-cols-2 gap-3">
-            {/* 用户信息卡片 - 金色米白色渐变 */}
-            <div className="bg-gradient-to-br from-amber-50/80 to-orange-50/80 backdrop-blur-sm rounded-xl p-3 border border-amber-200/50">
-              <div className="flex items-center gap-2 mb-2">
-                <CheckCircle className="w-4 h-4 text-amber-600" />
-                <span className="text-xs font-medium font-serif text-foreground">已绑定邮箱</span>
-              </div>
-              <p className="text-xs font-serif text-muted-foreground truncate leading-tight" title={user.email || ''}>
-                {maskEmail(user.email || '')}
-              </p>
-            </div>
-
-            {/* 同步状态卡片 - 金色米白色渐变 */}
-            <div className="bg-gradient-to-br from-amber-50/80 to-orange-50/80 backdrop-blur-sm rounded-xl p-3 border border-amber-200/50">
-              <div className="flex items-center gap-2 mb-2">
-                {/* 精致小灯 - 使用 lastSyncStatus 来显示最后一次同步的结果 */}
-                <div className={`rounded-full w-2 h-2 flex-shrink-0 ${
-                  syncStatus === 'syncing' ? 'bg-blue-400 animate-pulse' :
-                  syncStatus === 'error' ? 'bg-red-400' :
-                  lastSyncStatus === 'success' ? 'bg-green-400' :
-                  lastSyncStatus === 'error' ? 'bg-red-400' :
-                  'bg-stone-400'
-                }`} />
-                <p className="text-xs font-serif text-foreground">
-                  最近同步时间
-                </p>
-              </div>
-              {lastSyncTime ? (
-                <p className="text-xs font-serif text-muted-foreground leading-tight">
-                  {new Date(lastSyncTime).toLocaleString('zh-CN')}
-                </p>
-              ) : (
-                <p className="text-xs font-serif text-muted-foreground leading-tight">
-                  尚未同步
-                </p>
-              )}
-            </div>
-          </div>
-
-          {/* ⭐ 新增：内测版本限制提示（当本地记录超过50条时显示）- 放在按钮上方更直观 */}
+        <div className="space-y-3">
+          {/* ⭐ 内测版本限制提示（当本地记录超过50条时显示）*/}
           {syncStats?.hasLimitWarning && (
             <div className="p-3 rounded-xl bg-amber-50 border border-amber-200">
               <div className="flex items-start gap-2">
                 <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-xs font-medium font-serif text-amber-800">
+                  <p className="text-[10px] font-medium font-serif text-amber-800">
                     内测版本上限提示
                   </p>
                   <p className="text-[10px] text-amber-600 font-serif mt-1 leading-relaxed">
