@@ -55,7 +55,7 @@ export function AccountBindingSection({
   const { user: authUser, signOut, deviceConflict, confirmDeviceConflict, cancelDeviceConflict } = useAuth()
   // 优先使用 prop 传递的 user，如果没有则使用 useAuth 获取的
   const user = propUser || authUser
-  const { syncStatus, lastSyncTime, lastSyncStatus, uploadLocalData, autoSync, syncStats } = useSync(
+  const { syncStatus, lastSyncTime, lastSyncStatus, uploadLocalData, autoSync, syncStats, resetSyncStatus } = useSync(
     user,
     { ...localData, profile },
     onSyncComplete
@@ -258,7 +258,7 @@ export function AccountBindingSection({
               className="flex-1 flex items-center justify-center gap-2 px-4 py-3 green-gradient backdrop-blur-md text-white rounded-xl border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-serif"
             >
               <RefreshCw className={`w-4 h-4 ${syncStatus === 'syncing' ? 'animate-spin' : ''}`} />
-              立即同步
+              {syncStatus === 'syncing' ? '同步中...' : '立即同步'}
             </button>
             <button
               onClick={handleSignOut}
@@ -268,6 +268,17 @@ export function AccountBindingSection({
               退出登录
             </button>
           </div>
+
+          {/* 同步卡住时的重置按钮 */}
+          {syncStatus === 'syncing' && (
+            <button
+              onClick={resetSyncStatus}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 text-xs text-muted-foreground hover:text-foreground transition-colors font-serif"
+            >
+              <X className="w-3 h-3" />
+              同步卡住？点击重置
+            </button>
+          )}
 
           {/* 修改密码按钮 */}
           <button

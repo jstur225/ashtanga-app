@@ -8,6 +8,7 @@ import { usePWAInstall } from "@/hooks/usePWAInstall"
 import { useAuth } from "@/hooks/useAuth"
 import { useSync } from "@/hooks/useSync"
 import { BookOpen, BarChart3, Calendar, X, Camera, Pause, Play, Trash2, User, Settings, ChevronLeft, ChevronRight, ChevronUp, Cloud, Download, Upload, Plus, Share2, Sparkles, Check, Copy, ClipboardPaste, MessageCircle, Bug, AlertCircle } from "lucide-react"
+import { VoiceButton } from "@/components/VoiceRecorder"
 import { FakeDoorModal } from "@/components/FakeDoorModal"
 import { ImportModal } from "@/components/ImportModal"
 import { ExportModal } from "@/components/ExportModal"
@@ -740,16 +741,25 @@ function EditRecordModal({
 
                 {/* Editable notes */}
                 <div>
-                  <label className="block text-xs font-serif text-muted-foreground mb-1.5">
-                    觉察/笔记 <span className="text-muted-foreground/60">（最多2000字）</span>
-                  </label>
-                  <textarea
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value.slice(0, 2000))}
-                    placeholder="今天的练习感受如何？"
-                    rows={7}
-                    className="w-full px-4 py-3 rounded-2xl bg-secondary text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-none font-serif text-sm"
-                  />
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-serif text-muted-foreground">
+                      觉察/笔记
+                    </label>
+                    <span className="text-xs text-muted-foreground/60">{notes.length}/2000</span>
+                  </div>
+                  <div className="relative">
+                    <textarea
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value.slice(0, 2000))}
+                      placeholder="今天练习感受如何？有什么觉察？可以尝试右下方的语音输入，轻松地说出你的当下想法，留下更多真实的痕迹。"
+                      rows={7}
+                      className="w-full px-4 py-3 pr-12 rounded-2xl bg-secondary text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-none font-serif text-sm"
+                    />
+                    {/* Voice Input - 浮动在输入框右下角 */}
+                    <VoiceButton
+                      onTranscript={(text) => setNotes((prev) => (prev + text).slice(0, 2000))}
+                    />
+                  </div>
                 </div>
 
                 <button
@@ -960,18 +970,30 @@ function ShareCardModal({
                 {/* Reflection Text - Editable Notes with elegant serif font */}
                 <div className="px-5 py-6">
                   {isEditingNotes ? (
-                    <textarea
-                      value={editableNotes}
-                      onChange={(e) => setEditableNotes(e.target.value)}
-                      onBlur={() => setIsEditingNotes(false)}
-                      autoFocus
-                      rows={Math.max(4, editableNotes.split('\n').length)}
-                      className={`w-full text-sm text-foreground font-serif leading-relaxed bg-transparent focus:outline-none resize-y ${
-                        isCapturing
-                          ? 'max-h-none'  // 截图时：无高度限制
-                          : 'max-h-[60vh] overflow-y-auto'  // 编辑时：最大60vh，超出滚动
-                      }`}
-                    />
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs text-muted-foreground/60">{editableNotes.length}字</span>
+                      </div>
+                      <textarea
+                        value={editableNotes}
+                        onChange={(e) => setEditableNotes(e.target.value)}
+                        onBlur={() => setIsEditingNotes(false)}
+                        autoFocus
+                        rows={Math.max(4, editableNotes.split('\n').length)}
+                        placeholder="今天练习感受如何？有什么觉察？可以尝试右下方的语音输入，轻松地说出你的当下想法，留下更多真实的痕迹。"
+                        className={`w-full px-3 py-2 pr-12 text-sm text-foreground font-serif leading-relaxed bg-secondary rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 resize-y ${
+                          isCapturing
+                            ? 'max-h-none'  // 截图时：无高度限制
+                            : 'max-h-[60vh] overflow-y-auto'  // 编辑时：最大60vh，超出滚动
+                        }`}
+                      />
+                      {/* Voice Input Button for ShareCard - 浮动在右下角 */}
+                      <div className="relative">
+                        <VoiceButton
+                          onTranscript={(text) => setEditableNotes((prev) => prev + text)}
+                        />
+                      </div>
+                    </div>
                   ) : (
                     <p
                       onClick={() => setIsEditingNotes(true)}
@@ -981,7 +1003,7 @@ function ShareCardModal({
                           : 'max-h-[60vh] overflow-y-auto'  // 预览时：最大60vh，超出滚动
                       }`}
                     >
-                      {editableNotes || "点击编辑笔记..."}
+                      {editableNotes || "点击编辑笔记，或尝试右下方的语音输入，轻松说出你的想法..."}
                     </p>
                   )}
                 </div>
@@ -1638,16 +1660,25 @@ function AddPracticeModal({
 
               {/* Notes */}
               <div>
-                <label className="block text-xs font-serif text-muted-foreground mb-2">
-                  觉察/笔记 <span className="text-muted-foreground/60">（最多2000字）</span>
-                </label>
-                <textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="记录呼吸、体感和觉察..."
-                  rows={5}
-                  className="w-full px-4 py-3 rounded-2xl bg-secondary text-foreground font-serif focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-none text-sm"
-                />
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-xs font-serif text-muted-foreground">
+                    觉察/笔记
+                  </label>
+                  <span className="text-xs text-muted-foreground/60">{notes.length}/2000</span>
+                </div>
+                <div className="relative">
+                  <textarea
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value.slice(0, 2000))}
+                    placeholder="今天练习感受如何？有什么觉察？可以尝试右下方的语音输入，轻松地说出你的当下想法，留下更多真实的痕迹。"
+                    rows={5}
+                    className="w-full px-4 py-3 pr-12 rounded-2xl bg-secondary text-foreground placeholder:text-muted-foreground font-serif focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-none text-sm"
+                  />
+                  {/* Voice Input */}
+                  <VoiceButton
+                    onTranscript={(text) => setNotes((prev) => (prev + text).slice(0, 2000))}
+                  />
+                </div>
               </div>
 
               <button
@@ -2280,17 +2311,25 @@ function CompletionSheet({
               </div>
 
               <div>
-                <label className="block text-xs font-serif text-muted-foreground mb-1.5">
-                  觉察/笔记 <span className="text-muted-foreground/60">（最多2000字）</span>
-                </label>
-                <textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value.slice(0, 2000))}
-                  placeholder="今天的练习感受如何？有什么觉察或洞见..."
-                  rows={5}
-                  className="w-full px-4 py-3 rounded-2xl bg-secondary text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-none font-serif"
-                />
-                <div className="text-right text-xs text-muted-foreground mt-1">{notes.length}/2000</div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-serif text-muted-foreground">
+                    觉察/笔记
+                  </label>
+                  <span className="text-xs text-muted-foreground/60">{notes.length}/2000</span>
+                </div>
+                <div className="relative">
+                  <textarea
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value.slice(0, 2000))}
+                    placeholder="今天练习感受如何？有什么觉察？可以尝试右下方的语音输入，轻松地说出你的当下想法，留下更多真实的痕迹。"
+                    rows={5}
+                    className="w-full px-4 py-3 pr-12 rounded-2xl bg-secondary text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-none font-serif"
+                  />
+                  {/* Voice Input - 浮动在输入框右下角 */}
+                  <VoiceButton
+                    onTranscript={(text) => setNotes((prev) => (prev + text).slice(0, 2000))}
+                  />
+                </div>
               </div>
 
               <button

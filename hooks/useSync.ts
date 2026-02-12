@@ -351,7 +351,16 @@ export function useSync(
       // 清理同步标志，允许下次同步
       isSyncingRef.current = false
       console.log('✅ [autoSync] 同步完成，清理标志')
+      // ⭐ 确保如果状态仍然是 syncing，重置为 idle（防止卡住）
+      setSyncStatus(prev => prev === 'syncing' ? 'idle' : prev)
     }
+  }
+
+  // ⭐ 手动重置同步状态（用于卡顿时）
+  const resetSyncStatus = () => {
+    isSyncingRef.current = false
+    setSyncStatus('idle')
+    addLog('手动重置同步状态', 'success')
   }
 
   // ==================== 智能合并 ====================
@@ -385,11 +394,18 @@ export function useSync(
     try {
       console.log('📥 [downloadRemoteData] 开始下载，userId:', userId)
 
-      const [recordsRes, optionsRes, profileRes] = await Promise.all([
+      // ⭐ 添加超时保护，15秒超时
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('下载超时，请检查网络连接')), 15000)
+      })
+
+      const fetchPromise = Promise.all([
         supabase.from(TABLES.PRACTICE_RECORDS).select('*').eq('user_id', userId).is('deleted_at', null),
         supabase.from(TABLES.PRACTICE_OPTIONS).select('*').eq('user_id', userId),
-        supabase.from(TABLES.USER_PROFILES).select('*').eq('user_id', userId).maybeSingle(), // 改为 maybeSingle
+        supabase.from(TABLES.USER_PROFILES).select('*').eq('user_id', userId).maybeSingle(),
       ])
+
+      const [recordsRes, optionsRes, profileRes] = await Promise.race([fetchPromise, timeoutPromise]) as any
 
       console.log('📥 [downloadRemoteData] 查询完成')
       console.log('   recordsRes.error:', recordsRes.error)
@@ -745,5 +761,6 @@ export function useSync(
     autoSync, // 手动触发同步
     uploadLocalData, // 手动上传本地数据
     resolveConflict, // ⭐ 新增：处理数据冲突
+    resetSyncStatus, // ⭐ 新增：手动重置同步状态
   }
 }
