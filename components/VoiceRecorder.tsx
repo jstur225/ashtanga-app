@@ -5,14 +5,6 @@ import { Mic, Square, Pause, Play } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useVoiceInput } from "@/hooks/useVoiceInput"
 import { toast } from "sonner"
-import { createPortal } from "react-dom"
-
-interface VoiceRecorderProps {
-  isRecording: boolean
-  onStart: () => void
-  onStop: () => void
-  onTranscript: (text: string) => void
-}
 
 // 波形组件 - 类似 flomo 风格
 function Waveform({ isRecording, isPaused }: { isRecording: boolean; isPaused: boolean }) {
@@ -47,14 +39,29 @@ function Waveform({ isRecording, isPaused }: { isRecording: boolean; isPaused: b
   )
 }
 
-// Portal 版本的录音卡片 - 固定在屏幕底部，不会被键盘遮挡
-function VoiceRecorderPortal({ isRecording, onStart, onStop, onTranscript }: VoiceRecorderProps) {
+// 录音卡片组件 - 从输入框下方滑出
+interface VoiceRecorderInlineProps {
+  isRecording: boolean
+  onStart: () => void
+  onStop: () => void
+  onTranscript: (text: string) => void
+}
+
+function VoiceRecorderInline({ isRecording, onStart, onStop, onTranscript }: VoiceRecorderInlineProps) {
   const [duration, setDuration] = useState(0)
   const [isPaused, setIsPaused] = useState(false)
   const timerRef = useRef<NodeJS.Timeout | null>(null)
+  const transcriptRef = useRef('')
 
   const handleResult = useCallback((text: string, isFinal: boolean) => {
-    onTranscript(text)
+    // 计算新增文字，避免重复
+    const newText = text.slice(transcriptRef.current.length)
+    transcriptRef.current = text
+
+    if (newText) {
+      console.log('[VoiceRecorder] New transcript:', newText)
+      onTranscript(newText)
+    }
   }, [onTranscript])
 
   const handleError = useCallback((error: string) => {
@@ -93,16 +100,21 @@ function VoiceRecorderPortal({ isRecording, onStart, onStop, onTranscript }: Voi
     }
   }, [isRecording, isPaused])
 
-  const handleStart = useCallback(() => {
-    if (!isSupported) {
-      toast.error('当前浏览器不支持语音输入')
-      return
+  // 开始录音时重置状态
+  useEffect(() => {
+    if (isRecording) {
+      if (!isSupported) {
+        toast.error('当前浏览器不支持语音输入')
+        onStop()
+        return
+      }
+      setDuration(0)
+      setIsPaused(false)
+      transcriptRef.current = ''
+      startListening()
+      onStart()
     }
-    setDuration(0)
-    setIsPaused(false)
-    startListening()
-    onStart()
-  }, [isSupported, startListening, onStart])
+  }, [isRecording, isSupported, startListening, onStart, onStop])
 
   const handlePause = useCallback(() => {
     setIsPaused(true)
@@ -119,6 +131,7 @@ function VoiceRecorderPortal({ isRecording, onStart, onStop, onTranscript }: Voi
     onStop()
     setDuration(0)
     setIsPaused(false)
+    transcriptRef.current = ''
   }, [stopListening, onStop])
 
   const formatDuration = (seconds: number) => {
@@ -127,17 +140,20 @@ function VoiceRecorderPortal({ isRecording, onStart, onStop, onTranscript }: Voi
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
   }
 
-  // 使用 Portal 渲染到 body
-  return createPortal(
+  if (!isRecording) {
+    return null
+  }
+
+  return (
     <motion.div
-      initial={{ opacity: 0, y: 100 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 100 }}
+      initial={{ opacity: 0, height: 0, y: 20 }}
+      animate={{ opacity: 1, height: 'auto', y: 0 }}
+      exit={{ opacity: 0, height: 0, y: 20 }}
       transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-      className="fixed bottom-0 left-0 right-0 z-[100] p-4"
+      className="mt-3 overflow-hidden"
     >
-      {/* 录音卡片 - 在屏幕底部浮动 */}
-      <div className="bg-card rounded-2xl border border-border shadow-[0_-4px_20px_rgba(0,0,0,0.1)] p-5 mx-auto max-w-md">
+      {/* 浅色录音卡片 */}
+      <div className="bg-card rounded-2xl border border-border p-5">
         {/* 顶部：REC + 日期 */}
         <div className="flex items-center justify-between mb-4">
           <div>
@@ -189,8 +205,7 @@ function VoiceRecorderPortal({ isRecording, onStart, onStop, onTranscript }: Voi
           </div>
         </div>
       </div>
-    </motion.div>,
-    document.body
+    </motion.div>
   )
 }
 
@@ -222,6 +237,7 @@ export function VoiceFloatButton({ onTranscript }: VoiceFloatButtonProps) {
   }, [])
 
   const handleTranscript = useCallback((text: string) => {
+    console.log('[VoiceFloatButton] Received transcript:', text)
     onTranscript(text)
   }, [onTranscript])
 
@@ -248,13 +264,13 @@ export function VoiceFloatButton({ onTranscript }: VoiceFloatButtonProps) {
         )}
       </AnimatePresence>
 
-      {/* 录音卡片 - 使用 Portal 渲染到 body，避免被父元素裁剪 */}
+      {/* 录音卡片 - 从输入框下方滑出 */}
       <AnimatePresence mode="wait">
         {isRecording && (
-          <VoiceRecorderPortal
+          <VoiceRecorderInline
             key="recorder"
             isRecording={isRecording}
-            onStart={handleStart}
+            onStart={() => {}}
             onStop={handleStop}
             onTranscript={handleTranscript}
           />
