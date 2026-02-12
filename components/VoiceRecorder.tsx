@@ -5,8 +5,9 @@ import { Mic, Square, Pause, Play } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useVoiceInput } from "@/hooks/useVoiceInput"
 import { toast } from "sonner"
+import { createPortal } from "react-dom"
 
-interface VoiceRecorderInlineProps {
+interface VoiceRecorderProps {
   isRecording: boolean
   onStart: () => void
   onStop: () => void
@@ -46,14 +47,13 @@ function Waveform({ isRecording, isPaused }: { isRecording: boolean; isPaused: b
   )
 }
 
-export function VoiceRecorderInline({ isRecording, onStart, onStop, onTranscript }: VoiceRecorderInlineProps) {
+// Portal 版本的录音卡片 - 固定在屏幕底部，不会被键盘遮挡
+function VoiceRecorderPortal({ isRecording, onStart, onStop, onTranscript }: VoiceRecorderProps) {
   const [duration, setDuration] = useState(0)
   const [isPaused, setIsPaused] = useState(false)
   const timerRef = useRef<NodeJS.Timeout | null>(null)
-  const accumulatedTextRef = useRef("")
 
   const handleResult = useCallback((text: string, isFinal: boolean) => {
-    // 直接传递当前识别到的文字（包含临时结果）
     onTranscript(text)
   }, [onTranscript])
 
@@ -63,7 +63,6 @@ export function VoiceRecorderInline({ isRecording, onStart, onStop, onTranscript
   }, [])
 
   const {
-    isListening,
     isSupported,
     startListening,
     stopListening,
@@ -101,7 +100,6 @@ export function VoiceRecorderInline({ isRecording, onStart, onStop, onTranscript
     }
     setDuration(0)
     setIsPaused(false)
-    accumulatedTextRef.current = ""
     startListening()
     onStart()
   }, [isSupported, startListening, onStart])
@@ -121,7 +119,6 @@ export function VoiceRecorderInline({ isRecording, onStart, onStop, onTranscript
     onStop()
     setDuration(0)
     setIsPaused(false)
-    accumulatedTextRef.current = ""
   }, [stopListening, onStop])
 
   const formatDuration = (seconds: number) => {
@@ -130,21 +127,17 @@ export function VoiceRecorderInline({ isRecording, onStart, onStop, onTranscript
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
   }
 
-  // 如果不在录音状态，返回null
-  if (!isRecording) {
-    return null
-  }
-
-  return (
+  // 使用 Portal 渲染到 body
+  return createPortal(
     <motion.div
-      initial={{ opacity: 0, height: 0, y: 20 }}
-      animate={{ opacity: 1, height: 'auto', y: 0 }}
-      exit={{ opacity: 0, height: 0, y: 20 }}
+      initial={{ opacity: 0, y: 100 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 100 }}
       transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-      className="mt-3 overflow-hidden"
+      className="fixed bottom-0 left-0 right-0 z-[100] p-4"
     >
-      {/* 浅色录音卡片 */}
-      <div className="bg-card rounded-2xl border border-border p-5">
+      {/* 录音卡片 - 在屏幕底部浮动 */}
+      <div className="bg-card rounded-2xl border border-border shadow-[0_-4px_20px_rgba(0,0,0,0.1)] p-5 mx-auto max-w-md">
         {/* 顶部：REC + 日期 */}
         <div className="flex items-center justify-between mb-4">
           <div>
@@ -196,7 +189,8 @@ export function VoiceRecorderInline({ isRecording, onStart, onStop, onTranscript
           </div>
         </div>
       </div>
-    </motion.div>
+    </motion.div>,
+    document.body
   )
 }
 
@@ -208,7 +202,18 @@ interface VoiceFloatButtonProps {
 export function VoiceFloatButton({ onTranscript }: VoiceFloatButtonProps) {
   const [isRecording, setIsRecording] = useState(false)
 
-  const handleStart = useCallback(() => {
+  const handleStart = useCallback(async () => {
+    // 请求麦克风权限
+    try {
+      console.log('[VoiceRecorder] Requesting microphone permission...')
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      stream.getTracks().forEach(track => track.stop())
+      console.log('[VoiceRecorder] Microphone permission granted')
+    } catch (err) {
+      console.error('[VoiceRecorder] Microphone permission denied:', err)
+      toast.error('请允许麦克风权限以使用语音输入')
+      return
+    }
     setIsRecording(true)
   }, [])
 
@@ -243,10 +248,10 @@ export function VoiceFloatButton({ onTranscript }: VoiceFloatButtonProps) {
         )}
       </AnimatePresence>
 
-      {/* 录音卡片 */}
+      {/* 录音卡片 - 使用 Portal 渲染到 body，避免被父元素裁剪 */}
       <AnimatePresence mode="wait">
         {isRecording && (
-          <VoiceRecorderInline
+          <VoiceRecorderPortal
             key="recorder"
             isRecording={isRecording}
             onStart={handleStart}

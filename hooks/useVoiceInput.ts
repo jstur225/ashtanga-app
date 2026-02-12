@@ -52,8 +52,12 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}): UseVoiceInput
     if (typeof window === 'undefined') return
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
-    if (!SpeechRecognition) return
+    if (!SpeechRecognition) {
+      console.error('[useVoiceInput] SpeechRecognition not supported')
+      return
+    }
 
+    console.log('[useVoiceInput] Initializing SpeechRecognition...')
     const recognition = new SpeechRecognition()
     recognition.continuous = true
     recognition.interimResults = true
@@ -81,6 +85,14 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}): UseVoiceInput
         }
       }
 
+      // 调试：打印识别结果
+      console.log('[SpeechRecognition] result:', {
+        finalTranscript,
+        interimTranscript,
+        resultLength: event.results.length,
+        resultIndex: event.resultIndex
+      })
+
       // 累加最终结果
       if (finalTranscript) {
         accumulatedTranscriptRef.current += finalTranscript
@@ -89,9 +101,13 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}): UseVoiceInput
       const currentTranscript = accumulatedTranscriptRef.current + interimTranscript
       setTranscript(currentTranscript)
 
-      // Call onResult with current transcript and whether it's final
+      // Call onResult with ONLY the new text, not accumulated
+      // 只传递新增的文字，避免重复
       if (onResult) {
-        onResult(currentTranscript, !!finalTranscript)
+        const newText = finalTranscript || interimTranscript
+        if (newText) {
+          onResult(newText, !!finalTranscript)
+        }
       }
     }
 
