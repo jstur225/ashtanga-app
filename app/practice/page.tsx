@@ -3383,13 +3383,13 @@ export default function AshtangaTracker() {
       recordsCount: practiceHistory.length,
       optionsCount: practiceOptions.length,
       totalDuration: practiceHistory.reduce((sum, r) => sum + (r.duration || 0), 0),
-      hasCustomOptions: practiceOptions.some(o => o.is_custom),
+      hasCustomOptions: practiceOptions.some(o => o.isCustom),
       optionsList: practiceOptions.map(o => ({
         id: o.id,
         label: o.label,
-        labelZh: o.label_zh || '',
+        labelZh: o.labelZh || '',
         notes: o.notes || '',
-        isCustom: o.is_custom
+        isCustom: o.isCustom
       }))
     }
 
@@ -3409,6 +3409,45 @@ export default function AshtangaTracker() {
     const customOptionsCount = parsedOptions.filter((o: any) => o.is_custom).length
     const defaultOptionsCount = parsedOptions.filter((o: any) => !o.is_custom).length
     const hasCustomButton = parsedOptions.some((o: any) => o.id === 'custom')
+
+    // 详细数据对比分析（组件状态 vs localStorage）
+    const optionsComparison = practiceOptions
+      .filter(o => o.id !== 'custom') // 排除 UI 上的自定义按钮
+      .map(uiOpt => {
+        const storageOpt = parsedOptions.find((s: any) => s.id === uiOpt.id)
+        return {
+          id: uiOpt.id,
+          uiState: {
+            label: uiOpt.label,
+            labelZh: uiOpt.labelZh,
+            notes: uiOpt.notes,
+            isCustom: uiOpt.isCustom
+          },
+          storageState: storageOpt ? {
+            label: storageOpt.label,
+            label_zh: storageOpt.label_zh,
+            notes: storageOpt.notes,
+            is_custom: storageOpt.is_custom
+          } : null,
+          issues: [] as string[]
+        }
+      })
+
+    // 检测潜在问题
+    optionsComparison.forEach((comp: any) => {
+      if (!comp.storageState) {
+        comp.issues.push('UI 中有但 localStorage 中缺失')
+      } else {
+        if (comp.uiState.labelZh !== comp.storageState.label_zh) {
+          comp.issues.push(`labelZh 不匹配: UI="${comp.uiState.labelZh}" vs Storage="${comp.storageState.label_zh}"`)
+        }
+        if (comp.uiState.isCustom !== comp.storageState.is_custom) {
+          comp.issues.push(`isCustom 不匹配: UI=${comp.uiState.isCustom} vs Storage=${comp.storageState.is_custom}`)
+        }
+      }
+    })
+
+    const totalIssues = optionsComparison.filter((c: any) => c.issues.length > 0).length
 
     // localStorage 健康检查
     const ashtangaKeys = Object.keys(localStorage).filter(key => key.startsWith('ashtanga_'))
@@ -3467,7 +3506,9 @@ export default function AshtangaTracker() {
         appStateOptionsCount: practiceOptions.length,
         dataOptionsCount: practiceOptionsData.length,
         isConsistent: practiceOptions.length === practiceOptionsData.length &&
-                      practiceOptions.length === parsedOptions.length
+                      practiceOptions.length === parsedOptions.length,
+        totalIssues,
+        optionsComparison: optionsComparison.filter((c: any) => c.issues.length > 0).slice(0, 5) // 只显示前5个有问题的
       },
       storageHealth: {
         ashtangaKeys,
