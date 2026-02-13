@@ -63,17 +63,27 @@ export const usePracticeData = () => {
     if (!stored || stored === '[]') {
       setOptions(DEFAULT_OPTIONS);
     } else {
-      // 数据迁移：将旧的 labelZh 字段转换为 label_zh
+      // 数据迁移：处理旧数据格式
       try {
         const parsedOptions = JSON.parse(stored);
-        const needsMigration = parsedOptions.some((opt: any) => opt.labelZh && !opt.label_zh);
+        const needsMigration = parsedOptions.some((opt: any) =>
+          opt.labelZh ||                    // 旧字段名
+          opt.isCustom !== undefined ||     // 旧字段名
+          !opt.label_zh ||                  // 缺少 label_zh
+          opt.is_custom === undefined       // 缺少 is_custom
+        );
 
         if (needsMigration) {
           const migratedOptions = parsedOptions.map((opt: any) => ({
-            ...opt,
-            label_zh: opt.label_zh || opt.labelZh || '',
+            id: opt.id,
+            created_at: opt.created_at || new Date().toISOString(),
+            label: opt.label || '',
+            label_zh: opt.label_zh || opt.labelZh || opt.label || '',
+            notes: opt.notes,
+            is_custom: opt.is_custom !== undefined ? opt.is_custom : (opt.isCustom || false),
           }));
           setOptions(migratedOptions);
+          console.log('[数据迁移] 已迁移选项数据:', migratedOptions);
         }
       } catch (e) {
         console.error('Failed to migrate options data:', e);
@@ -157,12 +167,13 @@ export const usePracticeData = () => {
     setProfile({ ...(profile!), ...data });
   };
 
-  const addOption = (label: string, label_zh: string) => {
+  const addOption = (label: string, label_zh: string, notes?: string) => {
     const newOption: PracticeOption = {
       id: uuidv4(),
       created_at: new Date().toISOString(),
       label,
       label_zh,
+      notes,
       is_custom: true,
     };
     setOptions([...(options || []), newOption]);

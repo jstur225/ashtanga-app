@@ -3204,14 +3204,10 @@ export default function AshtangaTracker() {
     }
 
     // Create a new permanent custom option and save to localStorage
+    // 修复：直接传递 notes 参数，避免竞态条件
     console.log('[handleCustomConfirm] 开始添加选项:', { name, notes })
-    const newOption = addOption(name, name)
+    const newOption = addOption(name, name, notes || undefined)
     console.log('[handleCustomConfirm] addOption 返回:', newOption)
-
-    if (notes) {
-      updateOption(newOption.id, name, name, notes)
-      console.log('[handleCustomConfirm] 已更新 notes')
-    }
 
     // Manually update local state to ensure UI updates immediately (same as handleEditSave)
     setPracticeOptions(prev => [
@@ -3261,10 +3257,10 @@ export default function AshtangaTracker() {
     // Update localStorage
     updateOption(id, name, name, notes)
 
-    // Update local state - 修复字段名：使用 label_zh 而不是 labelZh
+    // Update local state - 修复：使用组件内部状态的字段名 labelZh（驼峰命名）
     setPracticeOptions(prev => {
       const updated = prev.map(o =>
-        o.id === id ? { ...o, label_zh: name, label: name, notes } : o
+        o.id === id ? { ...o, labelZh: name, label: name, notes } : o
       )
       console.log('[handleEditSave] 更新后的选项:', updated)
       return updated
@@ -3345,12 +3341,9 @@ export default function AshtangaTracker() {
 
   const handleAddOption = (name: string, notes: string) => {
     console.log('handleAddOption called with:', name, notes)
-    const newOption = addOption(name, name)
+    // 修复：直接传递 notes 参数，避免竞态条件
+    const newOption = addOption(name, name, notes || undefined)
     console.log('newOption created:', newOption)
-    if (notes) {
-      updateOption(newOption.id, name, name, notes)
-      console.log('updated option with notes:', notes)
-    }
 
     // Manually update local state to ensure UI updates immediately
     setPracticeOptions(prev => [
