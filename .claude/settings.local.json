@@ -4,7 +4,21 @@
       "mcp__chrome-mcp-server__chrome_navigate",
       "mcp__chrome-mcp-server__chrome_get_web_content",
       "Bash(claude:*)",
-      "mcp__chrome-mcp-server__get_windows_and_tabs"
+      "mcp__chrome-mcp-server__get_windows_and_tabs",
+      "Bash(npm run dev)",
+      "Bash(npx tsc:*)",
+      "Bash(netstat:*)",
+      "Bash(curl:*)",
+      "Bash(vercel:*)",
+      "Bash(taskkill /PID:*)",
+      "Bash(findstr:*)",
+      "Bash(taskkill:*)",
+      "Bash(powershell -Command:*)",
+      "Bash(dir:*)",
+      "Bash(tasklist:*)",
+      "Bash(ls:*)",
+      "mcp__web-reader__webReader",
+      "Bash(cd:*)"
     ]
   }
 }

@@ -25,6 +25,7 @@ import { MOON_DAYS_2026 } from '@/lib/moon-phase-data'
 import { supabase } from '@/lib/supabase'
 import { deletePracticeRecord } from '@/lib/database'
 import { useRouter } from 'next/navigation'
+import { getVersionInfo } from '@/lib/version'
 
 // 月相图标路径
 const NEW_MOON_ICON = '/moon-phase/new-moon.png'
@@ -3545,10 +3546,8 @@ export default function AshtangaTracker() {
     }
 
     // Create a new permanent custom option and save to localStorage
-    const newOption = addOption(name)
-    if (notes) {
-      updateOption(newOption.id, name, notes)
-    }
+    // 修复：直接使用 addOption(name, name, notes) 避免竞态条件
+    addOption(name, name, notes)
 
     // Update local state will be handled by useEffect when practiceOptionsData changes
     setCustomPracticeName(name)
@@ -3633,12 +3632,8 @@ export default function AshtangaTracker() {
 
   const handleAddOption = (name: string, notes: string) => {
     console.log('handleAddOption called with:', name, notes)
-    const newOption = addOption(name)
-    console.log('newOption created:', newOption)
-    if (notes) {
-      updateOption(newOption.id, name, notes)
-      console.log('updated option with notes:', notes)
-    }
+    // 修复：直接使用 addOption(name, name, notes) 避免竞态条件
+    addOption(name, name, notes)
     console.log('current practiceOptionsData after add:', practiceOptionsData)
     toast.success('已添加自定义选项')
   }
@@ -3876,7 +3871,8 @@ export default function AshtangaTracker() {
       _meta: {
         version: '2.0',
         exportTime: new Date().toISOString(),
-        description: '熬汤日记调试日志 - 用于问题排查'
+        description: '熬汤日记调试日志 - 用于问题排查',
+        gitVersion: getVersionInfo()
       },
       environment,
       networkInfo,

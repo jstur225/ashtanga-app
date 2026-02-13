@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(code:*)",
+      "Bash(notepad:*)",
+      "Bash(dir:*)",
+      "Bash(cmd /c dir:*)",
+      "Bash(\"D:\\\\BaiduSyncdisk\\\\work\\\\cursor app\\\\claude code\\\\.claude\\\\skills\\\\cc-switch.exe\")",
+      "Bash(findstr:*)",
+      "Bash(tasklist:*)",
+      "Bash(env:*)",
+      "Bash(npm run dev)",
+      "Bash(netstat:*)",
+      "Bash(taskkill:*)",
+      "Bash(cmd:*)",
+      "mcp__chrome-mcp-server__chrome_navigate"
+    ]
+  }
+}

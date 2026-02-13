@@ -175,11 +175,12 @@ export const usePracticeData = () => {
     return updatedProfile;
   };
 
-  const addOption = (label: string) => {
+  const addOption = (label: string, label_zh?: string, notes?: string) => {
     const newOption: PracticeOption = {
       id: uuidv4(),
       created_at: new Date().toISOString(),
-      label,
+      label: label_zh || label,
+      notes,
       is_custom: true,
     };
     setOptions([...(options || []), newOption]);
@@ -227,14 +228,18 @@ export const usePracticeData = () => {
         setRecords(sortedRecords);
       }
 
-      // 修复：迁移旧的选项数据结构（label_zh → label）
+      // 修复：迁移旧的选项数据结构
       if (data.options) {
         const migratedOptions = data.options.map((opt: any) => {
-          const { label_zh, ...rest } = opt;  // 移除 label_zh 字段
+          const { label_zh, isCustom, ...rest } = opt;  // 移除旧字段
           return {
             ...rest,
             // 如果有 label_zh，用它替换 label（中文覆盖英文）
-            label: label_zh || opt.label || ''
+            label: label_zh || opt.label || '',
+            // 迁移 isCustom → is_custom
+            is_custom: isCustom !== undefined ? isCustom : (opt.is_custom !== undefined ? opt.is_custom : true),
+            // 确保 notes 字段存在
+            notes: opt.notes || '',
           };
         });
         setOptions(migratedOptions);
