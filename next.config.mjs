@@ -1,3 +1,14 @@
+import { execSync } from 'child_process'
+
+// 获取 Git 版本号
+function getGitCommit() {
+  try {
+    return execSync('git rev-parse HEAD').toString().trim()
+  } catch {
+    return 'unknown'
+  }
+}
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   typescript: {
@@ -13,6 +24,11 @@ const nextConfig = {
   // 实验性功能
   experimental: {
     optimizePackageImports: ['@radix-ui', 'lucide-react', 'framer-motion'], // 优化导入
+  },
+  // 环境变量 - 构建时注入
+  env: {
+    NEXT_PUBLIC_GIT_COMMIT: getGitCommit(),
+    NEXT_PUBLIC_BUILD_TIME: new Date().toISOString(),
   },
 }
 

@@ -15,6 +15,7 @@ import { toast } from 'sonner'
 import { trackEvent } from '@/lib/analytics'
 import { captureWithFallback, formatErrorForUser } from '@/lib/screenshot'
 import { MOON_DAYS_2026 } from '@/lib/moon-phase-data'
+import { getVersionInfo } from '@/lib/version'
 
 // 月相图标路径
 const NEW_MOON_ICON = '/moon-phase/new-moon.png'
@@ -3521,6 +3522,7 @@ export default function AshtangaTracker() {
 
     // 4. 生成日志（最近20条，增强字段）
     const debugLog = {
+      version: getVersionInfo(),  // Git 版本号 - 用于确认用户是否刷新到最新版本
       environment,
       appState,
       storageState,
