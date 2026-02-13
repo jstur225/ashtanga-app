@@ -63,12 +63,12 @@ export function FakeDoorModal({ type, isOpen, onClose, onVote }: FakeDoorModalPr
       secondaryBtn: votedCloud ? '收到啦！' : '暂不需要',
     },
     voice: {
-      title: '🎙️语音输入',
-      subtitle: '练习后不想打字？想用说话记录觉察？',
-      desc: '正在考虑开发语音输入功能，动动嘴就能记录练习感受，你需要吗？请投一票~',
+      title: '🎙️说出来，让觉察自然流淌',
+      subtitle: '练完阿斯汤加，身体累了，但心很满',
+      desc: '<p class="mb-3">我们观察到：许多用户在练习后其实有很多感受想记录，但<strong>「刚练完浑身是汗，根本不想碰键盘」</strong>。</p><p class="mb-3">语音输入想解决这个问题——<strong>按下录音，说出你的当下</strong>，不用组织语言，不用斟酌字句，像对着自己轻轻诉说。</p><p class="text-xs text-muted-foreground italic">「打字时人是理性脑，输出可能只有脑中想的 50%。而语音更接近原始思考，适合捕捉那些转瞬即逝的灵感。」</p><p class="mt-3 font-medium">如果开发这个功能，你会用吗？</p>',
       icon: <Mic className="w-12 h-12 text-primary" />,
-      primaryBtn: votedVoice ? '已投票！' : '【我想要，投一票】',
-      secondaryBtn: votedVoice ? '收到啦！' : '暂不需要',
+      primaryBtn: votedVoice ? '已收到你的心意 ✓' : '【我想要】练习后直接说',
+      secondaryBtn: votedVoice ? '关闭' : '暂不需要，打字就好',
     },
     pro: {
       title: '解锁专业版 (Pro Features)',
