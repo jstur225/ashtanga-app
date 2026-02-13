@@ -8,8 +8,8 @@ import { usePWAInstall } from "@/hooks/usePWAInstall"
 import { useAuth } from "@/hooks/useAuth"
 import { useSync } from "@/hooks/useSync"
 import { BookOpen, BarChart3, Calendar, X, Camera, Pause, Play, Trash2, User, Settings, ChevronLeft, ChevronRight, ChevronUp, Cloud, Download, Upload, Plus, Share2, Sparkles, Check, Copy, ClipboardPaste, MessageCircle, Bug, AlertCircle } from "lucide-react"
-import { VoiceButton } from "@/components/VoiceRecorder"
 import { FakeDoorModal } from "@/components/FakeDoorModal"
+import { VoiceButton } from "@/components/VoiceButton"
 import { ImportModal } from "@/components/ImportModal"
 import { ExportModal } from "@/components/ExportModal"
 import { XiaohongshuInviteModal, INVITE_VERSION } from "@/components/XiaohongshuInviteModal"
@@ -756,9 +756,9 @@ function EditRecordModal({
                       rows={7}
                       className="w-full px-4 py-3 pr-12 rounded-2xl bg-secondary text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-none font-serif text-sm"
                     />
-                    {/* Voice Input - 浮动在输入框右下角 */}
+                    {/* Voice Input - 浮动在输入框右下角（假门测试） */}
                     <VoiceButton
-                      onTranscript={(text) => setNotes((prev) => (prev + text).slice(0, 2000))}
+                      onClick={() => setShowFakeDoor({ type: 'voice', isOpen: true })}
                     />
                   </div>
                 </div>
@@ -988,10 +988,10 @@ function ShareCardModal({
                             : 'max-h-[60vh] overflow-y-auto'  // 编辑时：最大60vh，超出滚动
                         }`}
                       />
-                      {/* Voice Input Button for ShareCard - 浮动在右下角 */}
+                      {/* Voice Input Button for ShareCard - 浮动在右下角（假门测试） */}
                       <div className="relative">
                         <VoiceButton
-                          onTranscript={(text) => setEditableNotes((prev) => prev + text)}
+                          onClick={() => setShowFakeDoor({ type: 'voice', isOpen: true })}
                         />
                       </div>
                     </div>
@@ -1675,9 +1675,9 @@ function AddPracticeModal({
                     rows={5}
                     className="w-full px-4 py-3 pr-12 rounded-2xl bg-secondary text-foreground placeholder:text-muted-foreground font-serif focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-none text-sm"
                   />
-                  {/* Voice Input */}
+                  {/* Voice Input（假门测试） */}
                   <VoiceButton
-                    onTranscript={(text) => setNotes((prev) => (prev + text).slice(0, 2000))}
+                    onClick={() => setShowFakeDoor({ type: 'voice', isOpen: true })}
                   />
                 </div>
               </div>
@@ -2326,9 +2326,9 @@ function CompletionSheet({
                     rows={5}
                     className="w-full px-4 py-3 pr-12 rounded-2xl bg-secondary text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-none font-serif"
                   />
-                  {/* Voice Input - 浮动在输入框右下角 */}
+                  {/* Voice Input - 浮动在输入框右下角（假门测试） */}
                   <VoiceButton
-                    onTranscript={(text) => setNotes((prev) => (prev + text).slice(0, 2000))}
+                    onClick={() => setShowFakeDoor({ type: 'voice', isOpen: true })}
                   />
                 </div>
               </div>
@@ -3319,7 +3319,7 @@ export default function AshtangaTracker() {
   const [showSettings, setShowSettings] = useState(false)
   const [settingsInitialSection, setSettingsInitialSection] = useState<'profile' | 'account' | 'data'>('profile')
   const [showAccountSync, setShowAccountSync] = useState(false)
-  const [showFakeDoor, setShowFakeDoor] = useState<{ type: 'cloud' | 'pro', isOpen: boolean }>({ type: 'cloud', isOpen: false })
+  const [showFakeDoor, setShowFakeDoor] = useState<{ type: 'cloud' | 'pro' | 'voice', isOpen: boolean }>({ type: 'cloud', isOpen: false })
   const [showImportModal, setShowImportModal] = useState(false)
   const [showDebugLogModal, setShowDebugLogModal] = useState(false)
   const [debugLogContent, setDebugLogContent] = useState('')

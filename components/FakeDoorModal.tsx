@@ -2,13 +2,13 @@
 
 import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Cloud, Star, CheckCircle2, Trophy } from 'lucide-react'
+import { X, Cloud, Star, CheckCircle2, Trophy, Mic } from 'lucide-react'
 import { useLocalStorage } from 'react-use'
 import { trackEvent } from '@/lib/analytics'
 import { toast } from 'sonner'
 
 interface FakeDoorModalProps {
-  type: 'cloud' | 'pro'
+  type: 'cloud' | 'pro' | 'voice'
   isOpen: boolean
   onClose: () => void
   onVote?: () => void
@@ -17,9 +17,10 @@ interface FakeDoorModalProps {
 export function FakeDoorModal({ type, isOpen, onClose, onVote }: FakeDoorModalProps) {
   const [votedCloud, setVotedCloud] = useLocalStorage('voted_cloud_sync', false)
   const [votedPro, setVotedPro] = useLocalStorage('voted_pro_features', false)
+  const [votedVoice, setVotedVoice] = useLocalStorage('voted_voice_input', false)
   const [proVotes, setProVotes] = useState(342)
 
-  const isVoted = type === 'cloud' ? votedCloud : votedPro
+  const isVoted = type === 'cloud' ? votedCloud : type === 'voice' ? votedVoice : votedPro
   const currentVotes = type === 'pro' && votedPro ? proVotes + 1 : proVotes
 
   const handleVote = (choice?: 'sync' | 'photo' | 'both') => {
@@ -27,17 +28,14 @@ export function FakeDoorModal({ type, isOpen, onClose, onVote }: FakeDoorModalPr
 
     if (type === 'cloud') {
       setVotedCloud(true)
-      // ⚠️ 已注释云同步埋点 - 云同步功能已上线
-      // trackEvent('vote_for_cloud_sync', {
-      //   vote: 'yes',
-      //   choice: choice!
-      // })
+      toast.success('收到你的心意啦~')
+      onVote?.()
+    } else if (type === 'voice') {
+      setVotedVoice(true)
       toast.success('收到你的心意啦~')
       onVote?.()
     } else {
       setVotedPro(true)
-      // ⚠️ 已注释云同步埋点
-      // trackEvent('vote_for_cloud_sync', { vote: 'yes' })
       toast.success('收到你的心意啦~')
     }
 
@@ -63,6 +61,14 @@ export function FakeDoorModal({ type, isOpen, onClose, onVote }: FakeDoorModalPr
       icon: <Cloud className="w-12 h-12 text-primary" />,
       primaryBtn: votedCloud ? '已投票！' : '【我想要，投一票】',
       secondaryBtn: votedCloud ? '收到啦！' : '暂不需要',
+    },
+    voice: {
+      title: '🎙️语音输入',
+      subtitle: '练习后不想打字？想用说话记录觉察？',
+      desc: '正在考虑开发语音输入功能，动动嘴就能记录练习感受，你需要吗？请投一票~',
+      icon: <Mic className="w-12 h-12 text-primary" />,
+      primaryBtn: votedVoice ? '已投票！' : '【我想要，投一票】',
+      secondaryBtn: votedVoice ? '收到啦！' : '暂不需要',
     },
     pro: {
       title: '解锁专业版 (Pro Features)',
@@ -119,7 +125,7 @@ export function FakeDoorModal({ type, isOpen, onClose, onVote }: FakeDoorModalPr
                   {activeContent.subtitle}
                 </p>
 
-                {type === 'cloud' ? (
+                {type === 'cloud' || type === 'voice' ? (
                   <div
                     className="text-muted-foreground font-serif leading-relaxed mb-6 text-sm"
                     dangerouslySetInnerHTML={{ __html: activeContent.desc || '' }}
@@ -139,8 +145,8 @@ export function FakeDoorModal({ type, isOpen, onClose, onVote }: FakeDoorModalPr
                   </div>
                 )}
 
-                {type === 'cloud' ? (
-                  // 云端同步：4个垂直按钮
+                {type === 'cloud' || type === 'voice' ? (
+                  // 云端同步/语音输入：4个垂直按钮
                   <div className="w-full flex flex-col gap-2">
                     <button
                       onClick={() => handleVote('sync')}
