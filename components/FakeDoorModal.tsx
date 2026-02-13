@@ -63,9 +63,9 @@ export function FakeDoorModal({ type, isOpen, onClose, onVote }: FakeDoorModalPr
       secondaryBtn: votedCloud ? '收到啦！' : '暂不需要',
     },
     voice: {
-      title: '🎙️说出来，让觉察自然流淌',
-      subtitle: '练完阿斯汤加，身体累了，但心很满',
-      desc: '<p class="mb-3">我们观察到：许多用户在练习后其实有很多感受想记录，但<strong>「刚练完浑身是汗，根本不想碰键盘」</strong>。</p><p class="mb-3">语音输入想解决这个问题——<strong>按下录音，说出你的当下</strong>，不用组织语言，不用斟酌字句，像对着自己轻轻诉说。</p><p class="text-xs text-muted-foreground italic">「打字时人是理性脑，输出可能只有脑中想的 50%。而语音更接近原始思考，适合捕捉那些转瞬即逝的灵感。」</p><p class="mt-3 font-medium">如果开发这个功能，你会用吗？</p>',
+      title: '🎙️语音记录觉察',
+      subtitle: '练完浑身是汗，不想碰键盘？',
+      desc: '<p class="mb-2">很多人练完有很多感受，但打字时总觉得<strong>「脑子卡住了，写出来的不是想表达的」</strong>。</p><p class="mb-3">语音记录想解决这个问题——<strong>按下说话，说完即走</strong>，不用想措辞，像对着自己嘟囔两句。</p><p class="text-xs text-muted-foreground italic">打字时总在「修改」，语音时更「真实」。那些转瞬即逝的念头，说出来才能抓住。</p><p class="mt-3 font-medium">你会用这个功能吗？</p>',
       icon: <Mic className="w-12 h-12 text-primary" />,
       primaryBtn: votedVoice ? '已收到你的心意 ✓' : '【我想要】练习后直接说',
       secondaryBtn: votedVoice ? '关闭' : '暂不需要，打字就好',
