@@ -52,27 +52,29 @@ export function useSync(
     hasLimitWarning: false
   })
 
-  // ==================== 自动计算同步统计（当 localData 变化时）====================
+  // ==================== 自动计算本地统计（当 localData 变化时）====================
+  // ⚠️ 注意：这里只更新本地记录数，syncedRecords 只在同步成功时更新
   useEffect(() => {
     const localCount = localData.records.length
     const sortedRecords = [...localData.records].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
     const recordsToSync = sortedRecords.slice(0, MAX_SYNC_RECORDS)
     const localOnlyCount = localCount - recordsToSync.length
 
-    console.log('📊 [useSync] 计算 syncStats:', {
+    console.log('📊 [useSync] 计算本地统计:', {
       localCount,
       recordsToSyncLength: recordsToSync.length,
       localOnlyCount,
       hasLimitWarning: localOnlyCount > 0
     })
 
-    setSyncStats({
+    setSyncStats(prev => ({
+      ...prev,
       totalLocalRecords: localCount,
-      syncedRecords: recordsToSync.length,
       maxSyncRecords: MAX_SYNC_RECORDS,
       localOnlyCount,
       hasLimitWarning: localOnlyCount > 0
-    })
+      // ⭐ syncedRecords 保持不变，只在同步成功时更新
+    }))
   }, [localData.records.length])
 
   // ==================== 应用级自动同步 ====================
@@ -149,19 +151,10 @@ export function useSync(
 
       console.log(`📊 [autoSync] 数据对比：本地${localCount}条，云端${remoteCount}条`)
 
-      // ⭐ 计算同步统计（无论走哪个分支都显示）
+      // ⭐ 计算同步限制（用于显示上限提醒）
       const sortedRecords = [...localData.records].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
       const recordsToSync = sortedRecords.slice(0, MAX_SYNC_RECORDS)
       const localOnlyCount = localCount - recordsToSync.length
-
-      // 更新同步统计
-      setSyncStats({
-        totalLocalRecords: localCount,
-        syncedRecords: recordsToSync.length,
-        maxSyncRecords: MAX_SYNC_RECORDS,
-        localOnlyCount,
-        hasLimitWarning: localOnlyCount > 0
-      })
 
       if (localOnlyCount > 0) {
         console.log(`⚠️ [autoSync] 同步限制：${localOnlyCount}条最新记录仅保存在本地`)
@@ -277,6 +270,14 @@ export function useSync(
           setSyncStatus('success')
           setLastSyncStatus('success')
           setLastSyncTime(Date.now())
+          // ⭐ 更新同步统计（下载云端数据成功）
+          setSyncStats({
+            totalLocalRecords: mergedRecords.length,
+            syncedRecords: mergedRecords.length,
+            maxSyncRecords: MAX_SYNC_RECORDS,
+            localOnlyCount: 0,
+            hasLimitWarning: false
+          })
           return
         }
 
@@ -311,10 +312,10 @@ export function useSync(
         setSyncStatus('success')
         setLastSyncStatus('success')
         setLastSyncTime(Date.now())
-        // 重置 syncStats（没有本地记录）
+        // ⭐ 更新同步统计（使用云端数据）
         setSyncStats({
-          totalLocalRecords: 0,
-          syncedRecords: 0,
+          totalLocalRecords: remoteRecordsToUse.length,
+          syncedRecords: remoteRecordsToUse.length,
           maxSyncRecords: MAX_SYNC_RECORDS,
           localOnlyCount: 0,
           hasLimitWarning: false
@@ -619,20 +620,23 @@ export function useSync(
         }
       }
 
+      // ⭐ 计算实际上传成功的记录数
+      const successfullySynced = recordsToSync.length - failedIds.length
+
       // 更新失败列表
       setFailedSyncIds(failedIds)
       setLastSyncStatus(failedIds.length === 0 ? 'success' : 'error')
       setSyncStatus(failedIds.length === 0 ? 'success' : 'error')
       setLastSyncTime(Date.now())
 
-      // ⭐ 更新同步统计信息
-      setSyncStats({
+      // ⭐ 更新同步统计信息（只在成功时更新 syncedRecords）
+      setSyncStats(prev => ({
         totalLocalRecords: records.length,
-        syncedRecords: recordsToSync.length,
+        syncedRecords: failedIds.length === 0 ? recordsToSync.length : (prev?.syncedRecords || 0),
         maxSyncRecords: MAX_SYNC_RECORDS,
-        localOnlyCount,
-        hasLimitWarning: localOnlyCount > 0
-      })
+        localOnlyCount: failedIds.length === 0 ? localOnlyCount : records.length - (prev?.syncedRecords || 0),
+        hasLimitWarning: failedIds.length === 0 ? localOnlyCount > 0 : records.length > (prev?.syncedRecords || 0)
+      }))
 
       return {
         success: failedIds.length === 0,

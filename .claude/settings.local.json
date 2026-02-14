@@ -18,7 +18,8 @@
       "Bash(tasklist:*)",
       "Bash(ls:*)",
       "mcp__web-reader__webReader",
-      "Bash(cd:*)"
+      "Bash(cd:*)",
+      "Bash(npx vercel)"
     ]
   }
 }
