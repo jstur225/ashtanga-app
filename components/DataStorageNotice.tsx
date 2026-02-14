@@ -56,14 +56,13 @@ export function DataStorageNotice({ isCloudSynced, email, syncStats, syncStatus,
         {/* 第二部分：提醒内容 */}
         <ul className="text-xs font-serif text-muted-foreground space-y-0.5 mb-3">
           <li>• 当前版本1个账号仅可登录1个设备</li>
-          <li>• 最多同步50条觉察记录（由远及近）</li>
           <li>• 换设备或重装浏览器觉察数据不丢失</li>
         </ul>
 
         {/* 第三部分：同步进度 */}
         <div className="border-t border-amber-200/50 pt-2">
-          {/* 状态行：灯 + 最近同步时间 + 进度数字 */}
-          <div className="flex items-center justify-between mb-1.5">
+          {/* 状态行：灯 + 最近同步时间 + 已同步记录数 */}
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5">
               {/* 状态灯 */}
               <div className={`rounded-full w-1.5 h-1.5 flex-shrink-0 ${
@@ -76,18 +75,10 @@ export function DataStorageNotice({ isCloudSynced, email, syncStats, syncStatus,
                 最近同步时间 <span className="italic">{lastSyncTime ? new Date(lastSyncTime).toLocaleString('zh-CN') : '尚未同步'}</span>
               </span>
             </div>
-            {/* 进度数字 - 右对齐 */}
-            <span className="text-xs font-serif text-muted-foreground">
-              {syncStats?.syncedRecords || 0}/50 条
+            {/* 已同步记录数 - 右对齐 */}
+            <span className="text-xs font-serif text-muted-foreground italic">
+              已同步 {syncStats?.syncedRecords || 0} 条记录
             </span>
-          </div>
-
-          {/* 进度条 */}
-          <div className="w-full bg-amber-200/50 rounded-full h-1.5 overflow-hidden">
-            <div
-              className="h-full transition-all duration-300 bg-gradient-to-r from-amber-400 to-orange-400"
-              style={{ width: `${Math.min((syncStats?.syncedRecords || 0) / 50 * 100, 100)}%` }}
-            />
           </div>
         </div>
       </div>

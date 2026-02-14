@@ -8,8 +8,8 @@ import type { PracticeRecord, PracticeOption, UserProfile } from '@/lib/supabase
 type SyncStatus = 'idle' | 'syncing' | 'success' | 'error'
 type ConflictStrategy = 'remote' | 'local' | 'merge'
 
-// ⭐ 内测版本同步限制配置
-const MAX_SYNC_RECORDS = 50
+// ⭐ 同步限制配置（硬上限1000条，防止攻击）
+const MAX_SYNC_RECORDS = 1000
 
 export function useSync(
   user: any,
@@ -164,7 +164,7 @@ export function useSync(
       })
 
       if (localOnlyCount > 0) {
-        console.log(`⚠️ [autoSync] 内测版本限制：${localOnlyCount}条最新记录仅保存在本地`)
+        console.log(`⚠️ [autoSync] 同步限制：${localOnlyCount}条最新记录仅保存在本地`)
       }
 
       // 2. 智能同步策略
@@ -298,8 +298,8 @@ export function useSync(
           : remoteData.records
 
         if (remoteCount > MAX_SYNC_RECORDS) {
-          console.log(`⚠️ [autoSync] 云端有${remoteCount}条记录，内测版本只使用前${MAX_SYNC_RECORDS}条`)
-          addLog(`内测限制：云端${remoteCount}条，只使用前50条`, 'success')
+          console.log(`⚠️ [autoSync] 云端有${remoteCount}条记录，只使用前${MAX_SYNC_RECORDS}条`)
+          addLog(`云端${remoteCount}条，只使用前${MAX_SYNC_RECORDS}条`, 'success')
         }
 
         addLog(`使用云端数据：${remoteRecordsToUse.length}条记录`, 'success')
@@ -464,8 +464,8 @@ export function useSync(
     const localOnlyCount = records.length - recordsToSync.length
 
     if (localOnlyCount > 0) {
-      console.log(`⚠️ [uploadLocalRecords] 内测版本限制：只上传最早的${MAX_SYNC_RECORDS}条记录`)
-      addLog(`内测限制：${localOnlyCount}条记录仅本地保存`, 'success')
+      console.log(`⚠️ [uploadLocalRecords] 同步限制：只上传最早的${MAX_SYNC_RECORDS}条记录`)
+      addLog(`${localOnlyCount}条记录仅本地保存`, 'success')
     }
 
     const failedIds: string[] = []
@@ -528,15 +528,15 @@ export function useSync(
         is_pro: false
       }
 
-      // ⭐ 新增：50条记录限制（内测版本）- 保留最早的50条
-      // 按日期排序（最早的在前），然后截取前50条
+      // ⭐ 新增：1000条记录限制 - 保留最早的1000条
+      // 按日期排序（最早的在前），然后截取前1000条
       const sortedRecords = [...records].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
       const recordsToSync = sortedRecords.slice(0, MAX_SYNC_RECORDS)
       const localOnlyCount = records.length - recordsToSync.length // 仅本地保留的记录数
 
       if (localOnlyCount > 0) {
-        console.log(`⚠️ [uploadLocalData] 内测版本限制：只同步最早的${MAX_SYNC_RECORDS}条记录，${localOnlyCount}条新记录仅保留在本地`)
-        addLog(`内测限制：${localOnlyCount}条记录仅本地保存`, 'success')
+        console.log(`⚠️ [uploadLocalData] 同步限制：只同步最早的${MAX_SYNC_RECORDS}条记录，${localOnlyCount}条新记录仅保留在本地`)
+        addLog(`${localOnlyCount}条记录仅本地保存`, 'success')
       }
 
       // 1. 上传用户资料（使用服务端 API 绕过 RLS）

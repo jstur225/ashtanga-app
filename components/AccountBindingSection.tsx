@@ -238,13 +238,13 @@ export function AccountBindingSection({
       ) : (
         /* 已登录状态 */
         <div className="space-y-3">
-          {/* ⭐ 内测版本限制提示（当本地记录超过50条时显示）*/}
-          {syncStats?.hasLimitWarning && (
+          {/* ⭐ 上限提醒（当本地记录超过1000条时显示）*/}
+          {syncStats?.localOnlyCount > 0 && (
             <div className="p-3 rounded-xl bg-gradient-to-br from-amber-50/80 to-orange-50/80 border border-amber-200/50">
               <div className="flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0" />
                 <p className="text-xs text-muted-foreground font-serif">
-                  上限提醒：已同步 50 条，<span className="font-medium">{syncStats.localOnlyCount}</span> 条新记录仅保存在本地
+                  上限提醒：已同步接近1000条，<span className="font-medium">{syncStats.localOnlyCount}</span> 条新记录仅保存在本地
                 </p>
               </div>
             </div>
