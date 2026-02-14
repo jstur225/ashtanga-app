@@ -77,7 +77,7 @@ export function DataStorageNotice({ isCloudSynced, email, syncStats, syncStatus,
             </div>
             {/* 已同步记录数 - 右对齐 */}
             <span className="text-xs font-serif text-muted-foreground italic">
-              本地 {syncStats?.totalLocalRecords || 0} 条，云端已同步 {syncStats?.syncedRecords || 0} 条
+              {syncStats?.syncedRecords || 0}/{syncStats?.totalLocalRecords || 0} 已同步
             </span>
           </div>
         </div>
