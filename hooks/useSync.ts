@@ -22,9 +22,9 @@ export function useSync(
   onConflictDetected?: (localCount: number, remoteCount: number) => void
 ) {
   // 移除这些日志，它们在每次渲染时都会输出
-  // console.log('🔍 [useSync] Hook 被调用了')
-  // console.log('   user:', user)
-  // console.log('   localData.records.length:', localData?.records?.length)
+  // console.error('🔍 [useSync] Hook 被调用了')
+  // console.error('   user:', user)
+  // console.error('   localData.records.length:', localData?.records?.length)
 
   const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle')
 
@@ -60,7 +60,7 @@ export function useSync(
     const recordsToSync = sortedRecords.slice(0, MAX_SYNC_RECORDS)
     const localOnlyCount = localCount - recordsToSync.length
 
-    console.log('📊 [useSync] 计算本地统计:', {
+    console.error('📊 [useSync] 计算本地统计:', {
       localCount,
       recordsToSyncLength: recordsToSync.length,
       localOnlyCount,
@@ -79,7 +79,7 @@ export function useSync(
 
   // ==================== 应用级自动同步 ====================
   useEffect(() => {
-    console.log('🔍 [useEffect] 触发', {
+    console.error('🔍 [useEffect] 触发', {
       hasUser: !!user,
       userId: user?.id,
       localDataLength: localData.records.length,
@@ -88,16 +88,16 @@ export function useSync(
 
     // 如果正在同步中，跳过
     if (isSyncingRef.current) {
-      console.log('⏸️ [useEffect] 正在同步中，跳过重复调用')
+      console.error('⏸️ [useEffect] 正在同步中，跳过重复调用')
       return
     }
 
     if (user && localData.records.length >= 0) {
-      console.log('✅ [useEffect] 条件满足，准备调用 autoSync')
+      console.error('✅ [useEffect] 条件满足，准备调用 autoSync')
       // 用户登录后，立即启动自动同步
       autoSync()
     } else {
-      console.log('⏸️ [useEffect] 条件不满足，跳过自动同步')
+      console.error('⏸️ [useEffect] 条件不满足，跳过自动同步')
     }
   }, [user?.id]) // 只监听 user.id 变化，而不是整个 user 对象
 
@@ -105,51 +105,51 @@ export function useSync(
   const autoSync = async () => {
     // 防止重复调用
     if (isSyncingRef.current) {
-      console.log('⏸️ [autoSync] 已有同步任务在执行，跳过')
+      console.error('⏸️ [autoSync] 已有同步任务在执行，跳过')
       return
     }
 
-    console.log('🚨🚨🚨 [autoSync] 函数被调用了！🚨🚨🚨')
-    console.log('='.repeat(50))
-    console.log('🔄 [autoSync] 函数开始执行')
-    console.log('='.repeat(50))
+    console.error('🚨🚨🚨 [autoSync] 函数被调用了！🚨🚨🚨')
+    console.error('='.repeat(50))
+    console.error('[autoSync] 函数开始执行')
+    console.error('='.repeat(50))
 
     if (!user) {
-      console.log('❌ [autoSync] 用户未登录，退出')
+      console.error('[autoSync] 用户未登录，退出')
       return
     }
 
     // 设置同步标志
     isSyncingRef.current = true
-    console.log('🔒 [autoSync] 设置同步标志')
+    console.error('[autoSync] 设置同步标志')
 
-    console.log('✅ [autoSync] 用户已登录，开始同步')
-    console.log('   user_id:', user.id)
-    console.log('   localData.records.length:', localData.records.length)
+    console.error('[autoSync] 用户已登录，开始同步')
+    console.error('   user_id:', user.id)
+    console.error('   localData.records.length:', localData.records.length)
 
-    console.log('⏳ [autoSync] 设置状态为 syncing...')
+    console.error('[autoSync] 设置状态为 syncing...')
     setSyncStatus('syncing')
-    console.log('✅ [autoSync] 状态已设置为 syncing')
+    console.error('[autoSync] 状态已设置为 syncing')
 
-    console.log('📝 [autoSync] 添加日志...')
+    console.error('[autoSync] 添加日志...')
     addLog('启动自动同步', 'success')
-    console.log('✅ [autoSync] 日志已添加')
+    console.error('[autoSync] 日志已添加')
 
     try {
-      console.log('📡 [autoSync] 开始下载云端数据...')
+      console.error('[autoSync] 开始下载云端数据...')
       // 1. 下载云端数据
       const remoteData = await downloadRemoteData(user.id)
       if (!remoteData) {
         throw new Error('下载云端数据失败')
       }
 
-      console.log('✅ [autoSync] 云端数据下载成功')
-      console.log('   remoteData.records.length:', remoteData.records?.length)
+      console.error('[autoSync] 云端数据下载成功')
+      console.error('   remoteData.records.length:', remoteData.records?.length)
 
       const localCount = localData.records.length
       const remoteCount = remoteData.records.length
 
-      console.log(`📊 [autoSync] 数据对比：本地${localCount}条，云端${remoteCount}条`)
+      console.error(`📊 [autoSync] 数据对比：本地${localCount}条，云端${remoteCount}条`)
 
       // ⭐ 计算同步限制（用于显示上限提醒）
       const sortedRecords = [...localData.records].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
@@ -157,7 +157,7 @@ export function useSync(
       const localOnlyCount = localCount - recordsToSync.length
 
       if (localOnlyCount > 0) {
-        console.log(`⚠️ [autoSync] 同步限制：${localOnlyCount}条最新记录仅保存在本地`)
+        console.error(`⚠️ [autoSync] 同步限制：${localOnlyCount}条最新记录仅保存在本地`)
       }
 
       // 2. 智能同步策略
@@ -193,10 +193,10 @@ export function useSync(
 
               if (localTime > remoteTime) {
                 localNewer.push(localRecord)
-                console.log(`📝 [autoSync] 记录 ${localRecord.id} 本地更新，本地时间: ${localTime}, 云端时间: ${remoteTime}`)
+                console.error(`📝 [autoSync] 记录 ${localRecord.id} 本地更新，本地时间: ${localTime}, 云端时间: ${remoteTime}`)
               } else if (remoteTime > localTime) {
                 remoteNewer.push(remoteRecord)
-                console.log(`📝 [autoSync] 记录 ${remoteRecord.id} 云端更新，云端时间: ${remoteTime}, 本地时间: ${localTime}`)
+                console.error(`📝 [autoSync] 记录 ${remoteRecord.id} 云端更新，云端时间: ${remoteTime}, 本地时间: ${localTime}`)
               }
               // 时间相同，不需要同步
             }
@@ -213,18 +213,18 @@ export function useSync(
         const totalLocalChanges = localOnly.length + localNewer.length
         const totalRemoteChanges = remoteOnly.length + remoteNewer.length
 
-        console.log(`📊 [autoSync] 比对结果：本地独有${localOnly.length}条，云端独有${remoteOnly.length}条，本地更新${localNewer.length}条，云端更新${remoteNewer.length}条`)
+        console.error(`📊 [autoSync] 比对结果：本地独有${localOnly.length}条，云端独有${remoteOnly.length}条，本地更新${localNewer.length}条，云端更新${remoteNewer.length}条`)
 
         if (totalLocalChanges === 0 && totalRemoteChanges === 0) {
           // 没有差异，数据已一致
-          console.log('✅ [autoSync] 数据已一致，无需同步')
+          console.error('[autoSync] 数据已一致，无需同步')
           setSyncStatus('success')
           return
         }
 
         // 有差异：本地有新增/更新的数据 → 上传到云端
         if (totalLocalChanges > 0 && totalRemoteChanges === 0) {
-          console.log(`📤 [autoSync] 本地有${totalLocalChanges}条变更（新增${localOnly.length}+更新${localNewer.length}），上传到云端`)
+          console.error(`📤 [autoSync] 本地有${totalLocalChanges}条变更（新增${localOnly.length}+更新${localNewer.length}），上传到云端`)
           addLog(`上传本地变更：${totalLocalChanges}条记录`, 'success')
           const result = await uploadLocalData(user.id, localData, user)
           if (result.success) {
@@ -240,7 +240,7 @@ export function useSync(
 
         // 有差异：云端有新增/更新的数据 → 合并到本地
         if (totalRemoteChanges > 0 && totalLocalChanges === 0) {
-          console.log(`📥 [autoSync] 云端有${totalRemoteChanges}条变更（新增${remoteOnly.length}+更新${remoteNewer.length}）`)
+          console.error(`📥 [autoSync] 云端有${totalRemoteChanges}条变更（新增${remoteOnly.length}+更新${remoteNewer.length}）`)
 
           // ⭐ 合并：本地记录 + 云端新增 + 云端更新的版本
           const localMap = new Map(effectiveLocalRecords.map(r => [r.id, r]))
@@ -282,7 +282,7 @@ export function useSync(
         }
 
         // 两边都有变更 → 真正的冲突，需要用户选择
-        console.log(`⚠️ [autoSync] 双方都有变更：本地${totalLocalChanges}条，云端${totalRemoteChanges}条`)
+        console.error(`⚠️ [autoSync] 双方都有变更：本地${totalLocalChanges}条，云端${totalRemoteChanges}条`)
         addLog(`检测到冲突：本地${totalLocalChanges}条变更，云端${totalRemoteChanges}条变更`, 'success')
         if (onConflictDetected) {
           onConflictDetected(localCount, remoteCount)
@@ -299,7 +299,7 @@ export function useSync(
           : remoteData.records
 
         if (remoteCount > MAX_SYNC_RECORDS) {
-          console.log(`⚠️ [autoSync] 云端有${remoteCount}条记录，只使用前${MAX_SYNC_RECORDS}条`)
+          console.error(`⚠️ [autoSync] 云端有${remoteCount}条记录，只使用前${MAX_SYNC_RECORDS}条`)
           addLog(`云端${remoteCount}条，只使用前${MAX_SYNC_RECORDS}条`, 'success')
         }
 
@@ -351,7 +351,7 @@ export function useSync(
     } finally {
       // 清理同步标志，允许下次同步
       isSyncingRef.current = false
-      console.log('✅ [autoSync] 同步完成，清理标志')
+      console.error('[autoSync] 同步完成，清理标志')
       // ⭐ 确保如果状态仍然是 syncing，重置为 idle（防止卡住）
       setSyncStatus(prev => prev === 'syncing' ? 'idle' : prev)
     }
@@ -393,7 +393,7 @@ export function useSync(
   // ==================== 下载云端数据 ====================
   const downloadRemoteData = async (userId: string) => {
     try {
-      console.log('📥 [downloadRemoteData] 开始下载，userId:', userId)
+      console.error('📥 [downloadRemoteData] 开始下载，userId:', userId)
 
       // ⭐ 添加超时保护，15秒超时
       const timeoutPromise = new Promise((_, reject) => {
@@ -408,11 +408,11 @@ export function useSync(
 
       const [recordsRes, optionsRes, profileRes] = await Promise.race([fetchPromise, timeoutPromise]) as any
 
-      console.log('📥 [downloadRemoteData] 查询完成')
-      console.log('   recordsRes.error:', recordsRes.error)
-      console.log('   optionsRes.error:', optionsRes.error)
-      console.log('   profileRes.error:', profileRes.error)
-      console.log('   recordsRes.data.length:', recordsRes.data?.length)
+      console.error('📥 [downloadRemoteData] 查询完成')
+      console.error('   recordsRes.error:', recordsRes.error)
+      console.error('   optionsRes.error:', optionsRes.error)
+      console.error('   profileRes.error:', profileRes.error)
+      console.error('   recordsRes.data.length:', recordsRes.data?.length)
 
       if (recordsRes.error) throw recordsRes.error
       if (optionsRes.error) throw optionsRes.error
@@ -424,22 +424,22 @@ export function useSync(
         photos: r.photos ? (typeof r.photos === 'string' ? JSON.parse(r.photos) : r.photos) : []
       }))
 
-      console.log('📥 [downloadRemoteData] 记录处理完成，数量:', records.length)
+      console.error('📥 [downloadRemoteData] 记录处理完成，数量:', records.length)
 
       // 调试：打印云端选项数据
-      console.log('📦 [downloadRemoteData] 云端选项数据:', optionsRes.data)
-      console.log('   选项数量:', optionsRes.data?.length)
+      console.error('📦 [downloadRemoteData] 云端选项数据:', optionsRes.data)
+      console.error('   选项数量:', optionsRes.data?.length)
 
       // 修复：过滤掉无效的选项（id 必须存在）
       const options = (optionsRes.data || []).filter(o => {
         const isValid = o.id && (o.label || o.notes)
         if (!isValid) {
-          console.log('   ⚠️ 过滤掉无效选项:', o)
+          console.error('   ⚠️ 过滤掉无效选项:', o)
         }
         return isValid
       })
 
-      console.log('   ✅ 有效选项数量:', options.length)
+      console.error('   ✅ 有效选项数量:', options.length)
 
       return {
         records,
@@ -465,7 +465,7 @@ export function useSync(
     const localOnlyCount = records.length - recordsToSync.length
 
     if (localOnlyCount > 0) {
-      console.log(`⚠️ [uploadLocalRecords] 同步限制：只上传最早的${MAX_SYNC_RECORDS}条记录`)
+      console.error(`⚠️ [uploadLocalRecords] 同步限制：只上传最早的${MAX_SYNC_RECORDS}条记录`)
       addLog(`${localOnlyCount}条记录仅本地保存`, 'success')
     }
 
@@ -536,12 +536,12 @@ export function useSync(
       const localOnlyCount = records.length - recordsToSync.length // 仅本地保留的记录数
 
       if (localOnlyCount > 0) {
-        console.log(`⚠️ [uploadLocalData] 同步限制：只同步最早的${MAX_SYNC_RECORDS}条记录，${localOnlyCount}条新记录仅保留在本地`)
+        console.error(`⚠️ [uploadLocalData] 同步限制：只同步最早的${MAX_SYNC_RECORDS}条记录，${localOnlyCount}条新记录仅保留在本地`)
         addLog(`${localOnlyCount}条记录仅本地保存`, 'success')
       }
 
       // 1. 上传用户资料（使用服务端 API 绕过 RLS）
-      console.log('📤 开始上传用户资料（服务端 API）...')
+      console.error('📤 开始上传用户资料（服务端 API）...')
 
       const profileResponse = await fetch('/api/sync/upload-profile', {
         method: 'POST',
@@ -562,7 +562,7 @@ export function useSync(
         throw new Error(profileResult.error || '上传用户资料失败')
       }
 
-      console.log('✅ 用户资料上传成功:', profileResult)
+      console.error('✅ 用户资料上传成功:', profileResult)
       addLog('上传用户资料', 'success')
 
       // 2. 批量上传练习记录（使用 upsert）- 使用限制后的 recordsToSync（最早的50条）

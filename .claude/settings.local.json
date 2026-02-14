@@ -19,7 +19,9 @@
       "Bash(ls:*)",
       "mcp__web-reader__webReader",
       "Bash(cd:*)",
-      "Bash(npx vercel)"
+      "Bash(npx vercel)",
+      "Bash(pnpm dev:*)",
+      "Bash(grep:*)"
     ]
   }
 }
