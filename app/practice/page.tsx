@@ -525,12 +525,14 @@ function EditRecordModal({
   practiceOptions,
   practiceHistory = [],
   onChildModalOpen,
+  onOpenFakeDoor,
 }: {
   isOpen: boolean
   onClose: () => void
   record: PracticeRecord | null
   onSave: (id: string, data: Partial<PracticeRecord>) => void
   onDelete: (id: string) => void
+  onOpenFakeDoor?: () => void
   practiceOptions: PracticeOption[]
   practiceHistory?: PracticeRecord[]
   onChildModalOpen?: (open: boolean) => void
@@ -758,7 +760,7 @@ function EditRecordModal({
                     />
                     {/* Voice Input - 浮动在输入框右下角（假门测试） */}
                     <VoiceButton
-                      onClick={() => setShowFakeDoor({ type: 'voice', isOpen: true })}
+                      onClick={() => onOpenFakeDoor?.()}
                     />
                   </div>
                 </div>
@@ -823,6 +825,7 @@ function ShareCardModal({
   totalHours,
   onEditRecord,
   onLogExport,
+  onOpenFakeDoor,
 }: {
   isOpen: boolean
   onClose: () => void
@@ -833,6 +836,7 @@ function ShareCardModal({
   totalHours: number
   onEditRecord: (id: string, notes: string, photos: string[], breakthrough?: string) => void
   onLogExport: (log: any) => void
+  onOpenFakeDoor?: () => void
 }) {
   const [editableNotes, setEditableNotes] = useState("")
   const [isEditingNotes, setIsEditingNotes] = useState(false)
@@ -991,7 +995,7 @@ function ShareCardModal({
                       {/* Voice Input Button for ShareCard - 浮动在右下角（假门测试） */}
                       <div className="relative">
                         <VoiceButton
-                          onClick={() => setShowFakeDoor({ type: 'voice', isOpen: true })}
+                          onClick={() => onOpenFakeDoor?.()}
                         />
                       </div>
                     </div>
@@ -1459,6 +1463,7 @@ function AddPracticeModal({
   practiceHistory = [],
   onAddOption,
   onChildModalOpen,
+  onOpenFakeDoor,
 }: {
   isOpen: boolean
   onClose: () => void
@@ -1467,6 +1472,7 @@ function AddPracticeModal({
   practiceHistory?: PracticeRecord[]
   onAddOption?: (name: string, notes: string) => void
   onChildModalOpen?: (open: boolean) => void
+  onOpenFakeDoor?: () => void
 }) {
   const [date, setDate] = useState(() => new Date().toISOString().split('T')[0])
   const [type, setType] = useState("")
@@ -1677,7 +1683,7 @@ function AddPracticeModal({
                   />
                   {/* Voice Input（假门测试） */}
                   <VoiceButton
-                    onClick={() => setShowFakeDoor({ type: 'voice', isOpen: true })}
+                    onClick={() => onOpenFakeDoor?.()}
                   />
                 </div>
               </div>
@@ -2224,11 +2230,13 @@ function CompletionSheet({
   practiceType,
   duration,
   onSave,
+  onOpenFakeDoor,
 }: {
   isOpen: boolean
   practiceType: string
   duration: string
   onSave: (notes: string, photos: string[], breakthrough?: string) => void
+  onOpenFakeDoor?: () => void
 }) {
   const [notes, setNotes] = useState("")
   const [breakthroughEnabled, setBreakthroughEnabled] = useState(false)
@@ -2328,7 +2336,7 @@ function CompletionSheet({
                   />
                   {/* Voice Input - 浮动在输入框右下角（假门测试） */}
                   <VoiceButton
-                    onClick={() => setShowFakeDoor({ type: 'voice', isOpen: true })}
+                    onClick={() => onOpenFakeDoor?.()}
                   />
                 </div>
               </div>
@@ -2635,6 +2643,7 @@ function JournalTab({
   onDeleteRecord,
   onAddRecord,
   onOpenFakeDoor,
+  onOpenVoiceFakeDoor,
   onAddOption,
   votedCloud,
   onLogExport,
@@ -2652,6 +2661,7 @@ function JournalTab({
   onDeleteRecord: (id: string) => void
   onAddRecord: (record: Omit<PracticeRecord, 'id' | 'created_at' | 'photos'>) => void
   onOpenFakeDoor: () => void
+  onOpenVoiceFakeDoor?: () => void
   onAddOption?: (name: string, notes: string) => void
   votedCloud: boolean
   onLogExport: (log: any) => void
@@ -2857,6 +2867,7 @@ function JournalTab({
         practiceOptions={practiceOptions}
         practiceHistory={practiceHistory}
         onChildModalOpen={(open) => setChildModalOpen(open)}
+        onOpenFakeDoor={onOpenVoiceFakeDoor}
       />
 
       <ShareCardModal
@@ -2869,6 +2880,7 @@ function JournalTab({
         totalHours={totalHours}
         onEditRecord={handleShareCardEdit}
         onLogExport={onLogExport}
+        onOpenFakeDoor={onOpenVoiceFakeDoor}
       />
 
       <AddPracticeModal
@@ -2879,6 +2891,7 @@ function JournalTab({
         practiceHistory={practiceHistory}
         onAddOption={onAddOption}
         onChildModalOpen={(open) => setChildModalOpen(open)}
+        onOpenFakeDoor={onOpenVoiceFakeDoor}
       />
 
 {/* Back to Top Button - Floating, Jade Glassmorphism */}
@@ -4114,6 +4127,7 @@ export default function AshtangaTracker() {
           practiceType={getSelectedLabel()}
           duration={finalDuration}
           onSave={handleSavePractice}
+          onOpenFakeDoor={() => setShowFakeDoor({ type: 'voice', isOpen: true })}
         />
       </motion.div>
     )
@@ -4234,6 +4248,7 @@ export default function AshtangaTracker() {
             // 无论是否登录，都直接打开账户与同步弹窗
             setShowAccountSync(true)
           }}
+          onOpenVoiceFakeDoor={() => setShowFakeDoor({ type: 'voice', isOpen: true })}
           onAddOption={handleAddOption}
           votedCloud={votedCloud}
           onLogExport={(log) => setExportLogs([...exportLogs, log])}
@@ -4575,6 +4590,7 @@ export default function AshtangaTracker() {
         practiceType={getSelectedLabel()}
         duration={finalDuration}
         onSave={handleSavePractice}
+        onOpenFakeDoor={() => setShowFakeDoor({ type: 'voice', isOpen: true })}
       />
 
       {/* Fake Door Modal */}
