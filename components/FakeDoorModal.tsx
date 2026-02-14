@@ -23,7 +23,7 @@ export function FakeDoorModal({ type, isOpen, onClose, onVote }: FakeDoorModalPr
   const isVoted = type === 'cloud' ? votedCloud : type === 'voice' ? votedVoice : votedPro
   const currentVotes = type === 'pro' && votedPro ? proVotes + 1 : proVotes
 
-  const handleVote = (choice?: 'sync' | 'photo' | 'both') => {
+  const handleVote = (choice?: 'sync' | 'photo' | 'both' | 'voice') => {
     if (isVoted) return
 
     if (type === 'cloud') {
@@ -33,6 +33,11 @@ export function FakeDoorModal({ type, isOpen, onClose, onVote }: FakeDoorModalPr
     } else if (type === 'voice') {
       setVotedVoice(true)
       toast.success('收到你的心意啦~')
+      // 语音输入假门测试埋点
+      trackEvent('vote_for_voice_input', {
+        vote: 'yes',
+        choice: choice || 'voice'
+      })
       onVote?.()
     } else {
       setVotedPro(true)
@@ -44,11 +49,13 @@ export function FakeDoorModal({ type, isOpen, onClose, onVote }: FakeDoorModalPr
   }
 
   const handleSecondary = () => {
-    // ⚠️ 已注释云同步埋点
-    // trackEvent('vote_for_cloud_sync', {
-    //   vote: 'no',
-    //   choice: 'none'
-    // })
+    if (type === 'voice') {
+      // 语音输入假门测试 - 用户拒绝
+      trackEvent('vote_for_voice_input', {
+        vote: 'no',
+        choice: 'none'
+      })
+    }
     toast.success('收到你的心意啦~')
     onClose()
   }
@@ -113,21 +120,21 @@ export function FakeDoorModal({ type, isOpen, onClose, onVote }: FakeDoorModalPr
                 <X className="w-5 h-5" />
               </button>
 
-              <div className="flex flex-col items-center text-center">
+              <div className="flex flex-col items-center">
                 <div className="mb-4 p-3 rounded-full bg-primary/5">
                   {activeContent.icon}
                 </div>
 
-                <h2 className="text-xl font-serif text-foreground mb-1">
+                <h2 className="text-xl font-serif text-foreground mb-1 text-center">
                   {activeContent.title}
                 </h2>
-                <p className="text-primary font-serif text-xs mb-4">
+                <p className="text-primary font-serif text-xs mb-4 text-center">
                   {activeContent.subtitle}
                 </p>
 
                 {type === 'cloud' || type === 'voice' ? (
                   <div
-                    className="text-muted-foreground font-serif leading-relaxed mb-6 text-sm"
+                    className={`text-muted-foreground font-serif leading-relaxed mb-6 text-sm ${type === 'voice' ? 'text-left' : 'text-center'}`}
                     dangerouslySetInnerHTML={{ __html: activeContent.desc || '' }}
                   />
                 ) : (
@@ -145,8 +152,8 @@ export function FakeDoorModal({ type, isOpen, onClose, onVote }: FakeDoorModalPr
                   </div>
                 )}
 
-                {type === 'cloud' || type === 'voice' ? (
-                  // 云端同步/语音输入：4个垂直按钮
+                {type === 'cloud' ? (
+                  // 云端同步：4个垂直按钮
                   <div className="w-full flex flex-col gap-2">
                     <button
                       onClick={() => handleVote('sync')}
@@ -189,6 +196,28 @@ export function FakeDoorModal({ type, isOpen, onClose, onVote }: FakeDoorModalPr
                       className="w-full py-3 rounded-full bg-secondary text-foreground font-serif transition-all hover:bg-secondary/80 active:scale-[0.98] text-sm"
                     >
                       {isVoted ? '收到啦' : '暂时不需要'}
+                    </button>
+                  </div>
+                ) : type === 'voice' ? (
+                  // 语音输入：2个按钮
+                  <div className="w-full flex flex-col gap-2">
+                    <button
+                      onClick={() => handleVote('voice')}
+                      disabled={isVoted}
+                      className={`w-full py-3 rounded-full font-serif transition-all duration-300 shadow-lg text-sm ${
+                        isVoted
+                          ? 'bg-green-500 text-white cursor-default'
+                          : 'bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] text-white hover:opacity-90 active:scale-[0.98]'
+                      }`}
+                    >
+                      {isVoted ? '已收到你的心意 ✓' : '【我想要】练习后直接说'}
+                    </button>
+
+                    <button
+                      onClick={handleSecondary}
+                      className="w-full py-3 rounded-full bg-secondary text-foreground font-serif transition-all hover:bg-secondary/80 active:scale-[0.98] text-sm"
+                    >
+                      {isVoted ? '关闭' : '暂不需要，打字就好'}
                     </button>
                   </div>
                 ) : (

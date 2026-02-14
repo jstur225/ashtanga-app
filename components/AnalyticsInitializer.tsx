@@ -33,10 +33,21 @@ export function AnalyticsInitializer() {
         ).length
         const patchedPractice = totalRecords - completedPractice
 
+        // 觉察记录统计（有 notes 或 breakthrough 的记录）
+        const recordsWithNotes = records.filter((r: any) =>
+          r.notes && r.notes.trim().length > 0
+        ).length
+        const recordsWithBreakthrough = records.filter((r: any) =>
+          r.breakthrough && r.breakthrough.trim().length > 0
+        ).length
+
         trackEvent('user_stats', {
           total_records: totalRecords,
           completed_practice: completedPractice,
-          patched_practice: patchedPractice
+          patched_practice: patchedPractice,
+          records_with_notes: recordsWithNotes,
+          records_with_breakthrough: recordsWithBreakthrough,
+          notes_rate: totalRecords > 0 ? Math.round((recordsWithNotes / totalRecords) * 100) : 0
         })
       }
     } catch (error) {
