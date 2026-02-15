@@ -3322,18 +3322,6 @@ export default function AshtangaTracker() {
   // ==================== 认证状态 ====================
   const { user, loading: authLoading } = useAuth()
 
-  // ==================== 同步功能 ====================
-  const { autoSync } = useSync(
-    user,
-    { records: practiceHistory, options: practiceOptionsData, profile: userProfile },
-    (data) => {
-      console.log('Sync completed:', data)
-      if (data?.profile) {
-        updateProfile(data.profile)
-      }
-    }
-  )
-
   const [practiceOptions, setPracticeOptions] = useState<PracticeOption[]>([])
   const [selectedOption, setSelectedOption] = useState<string | null>(null)
   const [customPracticeName, setCustomPracticeName] = useState("")
