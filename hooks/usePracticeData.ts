@@ -62,6 +62,42 @@ export const usePracticeData = () => {
     const stored = localStorage.getItem('ashtanga_options');
     if (!stored || stored === '[]') {
       setOptions(DEFAULT_OPTIONS);
+    } else {
+      // ⭐ 数据迁移：将旧版本的英文选项转换为中文
+      try {
+        const parsedOptions: PracticeOption[] = JSON.parse(stored);
+        const hasEnglishLabels = parsedOptions.some(opt =>
+          ['Mysore', 'Led', 'Led Class', 'Half', 'Rest'].some(en =>
+            opt.label?.includes(en) || opt.notes?.includes(en)
+          )
+        );
+
+        if (hasEnglishLabels) {
+          console.log('🔄 [数据迁移] 检测到旧版本英文选项，自动转换为中文...');
+          const migratedOptions = parsedOptions.map(opt => {
+            // 只转换 label 为中文，保留原有的 notes 不变
+            const label = opt.label?.toLowerCase() || '';
+            const notes = opt.notes || '';
+
+            // 根据 label 和 notes 判断类型，只改 label
+            if (label.includes('rest') || label.includes('休息日')) {
+              return { ...opt, label: '休息日' };
+            } else if (label.includes('half') || label.includes('半序列')) {
+              return { ...opt, label: '半序列' };
+            } else if (label.includes('二序列') || label.includes('second') || label.includes('2')) {
+              return { ...opt, label: '二序列' };
+            } else if (label.includes('一序列') || label.includes('first') || label.includes('1') || label.includes('primary')) {
+              return { ...opt, label: '一序列' };
+            }
+            // 如果无法识别，保持原样
+            return opt;
+          });
+          setOptions(migratedOptions);
+          console.log('✅ [数据迁移] 选项 label 已转换为中文格式');
+        }
+      } catch (e) {
+        console.error('❌ [数据迁移] 解析选项失败:', e);
+      }
     }
 
     // 为首次用户添加教程记录
