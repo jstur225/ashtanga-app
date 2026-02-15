@@ -133,7 +133,8 @@ export function useSync(
       console.error('📦 [getLatestLocalData] 从 localStorage 读取:', {
         recordsCount: records.length,
         lastRecordId: records[records.length - 1]?.id,
-        optionsCount: options.length
+        optionsCount: options.length,
+        profileName: profile?.name
       })
 
       return { records, options, profile }
@@ -162,6 +163,7 @@ export function useSync(
     console.error('   - records.length:', freshLocalData.records.length)
     console.error('   - records[最后一条]?.id:', freshLocalData.records[freshLocalData.records.length - 1]?.id)
     console.error('   - options.length:', freshLocalData.options.length)
+    console.error('   - profile.name:', freshLocalData.profile?.name)
 
     if (!user) {
       console.error('[autoSync] 用户未登录，退出')
@@ -513,6 +515,7 @@ export function useSync(
       })
 
       console.error('   ✅ 有效选项数量:', options.length)
+      console.error('📥 [downloadRemoteData] 云端 profile:', profileRes.data)
 
       return {
         records,
@@ -615,6 +618,8 @@ export function useSync(
 
       // 1. 上传用户资料（使用服务端 API 绕过 RLS）
       console.error('📤 开始上传用户资料（服务端 API）...')
+      console.error('   profile.name:', profile.name)
+      console.error('   profile.signature:', profile.signature)
 
       const profileResponse = await fetch('/api/sync/upload-profile', {
         method: 'POST',

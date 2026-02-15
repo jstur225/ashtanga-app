@@ -1978,8 +1978,12 @@ function SettingsModal({
                   }}
                   onSyncComplete={(data) => {
                     // 同步完成后的回调
-                    // TODO: 实现智能合并逻辑（方案A：用户选择）
                     console.log('Sync completed:', data)
+                    // ⭐ 更新本地 profile（如果云端有更新）
+                    if (data?.profile) {
+                      console.log('更新本地 profile:', data.profile)
+                      updateProfile(data.profile)
+                    }
                   }}
                   onClose={onClose}
                   onOpenLoginModal={onOpenLoginModal}
@@ -2113,6 +2117,7 @@ function AccountSyncModal({
   onOpenLoginModal,
   onOpenRegisterModal,
   onShowClearDataConfirm,
+  onUpdateProfile,
   user,
 }: {
   isOpen: boolean
@@ -2123,6 +2128,7 @@ function AccountSyncModal({
   onOpenLoginModal: () => void
   onOpenRegisterModal: () => void
   onShowClearDataConfirm?: () => void
+  onUpdateProfile?: (profile: UserProfile) => void
   user?: any
 }) {
   return (
@@ -2158,6 +2164,11 @@ function AccountSyncModal({
               }}
               onSyncComplete={(data) => {
                 console.log('Sync completed:', data)
+                // ⭐ 更新本地 profile（如果云端有更新）
+                if (data?.profile) {
+                  console.log('更新本地 profile:', data.profile)
+                  onUpdateProfile?.(data.profile)
+                }
               }}
               onClose={onClose}
               onOpenLoginModal={onOpenLoginModal}
@@ -4386,6 +4397,7 @@ export default function AshtangaTracker() {
           setShowClearDataConfirm(true)
           setClearDataStep(2) // 直接从 Step 2（输入确认词）开始
         }}
+        onUpdateProfile={updateProfile}
         user={user}
       />
 
