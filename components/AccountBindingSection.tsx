@@ -565,12 +565,23 @@ export function AccountBindingSection({
                           }
 
                           console.log('2. 原密码验证通过，开始更新密码...')
+                          toast.loading('正在修改密码，请稍候...', { id: 'changing-password' })
 
-                          // 步骤2: 更新密码（不设置超时，或设置更长超时）
+                          // 步骤2: 更新密码
                           console.log('3. 调用 supabase.auth.updateUser...')
+
+                          // 添加超时提示
+                          const timeoutId = setTimeout(() => {
+                            console.log('⏳ 修改密码请求进行中，请稍候...')
+                          }, 3000)
+
                           const result = await supabase.auth.updateUser({
                             password: newPassword
                           })
+
+                          clearTimeout(timeoutId)
+
+                          clearTimeout(timeoutId)
 
                           const elapsed = Date.now() - startTime
                           console.log(`4. API 响应收到（耗时: ${elapsed/1000}秒）`)
@@ -583,9 +594,12 @@ export function AccountBindingSection({
                             console.log('   翻译后的错误:', translatedError)
                             console.log('   显示错误提示')
                             setPasswordError(translatedError)
+                            toast.dismiss('changing-password')
+                            toast.error('❌ ' + translatedError)
                           } else {
                             console.log('✅ 修改密码成功！')
                             console.log('   显示成功提示')
+                            toast.dismiss('changing-password')
                             toast.success('✅ 密码修改成功，请使用新密码登录')
 
                             // 延迟关闭弹窗，让用户看到成功提示
@@ -605,6 +619,8 @@ export function AccountBindingSection({
                           console.log('   翻译后的错误:', translatedError)
                           console.log('   显示错误提示')
                           setPasswordError(translatedError)
+                          toast.dismiss('changing-password')
+                          toast.error('❌ ' + translatedError)
                         } finally {
                           console.log('6. 结束修改密码流程，重置loading状态')
                           setIsChangingPassword(false)
