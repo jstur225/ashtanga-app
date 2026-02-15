@@ -468,11 +468,11 @@ export function useSync(
 
       console.error('📥 [downloadRemoteData] 准备发送查询...')
 
-      // ⭐ 为每个查询添加单独的超时保护
+      // ⭐ 为每个查询添加单独的超时保护（60秒）
       const queryWithTimeout = async (queryName: string, queryFn: () => Promise<any>) => {
         const queryPromise = queryFn()
         const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error(`${queryName} 查询超时`)), 30000) // 单个查询30秒超时
+          setTimeout(() => reject(new Error(`${queryName} 查询超时`)), 60000) // 单个查询60秒超时
         })
         return Promise.race([queryPromise, timeoutPromise])
       }
