@@ -25,11 +25,24 @@ const getSupabaseInstance = () => {
     supabaseInstance = createClient(getSupabaseUrl(), getSupabaseAnonKey(), {
       global: {
         fetch: (url, options = {}) => {
-          return fetch(url, {
+          // ⭐ 兼容不支持 AbortSignal.timeout 的浏览器
+          let signal: AbortSignal | undefined
+          try {
+            if (typeof AbortSignal !== 'undefined' && 'timeout' in AbortSignal) {
+              signal = (AbortSignal as any).timeout(120000)
+            }
+          } catch (e) {
+            // 忽略错误，不使用 signal
+          }
+
+          const fetchOptions: any = {
             ...options,
-            // 增加超时时间到 120 秒（注册时需要等待邮件发送）
-            signal: AbortSignal.timeout(120000),
-          })
+          }
+          if (signal) {
+            fetchOptions.signal = signal
+          }
+
+          return fetch(url, fetchOptions)
         },
       },
     })

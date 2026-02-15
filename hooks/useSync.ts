@@ -465,27 +465,39 @@ export function useSync(
   }
 
   // ==================== 下载云端数据 ====================
-  const downloadRemoteData = async (userId: string) => {
+  const downloadRemoteData = async (userId: string, retryCount = 0) => {
     try {
-      console.error('📥 [downloadRemoteData] 开始下载，userId:', userId)
+      console.error('📥 [downloadRemoteData] 开始下载，userId:', userId, '重试次数:', retryCount)
 
       console.error('📥 [downloadRemoteData] 准备发送查询...')
 
-      // ⭐ 为每个查询添加单独的超时保护（60秒）
+      // ⭐ 为每个查询添加单独的超时保护（30秒，失败会重试）
       const queryWithTimeout = async (queryName: string, queryFn: () => Promise<any>) => {
+        const startTime = Date.now()
         const queryPromise = queryFn()
         const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error(`${queryName} 查询超时`)), 60000) // 单个查询60秒超时
+          setTimeout(() => {
+            const elapsed = Date.now() - startTime
+            reject(new Error(`${queryName} 查询超时 (${elapsed}ms)`))
+          }, 30000) // 单个查询30秒超时，失败后重试
         })
         return Promise.race([queryPromise, timeoutPromise])
       }
 
       // 分别包装每个查询，以便追踪哪个卡住了
-      const recordsPromise = queryWithTimeout('记录', () =>
-        supabase.from(TABLES.PRACTICE_RECORDS).select('*').eq('user_id', userId).is('deleted_at', null)
-          .then(res => { console.error('✅ [downloadRemoteData] 记录查询完成'); return res })
-          .catch(err => { console.error('❌ [downloadRemoteData] 记录查询失败:', err); throw err })
-      )
+      const recordsPromise = queryWithTimeout('记录', async () => {
+        console.error('🚀 [downloadRemoteData] 开始执行记录查询...')
+        try {
+          const query = supabase.from(TABLES.PRACTICE_RECORDS).select('*').eq('user_id', userId).is('deleted_at', null)
+          console.error('🚀 [downloadRemoteData] 查询对象创建成功，准备执行...')
+          const res = await query
+          console.error('✅ [downloadRemoteData] 记录查询完成')
+          return res
+        } catch (err) {
+          console.error('❌ [downloadRemoteData] 记录查询失败:', err)
+          throw err
+        }
+      })
 
       const optionsPromise = queryWithTimeout('选项', () =>
         supabase.from(TABLES.PRACTICE_OPTIONS).select('*').eq('user_id', userId)
@@ -545,6 +557,16 @@ export function useSync(
           : { name: '阿斯汤加习练者', signature: profileRes.data?.signature || '练习、练习，一切随之而来。', avatar: null, is_pro: false }, // 如果没有 profile 或 name 是数字，使用默认值
       }
     } catch (error: any) {
+      console.error('❌ [downloadRemoteData] 下载失败:', error.message)
+
+      // ⭐ 自动重试机制（最多重试2次）
+      if (retryCount < 2) {
+        console.error(`🔄 [downloadRemoteData] 准备第 ${retryCount + 1} 次重试...`)
+        addLog(`查询超时，正在重试 (${retryCount + 1}/2)...`, 'warning')
+        await new Promise(resolve => setTimeout(resolve, 1000)) // 等待1秒后重试
+        return downloadRemoteData(userId, retryCount + 1)
+      }
+
       addLog('下载数据失败', 'error', undefined, error.message)
       throw error
     }
