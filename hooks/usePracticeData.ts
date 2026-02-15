@@ -66,27 +66,59 @@ export const usePracticeData = () => {
       // 数据迁移：处理旧数据格式（驼峰命名、缺失字段等）
       try {
         const parsedOptions = JSON.parse(stored);
+
+        // ⭐ 健壮性检查：确保是数组
+        if (!Array.isArray(parsedOptions)) {
+          console.error('[数据迁移] 数据格式错误，不是数组:', parsedOptions);
+          setOptions(DEFAULT_OPTIONS);
+          return;
+        }
+
+        // ⭐ 健壮性检查：处理空数组
+        if (parsedOptions.length === 0) {
+          setOptions(DEFAULT_OPTIONS);
+          return;
+        }
+
         const needsMigration = parsedOptions.some((opt: any) =>
-          opt.labelZh !== undefined ||              // 旧字段名（驼峰）
-          opt.isCustom !== undefined ||             // 旧字段名（驼峰）
-          opt.is_custom === undefined ||            // 缺失 is_custom
-          opt.label === undefined                   // 缺失 label
+          opt && (
+            opt.labelZh !== undefined ||              // 旧字段名（驼峰）
+            opt.isCustom !== undefined ||             // 旧字段名（驼峰）
+            opt.is_custom === undefined ||            // 缺失 is_custom
+            opt.label === undefined                   // 缺失 label
+          )
         );
 
         if (needsMigration) {
-          const migratedOptions = parsedOptions.map((opt: any) => ({
-            id: opt.id,
-            created_at: opt.created_at || new Date().toISOString(),
-            label: opt.label || '',                   // 英文 label 逐步废弃
-            label_zh: opt.label_zh || opt.labelZh || opt.label || '',
-            notes: opt.notes,
-            is_custom: opt.is_custom !== undefined ? opt.is_custom : (opt.isCustom || false),
-          }));
+          const migratedOptions = parsedOptions.map((opt: any) => {
+            // ⭐ 健壮性处理：如果 opt 是 null/undefined，使用默认值
+            if (!opt) {
+              return {
+                id: uuidv4(),
+                created_at: new Date().toISOString(),
+                label: '一序列',
+                label_zh: '一序列',
+                notes: 'Mysore',
+                is_custom: false,
+              };
+            }
+
+            return {
+              id: opt.id || uuidv4(),
+              created_at: opt.created_at || new Date().toISOString(),
+              label: opt.label || '',                   // 英文 label 逐步废弃
+              label_zh: opt.label_zh || opt.labelZh || opt.label || '一序列',
+              notes: opt.notes,
+              is_custom: opt.is_custom !== undefined ? opt.is_custom : (opt.isCustom || false),
+            };
+          });
           setOptions(migratedOptions);
           console.log('[数据迁移] 已修复旧数据格式:', migratedOptions);
         }
       } catch (e) {
         console.error('Failed to migrate options data:', e);
+        // ⭐ 出错时使用默认选项
+        setOptions(DEFAULT_OPTIONS);
       }
     }
 
