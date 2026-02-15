@@ -122,6 +122,42 @@ export const usePracticeData = () => {
       }
     }
 
+    // ⭐ 清理本地存储中损坏的记录数据
+    try {
+      const storedRecordsRaw = localStorage.getItem('ashtanga_records');
+      if (storedRecordsRaw) {
+        const storedRecords = JSON.parse(storedRecordsRaw);
+        if (Array.isArray(storedRecords)) {
+          const hasDamagedRecords = storedRecords.some((record: any) =
+            Object.keys(record).some(key => /^\d+$/.test(key))
+          );
+          if (hasDamagedRecords) {
+            console.log('🧹 [数据清理] 检测到损坏的记录数据，自动修复...');
+            const cleanedRecords = storedRecords.map((record: any) => {
+              const hasNumericKeys = Object.keys(record).some(key => /^\d+$/.test(key));
+              if (hasNumericKeys) {
+                return {
+                  id: record.id,
+                  created_at: record.created_at,
+                  date: record.date,
+                  type: record.type,
+                  duration: record.duration,
+                  notes: typeof record.notes === 'string' ? record.notes : '',
+                  photos: Array.isArray(record.photos) ? record.photos : [],
+                  breakthrough: record.breakthrough,
+                };
+              }
+              return record;
+            });
+            setRecords(cleanedRecords);
+            console.log('✅ [数据清理] 已修复损坏的记录数据');
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Failed to clean records data:', e);
+    }
+
     // 为首次用户添加教程记录
     const storedRecords = localStorage.getItem('ashtanga_records');
     if (!storedRecords || storedRecords === '[]') {
@@ -243,6 +279,30 @@ export const usePracticeData = () => {
       if (!data.records && !data.options && !data.profile) {
         console.error('Invalid data structure: missing required fields');
         return false;
+      }
+
+      // ⭐ 修复：清理损坏的记录数据（有数字键的对象）
+      if (data.records) {
+        const cleanedRecords = data.records.map((record: any) => {
+          // 检查是否有数字键（如 "0", "1" 等），这是损坏的数据
+          const hasNumericKeys = Object.keys(record).some(key => /^\d+$/.test(key));
+          if (hasNumericKeys) {
+            console.log('[importData] 清理损坏的记录:', record.id);
+            // 只保留有效字段
+            return {
+              id: record.id,
+              created_at: record.created_at,
+              date: record.date,
+              type: record.type,
+              duration: record.duration,
+              notes: typeof record.notes === 'string' ? record.notes : '',
+              photos: Array.isArray(record.photos) ? record.photos : [],
+              breakthrough: record.breakthrough,
+            };
+          }
+          return record;
+        });
+        data.records = cleanedRecords;
       }
 
       // 修复：导入记录后按日期倒序排序（最新的日期在上面）
