@@ -68,7 +68,7 @@ export function DataStorageNotice({ isCloudSynced, email, syncStats, syncStatus,
               <div className={`rounded-full w-1.5 h-1.5 flex-shrink-0 ${
                 syncStatus === 'syncing' ? 'bg-blue-400 animate-pulse' :
                 syncStatus === 'error' ? 'bg-red-400' :
-                syncStatus === 'success' || lastSyncTime ? 'bg-green-400' :
+                syncStatus === 'success' ? 'bg-green-400' :
                 'bg-stone-400'
               }`} />
               <span className="text-xs font-serif text-muted-foreground">

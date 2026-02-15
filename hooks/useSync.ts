@@ -31,6 +31,10 @@ export function useSync(
   // 防止重复调用的 ref
   const isSyncingRef = useRef(false)
 
+  // ⭐ 修复闭包陷阱：使用 ref 保存最新的 localData
+  const localDataRef = useRef(localData)
+  localDataRef.current = localData
+
   // 持久化状态（存储到 localStorage）
   const [lastSyncTime, setLastSyncTime] = useLocalStorage<number | null>('last_sync_time', null)
   const [lastSyncStatus, setLastSyncStatus] = useLocalStorage<SyncStatus>('last_sync_status', 'idle')
@@ -78,13 +82,31 @@ export function useSync(
   }, [localData.records.length])
 
   // ==================== 应用级自动同步 ====================
+  // ⭐ 使用 ref 记录上一次的 user.id，只在从未登录变为登录时触发
+  const prevUserIdRef = useRef<string | null>(null)
+
   useEffect(() => {
+    const currentUserId = user?.id || null
+    const hasUserChanged = prevUserIdRef.current !== currentUserId
+    const isNewLogin = !prevUserIdRef.current && currentUserId
+
     console.error('🔍 [useEffect] 触发', {
       hasUser: !!user,
-      userId: user?.id,
+      userId: currentUserId,
+      prevUserId: prevUserIdRef.current,
       localDataLength: localData.records.length,
-      isSyncing: isSyncingRef.current
+      isSyncing: isSyncingRef.current,
+      isNewLogin
     })
+
+    // 更新 ref 为当前值
+    prevUserIdRef.current = currentUserId
+
+    // 只在新登录时（从 null 变为有值）才触发自动同步
+    if (!isNewLogin) {
+      console.error('⏸️ [useEffect] 不是新登录，跳过自动同步')
+      return
+    }
 
     // 如果正在同步中，跳过
     if (isSyncingRef.current) {
@@ -93,13 +115,37 @@ export function useSync(
     }
 
     if (user && localData.records.length >= 0) {
-      console.error('✅ [useEffect] 条件满足，准备调用 autoSync')
+      console.error('✅ [useEffect] 新登录，准备调用 autoSync')
       // 用户登录后，立即启动自动同步
       autoSync()
     } else {
       console.error('⏸️ [useEffect] 条件不满足，跳过自动同步')
     }
   }, [user?.id]) // 只监听 user.id 变化，而不是整个 user 对象
+
+  // ⭐ 从 localStorage 获取最新数据（避免闭包陷阱）
+  const getLatestLocalData = () => {
+    try {
+      const recordsStr = localStorage.getItem('ashtanga_records')
+      const optionsStr = localStorage.getItem('ashtanga_options')
+      const profileStr = localStorage.getItem('ashtanga_profile')
+
+      const records = recordsStr ? JSON.parse(recordsStr) : []
+      const options = optionsStr ? JSON.parse(optionsStr) : []
+      const profile = profileStr ? JSON.parse(profileStr) : null
+
+      console.error('📦 [getLatestLocalData] 从 localStorage 读取:', {
+        recordsCount: records.length,
+        lastRecordId: records[records.length - 1]?.id,
+        optionsCount: options.length
+      })
+
+      return { records, options, profile }
+    } catch (e) {
+      console.error('❌ [getLatestLocalData] 读取 localStorage 失败:', e)
+      return localDataRef.current
+    }
+  }
 
   // ==================== 自动同步函数 ====================
   const autoSync = async () => {
@@ -109,10 +155,17 @@ export function useSync(
       return
     }
 
+    // ⭐ 从 localStorage 获取最新数据，避免闭包陷阱
+    const freshLocalData = getLatestLocalData()
+
     console.error('🚨🚨🚨 [autoSync] 函数被调用了！🚨🚨🚨')
     console.error('='.repeat(50))
     console.error('[autoSync] 函数开始执行')
     console.error('='.repeat(50))
+    console.error('[autoSync] 🔍 localData 详情:')
+    console.error('   - records.length:', freshLocalData.records.length)
+    console.error('   - records[最后一条]?.id:', freshLocalData.records[freshLocalData.records.length - 1]?.id)
+    console.error('   - options.length:', freshLocalData.options.length)
 
     if (!user) {
       console.error('[autoSync] 用户未登录，退出')
@@ -125,7 +178,7 @@ export function useSync(
 
     console.error('[autoSync] 用户已登录，开始同步')
     console.error('   user_id:', user.id)
-    console.error('   localData.records.length:', localData.records.length)
+    console.error('   localData.records.length:', freshLocalData.records.length)
 
     console.error('[autoSync] 设置状态为 syncing...')
     setSyncStatus('syncing')
@@ -146,13 +199,13 @@ export function useSync(
       console.error('[autoSync] 云端数据下载成功')
       console.error('   remoteData.records.length:', remoteData.records?.length)
 
-      const localCount = localData.records.length
+      const localCount = freshLocalData.records.length
       const remoteCount = remoteData.records.length
 
       console.error(`📊 [autoSync] 数据对比：本地${localCount}条，云端${remoteCount}条`)
 
       // ⭐ 计算同步限制（用于显示上限提醒）
-      const sortedRecords = [...localData.records].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      const sortedRecords = [...freshLocalData.records].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
       const recordsToSync = sortedRecords.slice(0, MAX_SYNC_RECORDS)
       const localOnlyCount = localCount - recordsToSync.length
 
@@ -162,7 +215,7 @@ export function useSync(
 
       // 2. 智能同步策略
       // ⭐ 使用截取后的 recordsToSync（最早的50条）进行比对，避免超过限制的记录触发冲突
-      const effectiveLocalRecords = localOnlyCount > 0 ? recordsToSync : localData.records
+      const effectiveLocalRecords = localOnlyCount > 0 ? recordsToSync : freshLocalData.records
 
       // ⭐ 云端数据也只取前50条进行比对（内测版本限制）
       const effectiveRemoteRecords = remoteCount > MAX_SYNC_RECORDS
@@ -226,7 +279,7 @@ export function useSync(
         if (totalLocalChanges > 0 && totalRemoteChanges === 0) {
           console.error(`📤 [autoSync] 本地有${totalLocalChanges}条变更（新增${localOnly.length}+更新${localNewer.length}），上传到云端`)
           addLog(`上传本地变更：${totalLocalChanges}条记录`, 'success')
-          const result = await uploadLocalData(user.id, localData, user)
+          const result = await uploadLocalData(user.id, freshLocalData, user)
           if (result.success) {
             setSyncStatus('success')
             setLastSyncStatus('success')
@@ -326,7 +379,7 @@ export function useSync(
       // 4. 只有本地有数据 → 上传到云端
       if (localCount > 0 && remoteCount === 0) {
         addLog(`上传本地数据：${localCount}条记录`, 'success')
-        const result = await uploadLocalData(user.id, localData, user)
+        const result = await uploadLocalData(user.id, freshLocalData, user)
         if (result.success) {
           setSyncStatus('success')
           setLastSyncStatus('success')
@@ -370,10 +423,13 @@ export function useSync(
     remoteOnly: PracticeRecord[],
     remoteData: any
   ) => {
+    // ⭐ 使用 ref 获取最新的 localData
+    const freshLocalData = localDataRef.current
+
     if (remoteOnly.length > 0) {
       // 云端有新数据，下载到本地
       addLog(`下载${remoteOnly.length}条云端记录`, 'success')
-      onSyncComplete({ records: [...localData.records, ...remoteOnly], options: remoteData.options || [] })
+      onSyncComplete({ records: [...freshLocalData.records, ...remoteOnly], options: remoteData.options || [] })
     }
 
     if (localOnly.length > 0) {
@@ -395,18 +451,39 @@ export function useSync(
     try {
       console.error('📥 [downloadRemoteData] 开始下载，userId:', userId)
 
-      // ⭐ 添加超时保护，15秒超时
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('下载超时，请检查网络连接')), 15000)
-      })
+      console.error('📥 [downloadRemoteData] 准备发送查询...')
 
-      const fetchPromise = Promise.all([
-        supabase.from(TABLES.PRACTICE_RECORDS).select('*').eq('user_id', userId).is('deleted_at', null),
-        supabase.from(TABLES.PRACTICE_OPTIONS).select('*').eq('user_id', userId),
-        supabase.from(TABLES.USER_PROFILES).select('*').eq('user_id', userId).maybeSingle(),
-      ])
+      // ⭐ 为每个查询添加单独的超时保护
+      const queryWithTimeout = async (queryName: string, queryFn: () => Promise<any>) => {
+        const queryPromise = queryFn()
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error(`${queryName} 查询超时`)), 30000) // 单个查询30秒超时
+        })
+        return Promise.race([queryPromise, timeoutPromise])
+      }
 
-      const [recordsRes, optionsRes, profileRes] = await Promise.race([fetchPromise, timeoutPromise]) as any
+      // 分别包装每个查询，以便追踪哪个卡住了
+      const recordsPromise = queryWithTimeout('记录', () =>
+        supabase.from(TABLES.PRACTICE_RECORDS).select('*').eq('user_id', userId).is('deleted_at', null)
+          .then(res => { console.error('✅ [downloadRemoteData] 记录查询完成'); return res })
+          .catch(err => { console.error('❌ [downloadRemoteData] 记录查询失败:', err); throw err })
+      )
+
+      const optionsPromise = queryWithTimeout('选项', () =>
+        supabase.from(TABLES.PRACTICE_OPTIONS).select('*').eq('user_id', userId)
+          .then(res => { console.error('✅ [downloadRemoteData] 选项查询完成'); return res })
+          .catch(err => { console.error('❌ [downloadRemoteData] 选项查询失败:', err); throw err })
+      )
+
+      const profilePromise = queryWithTimeout('资料', () =>
+        supabase.from(TABLES.USER_PROFILES).select('*').eq('user_id', userId).maybeSingle()
+          .then(res => { console.error('✅ [downloadRemoteData] 资料查询完成'); return res })
+          .catch(err => { console.error('❌ [downloadRemoteData] 资料查询失败:', err); throw err })
+      )
+
+      const fetchPromise = Promise.all([recordsPromise, optionsPromise, profilePromise])
+
+      const [recordsRes, optionsRes, profileRes] = await fetchPromise as any
 
       console.error('📥 [downloadRemoteData] 查询完成')
       console.error('   recordsRes.error:', recordsRes.error)
@@ -579,18 +656,24 @@ export function useSync(
           updated_at: r.updated_at || r.created_at || new Date().toISOString(), // ⭐ 添加更新时间
         }))
 
-        const { error: recordsError } = await supabase
+        console.error(`📤 [uploadLocalData] 准备上传${recordsToUpload.length}条记录`)
+        console.error('📤 [uploadLocalData] 记录IDs:', recordsToUpload.map(r => r.id))
+
+        const { error: recordsError, data: upsertData } = await supabase
           .from(TABLES.PRACTICE_RECORDS)
           .upsert(recordsToUpload, {
             onConflict: 'id'
           })
+          .select()
 
         if (recordsError) {
           // 记录失败的记录ID
           records.forEach(r => failedIds.push(r.id))
           addLog('批量上传记录', 'error', undefined, recordsError.message)
+          console.error('❌ [uploadLocalData] upsert 失败:', recordsError)
         } else {
           addLog(`批量上传${recordsToSync.length}条记录`, 'success')
+          console.error(`✅ [uploadLocalData] upsert 成功，返回${upsertData?.length || 0}条记录`)
         }
       }
 
@@ -697,7 +780,7 @@ export function useSync(
           addLog('云端数据已清空', 'success')
 
           // 2. 上传本地数据
-          const result = await uploadLocalData(user.id, localData, user)
+          const result = await uploadLocalData(user.id, localDataRef.current, user)
           if (!result.success) {
             throw new Error('上传本地数据失败')
           }
@@ -706,10 +789,12 @@ export function useSync(
         case 'merge':
           // 智能合并
           addLog('智能合并', 'success')
-          const localIds = new Set(localData.records.map(r => r.id))
+          // ⭐ 使用 ref 获取最新的 localData
+          const freshLocalDataForMerge = localDataRef.current
+          const localIds = new Set(freshLocalDataForMerge.records.map(r => r.id))
           const remoteIds = new Set(remoteData.records.map(r => r.id))
 
-          const localOnly = localData.records.filter(r => !remoteIds.has(r.id))
+          const localOnly = freshLocalDataForMerge.records.filter(r => !remoteIds.has(r.id))
           const remoteOnly = remoteData.records.filter(r => !localIds.has(r.id))
 
           await smartMerge(localOnly, remoteOnly, remoteData)
