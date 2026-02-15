@@ -271,9 +271,9 @@ export function useSync(
         let profileChangeSource: 'local' | 'remote' | null = null
 
         if (localProfile && remoteProfile) {
+          // ⭐ 只比对 name 和 signature，avatar 不上传
           if (localProfile.name !== remoteProfile.name ||
-              localProfile.signature !== remoteProfile.signature ||
-              localProfile.avatar !== remoteProfile.avatar) {
+              localProfile.signature !== remoteProfile.signature) {
             profileChanged = true
             // 简化处理：本地优先（假设用户刚修改了本地）
             profileChangeSource = 'local'
