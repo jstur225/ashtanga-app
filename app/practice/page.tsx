@@ -3095,15 +3095,17 @@ export default function AshtangaTracker() {
 
   // Initialize practice options from hook data
   useEffect(() => {
+    // ⭐ 过滤掉 null/undefined 项，防止报错
+    const validOptions = practiceOptionsData.filter(o => o && o.id);
     setPracticeOptions([
-      ...practiceOptionsData.map(o => ({
+      ...validOptions.map(o => ({
         id: o.id,
         label: o.label,
         labelZh: o.label_zh,
         notes: o.notes,
         isCustom: o.is_custom
       })),
-      { id: "custom", label: "Custom", labelZh: "自定义" }
+      { id: "custom", label: "Custom", labelZh: "自定义", notes: "", isCustom: false }
     ])
   }, [practiceOptionsData])
 
