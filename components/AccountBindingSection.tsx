@@ -345,6 +345,16 @@ export function AccountBindingSection({
                         console.log('   调用 signOut()...')
                         await signOut()
                         console.log('   signOut() 完成')
+                        // ⭐ 重置 profile 为默认值
+                        console.log('   重置 profile 为默认值...')
+                        localStorage.setItem('ashtanga_profile', JSON.stringify({
+                          id: '',
+                          created_at: new Date().toISOString(),
+                          name: '阿斯汤加习练者',
+                          signature: '练习、练习，一切随之而来。',
+                          avatar: null,
+                          is_pro: false,
+                        }))
                         setShowSignOutConfirm(false)
                         console.log('   弹窗已关闭')
                         toast.success('✅ 已退出登录')
