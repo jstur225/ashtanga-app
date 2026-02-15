@@ -3322,6 +3322,18 @@ export default function AshtangaTracker() {
   // ==================== 认证状态 ====================
   const { user, loading: authLoading } = useAuth()
 
+  // ==================== 同步功能 ====================
+  const { autoSync } = useSync(
+    user,
+    { records: practiceHistory, options: practiceOptionsData, profile: userProfile },
+    (data) => {
+      console.log('Sync completed:', data)
+      if (data?.profile) {
+        updateProfile(data.profile)
+      }
+    }
+  )
+
   const [practiceOptions, setPracticeOptions] = useState<PracticeOption[]>([])
   const [selectedOption, setSelectedOption] = useState<string | null>(null)
   const [customPracticeName, setCustomPracticeName] = useState("")
@@ -4351,7 +4363,26 @@ export default function AshtangaTracker() {
         }}
         initialSection={settingsInitialSection}
         profile={userProfile}
-        onSave={updateProfile}
+        onSave={async (profile) => {
+          // 先保存到本地
+          updateProfile(profile)
+          // 如果已登录，自动同步到云端
+          if (user) {
+            toast.loading('正在同步到云端...', { id: 'sync-profile' })
+            try {
+              const result = await autoSync()
+              toast.dismiss('sync-profile')
+              if (result) {
+                toast.success('✅ 资料已同步到云端')
+              } else {
+                toast.error('❌ 同步失败，请稍后重试')
+              }
+            } catch (e) {
+              toast.dismiss('sync-profile')
+              toast.error('❌ 同步失败')
+            }
+          }
+        }}
         onOpenExport={() => {
           const data = exportData()
           setExportedData(data)
