@@ -340,9 +340,20 @@ export function AccountBindingSection({
                   {/* 选项1：仅退出 - 灰色背景 */}
                   <button
                     onClick={async () => {
-                      await signOut()
-                      setShowSignOutConfirm(false)
-                      toast.success('✅ 已退出登录')
+                      console.log('🚪 [退出登录] 按钮被点击')
+                      try {
+                        console.log('   调用 signOut()...')
+                        await signOut()
+                        console.log('   signOut() 完成')
+                        setShowSignOutConfirm(false)
+                        console.log('   弹窗已关闭')
+                        toast.success('✅ 已退出登录')
+                        // 刷新页面以显示未登录状态
+                        window.location.reload()
+                      } catch (err: any) {
+                        console.error('❌ [退出登录] 失败:', err)
+                        toast.error('❌ 退出登录失败: ' + err.message)
+                      }
                     }}
                     className="w-full flex items-center justify-between p-4 rounded-xl bg-secondary hover:bg-secondary/80 transition-all border border-border"
                   >
