@@ -125,6 +125,29 @@ export function AccountBindingSection({
     console.log('AccountBindingSection 组件已挂载')
     console.log('当前用户状态:', user)
     testSupabaseConnection()
+
+    // ⭐ 监听 session 变化，处理修改密码后组件重置的情况
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('🔐 [Auth State Change] 事件:', event)
+      console.log('   有 session:', !!session)
+
+      // 如果正在修改密码且收到了 USER_UPDATED 事件，说明修改成功
+      if ((window as any).__passwordChangeInProgress__ && event === 'USER_UPDATED') {
+        console.log('✅ [Auth State] 检测到密码修改成功')
+        ;(window as any).__passwordChangeInProgress__ = false
+        toast.dismiss('changing-password')
+        toast.success('✅ 密码修改成功，下次登录请使用新密码')
+        setIsChangingPassword(false)
+        setShowChangePassword(false)
+        setOldPassword('')
+        setNewPassword('')
+        setConfirmPassword('')
+      }
+    })
+
+    return () => {
+      authListener.subscription.unsubscribe()
+    }
   }, []) // 空依赖数组 = 只在挂载时执行一次
 
   // 弹窗打开时阻止背景滚动
@@ -570,12 +593,19 @@ export function AccountBindingSection({
                           // 步骤2: 更新密码
                           console.log('3. 调用 supabase.auth.updateUser...')
 
+                          // ⭐ 设置全局标志，防止 session 变化导致组件重置后无法处理结果
+                          ;(window as any).__passwordChangeInProgress__ = true
+
+                          // 创建可取消的 Promise
                           const result = await supabase.auth.updateUser({
                             password: newPassword
                           })
 
                           const elapsed = Date.now() - startTime
                           console.log(`4. API 响应收到（耗时: ${elapsed/1000}秒）`)
+
+                          // 清除标志
+                          ;(window as any).__passwordChangeInProgress__ = false
 
                           if (result.error) {
                             console.error('修改密码失败:', result.error)
