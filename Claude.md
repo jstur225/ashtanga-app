@@ -10,11 +10,18 @@ memory.md 是我使用 Claude Code 的相关记忆
 每次启动时，都要读取当前文件夹下的 memory 查看之前的记录。
 每次大改动时，也都要把重要信息记录到 memory.md。
 
-**重要：memory.md 现在是全局通用的**
+**重要：memory.md 和 PROJECT_LOG.md 现在是全局通用的**
+
+**memory.md:**
 - 全局文件位置：`D:\BaiduSyncdisk\work\cursor app\memory-global.md`
 - 当前软链接：`memory.md` → `..\memory-global.md`
 - 无论切换到哪个分支（dev/master/master2），读取的都是同一个记忆文件
 - 这样避免了分支切换时记忆丢失的问题
+
+**PROJECT_LOG.md:**
+- 全局文件位置：`D:\BaiduSyncdisk\work\ashtang-app\PROJECT_LOG-global.md`
+- 当前软链接：`PROJECT_LOG.md` → `PROJECT_LOG-global.md`
+- 所有分支共享同一个开发日志文件
 
 产品方法论
 核心在于“简单”，即专注于一个功能并做到极致，而不是做加法
