@@ -2109,3 +2109,56 @@ if (mode === 'login') {
 2. **强制刷新**（Ctrl+Shift+R）确保获取最新代码
 3. **检查 Service Worker** 是否更新（Application → Service Workers）
 
+---
+
+## 2026-02-15 下午 - 同步功能深度修复
+
+### 修复内容
+
+1. **autoSync 返回值修复** - 解决 toast 提示与实际状态不一致
+   - 问题：toast 显示"同步失败"但日志显示成功
+   - 原因：`autoSync` 函数没有正确返回 true/false
+   - 解决：修复所有返回路径，确保成功返回 `true`，失败/冲突返回 `false`
+   - 文件：`hooks/useSync.ts`
+
+2. **React Closure Trap 修复** - 解决手动同步失败问题
+   - 问题：点击"立即同步"按钮时数据比对不正确
+   - 原因：React closure 导致 `localData` 是旧数据
+   - 解决：使用 `localDataRef` 获取最新数据
+   - 文件：`hooks/useSync.ts`
+
+3. **Supabase 查询超时修复** - 添加重试机制
+   - 问题：查询云端数据时频繁超时（60秒超时）
+   - 原因：`AbortSignal.timeout` 在 Safari 等浏览器不兼容
+   - 解决：
+     - 修复浏览器兼容性（try-catch 判断）
+     - 缩短单次超时到 30 秒，失败后自动重试 2 次
+     - 添加详细查询日志便于诊断
+   - 文件：`hooks/useSync.ts`, `lib/supabase.ts`
+
+4. **状态灯显示修复** - 修复错误时显示绿色
+   - 问题：同步失败时状态灯仍显示绿色
+   - 原因：判断条件包含 `|| lastSyncTime`
+   - 解决：改为仅根据 `syncStatus` 判断
+   - 文件：`components/DataStorageNotice.tsx`
+
+5. **Profile 同步修复** - 名字修改后自动同步
+   - 问题：修改用户名后不会自动同步到云端
+   - 解决：在 `onSave` 回调中调用 `autoSync`
+   - 文件：`app/practice/page.tsx`
+
+6. **退出登录修复** - 重置 profile 并刷新页面
+   - 问题：退出登录后 profile 未重置
+   - 解决：清除 profile 为默认值后刷新页面
+   - 文件：`components/AccountBindingSection.tsx`
+
+### Git 提交记录
+- `288ea5a` - fix: 修复 autoSync 返回值
+- `c6ed75f` - fix: 修复 Supabase 查询超时问题，添加重试机制
+
+### 测试结果
+- ✅ 同步功能恢复正常（查询、比对、上传、下载）
+- ✅ Toast 提示正确反映同步状态
+- ✅ Profile 修改后自动同步
+- ✅ 状态灯颜色正确显示
+
