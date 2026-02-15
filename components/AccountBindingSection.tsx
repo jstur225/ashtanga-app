@@ -203,6 +203,7 @@ export function AccountBindingSection({
         email={user?.email}
         syncStats={syncStats}
         syncStatus={syncStatus}
+        lastSyncStatus={lastSyncStatus}
         lastSyncTime={lastSyncTime}
       />
 

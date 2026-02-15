@@ -13,6 +13,7 @@ interface DataStorageNoticeProps {
     hasLimitWarning: boolean
   }
   syncStatus?: 'idle' | 'syncing' | 'success' | 'error'
+  lastSyncStatus?: 'idle' | 'success' | 'error'  // ⭐ 使用持久化的状态
   lastSyncTime?: number | null
 }
 
@@ -33,7 +34,7 @@ function maskEmail(email: string): string {
   return `${prefix}****${suffix}@${domain}`
 }
 
-export function DataStorageNotice({ isCloudSynced, email, syncStats, syncStatus, lastSyncTime }: DataStorageNoticeProps) {
+export function DataStorageNotice({ isCloudSynced, email, syncStats, syncStatus, lastSyncStatus, lastSyncTime }: DataStorageNoticeProps) {
   if (isCloudSynced) {
     // 云端模式：整合成一个大框
     return (
@@ -61,23 +62,17 @@ export function DataStorageNotice({ isCloudSynced, email, syncStats, syncStatus,
 
         {/* 第三部分：同步进度 */}
         <div className="border-t border-amber-200/50 pt-2">
-          {/* 状态行：灯 + 最近同步时间 + 已同步记录数 */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
-              {/* 状态灯 */}
-              <div className={`rounded-full w-1.5 h-1.5 flex-shrink-0 ${
-                syncStatus === 'syncing' ? 'bg-blue-400 animate-pulse' :
-                syncStatus === 'error' ? 'bg-red-400' :
-                syncStatus === 'success' ? 'bg-green-400' :
-                'bg-stone-400'
-              }`} />
-              <span className="text-xs font-serif text-muted-foreground">
-                最近同步时间 <span className="italic">{lastSyncTime ? new Date(lastSyncTime).toLocaleString('zh-CN') : '尚未同步'}</span>
-              </span>
-            </div>
-            {/* 已同步记录数 - 右对齐 */}
-            <span className="text-xs font-serif text-muted-foreground italic">
-              {syncStats?.syncedRecords || 0}/{syncStats?.totalLocalRecords || 0} 已同步
+          {/* 状态行：灯 + 最近同步时间 */}
+          <div className="flex items-center gap-1.5">
+            {/* 状态灯：优先使用持久化的 lastSyncStatus */}
+            <div className={`rounded-full w-1.5 h-1.5 flex-shrink-0 ${
+              syncStatus === 'syncing' ? 'bg-blue-400 animate-pulse' :
+              (lastSyncStatus || syncStatus) === 'error' ? 'bg-red-400' :
+              (lastSyncStatus || syncStatus) === 'success' ? 'bg-green-400' :
+              'bg-stone-400'
+            }`} />
+            <span className="text-xs font-serif text-muted-foreground">
+              最近同步时间 <span className="italic">{lastSyncTime ? new Date(lastSyncTime).toLocaleString('zh-CN') : '尚未同步'}</span>
             </span>
           </div>
         </div>
@@ -98,6 +93,11 @@ export function DataStorageNotice({ isCloudSynced, email, syncStats, syncStatus,
           <p className="text-xs font-serif text-amber-600">
             开启云同步后，数据仅供您个人跨设备访问。
           </p>
+        </div>
+        {/* 未登录状态灯：灰色 */}
+        <div className="flex items-center gap-1.5 mt-3 pt-3 border-t border-amber-200">
+          <div className="rounded-full w-1.5 h-1.5 flex-shrink-0 bg-stone-400" />
+          <span className="text-xs font-serif text-amber-700">未开启云同步</span>
         </div>
       </div>
     </div>

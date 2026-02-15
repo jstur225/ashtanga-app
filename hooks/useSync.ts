@@ -82,29 +82,21 @@ export function useSync(
   }, [localData.records.length])
 
   // ==================== 应用级自动同步 ====================
-  // ⭐ 使用 ref 记录上一次的 user.id，只在从未登录变为登录时触发
-  const prevUserIdRef = useRef<string | null>(null)
+  // ⭐ 使用全局标志，确保每个页面会话只自动同步一次
+  const hasAutoSyncedInSession = typeof window !== 'undefined' && (window as any).__hasAutoSynced__
 
   useEffect(() => {
-    const currentUserId = user?.id || null
-    const hasUserChanged = prevUserIdRef.current !== currentUserId
-    const isNewLogin = !prevUserIdRef.current && currentUserId
-
     console.error('🔍 [useEffect] 触发', {
       hasUser: !!user,
-      userId: currentUserId,
-      prevUserId: prevUserIdRef.current,
+      userId: user?.id,
       localDataLength: localData.records.length,
       isSyncing: isSyncingRef.current,
-      isNewLogin
+      hasAutoSyncedInSession
     })
 
-    // 更新 ref 为当前值
-    prevUserIdRef.current = currentUserId
-
-    // 只在新登录时（从 null 变为有值）才触发自动同步
-    if (!isNewLogin) {
-      console.error('⏸️ [useEffect] 不是新登录，跳过自动同步')
+    // 如果当前会话已经自动同步过，跳过
+    if (hasAutoSyncedInSession) {
+      console.error('⏸️ [useEffect] 当前会话已自动同步过，跳过')
       return
     }
 
@@ -115,7 +107,11 @@ export function useSync(
     }
 
     if (user && localData.records.length >= 0) {
-      console.error('✅ [useEffect] 新登录，准备调用 autoSync')
+      console.error('✅ [useEffect] 首次同步，准备调用 autoSync')
+      // 标记当前会话已自动同步
+      if (typeof window !== 'undefined') {
+        (window as any).__hasAutoSynced__ = true
+      }
       // 用户登录后，立即启动自动同步
       autoSync()
     } else {
