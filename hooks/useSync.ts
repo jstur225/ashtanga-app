@@ -264,9 +264,26 @@ export function useSync(
         const totalLocalChanges = localOnly.length + localNewer.length
         const totalRemoteChanges = remoteOnly.length + remoteNewer.length
 
-        console.error(`📊 [autoSync] 比对结果：本地独有${localOnly.length}条，云端独有${remoteOnly.length}条，本地更新${localNewer.length}条，云端更新${remoteNewer.length}条`)
+        // ⭐ 检查 profile 是否有差异
+        const localProfile = freshLocalData.profile
+        const remoteProfile = remoteData.profile
+        let profileChanged = false
+        let profileChangeSource: 'local' | 'remote' | null = null
 
-        if (totalLocalChanges === 0 && totalRemoteChanges === 0) {
+        if (localProfile && remoteProfile) {
+          if (localProfile.name !== remoteProfile.name ||
+              localProfile.signature !== remoteProfile.signature ||
+              localProfile.avatar !== remoteProfile.avatar) {
+            profileChanged = true
+            // 简化处理：本地优先（假设用户刚修改了本地）
+            profileChangeSource = 'local'
+            console.error(`📊 [autoSync] profile 有差异：本地 name=${localProfile.name}, 云端 name=${remoteProfile.name}`)
+          }
+        }
+
+        console.error(`📊 [autoSync] 比对结果：本地独有${localOnly.length}条，云端独有${remoteOnly.length}条，本地更新${localNewer.length}条，云端更新${remoteNewer.length}条，profile变化=${profileChanged}`)
+
+        if (totalLocalChanges === 0 && totalRemoteChanges === 0 && !profileChanged) {
           // 没有差异，数据已一致
           console.error('[autoSync] 数据已一致，无需同步')
           setSyncStatus('success')
@@ -274,8 +291,8 @@ export function useSync(
         }
 
         // 有差异：本地有新增/更新的数据 → 上传到云端
-        if (totalLocalChanges > 0 && totalRemoteChanges === 0) {
-          console.error(`📤 [autoSync] 本地有${totalLocalChanges}条变更（新增${localOnly.length}+更新${localNewer.length}），上传到云端`)
+        if ((totalLocalChanges > 0 || profileChangeSource === 'local') && totalRemoteChanges === 0) {
+          console.error(`📤 [autoSync] 本地有${totalLocalChanges}条变更（新增${localOnly.length}+更新${localNewer.length}）${profileChanged ? '+ profile变更' : ''}，上传到云端`)
           addLog(`上传本地变更：${totalLocalChanges}条记录`, 'success')
           const result = await uploadLocalData(user.id, freshLocalData, user)
           if (result.success) {
@@ -290,7 +307,7 @@ export function useSync(
         }
 
         // 有差异：云端有新增/更新的数据 → 合并到本地
-        if (totalRemoteChanges > 0 && totalLocalChanges === 0) {
+        if ((totalRemoteChanges > 0 || profileChangeSource === 'remote') && totalLocalChanges === 0 && profileChangeSource !== 'local') {
           console.error(`📥 [autoSync] 云端有${totalRemoteChanges}条变更（新增${remoteOnly.length}+更新${remoteNewer.length}）`)
 
           // ⭐ 合并：本地记录 + 云端新增 + 云端更新的版本
