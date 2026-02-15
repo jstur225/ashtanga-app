@@ -287,7 +287,7 @@ export function useSync(
           // 没有差异，数据已一致
           console.error('[autoSync] 数据已一致，无需同步')
           setSyncStatus('success')
-          return
+          return true
         }
 
         // 有差异：本地有新增/更新的数据 → 上传到云端
@@ -299,11 +299,12 @@ export function useSync(
             setSyncStatus('success')
             setLastSyncStatus('success')
             setLastSyncTime(Date.now())
+            return true
           } else {
             setSyncStatus('error')
             setLastSyncStatus('error')
+            return false
           }
-          return
         }
 
         // 有差异：云端有新增/更新的数据 → 合并到本地
@@ -346,7 +347,7 @@ export function useSync(
             localOnlyCount: 0,
             hasLimitWarning: false
           })
-          return
+          return true
         }
 
         // 两边都有变更 → 真正的冲突，需要用户选择
@@ -356,7 +357,7 @@ export function useSync(
           onConflictDetected(localCount, remoteCount)
         }
         setSyncStatus('idle')
-        return
+        return false
       }
 
       // 3. 只有云端有数据 → 使用云端（但只取前50条）
@@ -388,7 +389,7 @@ export function useSync(
           localOnlyCount: 0,
           hasLimitWarning: false
         })
-        return
+        return true
       }
 
       // 4. 只有本地有数据 → 上传到云端
@@ -399,10 +400,10 @@ export function useSync(
           setSyncStatus('success')
           setLastSyncStatus('success')
           setLastSyncTime(Date.now())
+          return true
         } else {
           throw new Error('上传本地数据失败')
         }
-        return
       }
 
       // 5. 两边都没有数据 → 无需操作
@@ -410,12 +411,14 @@ export function useSync(
       setSyncStatus('success')
       setLastSyncStatus('success')
       setLastSyncTime(Date.now()) // ⭐ 更新同步时间
+      return true
 
     } catch (error: any) {
       console.error('Auto sync failed:', error)
       addLog('自动同步失败', 'error', undefined, error.message)
       setSyncStatus('error')
       setLastSyncStatus('error')
+      return false
     } finally {
       // 清理同步标志，允许下次同步
       isSyncingRef.current = false
