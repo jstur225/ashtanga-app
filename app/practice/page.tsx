@@ -34,6 +34,15 @@ const getMoonPhaseMap = () => {
   return map
 }
 
+// UI层使用的选项类型（驼峰命名，用于组件内部状态）
+interface UIOption {
+  id: string;
+  label: string;
+  labelZh: string;
+  notes?: string;
+  isCustom: boolean;
+}
+
 // Helper functions
 function getLocalDateStr() {
   const now = new Date()
@@ -372,7 +381,7 @@ function EditOptionModal({
 }: {
   isOpen: boolean
   onClose: () => void
-  option: PracticeOption | null
+  option: UIOption | null
   onSave: (id: string, name: string, notes: string) => void
   onDelete: (id: string) => void
   canDelete: boolean
@@ -383,7 +392,7 @@ function EditOptionModal({
 
   useEffect(() => {
     if (option) {
-      setName(option.labelZh)
+      setName(option.labelZh || option.label || '一序列')
       setNotes(option.notes || "")
     }
   }, [option])
@@ -521,7 +530,7 @@ function EditRecordModal({
   record: PracticeRecord | null
   onSave: (id: string, data: Partial<PracticeRecord>) => void
   onDelete: (id: string) => void
-  practiceOptions: PracticeOption[]
+  practiceOptions: UIOption[]
   practiceHistory?: PracticeRecord[]
   onChildModalOpen?: (open: boolean) => void
 }) {
@@ -1304,11 +1313,11 @@ function TypeSelectorModal({
 }: {
   isOpen: boolean
   onClose: (type: string) => void
-  practiceOptions: PracticeOption[]
+  practiceOptions: UIOption[]
   selectedType?: string
 }) {
   // 处理按钮点击
-  const handleOptionTap = (option: PracticeOption) => {
+  const handleOptionTap = (option: UIOption) => {
     if (option.id === "custom") {
       // 点击自定义按钮，通知父组件
       onClose("__custom__")
@@ -1382,7 +1391,7 @@ function TypeSelectorModal({
                       `}
                     >
                       <span className="text-[14px] leading-snug break-words w-full line-clamp-2">
-                        {isCustomButton ? "+ 自定义" : option.labelZh}
+                        {isCustomButton ? "+ 自定义" : (option.labelZh || option.label || '一序列')}
                       </span>
                       {!isCustomButton && option.notes && (
                         <span className={`
@@ -1423,7 +1432,7 @@ function AddPracticeModal({
   isOpen: boolean
   onClose: () => void
   onSave: (record: Omit<PracticeRecord, 'id' | 'created_at' | 'photos'>) => void
-  practiceOptions: PracticeOption[]
+  practiceOptions: UIOption[]
   practiceHistory?: PracticeRecord[]
   onAddOption?: (name: string, notes: string) => void
   onChildModalOpen?: (open: boolean) => void
@@ -2400,7 +2409,7 @@ function JournalTab({
   onSetShowAddModal,
 }: {
   practiceHistory: PracticeRecord[]
-  practiceOptions: PracticeOption[]
+  practiceOptions: UIOption[]
   profile: UserProfile
   onEditRecord: (id: string, data: Partial<PracticeRecord>) => void
   onDeleteRecord: (id: string) => void
@@ -3020,7 +3029,7 @@ export default function AshtangaTracker() {
     importData
   } = usePracticeData()
 
-  const [practiceOptions, setPracticeOptions] = useState<PracticeOption[]>([])
+  const [practiceOptions, setPracticeOptions] = useState<UIOption[]>([])
   const [selectedOption, setSelectedOption] = useState<string | null>(null)
   const [customPracticeName, setCustomPracticeName] = useState("")
   const [isPracticing, setIsPracticing] = useLocalStorage('ashtanga_is_practicing', false)
@@ -3031,7 +3040,7 @@ export default function AshtangaTracker() {
   const [elapsedTime, setElapsedTime] = useState(0)
   const [showCustomModal, setShowCustomModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
-  const [editingOption, setEditingOption] = useState<PracticeOption | null>(null)
+  const [editingOption, setEditingOption] = useState<UIOption | null>(null)
   const [editingRecord, setEditingRecord] = useState<PracticeRecord | null>(null)
   const [showAddModal, setShowAddModal] = useState(false)
   const [showConfirmEnd, setShowConfirmEnd] = useState(false)
@@ -3154,7 +3163,7 @@ export default function AshtangaTracker() {
     }
   }, [])
 
-  const handleOptionTap = (option: PracticeOption) => {
+  const handleOptionTap = (option: UIOption) => {
     const now = Date.now()
     const lastTap = lastTapRef.current
     
@@ -3222,7 +3231,7 @@ export default function AshtangaTracker() {
         notes: notes || undefined,
         isCustom: true
       },
-      { id: "custom", label: "Custom", labelZh: "自定义" }
+      { id: "custom", label: "Custom", labelZh: "自定义", notes: "", isCustom: false }
     ])
 
     setCustomPracticeName(name)
@@ -3358,7 +3367,7 @@ export default function AshtangaTracker() {
         notes: notes || undefined,
         isCustom: true
       },
-      { id: "custom", label: "Custom", labelZh: "自定义" }
+      { id: "custom", label: "Custom", labelZh: "自定义", notes: "", isCustom: false }
     ])
 
     console.log('current practiceOptionsData after add:', practiceOptionsData)
@@ -3842,7 +3851,7 @@ export default function AshtangaTracker() {
                     }
                   `}
                 >
-                  <span className="text-[14px] leading-snug break-words w-full line-clamp-2">{isCustomButton ? "+ 自定义" : option.labelZh}</span>
+                  <span className="text-[14px] leading-snug break-words w-full line-clamp-2">{isCustomButton ? "+ 自定义" : (option.labelZh || option.label || '一序列')}</span>
                   {!isCustomButton && option.notes && (
                     <span className={`text-[11px] mt-0.5 leading-snug break-words w-full line-clamp-2 ${isSelected ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
                       {option.notes}

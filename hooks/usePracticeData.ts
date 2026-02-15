@@ -35,6 +35,43 @@ export interface UserProfile {
   is_pro: boolean;
 }
 
+// 英文到中文的映射表（用于旧数据迁移）
+const LABEL_MAPPING: Record<string, string> = {
+  'Primary 1': '一序列',
+  'Primary 2': '一序列',
+  'Intermediate 1': '二序列',
+  'Intermediate 2': '二序列',
+  'Half': '半序列',
+  'Rest': '休息日',
+  // 兼容可能的变体
+  'Primary': '一序列',
+  'Intermediate': '二序列',
+  'Half Primary': '半序列',
+};
+
+// 根据英文label和notes组合判断中文显示
+const getChineseLabel = (label: string, notes?: string): string => {
+  // 如果已经是中文，直接返回
+  if (/[\u4e00-\u9fa5]/.test(label)) {
+    return label;
+  }
+
+  // 尝试直接映射
+  if (LABEL_MAPPING[label]) {
+    return LABEL_MAPPING[label];
+  }
+
+  // 根据关键词判断
+  const lowerLabel = label.toLowerCase();
+  if (lowerLabel.includes('primary')) return '一序列';
+  if (lowerLabel.includes('intermediate')) return '二序列';
+  if (lowerLabel.includes('half')) return '半序列';
+  if (lowerLabel.includes('rest')) return '休息日';
+
+  // 默认返回
+  return '一序列';
+};
+
 const DEFAULT_OPTIONS: PracticeOption[] = [
   { id: '1', created_at: new Date().toISOString(), label: 'Primary 1', label_zh: '一序列', notes: 'Mysore', is_custom: false },
   { id: '2', created_at: new Date().toISOString(), label: 'Primary 2', label_zh: '一序列', notes: 'Led class', is_custom: false },
@@ -96,18 +133,28 @@ export const usePracticeData = () => {
               return {
                 id: uuidv4(),
                 created_at: new Date().toISOString(),
-                label: '一序列',
+                label: 'Primary 1',
                 label_zh: '一序列',
                 notes: 'Mysore',
                 is_custom: false,
               };
             }
 
+            // 获取原始 label（处理各种旧字段名）
+            const rawLabel = opt.label || '';
+            const rawLabelZh = opt.label_zh || opt.labelZh || '';
+
+            // 如果 label_zh 为空，使用映射表转换
+            let finalLabelZh = rawLabelZh;
+            if (!finalLabelZh || finalLabelZh === '') {
+              finalLabelZh = getChineseLabel(rawLabel, opt.notes);
+            }
+
             return {
               id: opt.id || uuidv4(),
               created_at: opt.created_at || new Date().toISOString(),
-              label: opt.label || '',                   // 英文 label 逐步废弃
-              label_zh: opt.label_zh || opt.labelZh || opt.label || '一序列',
+              label: rawLabel || '',                   // 英文 label 逐步废弃
+              label_zh: finalLabelZh,
               notes: opt.notes,
               is_custom: opt.is_custom !== undefined ? opt.is_custom : (opt.isCustom || false),
             };
@@ -128,7 +175,7 @@ export const usePracticeData = () => {
       if (storedRecordsRaw) {
         const storedRecords = JSON.parse(storedRecordsRaw);
         if (Array.isArray(storedRecords)) {
-          const hasDamagedRecords = storedRecords.some((record: any) =
+          const hasDamagedRecords = storedRecords.some((record: any) =>
             Object.keys(record).some(key => /^\d+$/.test(key))
           );
           if (hasDamagedRecords) {
