@@ -567,53 +567,33 @@ export function AccountBindingSection({
                           console.log('2. 原密码验证通过，开始更新密码...')
                           toast.loading('正在修改密码，请稍候...', { id: 'changing-password' })
 
-                          // 步骤2: 更新密码（带强制超时）
+                          // 步骤2: 更新密码
                           console.log('3. 调用 supabase.auth.updateUser...')
 
-                          // 创建超时 Promise
-                          const timeoutPromise = new Promise((_, reject) => {
-                            setTimeout(() => reject(new Error('修改密码请求超时，请刷新页面后重试')), 30000)
+                          const result = await supabase.auth.updateUser({
+                            password: newPassword
                           })
 
-                          let result: any
-                          try {
-                            result = await Promise.race([
-                              supabase.auth.updateUser({ password: newPassword }),
-                              timeoutPromise
-                            ]) as any
-
-                            const elapsed = Date.now() - startTime
-                            console.log(`4. API 响应收到（耗时: ${elapsed/1000}秒）`)
-                            console.log('   是否有错误:', result.error ? '是' : '否')
-                            if (result.error) console.log('   错误信息:', result.error)
-                          } catch (raceErr: any) {
-                            // Promise.race 超时或被中断
-                            console.error('❌ Promise.race 失败:', raceErr)
-                            result = { error: { message: raceErr.message || '请求失败' } }
-                          }
+                          const elapsed = Date.now() - startTime
+                          console.log(`4. API 响应收到（耗时: ${elapsed/1000}秒）`)
 
                           if (result.error) {
                             console.error('修改密码失败:', result.error)
                             const translatedError = translateErrorMessage(result.error.message)
                             console.log('   翻译后的错误:', translatedError)
-                            console.log('   显示错误提示')
                             setPasswordError(translatedError)
                             toast.dismiss('changing-password')
                             toast.error('❌ ' + translatedError)
                           } else {
                             console.log('✅ 修改密码成功！')
-                            console.log('   显示成功提示')
                             toast.dismiss('changing-password')
                             toast.success('✅ 密码修改成功，下次登录请使用新密码')
 
-                            // 延迟关闭弹窗，让用户看到成功提示
-                            setTimeout(() => {
-                              console.log('   关闭修改密码弹窗')
-                              setShowChangePassword(false)
-                              setOldPassword('')
-                              setNewPassword('')
-                              setConfirmPassword('')
-                            }, 1500)
+                            // 关闭弹窗并清空输入
+                            setShowChangePassword(false)
+                            setOldPassword('')
+                            setNewPassword('')
+                            setConfirmPassword('')
                           }
                         } catch (err: any) {
                           const elapsedCatch = Date.now() - startTime
