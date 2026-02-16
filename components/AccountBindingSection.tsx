@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
+import { useRouter } from 'next/navigation'
 import { Mail, CheckCircle, LogOut, RefreshCw, Smartphone, X, LogOut as LogOutIcon, Key, Lock, AlertCircle, ChevronRight, Trash2 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useSync } from '@/hooks/useSync'
@@ -52,6 +53,7 @@ export function AccountBindingSection({
   onShowClearDataConfirm,
   user: propUser,
 }: AccountBindingSectionProps) {
+  const router = useRouter()
   const { user: authUser, signOut, deviceConflict, confirmDeviceConflict, cancelDeviceConflict } = useAuth()
   // 优先使用 prop 传递的 user，如果没有则使用 useAuth 获取的
   const user = propUser || authUser
@@ -342,10 +344,6 @@ export function AccountBindingSection({
                     onClick={async () => {
                       console.log('🚪 [退出登录] 按钮被点击')
                       try {
-                        console.log('   调用 signOut()...')
-                        await signOut()
-                        console.log('   signOut() 完成')
-                        // ⭐ 重置 profile 为默认值
                         console.log('   重置 profile 为默认值...')
                         localStorage.setItem('ashtanga_profile', JSON.stringify({
                           id: '',
@@ -358,10 +356,10 @@ export function AccountBindingSection({
                         setShowSignOutConfirm(false)
                         console.log('   弹窗已关闭')
                         toast.success('✅ 已退出登录')
-                        // ⭐ 延迟刷新页面，确保状态已清除
-                        setTimeout(() => {
-                          window.location.reload()
-                        }, 2000)
+
+                        // ⭐ 和"清空数据"一样的方式：直接调用 supabase.auth.signOut() 然后跳转首页
+                        await supabase.auth.signOut()
+                        router.push('/')
                       } catch (err: any) {
                         console.error('❌ [退出登录] 失败:', err)
                         toast.error('❌ 退出登录失败: ' + err.message)
