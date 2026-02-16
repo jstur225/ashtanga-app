@@ -302,12 +302,18 @@ export function useAuth() {
     // 确保完全退出，防止页面刷新后自动恢复登录
     const keysToRemove = [
       'sb-xojbgxvwgvjanxsowqik-auth-token',
+      'sb-xojbgxvwgvjanxsowqik-auth-token-code-verifier',
+      'sb-xojbgxvwgvjanxsowqik-auth-token-challenge',
       'supabase.auth.token',
       'supabase.auth.refreshToken',
+      'supabase.auth.expires_at',
+      'supabase.auth.user',
     ]
     keysToRemove.forEach(key => {
       try {
         localStorage.removeItem(key)
+        // 同时尝试清除 sessionStorage
+        sessionStorage.removeItem(key)
       } catch (e) {
         // 忽略清除错误
       }

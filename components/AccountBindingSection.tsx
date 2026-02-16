@@ -361,7 +361,7 @@ export function AccountBindingSection({
                         // ⭐ 延迟刷新页面，确保状态已清除
                         setTimeout(() => {
                           window.location.reload()
-                        }, 500)
+                        }, 2000)
                       } catch (err: any) {
                         console.error('❌ [退出登录] 失败:', err)
                         toast.error('❌ 退出登录失败: ' + err.message)
