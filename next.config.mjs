@@ -24,7 +24,7 @@ const nextConfig = {
   },
   // SWC压缩已是Next.js 16默认选项
   compiler: {
-    removeConsole: process.env.NODE_ENV === 'production', // 生产环境移除console
+    removeConsole: false, // ⭐ 临时关闭，方便调试
   },
   // 实验性功能
   experimental: {
