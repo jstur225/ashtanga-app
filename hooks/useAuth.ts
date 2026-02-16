@@ -311,7 +311,7 @@ export function useAuth() {
       .eq('user_id', user.id)
 
     // 2. 调用 Supabase signOut（清除服务端 session 和本地存储）
-    const { error } = await supabase.auth.signOut()
+    const { error } = await supabase.auth.signOut({ scope: 'global' })
     if (error) throw error
 
     // 3. ⭐ 立即清除本地状态（不等待 onAuthStateChange）
@@ -319,25 +319,35 @@ export function useAuth() {
     setCurrentDevice(null)
     setDeviceConflict(null)
 
-    // 4. ⭐ 清除 Supabase 可能残留的 localStorage 数据
-    // 确保完全退出，防止页面刷新后自动恢复登录
-    const keysToRemove = [
-      'sb-xojbgxvwgvjanxsowqik-auth-token',
-      'sb-xojbgxvwgvjanxsowqik-auth-token-code-verifier',
-      'sb-xojbgxvwgvjanxsowqik-auth-token-challenge',
-      'supabase.auth.token',
-      'supabase.auth.refreshToken',
-      'supabase.auth.expires_at',
-      'supabase.auth.user',
-    ]
-    keysToRemove.forEach(key => {
-      try {
+    // 4. ⭐ 清除所有 Supabase 相关的存储数据
+    clearAllSupabaseStorage()
+  }
+
+  // ⭐ 辅助函数：清除所有 Supabase 存储
+  const clearAllSupabaseStorage = () => {
+    // 清除所有可能的 localStorage key（包括 Supabase 相关的）
+    const allKeys = Object.keys(localStorage)
+    allKeys.forEach(key => {
+      if (key.includes('supabase') || key.includes('sb-')) {
         localStorage.removeItem(key)
-        // 同时尝试清除 sessionStorage
-        sessionStorage.removeItem(key)
-      } catch (e) {
-        // 忽略清除错误
       }
+    })
+
+    // 清除 sessionStorage
+    const sessionKeys = Object.keys(sessionStorage)
+    sessionKeys.forEach(key => {
+      if (key.includes('supabase') || key.includes('sb-')) {
+        sessionStorage.removeItem(key)
+      }
+    })
+
+    // 清除所有 cookies（包括可能存储的 Supabase cookie）
+    const cookies = document.cookie.split(';')
+    cookies.forEach(cookie => {
+      const [name] = cookie.trim().split('=')
+      // 设置 cookie 过期时间为过去，从而删除它
+      document.cookie = `${name.trim()}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=${window.location.hostname}`
+      document.cookie = `${name.trim()}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`
     })
   }
 
