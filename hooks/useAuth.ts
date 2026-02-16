@@ -72,13 +72,16 @@ export function useAuth() {
     })
 
     // 监听认证状态变化
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('[useAuth] onAuthStateChange:', event, 'session:', !!session)
+
       // ⭐ 如果正在退出，不处理 session 恢复
       if (localStorage.getItem('__signing_out__')) {
         console.log('[useAuth] onAuthStateChange: 忽略，正在退出中')
         return
       }
 
+      console.log('[useAuth] 设置 user:', session?.user?.email ?? null)
       setUser(session?.user ?? null)
 
       if (session?.user) {

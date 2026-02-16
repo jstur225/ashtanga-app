@@ -342,9 +342,9 @@ export function AccountBindingSection({
                   {/* 选项1：仅退出 - 灰色背景 */}
                   <button
                     onClick={async () => {
-                      console.log('🚪 [退出登录] 按钮被点击')
+                      console.log('🚪 [仅退出登录] 按钮被点击')
                       try {
-                        console.log('   重置 profile 为默认值...')
+                        console.log('   1. 重置 profile 为默认值...')
                         localStorage.setItem('ashtanga_profile', JSON.stringify({
                           id: '',
                           created_at: new Date().toISOString(),
@@ -354,14 +354,21 @@ export function AccountBindingSection({
                           is_pro: false,
                         }))
                         setShowSignOutConfirm(false)
-                        console.log('   弹窗已关闭')
                         toast.success('✅ 已退出登录')
 
-                        // ⭐ 和"清空数据"一样的方式：直接调用 supabase.auth.signOut() 然后跳转首页
-                        await supabase.auth.signOut()
+                        console.log('   2. 调用 supabase.auth.signOut()...')
+                        const { error } = await supabase.auth.signOut()
+                        if (error) {
+                          console.error('   signOut 错误:', error)
+                          throw error
+                        }
+                        console.log('   signOut 完成')
+
+                        console.log('   3. 跳转到首页...')
                         router.push('/')
+                        console.log('   跳转完成')
                       } catch (err: any) {
-                        console.error('❌ [退出登录] 失败:', err)
+                        console.error('❌ [仅退出登录] 失败:', err)
                         toast.error('❌ 退出登录失败: ' + err.message)
                       }
                     }}
