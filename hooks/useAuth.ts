@@ -49,6 +49,18 @@ export function useAuth() {
 
   // ==================== 初始化：检查登录状态 ====================
   useEffect(() => {
+    // ⭐ 检查是否正在退出登录，如果是则强制清除 session
+    const isSigningOut = localStorage.getItem('__signing_out__')
+    if (isSigningOut) {
+      console.log('[useAuth] 检测到退出标志，强制清除 session')
+      localStorage.removeItem('__signing_out__')
+      supabase.auth.signOut().then(() => {
+        setUser(null)
+        setLoading(false)
+      })
+      return
+    }
+
     // 获取当前会话
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null)
@@ -61,6 +73,12 @@ export function useAuth() {
 
     // 监听认证状态变化
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      // ⭐ 如果正在退出，不处理 session 恢复
+      if (localStorage.getItem('__signing_out__')) {
+        console.log('[useAuth] onAuthStateChange: 忽略，正在退出中')
+        return
+      }
+
       setUser(session?.user ?? null)
 
       if (session?.user) {
@@ -282,6 +300,9 @@ export function useAuth() {
   // ==================== 退出登录 ====================
   const signOut = async () => {
     if (!user) return
+
+    // ⭐ 设置退出标志，防止页面刷新后自动恢复登录
+    localStorage.setItem('__signing_out__', 'true')
 
     // 1. 先清空设备列表
     await supabase
