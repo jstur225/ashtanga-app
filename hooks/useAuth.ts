@@ -283,16 +283,35 @@ export function useAuth() {
   const signOut = async () => {
     if (!user) return
 
+    // 1. 先清空设备列表
     await supabase
       .from('user_profiles')
-      .update({ logged_in_devices: [] }) // 清空设备列表
+      .update({ logged_in_devices: [] })
       .eq('user_id', user.id)
 
+    // 2. 调用 Supabase signOut（清除服务端 session 和本地存储）
     const { error } = await supabase.auth.signOut()
     if (error) throw error
 
+    // 3. ⭐ 立即清除本地状态（不等待 onAuthStateChange）
+    setUser(null)
     setCurrentDevice(null)
     setDeviceConflict(null)
+
+    // 4. ⭐ 清除 Supabase 可能残留的 localStorage 数据
+    // 确保完全退出，防止页面刷新后自动恢复登录
+    const keysToRemove = [
+      'sb-xojbgxvwgvjanxsowqik-auth-token',
+      'supabase.auth.token',
+      'supabase.auth.refreshToken',
+    ]
+    keysToRemove.forEach(key => {
+      try {
+        localStorage.removeItem(key)
+      } catch (e) {
+        // 忽略清除错误
+      }
+    })
   }
 
   // ==================== 确认设备冲突，继续登录 ====================

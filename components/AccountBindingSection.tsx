@@ -358,8 +358,10 @@ export function AccountBindingSection({
                         setShowSignOutConfirm(false)
                         console.log('   弹窗已关闭')
                         toast.success('✅ 已退出登录')
-                        // 刷新页面以显示未登录状态
-                        window.location.reload()
+                        // ⭐ 延迟刷新页面，确保状态已清除
+                        setTimeout(() => {
+                          window.location.reload()
+                        }, 500)
                       } catch (err: any) {
                         console.error('❌ [退出登录] 失败:', err)
                         toast.error('❌ 退出登录失败: ' + err.message)
