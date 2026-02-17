@@ -57,6 +57,7 @@ export function DataStorageNotice({ isCloudSynced, email, syncStats, syncStatus,
         {/* 第二部分：提醒内容 */}
         <ul className="text-xs font-serif text-muted-foreground space-y-0.5 mb-3">
           <li>• 换设备或重装浏览器觉察数据不丢失</li>
+          <li>• 支持多设备登录，旧设备不用时请清空本地数据</li>
         </ul>
 
         {/* 第三部分：同步进度 */}
