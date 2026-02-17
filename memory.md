@@ -2162,3 +2162,50 @@ if (mode === 'login') {
 - ✅ Profile 修改后自动同步
 - ✅ 状态灯颜色正确显示
 
+
+## 2026-02-18 移除设备限制逻辑，支持多设备登录
+
+### 背景
+- bee5f3b 版本有半成品的设备限制（登录时限制，但不会踢出旧设备）
+- 用户决定放弃冲突检测功能，允许多设备登录
+- 担心多设备登录时同步功能是否正常
+
+### 同步功能分析
+- ✅ **完全支持多设备登录**：使用 `user_id` 过滤数据
+- ✅ **冲突处理**：通过 `updated_at` 时间戳判断最新版本
+- ✅ **自动合并**：设备A添加记录1，设备B添加记录2，最终都有1和2
+- ⚠️ **同时修改**：如果两个设备同时修改同一条记录，以最后修改的为准
+
+### 主要改动
+1. **hooks/useAuth.ts**:
+   - 移除设备管理工具函数（`getOrCreateDeviceId`, `getDeviceName`）
+   - 移除设备状态（`currentDevice`, `deviceConflict`）
+   - 简化 `signIn`：不再检查和限制设备
+   - 简化 `signOut`：不再清空设备列表
+   - 移除 `loadDeviceInfo`, `confirmDeviceConflict`, `cancelDeviceConflict`
+   - **删除 176 行代码**
+
+2. **lib/supabase.ts**:
+   - 移除 `UserProfile` 接口中的 `logged_in_devices` 字段
+
+3. **components/AccountBindingSection.tsx**:
+   - 移除设备冲突相关的引用
+
+### 产品决策
+符合"简单"理念，移除设备限制，代码更简洁
+
+### 用户体验
+- ✅ 多个设备可以同时登录
+- ✅ 不需要每次登录确认替换设备
+- ✅ 同步功能完全正常工作
+
+### 数据库清理建议
+- ⚠️ 数据库中的 `logged_in_devices` 字段已经不再使用
+- 建议：在 Supabase Dashboard 中删除该字段（可选，不影响功能）
+- 建议：关闭 Realtime 功能（可选，如果不使用）
+
+### Git 提交
+- `d2bdf87` - fix: 回滚冲突检测功能，删除设备限制提示
+- `78878cf` - feat: 移除设备限制逻辑，支持多设备登录
+
+---
