@@ -154,7 +154,7 @@ export function AccountBindingSection({
 
   // 弹窗打开时阻止背景滚动
   useEffect(() => {
-    const isAnyModalOpen = showSignOutConfirm || showChangePassword || !!deviceConflict
+    const isAnyModalOpen = showSignOutConfirm || showChangePassword
 
     if (isAnyModalOpen) {
       // 保存当前滚动位置
@@ -175,7 +175,7 @@ export function AccountBindingSection({
         window.scrollTo(0, scrollY)
       }
     }
-  }, [showSignOutConfirm, showChangePassword, deviceConflict])
+  }, [showSignOutConfirm, showChangePassword])
 
   // ==================== 立即同步 ====================
   const handleSync = async () => {
@@ -687,80 +687,6 @@ export function AccountBindingSection({
                       className="flex-1 px-4 py-3 green-gradient backdrop-blur-md text-white rounded-xl border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] hover:opacity-90 transition-all disabled:opacity-50 font-serif"
                     >
                       {isChangingPassword ? '修改中...' : '确认修改'}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </>,
-        document.body
-      )}
-
-      {/* 设备冲突确认弹窗 - 居中显示 */}
-      {deviceConflict && createPortal(
-        <>
-          {/* Backdrop */}
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100]" onClick={cancelDeviceConflict} />
-
-          {/* Modal - 居中显示 */}
-          <div className="fixed inset-0 flex items-center justify-center z-[110] p-4 pointer-events-none">
-            <div className="bg-card rounded-[24px] shadow-[0_8px_32px_rgba(0,0,0,0.12)] w-full max-w-md pointer-events-auto">
-              <div className="p-6 pb-10">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-lg font-serif text-foreground">⚠️ 设备登录提醒</h2>
-                  <button onClick={cancelDeviceConflict} className="p-2 -mr-2 text-muted-foreground hover:text-foreground transition-colors">
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
-
-                <div className="space-y-4">
-                  <p className="text-sm font-serif text-foreground text-center leading-relaxed">
-                    您的账号已在以下设备登录：
-                  </p>
-
-                  <div className="bg-amber-50 rounded-xl p-4 border border-amber-200">
-                    <div className="flex items-center gap-3">
-                      <Smartphone className="w-5 h-5 text-amber-600" />
-                      <div>
-                        <p className="text-sm font-medium font-serif text-amber-800">{deviceConflict.oldDevice.name}</p>
-                        <p className="text-xs font-serif text-amber-600">
-                          {new Date(deviceConflict.oldDevice.last_seen).toLocaleDateString('zh-CN')}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <p className="text-sm font-serif text-foreground text-center leading-relaxed">
-                    在新设备登录后，以上设备将被退出登录。
-                  </p>
-
-                  <div className="bg-blue-50 rounded-xl p-3 border border-blue-200">
-                    <p className="text-xs font-serif text-blue-700 text-center leading-relaxed">
-                      💡 建议先在旧设备上导出数据<br />
-                      （设置 → 数据管理 → 导出数据）
-                    </p>
-                  </div>
-
-                  <div className="flex gap-3 pt-2">
-                    <button
-                      onClick={async () => {
-                        await cancelDeviceConflict()
-                        await signOut()
-                        toast.info('已取消登录')
-                      }}
-                      className="flex-1 px-4 py-3 bg-secondary text-foreground rounded-xl border border-border hover:bg-secondary/80 transition-all font-serif"
-                    >
-                      取消
-                    </button>
-                    <button
-                      onClick={async () => {
-                        await confirmDeviceConflict()
-                        toast.success('✅ 登录成功')
-                      }}
-                      className="flex-1 px-4 py-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl hover:from-orange-600 hover:to-amber-600 transition-all font-serif"
-                    >
-                      继续登录
                     </button>
                   </div>
                 </div>
