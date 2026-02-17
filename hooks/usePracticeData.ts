@@ -179,7 +179,20 @@ export const usePracticeData = () => {
     onSync?: (record: PracticeRecord) => void // ⭐ 新增：同步回调
   ) => {
     const now = new Date().toISOString();
-    setRecords((records || []).map(r => r.id === id ? { ...r, ...data, updated_at: now } : r));
+
+    // ⭐ 更新记录后按日期重新排序（修复修改日期后不排序的问题）
+    setRecords((prevRecords) => {
+      const updatedRecords = (prevRecords || []).map(r =>
+        r.id === id ? { ...r, ...data, updated_at: now } : r
+      );
+
+      // 按日期倒序排序（最新的在上面）
+      return updatedRecords.sort((a, b) => {
+        const dateA = new Date(a.date).getTime();
+        const dateB = new Date(b.date).getTime();
+        return dateB - dateA;
+      });
+    });
 
     // ⭐ 触发同步回调
     const updatedRecord = records?.find(r => r.id === id);
