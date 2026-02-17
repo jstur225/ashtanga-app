@@ -2209,3 +2209,85 @@ if (mode === 'login') {
 - `78878cf` - feat: 移除设备限制逻辑，支持多设备登录
 
 ---
+
+## 2026-02-18 移除设备限制功能 + Bug修复
+
+### 背景
+- bee5f3b 版本有半成品的设备限制（登录时限制，但不会踢出旧设备）
+- 用户决定放弃冲突检测功能，允许多设备登录
+- 担心多设备登录时同步功能是否正常
+
+### 同步功能分析
+- ✅ **完全支持多设备登录**：使用 `user_id` 过滤数据
+- ✅ **冲突处理**：通过 `updated_at` 时间戳判断最新版本
+- ✅ **自动合并**：设备A添加记录1，设备B添加记录2，最终都有1和2
+- ⚠️ **同时修改**：如果两个设备同时修改同一条记录，以最后修改的为准
+
+### 主要改动
+
+#### 1. 移除设备限制功能
+**hooks/useAuth.ts**:
+- 移除设备管理工具函数（`getOrCreateDeviceId`, `getDeviceName`）
+- 移除设备状态（`currentDevice`, `deviceConflict`）
+- 简化 `signIn`：不再检查和限制设备
+- 简化 `signOut`：不再清空设备列表
+- 移除 `loadDeviceInfo`, `confirmDeviceConflict`, `cancelDeviceConflict`
+- **删除了 176 行代码**
+
+**lib/supabase.ts**:
+- 移除 `UserProfile` 接口中的 `logged_in_devices` 字段
+
+**components/AccountBindingSection.tsx**:
+- 移除设备冲突相关的引用
+- 删除 useEffect 中的 `deviceConflict` 引用
+- 删除整个设备冲突确认弹窗（76行）
+
+**components/DataStorageNotice.tsx**:
+- 删除"1个账号仅可登录1个设备"提示
+- 新增"支持多设备登录，旧设备不用时请清空本地数据"提示
+
+#### 2. Bug修复
+
+**Bug 1: 修改练习记录日期后不按新日期排序**
+- 问题：修改日期后，记录位置不变
+- 原因：`updateRecord` 函数只更新记录，没有重新排序
+- 修复：在 `updateRecord` 中添加排序逻辑，和 `addRecord` 保持一致
+- 文件：`hooks/usePracticeData.ts`
+
+**Bug 2: 修改日期后点击日历无法跳转**
+- 问题：修改日期后，点击日历无法跳转到对应记录
+- 原因：`recordRefs` 使用 `date` 作为 key，修改日期后 key 不匹配
+- 修复：
+  - 添加 `dateToIdMap` 映射：date -> record.id
+  - `handleDayClick` 先通过日期找到记录ID，再通过ID找到ref
+  - 记录的 ref 使用 `id` 作为 key（id 永远不变）
+- 文件：`app/practice/page.tsx`
+
+### 产品决策
+符合"简单"理念，移除设备限制，代码更简洁
+
+### 用户体验提升
+- ✅ 多个设备可以同时登录
+- ✅ 不需要每次登录确认替换设备
+- ✅ 同步功能完全正常工作
+- ✅ 修改日期后立即排序
+- ✅ 修改日期后日历跳转正常
+
+### 数据库清理（用户已执行）
+- ✅ 删除 `user_profiles` 表中的 `logged_in_devices` 字段
+- ⚠️ Realtime 功能关闭提醒（用户未操作）
+
+### Git 提交记录
+- `d2bdf87` - fix: 回滚冲突检测功能，删除设备限制提示
+- `78878cf` - feat: 移除设备限制逻辑，支持多设备登录
+- `7efd579` - fix: 删除设备冲突弹窗和相关引用
+- `39de78e` - fix: 修复修改练习记录日期后不按新日期排序的问题
+- `b2d8287` - fix: 修复修改日期后点击日历无法跳转到对应记录的问题
+- `2d9a623` - feat: 账户与同步页面添加多设备登录提示
+
+### 技术亮点
+1. **代码简化**：删除了 250+ 行设备管理相关代码
+2. **Bug修复**：两个关键 bug 同时修复
+3. **用户体验**：流程更顺畅，无设备限制
+
+---
