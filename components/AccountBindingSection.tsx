@@ -54,7 +54,7 @@ export function AccountBindingSection({
   user: propUser,
 }: AccountBindingSectionProps) {
   const router = useRouter()
-  const { user: authUser, signOut, deviceConflict, confirmDeviceConflict, cancelDeviceConflict } = useAuth()
+  const { user: authUser, signOut } = useAuth()
   // 优先使用 prop 传递的 user，如果没有则使用 useAuth 获取的
   const user = propUser || authUser
   const { syncStatus, lastSyncTime, lastSyncStatus, uploadLocalData, autoSync, syncStats, resetSyncStatus } = useSync(

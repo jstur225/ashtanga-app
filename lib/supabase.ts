@@ -119,11 +119,6 @@ export interface UserProfile {
   avatar: string | null // ⚠️ 头像只存本地，不上传云端（存本地URL或null）
   phone?: string
   is_pro: boolean
-  logged_in_devices?: Array<{ // 新增：已登录设备列表（最多1台）
-    id: string
-    name: string
-    last_seen: string
-  }>
 }
 
 // Tables
