@@ -343,6 +343,7 @@ export function AccountBindingSection({
                   <button
                     onClick={async () => {
                       console.log('🚪 [仅退出登录] 按钮被点击')
+                      // ⭐ 先保存必要的数据，再关闭弹窗
                       try {
                         console.log('   1. 重置 profile 为默认值...')
                         localStorage.setItem('ashtanga_profile', JSON.stringify({
@@ -353,10 +354,19 @@ export function AccountBindingSection({
                           avatar: null,
                           is_pro: false,
                         }))
+
+                        // ⭐ 关键：添加退出标志，防止 onAuthStateChange 自动恢复登录
+                        localStorage.setItem('__signing_out__', 'true')
+                        console.log('   已设置退出标志 __signing_out__')
+
+                        console.log('   2. 关闭弹窗并显示提示...')
                         setShowSignOutConfirm(false)
                         toast.success('✅ 已退出登录')
 
-                        console.log('   2. 调用 supabase.auth.signOut()...')
+                        // ⭐ 给 toast 一点显示时间，然后执行退出
+                        await new Promise(resolve => setTimeout(resolve, 100))
+
+                        console.log('   3. 调用 supabase.auth.signOut()...')
                         const { error } = await supabase.auth.signOut()
                         if (error) {
                           console.error('   signOut 错误:', error)
@@ -364,12 +374,17 @@ export function AccountBindingSection({
                         }
                         console.log('   signOut 完成')
 
-                        console.log('   3. 跳转到首页...')
+                        console.log('   4. 清除退出标志...')
+                        localStorage.removeItem('__signing_out__')
+
+                        console.log('   5. 跳转到首页...')
                         router.push('/')
                         console.log('   跳转完成')
                       } catch (err: any) {
                         console.error('❌ [仅退出登录] 失败:', err)
-                        toast.error('❌ 退出登录失败: ' + err.message)
+                        // 清除退出标志
+                        localStorage.removeItem('__signing_out__')
+                        toast.error('❌ 退出登录失败: ' + (err?.message || '未知错误'))
                       }
                     }}
                     className="w-full flex items-center justify-between p-4 rounded-xl bg-secondary hover:bg-secondary/80 transition-all border border-border"
