@@ -2693,6 +2693,15 @@ function JournalTab({
   // 月相Map
   const moonPhaseMap = useMemo(() => getMoonPhaseMap(), [])
 
+  // ⭐ 创建日期到记录ID的映射（修复修改日期后无法跳转的问题）
+  const dateToIdMap = useMemo(() => {
+    const map: Record<string, string> = {}
+    practiceHistory.forEach(r => {
+      map[r.date] = r.id
+    })
+    return map
+  }, [practiceHistory])
+
   // 根据 ID 从最新的 practiceHistory 中查找记录
   const sharingRecord = useMemo(() => {
     return sharingRecordId
@@ -2740,18 +2749,22 @@ function JournalTab({
   }, [practiceHistory])
 
   const handleDayClick = (dateStr: string) => {
-    const ref = recordRefs.current[dateStr]
-    if (ref) {
-      // Trigger highlight animation
-      setHighlightedDate(dateStr)
+    // ⭐ 通过日期找到记录ID，再通过ID找到ref（修复修改日期后无法跳转的问题）
+    const recordId = dateToIdMap[dateStr]
+    if (recordId) {
+      const ref = recordRefs.current[recordId]
+      if (ref) {
+        // Trigger highlight animation
+        setHighlightedDate(dateStr)
 
-      // Scroll to the record
-      ref.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        // Scroll to the record
+        ref.scrollIntoView({ behavior: 'smooth', block: 'center' })
 
-      // Clear highlight after animation completes (1s)
-      setTimeout(() => {
-        setHighlightedDate(null)
-      }, 1000)
+        // Clear highlight after animation completes (1s)
+        setTimeout(() => {
+          setHighlightedDate(null)
+        }, 1000)
+      }
     }
   }
 
@@ -2797,7 +2810,7 @@ function JournalTab({
         {practiceHistory.map((practice, index) => (
           <motion.div
             key={practice.id}
-            ref={(el) => { recordRefs.current[practice.date] = el }}
+            ref={(el) => { recordRefs.current[practice.id] = el }}
             initial={{ opacity: 0, y: 10 }}
             animate={{
               opacity: 1,
