@@ -2,13 +2,13 @@
 
 import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Cloud, Star, CheckCircle2, Trophy, Mic } from 'lucide-react'
+import { X, Cloud, Star, CheckCircle2, Trophy, Mic, Camera } from 'lucide-react'
 import { useLocalStorage } from 'react-use'
 import { trackEvent } from '@/lib/analytics'
 import { toast } from 'sonner'
 
 interface FakeDoorModalProps {
-  type: 'cloud' | 'pro' | 'voice'
+  type: 'cloud' | 'pro' | 'voice' | 'photo'
   isOpen: boolean
   onClose: () => void
   onVote?: () => void
@@ -18,9 +18,10 @@ export function FakeDoorModal({ type, isOpen, onClose, onVote }: FakeDoorModalPr
   const [votedCloud, setVotedCloud] = useLocalStorage('voted_cloud_sync', false)
   const [votedPro, setVotedPro] = useLocalStorage('voted_pro_features', false)
   const [votedVoice, setVotedVoice] = useLocalStorage('voted_voice_input', false)
+  const [votedPhoto, setVotedPhoto] = useLocalStorage('voted_photo_upload', false)
   const [proVotes, setProVotes] = useState(342)
 
-  const isVoted = type === 'cloud' ? votedCloud : type === 'voice' ? votedVoice : votedPro
+  const isVoted = type === 'cloud' ? votedCloud : type === 'voice' ? votedVoice : type === 'photo' ? votedPhoto : votedPro
   const currentVotes = type === 'pro' && votedPro ? proVotes + 1 : proVotes
 
   const handleVote = (choice?: 'sync' | 'photo' | 'both' | 'voice') => {
@@ -39,6 +40,15 @@ export function FakeDoorModal({ type, isOpen, onClose, onVote }: FakeDoorModalPr
         choice: choice || 'voice'
       })
       onVote?.()
+    } else if (type === 'photo') {
+      setVotedPhoto(true)
+      toast.success('收到你的心意啦~')
+      // 照片上传假门测试埋点
+      trackEvent('vote_for_photo_upload', {
+        vote: 'yes',
+        choice: choice || 'photo'
+      })
+      onVote?.()
     } else {
       setVotedPro(true)
       toast.success('收到你的心意啦~')
@@ -52,6 +62,12 @@ export function FakeDoorModal({ type, isOpen, onClose, onVote }: FakeDoorModalPr
     if (type === 'voice') {
       // 语音输入假门测试 - 用户拒绝
       trackEvent('vote_for_voice_input', {
+        vote: 'no',
+        choice: 'none'
+      })
+    } else if (type === 'photo') {
+      // 照片上传假门测试 - 用户拒绝
+      trackEvent('vote_for_photo_upload', {
         vote: 'no',
         choice: 'none'
       })
@@ -76,6 +92,14 @@ export function FakeDoorModal({ type, isOpen, onClose, onVote }: FakeDoorModalPr
       icon: <Mic className="w-12 h-12 text-primary" />,
       primaryBtn: votedVoice ? '已收到你的心意 ✓' : '【我想要】练习后直接说',
       secondaryBtn: votedVoice ? '关闭' : '暂不需要，打字就好',
+    },
+    photo: {
+      title: '📷体式照片日记',
+      subtitle: '想记录练习时的体式照片？',
+      desc: '<p class="mb-2">一张体式的照片，往往比文字更能<strong>「看见自己的进步」</strong>。</p><p class="mb-3">照片日记功能让你可以<strong>为每次练习添加照片</strong>——无论是突破性的体式，还是简单的练习瞬间，都能被记录下来。</p><p class="text-xs text-muted-foreground italic">回看时，你会发现：原来我已经走了这么远。</p><p class="mt-3 font-medium">你会用这个功能吗？</p>',
+      icon: <Camera className="w-12 h-12 text-primary" />,
+      primaryBtn: votedPhoto ? '已收到你的心意 ✓' : '【我想要】记录体式照片',
+      secondaryBtn: votedPhoto ? '关闭' : '暂不需要，只记录文字',
     },
     pro: {
       title: '解锁专业版 (Pro Features)',
@@ -218,6 +242,28 @@ export function FakeDoorModal({ type, isOpen, onClose, onVote }: FakeDoorModalPr
                       className="w-full py-3 rounded-full bg-secondary text-foreground font-serif transition-all hover:bg-secondary/80 active:scale-[0.98] text-sm"
                     >
                       {isVoted ? '关闭' : '暂不需要，打字就好'}
+                    </button>
+                  </div>
+                ) : type === 'photo' ? (
+                  // 照片上传：2个按钮
+                  <div className="w-full flex flex-col gap-2">
+                    <button
+                      onClick={() => handleVote('photo')}
+                      disabled={isVoted}
+                      className={`w-full py-3 rounded-full font-serif transition-all duration-300 shadow-lg text-sm ${
+                        isVoted
+                          ? 'bg-green-500 text-white cursor-default'
+                          : 'bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] text-white hover:opacity-90 active:scale-[0.98]'
+                      }`}
+                    >
+                      {isVoted ? '已收到你的心意 ✓' : '【我想要】记录体式照片'}
+                    </button>
+
+                    <button
+                      onClick={handleSecondary}
+                      className="w-full py-3 rounded-full bg-secondary text-foreground font-serif transition-all hover:bg-secondary/80 active:scale-[0.98] text-sm"
+                    >
+                      {isVoted ? '关闭' : '暂不需要，只记录文字'}
                     </button>
                   </div>
                 ) : (

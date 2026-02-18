@@ -10,6 +10,7 @@ import { useSync } from "@/hooks/useSync"
 import { BookOpen, BarChart3, Calendar, X, Camera, Pause, Play, Trash2, User, Settings, ChevronLeft, ChevronRight, ChevronUp, Cloud, Download, Upload, Plus, Share2, Sparkles, Check, Copy, ClipboardPaste, MessageCircle, Bug, AlertCircle } from "lucide-react"
 import { FakeDoorModal } from "@/components/FakeDoorModal"
 import { VoiceButton } from "@/components/VoiceButton"
+import { PhotoUploadButton } from "@/components/PhotoUploadButton"
 import { ImportModal } from "@/components/ImportModal"
 import { ExportModal } from "@/components/ExportModal"
 import { XiaohongshuInviteModal, INVITE_VERSION } from "@/components/XiaohongshuInviteModal"
@@ -525,14 +526,16 @@ function EditRecordModal({
   practiceOptions,
   practiceHistory = [],
   onChildModalOpen,
-  onOpenFakeDoor,
+  onOpenVoiceFakeDoor,
+  onOpenPhotoFakeDoor,
 }: {
   isOpen: boolean
   onClose: () => void
   record: PracticeRecord | null
   onSave: (id: string, data: Partial<PracticeRecord>) => void
   onDelete: (id: string) => void
-  onOpenFakeDoor?: () => void
+  onOpenVoiceFakeDoor?: () => void
+  onOpenPhotoFakeDoor?: () => void
   practiceOptions: PracticeOption[]
   practiceHistory?: PracticeRecord[]
   onChildModalOpen?: (open: boolean) => void
@@ -758,10 +761,15 @@ function EditRecordModal({
                       rows={7}
                       className="w-full px-4 py-3 pr-12 rounded-2xl bg-secondary text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-none font-serif text-sm"
                     />
-                    {/* Voice Input - 浮动在输入框右下角（假门测试） */}
-                    <VoiceButton
-                      onClick={() => onOpenFakeDoor?.()}
-                    />
+                    {/* Voice Input + Photo Upload - 浮动在输入框右下角（假门测试） */}
+                    <div className="absolute bottom-3 right-3 flex items-center gap-2">
+                      <PhotoUploadButton
+                        onClick={() => onOpenPhotoFakeDoor?.()}
+                      />
+                      <VoiceButton
+                        onClick={() => onOpenVoiceFakeDoor?.()}
+                      />
+                    </div>
                   </div>
                 </div>
 
@@ -825,7 +833,8 @@ function ShareCardModal({
   totalHours,
   onEditRecord,
   onLogExport,
-  onOpenFakeDoor,
+  onOpenVoiceFakeDoor,
+  onOpenPhotoFakeDoor,
 }: {
   isOpen: boolean
   onClose: () => void
@@ -836,7 +845,8 @@ function ShareCardModal({
   totalHours: number
   onEditRecord: (id: string, notes: string, photos: string[], breakthrough?: string) => void
   onLogExport: (log: any) => void
-  onOpenFakeDoor?: () => void
+  onOpenVoiceFakeDoor?: () => void
+  onOpenPhotoFakeDoor?: () => void
 }) {
   const [editableNotes, setEditableNotes] = useState("")
   const [isEditingNotes, setIsEditingNotes] = useState(false)
@@ -992,10 +1002,13 @@ function ShareCardModal({
                             : 'max-h-[60vh] overflow-y-auto'  // 编辑时：最大60vh，超出滚动
                         }`}
                       />
-                      {/* Voice Input Button for ShareCard - 浮动在右下角（假门测试） */}
-                      <div className="relative">
+                      {/* Voice Input + Photo Upload - 浮动在右下角（假门测试） */}
+                      <div className="flex items-center gap-2">
+                        <PhotoUploadButton
+                          onClick={() => onOpenPhotoFakeDoor?.()}
+                        />
                         <VoiceButton
-                          onClick={() => onOpenFakeDoor?.()}
+                          onClick={() => onOpenVoiceFakeDoor?.()}
                         />
                       </div>
                     </div>
@@ -1463,7 +1476,8 @@ function AddPracticeModal({
   practiceHistory = [],
   onAddOption,
   onChildModalOpen,
-  onOpenFakeDoor,
+  onOpenVoiceFakeDoor,
+  onOpenPhotoFakeDoor,
 }: {
   isOpen: boolean
   onClose: () => void
@@ -1472,7 +1486,8 @@ function AddPracticeModal({
   practiceHistory?: PracticeRecord[]
   onAddOption?: (name: string, notes: string) => void
   onChildModalOpen?: (open: boolean) => void
-  onOpenFakeDoor?: () => void
+  onOpenVoiceFakeDoor?: () => void
+  onOpenPhotoFakeDoor?: () => void
 }) {
   const [date, setDate] = useState(() => new Date().toISOString().split('T')[0])
   const [type, setType] = useState("")
@@ -1681,10 +1696,15 @@ function AddPracticeModal({
                     rows={5}
                     className="w-full px-4 py-3 pr-12 rounded-2xl bg-secondary text-foreground placeholder:text-muted-foreground font-serif focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-none text-sm"
                   />
-                  {/* Voice Input（假门测试） */}
-                  <VoiceButton
-                    onClick={() => onOpenFakeDoor?.()}
-                  />
+                  {/* Voice Input + Photo Upload（假门测试） */}
+                  <div className="absolute bottom-3 right-3 flex items-center gap-2">
+                    <PhotoUploadButton
+                      onClick={() => onOpenPhotoFakeDoor?.()}
+                    />
+                    <VoiceButton
+                      onClick={() => onOpenVoiceFakeDoor?.()}
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -2241,13 +2261,15 @@ function CompletionSheet({
   practiceType,
   duration,
   onSave,
-  onOpenFakeDoor,
+  onOpenVoiceFakeDoor,
+  onOpenPhotoFakeDoor,
 }: {
   isOpen: boolean
   practiceType: string
   duration: string
   onSave: (notes: string, photos: string[], breakthrough?: string) => void
-  onOpenFakeDoor?: () => void
+  onOpenVoiceFakeDoor?: () => void
+  onOpenPhotoFakeDoor?: () => void
 }) {
   const [notes, setNotes] = useState("")
   const [breakthroughEnabled, setBreakthroughEnabled] = useState(false)
@@ -2345,10 +2367,15 @@ function CompletionSheet({
                     rows={5}
                     className="w-full px-4 py-3 pr-12 rounded-2xl bg-secondary text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-none font-serif"
                   />
-                  {/* Voice Input - 浮动在输入框右下角（假门测试） */}
-                  <VoiceButton
-                    onClick={() => onOpenFakeDoor?.()}
-                  />
+                  {/* Voice Input + Photo Upload - 浮动在输入框右下角（假门测试） */}
+                  <div className="absolute bottom-3 right-3 flex items-center gap-2">
+                    <PhotoUploadButton
+                      onClick={() => onOpenPhotoFakeDoor?.()}
+                    />
+                    <VoiceButton
+                      onClick={() => onOpenVoiceFakeDoor?.()}
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -2655,6 +2682,7 @@ function JournalTab({
   onAddRecord,
   onOpenFakeDoor,
   onOpenVoiceFakeDoor,
+  onOpenPhotoFakeDoor,
   onAddOption,
   votedCloud,
   onLogExport,
@@ -2673,6 +2701,7 @@ function JournalTab({
   onAddRecord: (record: Omit<PracticeRecord, 'id' | 'created_at' | 'photos'>) => void
   onOpenFakeDoor: () => void
   onOpenVoiceFakeDoor?: () => void
+  onOpenPhotoFakeDoor?: () => void
   onAddOption?: (name: string, notes: string) => void
   votedCloud: boolean
   onLogExport: (log: any) => void
@@ -2891,7 +2920,8 @@ function JournalTab({
         practiceOptions={practiceOptions}
         practiceHistory={practiceHistory}
         onChildModalOpen={(open) => setChildModalOpen(open)}
-        onOpenFakeDoor={onOpenVoiceFakeDoor}
+        onOpenVoiceFakeDoor={onOpenVoiceFakeDoor}
+        onOpenPhotoFakeDoor={onOpenPhotoFakeDoor}
       />
 
       <ShareCardModal
@@ -2904,7 +2934,8 @@ function JournalTab({
         totalHours={totalHours}
         onEditRecord={handleShareCardEdit}
         onLogExport={onLogExport}
-        onOpenFakeDoor={onOpenVoiceFakeDoor}
+        onOpenVoiceFakeDoor={onOpenVoiceFakeDoor}
+        onOpenPhotoFakeDoor={onOpenPhotoFakeDoor}
       />
 
       <AddPracticeModal
@@ -2915,7 +2946,8 @@ function JournalTab({
         practiceHistory={practiceHistory}
         onAddOption={onAddOption}
         onChildModalOpen={(open) => setChildModalOpen(open)}
-        onOpenFakeDoor={onOpenVoiceFakeDoor}
+        onOpenVoiceFakeDoor={onOpenVoiceFakeDoor}
+        onOpenPhotoFakeDoor={onOpenPhotoFakeDoor}
       />
 
 {/* Back to Top Button - Floating, Jade Glassmorphism */}
@@ -3356,7 +3388,7 @@ export default function AshtangaTracker() {
   const [showSettings, setShowSettings] = useState(false)
   const [settingsInitialSection, setSettingsInitialSection] = useState<'profile' | 'account' | 'data'>('profile')
   const [showAccountSync, setShowAccountSync] = useState(false)
-  const [showFakeDoor, setShowFakeDoor] = useState<{ type: 'cloud' | 'pro' | 'voice', isOpen: boolean }>({ type: 'cloud', isOpen: false })
+  const [showFakeDoor, setShowFakeDoor] = useState<{ type: 'cloud' | 'pro' | 'voice' | 'photo', isOpen: boolean }>({ type: 'cloud', isOpen: false })
   const [showImportModal, setShowImportModal] = useState(false)
   const [showDebugLogModal, setShowDebugLogModal] = useState(false)
   const [debugLogContent, setDebugLogContent] = useState('')
@@ -4151,7 +4183,8 @@ export default function AshtangaTracker() {
           practiceType={getSelectedLabel()}
           duration={finalDuration}
           onSave={handleSavePractice}
-          onOpenFakeDoor={() => setShowFakeDoor({ type: 'voice', isOpen: true })}
+          onOpenVoiceFakeDoor={() => setShowFakeDoor({ type: 'voice', isOpen: true })}
+          onOpenPhotoFakeDoor={() => setShowFakeDoor({ type: 'photo', isOpen: true })}
         />
       </motion.div>
     )
@@ -4273,6 +4306,7 @@ export default function AshtangaTracker() {
             setShowAccountSync(true)
           }}
           onOpenVoiceFakeDoor={() => setShowFakeDoor({ type: 'voice', isOpen: true })}
+          onOpenPhotoFakeDoor={() => setShowFakeDoor({ type: 'photo', isOpen: true })}
           onAddOption={handleAddOption}
           votedCloud={votedCloud}
           onLogExport={(log) => setExportLogs([...exportLogs, log])}

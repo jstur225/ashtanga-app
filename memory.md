@@ -22,6 +22,32 @@
 - **better-auth-best-practices** - TypeScript 认证框架集成指南（2026-02-02 安装）
 
 ## 使用记录
+- **2026-02-18**: **编辑记录弹窗 - 语音+照片双假门测试** - 新增照片上传假门测试
+  - **背景**: 用户希望在编辑记录的文本输入框右下角，在现有的麦克风图标旁边添加一个上传照片图标，两者都是假门测试，用于测试用户对这两个功能的兴趣度
+  - **核心改动**:
+    - ✅ 创建 `PhotoUploadButton` 组件 (`components/PhotoUploadButton.tsx`)
+      - 使用 Camera 图标，金色渐变背景（与语音按钮的绿色渐变区分）
+      - 相同样式：圆角、阴影、hover 效果
+    - ✅ 扩展 `FakeDoorModal` 组件支持 photo 类型
+      - `type` 属性扩展为 `'cloud' | 'pro' | 'voice' | 'photo'`
+      - 添加 `votedPhoto` localStorage 状态
+      - 新增 photo 内容配置：标题"📷体式照片日记"、描述照片日记的价值
+      - 埋点事件：`vote_for_photo_upload`（yes/no）
+    - ✅ 修改所有文本输入框布局，添加双按钮
+      - 编辑记录弹窗 (`EditRecordModal`)
+      - 添加记录弹窗 (`AddPracticeModal`)
+      - 分享卡片编辑 (`ShareCardModal`)
+      - 练习完成弹窗 (`CompletionSheet`)
+      - 觉察日记快速添加 (`JournalTab` 中的内联编辑)
+      - 布局：照片按钮在左，语音按钮在右，间距 gap-2
+    - ✅ 更新所有组件 props
+      - `onOpenFakeDoor` 拆分为 `onOpenVoiceFakeDoor` 和 `onOpenPhotoFakeDoor`
+      - 更新所有调用处传递正确的回调函数
+  - **埋点事件**:
+    - `vote_for_photo_upload`: 照片上传投票（yes/no）
+    - `vote_for_voice_input`: 语音输入投票（yes/no）
+  - **产品决策**: 符合"简单"理念，双按钮并列展示，用户一目了然，可以同时测试两个功能的兴趣度
+
 - **2026-02-18**: **名字和签名同步修复** - 优化为基于时间戳的同步逻辑
   - **背景**: 用户反馈名字和签名同步不稳定，希望优化成觉察笔记那样的时间戳同步逻辑
   - **核心改动**:
