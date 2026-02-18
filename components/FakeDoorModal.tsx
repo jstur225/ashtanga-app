@@ -156,9 +156,9 @@ export function FakeDoorModal({ type, isOpen, onClose, onVote }: FakeDoorModalPr
                   {activeContent.subtitle}
                 </p>
 
-                {type === 'cloud' || type === 'voice' ? (
+                {type === 'cloud' || type === 'voice' || type === 'photo' ? (
                   <div
-                    className={`text-muted-foreground font-serif leading-relaxed mb-6 text-sm ${type === 'voice' ? 'text-left' : 'text-center'}`}
+                    className={`text-muted-foreground font-serif leading-relaxed mb-6 text-sm ${type === 'voice' || type === 'photo' ? 'text-left' : 'text-center'}`}
                     dangerouslySetInnerHTML={{ __html: activeContent.desc || '' }}
                   />
                 ) : (
