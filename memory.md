@@ -26,8 +26,28 @@
   - **背景**: 用户希望在编辑记录的文本输入框右下角，在现有的麦克风图标旁边添加一个上传照片图标，两者都是假门测试，用于测试用户对这两个功能的兴趣度
   - **核心改动**:
     - ✅ 创建 `PhotoUploadButton` 组件 (`components/PhotoUploadButton.tsx`)
-      - 使用 Camera 图标，金色渐变背景（与语音按钮的绿色渐变区分）
+      - 使用 Camera 图标，绿色渐变背景（后改为与语音按钮一致）
       - 相同样式：圆角、阴影、hover 效果
+    - ✅ 修复按钮重叠问题
+      - VoiceButton 移除内部的 `absolute` 定位
+      - 父容器统一控制 `absolute bottom-3 right-3 flex items-center gap-2`
+    - ✅ 扩展 `FakeDoorModal` 支持 `photo` 类型
+      - 添加 `votedPhoto` localStorage 状态
+      - 优化文案结构，参考语音文案风格（痛点+解决方案+情感共鸣）
+      - 修复 photo 类型不显示描述文字的问题
+    - ✅ 更新所有使用文本输入框的组件
+      - EditRecordModal、AddPracticeModal、ShareCardModal、CompletionSheet、JournalTab
+  - **文案优化迭代**:
+    - 初版：简单描述照片日记功能
+    - 优化版：增加痛点感（"练了这么久，你真的知道自己进步了多少吗？"）
+    - 场景描述："一个月拍一张站轮式，三个月后再看"
+    - 情感共鸣："当你想放弃时，回看第一张照片"
+  - **Git 提交记录**:
+    - `308d7a5` feat: 编辑记录弹窗添加语音+照片双假门测试
+    - `b92685a` fix: 修复语音和照片按钮重叠问题
+    - `0ef4ef1` style: 照片按钮改为绿色渐变
+    - `3e11e5c` refactor: 优化照片日记假门测试文案
+    - `10e5fe1` fix: 照片假门测试弹窗显示描述文字
     - ✅ 扩展 `FakeDoorModal` 组件支持 photo 类型
       - `type` 属性扩展为 `'cloud' | 'pro' | 'voice' | 'photo'`
       - 添加 `votedPhoto` localStorage 状态
