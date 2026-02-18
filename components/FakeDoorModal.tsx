@@ -95,8 +95,8 @@ export function FakeDoorModal({ type, isOpen, onClose, onVote }: FakeDoorModalPr
     },
     photo: {
       title: '📷体式照片日记',
-      subtitle: '想记录练习时的体式照片？',
-      desc: '<p class="mb-2">一张体式的照片，往往比文字更能<strong>「看见自己的进步」</strong>。</p><p class="mb-3">照片日记功能让你可以<strong>为每次练习添加照片</strong>——无论是突破性的体式，还是简单的练习瞬间，都能被记录下来。</p><p class="text-xs text-muted-foreground italic">回看时，你会发现：原来我已经走了这么远。</p><p class="mt-3 font-medium">你会用这个功能吗？</p>',
+      subtitle: '练了这么久，你真的知道自己进步了多少吗？',
+      desc: '<p class="mb-2">很多人练了很久，却总觉得<strong>「还是老样子」</strong>。其实不是没进步，只是大脑会快速适应现状，忘了起点在哪里。</p><p class="mb-3">照片日记想解决这个问题——<strong>一个月拍一张站轮式</strong>，三个月后再看，身体的打开程度会告诉你答案。不用精致，不用滤镜，真实记录就好。</p><p class="text-xs text-muted-foreground italic">文字记录「感受」，照片定格「事实」。当你想放弃时，回看第一张照片，再看看现在的自己。</p><p class="mt-3 font-medium">你会用这个功能吗？</p>',
       icon: <Camera className="w-12 h-12 text-primary" />,
       primaryBtn: votedPhoto ? '已收到你的心意 ✓' : '【我想要】记录体式照片',
       secondaryBtn: votedPhoto ? '关闭' : '暂不需要，只记录文字',
