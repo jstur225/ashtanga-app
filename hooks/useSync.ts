@@ -264,7 +264,7 @@ export function useSync(
         const totalLocalChanges = localOnly.length + localNewer.length
         const totalRemoteChanges = remoteOnly.length + remoteNewer.length
 
-        // ⭐ 检查 profile 是否有差异
+        // ⭐ 检查 profile 是否有差异（基于 updated_at 时间戳）
         const localProfile = freshLocalData.profile
         const remoteProfile = remoteData.profile
         let profileChanged = false
@@ -272,13 +272,38 @@ export function useSync(
 
         if (localProfile && remoteProfile) {
           // ⭐ 只比对 name 和 signature，avatar 不上传
-          if (localProfile.name !== remoteProfile.name ||
-              localProfile.signature !== remoteProfile.signature) {
+          const hasContentDiff = localProfile.name !== remoteProfile.name ||
+              localProfile.signature !== remoteProfile.signature
+
+          if (hasContentDiff) {
             profileChanged = true
-            // 简化处理：本地优先（假设用户刚修改了本地）
-            profileChangeSource = 'local'
-            console.error(`📊 [autoSync] profile 有差异：本地 name=${localProfile.name}, 云端 name=${remoteProfile.name}`)
+
+            // ⭐ 基于时间戳判断谁更新
+            const localTime = new Date(localProfile.updated_at || localProfile.created_at).getTime()
+            const remoteTime = new Date(remoteProfile.updated_at || remoteProfile.created_at).getTime()
+
+            if (localTime > remoteTime) {
+              profileChangeSource = 'local'
+              console.error(`📊 [autoSync] profile 本地更新：本地时间=${new Date(localTime).toISOString()}, 云端时间=${new Date(remoteTime).toISOString()}`)
+            } else if (remoteTime > localTime) {
+              profileChangeSource = 'remote'
+              console.error(`📊 [autoSync] profile 云端更新：云端时间=${new Date(remoteTime).toISOString()}, 本地时间=${new Date(localTime).toISOString()}`)
+            } else {
+              // 时间相同，默认本地优先
+              profileChangeSource = 'local'
+              console.error(`📊 [autoSync] profile 时间相同，默认本地优先`)
+            }
           }
+        } else if (localProfile && !remoteProfile) {
+          // 只有本地有 profile，上传到云端
+          profileChanged = true
+          profileChangeSource = 'local'
+          console.error(`📊 [autoSync] profile 仅本地存在，需要上传`)
+        } else if (!localProfile && remoteProfile) {
+          // 只有云端有 profile，下载到本地
+          profileChanged = true
+          profileChangeSource = 'remote'
+          console.error(`📊 [autoSync] profile 仅云端存在，需要下载`)
         }
 
         console.error(`📊 [autoSync] 比对结果：本地独有${localOnly.length}条，云端独有${remoteOnly.length}条，本地更新${localNewer.length}条，云端更新${remoteNewer.length}条，profile变化=${profileChanged}`)
@@ -329,12 +354,26 @@ export function useSync(
           }
 
           addLog(`同步云端变更：新增${remoteOnly.length}条，更新${remoteNewer.length}条`, 'success')
+
+          // ⭐ 构建完整的 profile 对象，确保包含 updated_at
+          const mergedProfile = remoteData.profile && remoteData.profile.name && !remoteData.profile.name.match(/^\d+$/)
+            ? {
+                id: remoteData.profile.id || '',
+                user_id: remoteData.profile.user_id || '',
+                created_at: remoteData.profile.created_at || new Date().toISOString(),
+                updated_at: remoteData.profile.updated_at || remoteData.profile.created_at || new Date().toISOString(),
+                name: remoteData.profile.name,
+                signature: remoteData.profile.signature || '练习、练习，一切随之而来。',
+                avatar: null,
+                phone: remoteData.profile.phone,
+                is_pro: remoteData.profile.is_pro || false,
+              }
+            : { name: '阿斯汤加习练者', signature: remoteData.profile?.signature || '练习、练习，一切随之而来。', avatar: null, is_pro: false }
+
           onSyncComplete({
             records: mergedRecords,
             options: remoteData.options || [],
-            profile: remoteData.profile && remoteData.profile.name && !remoteData.profile.name.match(/^\d+$/)
-              ? remoteData.profile
-              : { name: '阿斯汤加习练者', signature: remoteData.profile?.signature || '练习、练习，一切随之而来。', avatar: null, is_pro: false }
+            profile: mergedProfile
           })
           setSyncStatus('success')
           setLastSyncStatus('success')
@@ -373,10 +412,26 @@ export function useSync(
         }
 
         addLog(`使用云端数据：${remoteRecordsToUse.length}条记录`, 'success')
+
+        // ⭐ 构建完整的 profile 对象，确保包含 updated_at
+        const cloudProfile = remoteData.profile && remoteData.profile.name && !remoteData.profile.name.match(/^\d+$/) && remoteData.profile.name !== '阿斯汤加习练者'
+          ? {
+              id: remoteData.profile.id || '',
+              user_id: remoteData.profile.user_id || '',
+              created_at: remoteData.profile.created_at || new Date().toISOString(),
+              updated_at: remoteData.profile.updated_at || remoteData.profile.created_at || new Date().toISOString(),
+              name: remoteData.profile.name,
+              signature: remoteData.profile.signature || '练习、练习，一切随之而来。',
+              avatar: null,
+              phone: remoteData.profile.phone,
+              is_pro: remoteData.profile.is_pro || false,
+            }
+          : { name: '阿斯汤加习练者', signature: remoteData.profile?.signature || '练习、练习，一切随之而来。', avatar: null, is_pro: false }
+
         onSyncComplete({
           records: remoteRecordsToUse,
           options: remoteData.options || [],
-          profile: remoteData.profile || { name: '阿斯汤加习练者', signature: '', avatar: null, is_pro: false }
+          profile: cloudProfile
         })
         setSyncStatus('success')
         setLastSyncStatus('success')
@@ -549,12 +604,26 @@ export function useSync(
       console.error('   ✅ 有效选项数量:', options.length)
       console.error('📥 [downloadRemoteData] 云端 profile:', profileRes.data)
 
+      // ⭐ 构建返回的 profile，确保包含 updated_at 字段
+      let profile: UserProfile | null = null
+      if (profileRes.data && profileRes.data.name && !profileRes.data.name.match(/^\d+$/)) {
+        profile = {
+          id: profileRes.data.id || '',
+          user_id: profileRes.data.user_id || '',
+          created_at: profileRes.data.created_at || new Date().toISOString(),
+          updated_at: profileRes.data.updated_at || profileRes.data.created_at || new Date().toISOString(), // ⭐ 确保 updated_at
+          name: profileRes.data.name,
+          signature: profileRes.data.signature || '练习、练习，一切随之而来。',
+          avatar: null, // ⚠️ 头像不上传
+          phone: profileRes.data.phone,
+          is_pro: profileRes.data.is_pro || false,
+        }
+      }
+
       return {
         records,
         options,
-        profile: (profileRes.data && profileRes.data.name && !profileRes.data.name.match(/^\d+$/))
-          ? profileRes.data
-          : { name: '阿斯汤加习练者', signature: profileRes.data?.signature || '练习、练习，一切随之而来。', avatar: null, is_pro: false }, // 如果没有 profile 或 name 是数字，使用默认值
+        profile: profile || { name: '阿斯汤加习练者', signature: profileRes.data?.signature || '练习、练习，一切随之而来。', avatar: null, is_pro: false },
       }
     } catch (error: any) {
       console.error('❌ [downloadRemoteData] 下载失败:', error.message)
@@ -798,12 +867,26 @@ export function useSync(
         case 'remote':
           // 使用云端数据
           addLog('使用云端数据', 'success')
+
+          // ⭐ 构建完整的 profile 对象，确保包含 updated_at
+          const remoteProfile = remoteData.profile && remoteData.profile.name && !remoteData.profile.name.match(/^\d+$/)
+            ? {
+                id: remoteData.profile.id || '',
+                user_id: remoteData.profile.user_id || '',
+                created_at: remoteData.profile.created_at || new Date().toISOString(),
+                updated_at: remoteData.profile.updated_at || remoteData.profile.created_at || new Date().toISOString(),
+                name: remoteData.profile.name,
+                signature: remoteData.profile.signature || '练习、练习，一切随之而来。',
+                avatar: null,
+                phone: remoteData.profile.phone,
+                is_pro: remoteData.profile.is_pro || false,
+              }
+            : { name: '阿斯汤加习练者', signature: remoteData.profile?.signature || '练习、练习，一切随之而来。', avatar: null, is_pro: false }
+
           onSyncComplete({
             records: remoteData.records,
             options: remoteData.options || [],
-            profile: remoteData.profile && remoteData.profile.name && !remoteData.profile.name.match(/^\d+$/)
-              ? remoteData.profile
-              : { name: '阿斯汤加习练者', signature: remoteData.profile?.signature || '练习、练习，一切随之而来。', avatar: null, is_pro: false }
+            profile: remoteProfile
           })
           break
 

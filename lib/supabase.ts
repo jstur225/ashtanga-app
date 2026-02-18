@@ -114,6 +114,7 @@ export interface UserProfile {
   id: string // UUID (string)
   user_id: string // 新增：用户ID，关联到 auth.users
   created_at: string
+  updated_at: string // ⭐ 新增：最后修改时间，用于同步时判断最新版本
   name: string
   signature: string
   avatar: string | null // ⚠️ 头像只存本地，不上传云端（存本地URL或null）

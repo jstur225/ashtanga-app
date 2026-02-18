@@ -22,6 +22,19 @@
 - **better-auth-best-practices** - TypeScript 认证框架集成指南（2026-02-02 安装）
 
 ## 使用记录
+- **2026-02-18**: **名字和签名同步修复** - 优化为基于时间戳的同步逻辑
+  - **背景**: 用户反馈名字和签名同步不稳定，希望优化成觉察笔记那样的时间戳同步逻辑
+  - **核心改动**:
+    - ✅ 添加 `updated_at` 字段到 `UserProfile` 类型（`lib/supabase.ts` 和 `hooks/usePracticeData.ts`）
+    - ✅ `updateProfile` 自动更新 `updated_at` 时间戳（`hooks/usePracticeData.ts`）
+    - ✅ Profile 同步逻辑改为基于时间戳判断（`hooks/useSync.ts`）
+      - 本地 updated_at > 云端 → 本地上传
+      - 云端 updated_at > 本地 → 下载到本地
+      - 处理 null 情况（首次同步）
+    - ✅ 上传 API 处理 `updated_at` 字段（`app/api/sync/upload-profile/route.ts`）
+  - **头像保持本地存储**: avatar 字段继续本地存储，不参与同步
+  - **产品决策**: 符合"简单"理念，参考觉察笔记同步机制，时间戳驱动更可靠
+
 - **2026-02-11**: **增加50条觉察记录同步限制（内测版本）** - 为付费功能做铺垫
   - **背景**: master2分支已实现账号登录和云同步，需要添加内测版本限制
   - **核心功能**:

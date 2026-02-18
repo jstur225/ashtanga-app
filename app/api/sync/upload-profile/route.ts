@@ -31,6 +31,7 @@ export async function POST(request: NextRequest) {
         avatar: null,
         is_pro: profile.is_pro || false,
         email: profile.email || null,
+        updated_at: profile.updated_at || new Date().toISOString(), // ⭐ 添加更新时间戳
       }, {
         onConflict: 'user_id'
       })

@@ -27,6 +27,7 @@ export interface PracticeOption {
 export interface UserProfile {
   id: string;
   created_at: string;
+  updated_at: string; // ⭐ 新增：最后修改时间，用于同步时判断最新版本
   name: string;
   signature: string;
   avatar: string | null;
@@ -51,6 +52,7 @@ export const usePracticeData = () => {
   const [profile, setProfile] = useLocalStorage<UserProfile>('ashtanga_profile', {
     id: '',
     created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
     name: '阿斯汤加习练者',
     signature: '练习、练习，一切随之而来。',
     avatar: null,
@@ -215,7 +217,12 @@ export const usePracticeData = () => {
     data: Partial<UserProfile>,
     onSync?: (profile: UserProfile) => void // ⭐ 新增：同步回调
   ) => {
-    const updatedProfile = { ...profile!, ...data };
+    const now = new Date().toISOString();
+    const updatedProfile = {
+      ...profile!,
+      ...data,
+      updated_at: now // ⭐ 自动更新时间戳
+    };
     setProfile(updatedProfile);
 
     // ⭐ 触发同步回调
@@ -311,6 +318,7 @@ export const usePracticeData = () => {
     setProfile({
       id: '',
       created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
       name: '阿斯汤加习练者',
       signature: '练习、练习，一切随之而来。',
       avatar: null,
