@@ -985,7 +985,7 @@ function ShareCardModal({
                 {/* Reflection Text - Editable Notes with elegant serif font */}
                 <div className="px-5 py-6">
                   {isEditingNotes ? (
-                    <div>
+                    <div className="relative">
                       <div className="flex items-center justify-between mb-1">
                         <span className="text-xs text-muted-foreground/60">{editableNotes.length}字</span>
                       </div>
@@ -1003,7 +1003,7 @@ function ShareCardModal({
                         }`}
                       />
                       {/* Voice Input + Photo Upload - 浮动在右下角（假门测试） */}
-                      <div className="flex items-center gap-2">
+                      <div className="absolute bottom-3 right-3 flex items-center gap-2">
                         <PhotoUploadButton
                           onClick={() => onOpenPhotoFakeDoor?.()}
                         />
