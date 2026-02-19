@@ -470,7 +470,10 @@ export function useSync(
 
     } catch (error: any) {
       console.error('Auto sync failed:', error)
-      addLog('自动同步失败', 'error', undefined, error.message)
+      addLog('自动同步失败', 'error', undefined, error.message, {
+        stack: error.stack,
+        requestInfo: `user_id: ${user?.id}, records: ${localDataRef.current.records.length}`
+      })
       setSyncStatus('error')
       setLastSyncStatus('error')
       return false
@@ -636,7 +639,12 @@ export function useSync(
         return downloadRemoteData(userId, retryCount + 1)
       }
 
-      addLog('下载数据失败', 'error', undefined, error.message)
+      addLog('下载数据失败', 'error', undefined, error.message, {
+        stack: error.stack,
+        retryCount,
+        requestInfo: `user_id: ${userId}`,
+        responseStatus: error.status || error.code
+      })
       throw error
     }
   }
@@ -676,7 +684,9 @@ export function useSync(
 
     if (error) {
       records.forEach(r => failedIds.push(r.id))
-      addLog('批量上传失败', 'error', undefined, error.message)
+      addLog('批量上传失败', 'error', undefined, error.message, {
+        requestInfo: `records: ${recordsToUpload.length}, table: ${TABLES.PRACTICE_RECORDS}`
+      })
     } else {
       addLog(`批量上传${recordsToSync.length}条记录成功`, 'success')
     }
@@ -844,7 +854,10 @@ export function useSync(
       console.error('Error details:', JSON.stringify(error, null, 2))
       console.error('Error message:', error?.message)
       console.error('Error name:', error?.name)
-      addLog('同步失败', 'error', undefined, error?.message || JSON.stringify(error))
+      addLog('同步失败', 'error', undefined, error?.message || JSON.stringify(error), {
+        stack: error?.stack,
+        requestInfo: `user_id: ${userId}, records: ${localData.records.length}`
+      })
       setSyncStatus('error')
       setLastSyncStatus('error')
       return { success: false, localOnlyCount: 0, syncedCount: 0, totalCount: 0 }
@@ -940,9 +953,22 @@ export function useSync(
   }
 
   // ==================== 添加日志（限制大小） ====================
-  const addLog = (action: string, status: 'success' | 'error', recordId?: string, error?: string) => {
+  const addLog = (
+    action: string,
+    status: 'success' | 'error' | 'warning',
+    recordId?: string,
+    error?: string,
+    details?: {
+      stack?: string
+      retryCount?: number
+      requestInfo?: string
+      responseStatus?: number
+    }
+  ) => {
     // 限制错误消息长度（200字符）
     const truncatedError = error ? error.slice(0, 200) + (error.length > 200 ? '...' : '') : undefined
+    // 限制堆栈长度（500字符）
+    const truncatedStack = details?.stack ? details.stack.slice(0, 500) + (details.stack.length > 500 ? '...' : '') : undefined
 
     const log = {
       timestamp: new Date().toISOString(),
@@ -950,6 +976,12 @@ export function useSync(
       status,
       recordId,
       error: truncatedError,
+      details: details ? {
+        stack: truncatedStack,
+        retryCount: details.retryCount,
+        requestInfo: details.requestInfo,
+        responseStatus: details.responseStatus
+      } : undefined
     }
 
     const newLogs = [log, ...syncLogs].slice(0, 50) // 减少到50条
@@ -961,6 +993,26 @@ export function useSync(
       setSyncLogs(newLogs.slice(0, 20))
     } else {
       setSyncLogs(newLogs)
+    }
+
+    // ⭐ 同时记录到全局错误历史（用于日志导出）
+    if (status === 'error' && typeof window !== 'undefined') {
+      try {
+        const existingErrors = JSON.parse(localStorage.getItem('__errorHistory') || '[]')
+        const errorEntry = {
+          timestamp: new Date().toISOString(),
+          action,
+          error: truncatedError,
+          stack: truncatedStack,
+          retryCount: details?.retryCount,
+          userAgent: navigator.userAgent.substring(0, 100),
+          url: window.location.href
+        }
+        const newErrors = [errorEntry, ...existingErrors].slice(0, 20)
+        localStorage.setItem('__errorHistory', JSON.stringify(newErrors))
+      } catch (e) {
+        // 忽略 localStorage 错误
+      }
     }
   }
 

@@ -1786,7 +1786,7 @@ function SettingsModal({
   onSave: (profile: UserProfile) => void
   onOpenExport: () => void
   onOpenImport: () => void
-  onExportLog?: () => void
+  onExportLog?: () => void | Promise<void>
   onClearData?: () => void
   user?: any // ⭐ 新增
   practiceHistory?: PracticeRecord[] // ⭐ 新增
@@ -1800,6 +1800,7 @@ function SettingsModal({
   const [signature, setSignature] = useState(profile.signature)
   const [avatar, setAvatar] = useState<string | null>(profile.avatar)
   const [activeSection, setActiveSection] = useState<'profile' | 'account' | 'data'>(initialSection || 'profile')
+  const [isExportingLog, setIsExportingLog] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // 当 initialSection 变化时，切换到对应标签页
@@ -2069,19 +2070,35 @@ function SettingsModal({
                   {/* 导出日志按钮 */}
                   {onExportLog && (
                     <button
-                      onClick={onExportLog}
-                      className="w-full flex items-center justify-between p-4 rounded-2xl bg-secondary hover:bg-secondary/80 transition-all group"
+                      onClick={async () => {
+                        setIsExportingLog(true)
+                        try {
+                          await onExportLog()
+                        } finally {
+                          setIsExportingLog(false)
+                        }
+                      }}
+                      disabled={isExportingLog}
+                      className="w-full flex items-center justify-between p-4 rounded-2xl bg-secondary hover:bg-secondary/80 transition-all group disabled:opacity-50"
                     >
                       <div className="flex items-center gap-3">
                         <div className="p-2 rounded-xl bg-orange-50 text-orange-500">
                           <Bug className="w-5 h-5" />
                         </div>
                         <div className="text-left">
-                          <div className="text-sm font-serif text-foreground">运行日志</div>
-                          <div className="text-[10px] text-muted-foreground font-serif">如遇问题，请复制本日志发给开发者</div>
+                          <div className="text-sm font-serif text-foreground">
+                            {isExportingLog ? '正在生成日志...' : '运行日志'}
+                          </div>
+                          <div className="text-[10px] text-muted-foreground font-serif">
+                            {isExportingLog ? '请稍候，正在测试连接...' : '如遇问题，请复制本日志发给开发者'}
+                          </div>
                         </div>
                       </div>
-                      <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+                      {isExportingLog ? (
+                        <div className="w-4 h-4 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+                      )}
                     </button>
                   )}
 
@@ -3719,8 +3736,51 @@ export default function AshtangaTracker() {
     }
   }
 
-  const handleExportDebugLog = () => {
-    // ===== 1. 环境信息 =====
+  const handleExportDebugLog = async () => {
+    // ⭐ 先发起 Supabase 连接测试（异步）
+    let supabaseConnectionTest = { status: 'testing', latency: -1, error: null as string | null }
+    try {
+      const testStart = Date.now()
+      // 执行一个简单的查询来测试连接
+      const { data, error } = await supabase.from('user_profiles').select('count', { count: 'exact', head: true })
+      const latency = Date.now() - testStart
+      if (error) {
+        supabaseConnectionTest = { status: 'error', latency, error: error.message }
+      } else {
+        supabaseConnectionTest = { status: 'success', latency, error: null }
+      }
+    } catch (e: any) {
+      supabaseConnectionTest = { status: 'exception', latency: -1, error: e?.message || String(e) }
+    }
+
+    // ===== 1. Service Worker 状态 =====
+    let serviceWorkerStatus: any = { supported: false, controller: null, state: null, scope: null }
+    if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+      serviceWorkerStatus.supported = true
+      const controller = navigator.serviceWorker.controller
+      if (controller) {
+        serviceWorkerStatus.controller = true
+        serviceWorkerStatus.state = controller.state
+        serviceWorkerStatus.scope = controller.scriptURL
+      } else {
+        serviceWorkerStatus.controller = false
+      }
+      // 尝试获取注册信息
+      try {
+        const registrations = await navigator.serviceWorker.getRegistrations()
+        serviceWorkerStatus.registrations = registrations.map(r => ({
+          scope: r.scope,
+          active: !!r.active,
+          installing: !!r.installing,
+          waiting: !!r.waiting,
+          updateViaCache: r.updateViaCache
+        }))
+      } catch (e) {
+        serviceWorkerStatus.registrationsError = String(e)
+      }
+    }
+
+    // ===== 2. 环境信息 =====
     const environment = {
       userAgent: navigator.userAgent,
       browser: {
@@ -3764,6 +3824,14 @@ export default function AshtangaTracker() {
         rtt: (navigator as any).connection.rtt,
         saveData: (navigator as any).connection.saveData
       } : 'Not supported'
+    }
+
+    // ⭐ 2.5 Supabase 连接测试
+    const supabaseConnection = {
+      testStatus: supabaseConnectionTest.status,
+      latency: supabaseConnectionTest.latency,
+      error: supabaseConnectionTest.error,
+      timestamp: new Date().toISOString()
     }
 
     // ===== 3. 认证状态 =====
@@ -3862,7 +3930,7 @@ export default function AshtangaTracker() {
     }))
 
     // ===== 8. 导出历史（最近10条） =====
-    const recentExportLogs = exportLogs.slice(-10).map(log => ({
+    const recentExportLogs = (exportLogs || []).slice(-10).map(log => ({
       timestamp: log.timestamp,
       success: log.success,
       error: log.error,
@@ -3871,8 +3939,16 @@ export default function AshtangaTracker() {
         (/mobile|tablet|android|iphone/i.test(log.userAgent) ? 'mobile' : 'desktop') : 'unknown'
     }))
 
-    // ===== 9. 错误历史（从 console 捕获） =====
-    const errorHistory = (window as any).__errorHistory || []
+    // ===== 9. 错误历史（从 localStorage 读取） =====
+    let errorHistory: any[] = []
+    try {
+      const storedErrors = localStorage.getItem('__errorHistory')
+      if (storedErrors) {
+        errorHistory = JSON.parse(storedErrors)
+      }
+    } catch (e) {
+      errorHistory = [{ error: '读取错误历史失败', details: String(e) }]
+    }
 
     // ===== 10. 性能指标 =====
     const performanceInfo = {
@@ -3932,19 +4008,29 @@ export default function AshtangaTracker() {
       }
     }
 
-    // ===== 12. 同步日志（如果有） =====
-    const syncLogs = (window as any).__syncLogs || []
+    // ===== 12. 同步日志（从 localStorage 读取） =====
+    let syncLogs: any[] = []
+    try {
+      const storedLogs = localStorage.getItem('sync_logs')
+      if (storedLogs) {
+        syncLogs = JSON.parse(storedLogs)
+      }
+    } catch (e) {
+      syncLogs = [{ action: '读取同步日志失败', error: String(e), timestamp: new Date().toISOString() }]
+    }
 
     // 生成完整日志
     const debugLog = {
       _meta: {
-        version: '2.0',
+        version: '2.2',
         exportTime: new Date().toISOString(),
         description: '熬汤日记调试日志 - 用于问题排查',
         gitVersion: getVersionInfo()
       },
+      serviceWorkerStatus,
       environment,
       networkInfo,
+      supabaseConnection,
       authState,
       syncState,
       appState,
