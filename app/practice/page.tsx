@@ -1997,7 +1997,15 @@ function SettingsModal({
                     records: practiceHistory,
                     options: practiceOptionsData
                   }}
-                  onSyncComplete={handleSyncComplete}
+                  onSyncComplete={(data) => {
+                    // 同步完成后的回调
+                    console.log('Sync completed:', data)
+                    // ⭐ 更新本地 profile（如果云端有更新）
+                    if (data?.profile) {
+                      console.log('更新本地 profile:', data.profile)
+                      updateProfile(data.profile)
+                    }
+                  }}
                   onClose={onClose}
                   onOpenLoginModal={onOpenLoginModal}
                   onOpenRegisterModal={onOpenRegisterModal}
@@ -3492,17 +3500,6 @@ export default function AshtangaTracker() {
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
   const lastTapRef = useRef<{ id: string; time: number } | null>(null)
-
-  // ⭐ 修复：使用 useCallback 包裹同步完成回调，确保 updateProfile 正确捕获
-  const handleSyncComplete = useCallback((data: { profile?: UserProfile }) => {
-    // 同步完成后的回调
-    console.log('Sync completed:', data)
-    // 更新本地 profile（如果云端有更新）
-    if (data?.profile) {
-      console.log('更新本地 profile:', data.profile)
-      updateProfile(data.profile)
-    }
-  }, [updateProfile])
 
   // 跟踪子组件内部的弹窗状态（无法直接访问）
   const [childModalOpen, setChildModalOpen] = useState(false)
