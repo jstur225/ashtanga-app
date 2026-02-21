@@ -2007,18 +2007,21 @@ function SettingsModal({
 
                   {/* 历史练习数据校准 */}
                   <div className="pt-4">
-                    {/* 浅黄色渐变卡片 */}
-                    <div className="rounded-2xl p-5 bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200">
-                      {/* 标题行：左边标题，右边累计时长 */}
-                      <div className="flex items-center justify-between mb-5">
+                    {/* 标题行：左边带图标的标题，右边累计时长 */}
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4 text-primary" />
                         <h3 className="text-sm font-serif text-foreground">历史练习数据校准</h3>
-                        <span className="text-xs text-primary font-medium">
-                          累计约 {Math.round(historicalDays * historicalAvgMinutes / 60)} 小时
-                        </span>
                       </div>
+                      <span className="text-xs text-primary font-medium">
+                        累计约 {Math.round(historicalDays * historicalAvgMinutes / 60)} 小时
+                      </span>
+                    </div>
 
+                    {/* 纯白色卡片 */}
+                    <div className="bg-white rounded-2xl p-5 border border-stone-200">
                       {/* 两个数字并排 */}
-                      <div className="grid grid-cols-2 gap-6 mb-4">
+                      <div className="grid grid-cols-2 gap-6 mb-3">
                         {/* 历史练习天数 */}
                         <div className="text-center">
                           <input
@@ -2045,7 +2048,7 @@ function SettingsModal({
                       </div>
 
                       {/* 说明文字 */}
-                      <p className="text-[10px] text-amber-700/70 text-center font-serif">
+                      <p className="text-[10px] text-muted-foreground/70 text-center font-serif">
                         💡 设置后，统计数据会以此为基础累加
                       </p>
                     </div>
