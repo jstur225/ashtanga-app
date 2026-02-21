@@ -3657,7 +3657,7 @@ export default function AshtangaTracker() {
     toast.success('已保存修改')
   }
 
-  const handleEditDelete = (id: string) => {
+  const handleEditDelete = async (id: string) => {
     // Cannot delete if only 2 non-custom options remain
     const nonCustomOptions = practiceOptions.filter(o => o.id !== "custom")
     if (nonCustomOptions.length <= 2) {
@@ -3675,6 +3675,31 @@ export default function AshtangaTracker() {
     }
 
     toast.success('已删除选项')
+
+    // ⭐ 新增：如果已登录，从云端删除并触发同步
+    if (user) {
+      console.log('[handleEditDelete] 用户已登录，从云端删除选项...')
+      try {
+        // 调用 Supabase 删除选项
+        const { error } = await supabase
+          .from('practice_options')
+          .delete()
+          .eq('id', id)
+          .eq('user_id', user.id)
+
+        if (error) {
+          console.error('[handleEditDelete] 云端删除失败:', error)
+          toast.error('云端删除失败，选项仅在本设备删除')
+        } else {
+          console.log('[handleEditDelete] 云端删除成功')
+          // 触发同步确保状态一致
+          await autoSync()
+        }
+      } catch (err) {
+        console.error('[handleEditDelete] 删除异常:', err)
+        toast.error('删除同步失败，选项仅在本设备删除')
+      }
+    }
   }
 
   const handleEditRecord = (id: string, data: Partial<PracticeRecord>) => {
@@ -3719,12 +3744,17 @@ export default function AshtangaTracker() {
     }
   }
 
-  const handleAddOption = (name: string, notes: string) => {
+  const handleAddOption = async (name: string, notes: string) => {
     console.log('handleAddOption called with:', name, notes)
     // 修复：直接使用 addOption(name, name, notes) 避免竞态条件
     addOption(name, name, notes)
     console.log('current practiceOptionsData after add:', practiceOptionsData)
     toast.success('已添加自定义选项')
+    // ⭐ 新增：如果已登录，自动同步到云端
+    if (user) {
+      console.log('[handleAddOption] 用户已登录，触发自动同步...')
+      await autoSync()
+    }
   }
 
   const handleVoteCloud = () => {
