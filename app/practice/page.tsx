@@ -2007,7 +2007,13 @@ function SettingsModal({
 
                   {/* 历史练习数据校准 */}
                   <div className="pt-4 border-t border-stone-200">
-                    <h3 className="text-sm font-serif text-foreground mb-4">历史练习数据校准</h3>
+                    {/* 标题行：左边标题，右边累计时长 */}
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-sm font-serif text-foreground">历史练习数据校准</h3>
+                      <span className="text-xs text-primary font-serif">
+                        累计约 {Math.round(historicalDays * historicalAvgMinutes / 60)} 小时
+                      </span>
+                    </div>
 
                     {/* 两个胶囊并排 */}
                     <div className="grid grid-cols-2 gap-3 mb-4">
@@ -2035,11 +2041,6 @@ function SettingsModal({
                         <div className="text-xs text-muted-foreground font-serif mt-1">平均每次练习分钟</div>
                       </div>
                     </div>
-
-                    {/* 预计历史总时长 */}
-                    <p className="text-xs text-muted-foreground mb-3 text-center">
-                      预计历史总时长：{historicalDays * historicalAvgMinutes} 分钟（约 {Math.round(historicalDays * historicalAvgMinutes / 60)} 小时）
-                    </p>
 
                     {/* 说明文字 */}
                     <div className="bg-amber-50 rounded-xl p-3 text-xs text-amber-700">
