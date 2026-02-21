@@ -2350,3 +2350,57 @@ if (mode === 'login') {
 3. **用户体验**：流程更顺畅，无设备限制
 
 ---
+
+## 2026-02-21 练习选项同步功能完整修复
+
+### 背景
+用户发现 practice_options 表只有1个用户的数据，其他6个绑定了邮箱的账号没有同步练习选项。经排查发现多个问题并修复。
+
+### 问题诊断
+1. **RLS 策略问题**：practice_options 表有一条策略限制 `is_custom = true`，导致默认选项无法上传
+2. **选项同步缺失**：autoSync 只检查 records 和 profile 的差异，没有检查 options
+3. **新增选项不触发同步**：addOption 后没有调用 autoSync
+4. **删除选项不同步**：本地删除后没有删除云端数据
+5. **回调函数未定义**：handleSyncComplete 定义在使用之后导致页面崩溃
+
+### 修复内容
+
+#### 1. 修复 RLS 策略（Supabase）
+```sql
+-- 删除有问题的策略
+DROP POLICY IF EXISTS "Users can insert custom practice options" ON practice_options;
+
+-- 添加正确的策略
+CREATE POLICY "Users can insert own options"
+    ON practice_options FOR INSERT
+    TO public
+    WITH CHECK (auth.uid() = user_id);
+```
+
+#### 2. 修复代码问题
+- **app/practice/page.tsx**:
+  - 修复 `handleSyncComplete` 闭包问题（改为内联回调）
+  - 新增选项后延迟 100ms 触发 autoSync（确保 localStorage 已更新）
+  - 删除选项时调用 Supabase API 删除云端数据
+
+- **hooks/useSync.ts**:
+  - 添加选项差异检测逻辑（比对本地和云端选项数量及内容）
+  - 修改同步触发条件，选项变化也会触发上传/下载
+
+### 同步逻辑现状
+- ✅ 新增选项 → 自动同步到云端
+- ✅ 删除选项 → 同步删除云端数据
+- ✅ 全量覆盖模式：简单有效，满足基本需求
+- ⚠️ 无时间戳冲突检测（当前不需要，如有需求可后续添加）
+
+### Git 提交记录
+- `0026018` - fix: 修复 updateProfile 闭包问题
+- `4919716` - fix: 新增和删除选项后自动同步到云端
+- `27c4eb7` - fix: 修复 handleSyncComplete 未定义错误
+- `2255caf` - fix: autoSync 添加选项差异检测
+- `7d1afe9` - fix: 新增选项后延迟 100ms 再同步
+
+### 产品决策
+符合"简单"理念，采用全量覆盖模式而非时间戳冲突检测，代码更简单，满足当前需求。
+
+---
