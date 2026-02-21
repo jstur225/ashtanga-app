@@ -264,6 +264,37 @@ export function useSync(
         const totalLocalChanges = localOnly.length + localNewer.length
         const totalRemoteChanges = remoteOnly.length + remoteNewer.length
 
+        // ⭐ 检查选项是否有差异（新增/删除/修改）
+        const localOptions = freshLocalData.options || []
+        const remoteOptions = remoteData.options || []
+        const localOptionIds = new Set(localOptions.map((o: PracticeOption) => o.id))
+        const remoteOptionIds = new Set(remoteOptions.map((o: PracticeOption) => o.id))
+
+        // 检查选项数量或内容是否不同
+        let optionsChanged = false
+        let optionsChangeSource: 'local' | 'remote' | null = null
+
+        if (localOptions.length !== remoteOptions.length) {
+          optionsChanged = true
+          // 数量不同，判断哪边有新增
+          if (localOptions.length > remoteOptions.length) {
+            optionsChangeSource = 'local'
+            console.error(`📊 [autoSync] 选项本地新增：本地${localOptions.length}个，云端${remoteOptions.length}个`)
+          } else {
+            optionsChangeSource = 'remote'
+            console.error(`📊 [autoSync] 选项云端新增：云端${remoteOptions.length}个，本地${localOptions.length}个`)
+          }
+        } else {
+          // 数量相同，检查是否有不同的选项ID
+          const hasDifferentOptions = localOptions.some((o: PracticeOption) => !remoteOptionIds.has(o.id)) ||
+                                      remoteOptions.some((o: PracticeOption) => !localOptionIds.has(o.id))
+          if (hasDifferentOptions) {
+            optionsChanged = true
+            optionsChangeSource = 'local' // 默认本地优先
+            console.error(`📊 [autoSync] 选项内容不同，需要同步`)
+          }
+        }
+
         // ⭐ 检查 profile 是否有差异（基于 updated_at 时间戳）
         const localProfile = freshLocalData.profile
         const remoteProfile = remoteData.profile
@@ -306,9 +337,9 @@ export function useSync(
           console.error(`📊 [autoSync] profile 仅云端存在，需要下载`)
         }
 
-        console.error(`📊 [autoSync] 比对结果：本地独有${localOnly.length}条，云端独有${remoteOnly.length}条，本地更新${localNewer.length}条，云端更新${remoteNewer.length}条，profile变化=${profileChanged}`)
+        console.error(`📊 [autoSync] 比对结果：本地独有${localOnly.length}条，云端独有${remoteOnly.length}条，本地更新${localNewer.length}条，云端更新${remoteNewer.length}条，profile变化=${profileChanged}，选项变化=${optionsChanged}`)
 
-        if (totalLocalChanges === 0 && totalRemoteChanges === 0 && !profileChanged) {
+        if (totalLocalChanges === 0 && totalRemoteChanges === 0 && !profileChanged && !optionsChanged) {
           // 没有差异，数据已一致
           console.error('[autoSync] 数据已一致，无需同步')
           setSyncStatus('success')
@@ -316,7 +347,7 @@ export function useSync(
         }
 
         // 有差异：本地有新增/更新的数据 → 上传到云端
-        if ((totalLocalChanges > 0 || profileChangeSource === 'local') && totalRemoteChanges === 0) {
+        if ((totalLocalChanges > 0 || profileChangeSource === 'local' || optionsChangeSource === 'local') && totalRemoteChanges === 0 && optionsChangeSource !== 'remote') {
           console.error(`📤 [autoSync] 本地有${totalLocalChanges}条变更（新增${localOnly.length}+更新${localNewer.length}）${profileChanged ? '+ profile变更' : ''}，上传到云端`)
           addLog(`上传本地变更：${totalLocalChanges}条记录`, 'success')
           const result = await uploadLocalData(user.id, freshLocalData, user)
@@ -333,7 +364,7 @@ export function useSync(
         }
 
         // 有差异：云端有新增/更新的数据 → 合并到本地
-        if ((totalRemoteChanges > 0 || profileChangeSource === 'remote') && totalLocalChanges === 0 && profileChangeSource !== 'local') {
+        if ((totalRemoteChanges > 0 || profileChangeSource === 'remote' || optionsChangeSource === 'remote') && totalLocalChanges === 0 && profileChangeSource !== 'local' && optionsChangeSource !== 'local') {
           console.error(`📥 [autoSync] 云端有${totalRemoteChanges}条变更（新增${remoteOnly.length}+更新${remoteNewer.length}）`)
 
           // ⭐ 合并：本地记录 + 云端新增 + 云端更新的版本
