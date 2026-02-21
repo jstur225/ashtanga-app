@@ -22,7 +22,30 @@ let supabaseInstance: ReturnType<typeof createClient> | null = null
 
 const getSupabaseInstance = () => {
   if (!supabaseInstance) {
-    supabaseInstance = createClient(getSupabaseUrl(), getSupabaseAnonKey())
+    supabaseInstance = createClient(getSupabaseUrl(), getSupabaseAnonKey(), {
+      global: {
+        fetch: (url, options = {}) => {
+          // ⭐ 兼容不支持 AbortSignal.timeout 的浏览器
+          let signal: AbortSignal | undefined
+          try {
+            if (typeof AbortSignal !== 'undefined' && 'timeout' in AbortSignal) {
+              signal = (AbortSignal as any).timeout(120000)
+            }
+          } catch (e) {
+            // 忽略错误，不使用 signal
+          }
+
+          const fetchOptions: any = {
+            ...options,
+          }
+          if (signal) {
+            fetchOptions.signal = signal
+          }
+
+          return fetch(url, fetchOptions)
+        },
+      },
+    })
   }
   return supabaseInstance
 }
@@ -34,35 +57,68 @@ export const supabase = new Proxy({} as ReturnType<typeof createClient>, {
   }
 })
 
+// ==================== Service Role Client（绕过 RLS） ====================
+// ⚠️ 仅在服务端 API 中使用，不要暴露给客户端
+
+const getServiceRoleKey = () => {
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!key) {
+    throw new Error('Missing env.SUPABASE_SERVICE_ROLE_KEY')
+  }
+  return key
+}
+
+let supabaseServiceInstance: ReturnType<typeof createClient> | null = null
+
+export const getSupabaseServiceClient = () => {
+  if (!supabaseServiceInstance) {
+    supabaseServiceInstance = createClient(
+      getSupabaseUrl(),
+      getServiceRoleKey(),
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    )
+  }
+  return supabaseServiceInstance
+}
+
 // Database types
 export interface PracticeRecord {
-  id: number
+  id: string // UUID (string)
+  user_id: string // 新增：用户ID，用于数据隔离
   created_at: string
+  updated_at: string // ⭐ 新增：最后修改时间，用于同步时判断最新版本
   date: string
   type: string
   duration: number
   notes: string
   photos: string[]
-  breakthrough?: string
+  breakthrough?: string | null
+  deleted_at?: string | null // 软删除字段
 }
 
 export interface PracticeOption {
-  id: number
+  id: string // UUID (string)
+  user_id: string // 新增：用户ID，用于数据隔离
   created_at: string
-  label: string
-  label_zh: string
-  notes?: string
+  label: string  // 练习类型名称（中文）
+  notes?: string  // 备注说明
   is_custom: boolean
 }
 
 export interface UserProfile {
-  id: number
+  id: string // UUID (string)
+  user_id: string // 新增：用户ID，关联到 auth.users
   created_at: string
+  updated_at: string // ⭐ 新增：最后修改时间，用于同步时判断最新版本
   name: string
   signature: string
-  avatar: string | null
+  avatar: string | null // ⚠️ 头像只存本地，不上传云端（存本地URL或null）
   phone?: string
-  email?: string
   is_pro: boolean
 }
 

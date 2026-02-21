@@ -42,6 +42,12 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url)
 
+  // ⭐ 关键修复：POST/PUT/DELETE 等非 GET 请求直接转发，不缓存
+  if (event.request.method !== 'GET') {
+    event.respondWith(fetch(event.request))
+    return
+  }
+
   // 对于HTML页面，使用Network First（优先网络，确保最新）
   if (event.request.mode === 'navigate' ||
       event.request.destination === 'document') {

@@ -22,6 +22,97 @@
 - **better-auth-best-practices** - TypeScript 认证框架集成指南（2026-02-02 安装）
 
 ## 使用记录
+- **2026-02-18**: **编辑记录弹窗 - 语音+照片双假门测试** - 新增照片上传假门测试
+  - **背景**: 用户希望在编辑记录的文本输入框右下角，在现有的麦克风图标旁边添加一个上传照片图标，两者都是假门测试，用于测试用户对这两个功能的兴趣度
+  - **核心改动**:
+    - ✅ 创建 `PhotoUploadButton` 组件 (`components/PhotoUploadButton.tsx`)
+      - 使用 Camera 图标，绿色渐变背景（后改为与语音按钮一致）
+      - 相同样式：圆角、阴影、hover 效果
+    - ✅ 修复按钮重叠问题
+      - VoiceButton 移除内部的 `absolute` 定位
+      - 父容器统一控制 `absolute bottom-3 right-3 flex items-center gap-2`
+    - ✅ 扩展 `FakeDoorModal` 支持 `photo` 类型
+      - 添加 `votedPhoto` localStorage 状态
+      - 优化文案结构，参考语音文案风格（痛点+解决方案+情感共鸣）
+      - 修复 photo 类型不显示描述文字的问题
+    - ✅ 更新所有使用文本输入框的组件
+      - EditRecordModal、AddPracticeModal、ShareCardModal、CompletionSheet、JournalTab
+  - **文案优化迭代**:
+    - 初版：简单描述照片日记功能
+    - 优化版：增加痛点感（"练了这么久，你真的知道自己进步了多少吗？"）
+    - 场景描述："一个月拍一张站轮式，三个月后再看"
+    - 情感共鸣："当你想放弃时，回看第一张照片"
+  - **Git 提交记录**:
+    - `308d7a5` feat: 编辑记录弹窗添加语音+照片双假门测试
+    - `b92685a` fix: 修复语音和照片按钮重叠问题
+    - `0ef4ef1` style: 照片按钮改为绿色渐变
+    - `3e11e5c` refactor: 优化照片日记假门测试文案
+    - `10e5fe1` fix: 照片假门测试弹窗显示描述文字
+    - ✅ 扩展 `FakeDoorModal` 组件支持 photo 类型
+      - `type` 属性扩展为 `'cloud' | 'pro' | 'voice' | 'photo'`
+      - 添加 `votedPhoto` localStorage 状态
+      - 新增 photo 内容配置：标题"📷体式照片日记"、描述照片日记的价值
+      - 埋点事件：`vote_for_photo_upload`（yes/no）
+    - ✅ 修改所有文本输入框布局，添加双按钮
+      - 编辑记录弹窗 (`EditRecordModal`)
+      - 添加记录弹窗 (`AddPracticeModal`)
+      - 分享卡片编辑 (`ShareCardModal`)
+      - 练习完成弹窗 (`CompletionSheet`)
+      - 觉察日记快速添加 (`JournalTab` 中的内联编辑)
+      - 布局：照片按钮在左，语音按钮在右，间距 gap-2
+    - ✅ 更新所有组件 props
+      - `onOpenFakeDoor` 拆分为 `onOpenVoiceFakeDoor` 和 `onOpenPhotoFakeDoor`
+      - 更新所有调用处传递正确的回调函数
+  - **埋点事件**:
+    - `vote_for_photo_upload`: 照片上传投票（yes/no）
+    - `vote_for_voice_input`: 语音输入投票（yes/no）
+  - **产品决策**: 符合"简单"理念，双按钮并列展示，用户一目了然，可以同时测试两个功能的兴趣度
+
+- **2026-02-18**: **名字和签名同步修复** - 优化为基于时间戳的同步逻辑
+  - **背景**: 用户反馈名字和签名同步不稳定，希望优化成觉察笔记那样的时间戳同步逻辑
+  - **核心改动**:
+    - ✅ 添加 `updated_at` 字段到 `UserProfile` 类型（`lib/supabase.ts` 和 `hooks/usePracticeData.ts`）
+    - ✅ `updateProfile` 自动更新 `updated_at` 时间戳（`hooks/usePracticeData.ts`）
+    - ✅ Profile 同步逻辑改为基于时间戳判断（`hooks/useSync.ts`）
+      - 本地 updated_at > 云端 → 本地上传
+      - 云端 updated_at > 本地 → 下载到本地
+      - 处理 null 情况（首次同步）
+    - ✅ 上传 API 处理 `updated_at` 字段（`app/api/sync/upload-profile/route.ts`）
+  - **头像保持本地存储**: avatar 字段继续本地存储，不参与同步
+  - **产品决策**: 符合"简单"理念，参考觉察笔记同步机制，时间戳驱动更可靠
+
+- **2026-02-11**: **增加50条觉察记录同步限制（内测版本）** - 为付费功能做铺垫
+  - **背景**: master2分支已实现账号登录和云同步，需要添加内测版本限制
+  - **核心功能**:
+    - ✅ 上传限制：最多同步最早的50条记录，超过的新记录仅保留在本地
+    - ✅ UI提示：当本地记录>50条时，显示黄色提示框告知用户仅本地保存的记录数
+    - ✅ 提示位置：放在"立即同步"按钮上方，更直观
+    - ✅ 冲突检测：使用截取后的50条记录进行比对，避免触发不必要的冲突弹窗
+    - ✅ 同步状态灯：修复同步后状态灯颜色不更新的问题（使用lastSyncStatus）
+  - **文件修改**:
+    - `hooks/useSync.ts`: 添加MAX_SYNC_RECORDS=50常量、syncStats状态、自动计算同步统计
+    - `components/AccountBindingSection.tsx`: 添加限制提示UI、修复状态灯颜色逻辑
+    - `app/practice/page.tsx`: 修复setReadInviteVersion prop传递
+  - **技术细节**:
+    - 按日期排序后截取前50条（最早的）
+    - syncStats在localData变化时自动计算
+    - 冲突检测使用effectiveLocalRecords（50条）而非全部记录
+  - **Git提交**: 7a72b78
+  - **下午继续**:
+    - ✅ 修复删除记录同步问题：删除后记录又回来的bug
+      - 原因：RLS策略阻止客户端直接更新数据库
+      - 方案：创建 `/api/sync/delete-record` API路由，使用service_role绕过RLS
+    - ✅ 修复删除后需要手动同步的问题：添加/删除记录后自动触发autoSync()
+    - ✅ 修复编辑弹窗直接显示删除确认的问题：useEffect中重置showDeleteConfirm状态
+    - ✅ 优化删除确认按钮样式：浅红到深红渐变+毛玻璃效果
+    - ✅ 创建生活教练导出桥：`sync_ashtanga_data.py`同步熬汤数据到生活教练系统
+    - ✅ 更新生活教练提示词：支持"同步数据"命令同时同步飞书和熬汤数据
+  - **Git提交**: 9c751b6, daecf6b, e9e1abe
+  - **记忆文件全局通用化** - 解决分支切换导致记忆丢失的问题
+    - 问题: `ashtang-app/memory.md` 与 `claude code/memory.md` 内容重复，切换分支时记忆不同步
+    - 解决方案: 创建全局记忆文件 `memory-global.md`，各分支统一指向
+    - 效果: 无论切换到哪个分支，记忆文件内容保持一致
+
 - **2026-02-02**: **技能配置更新** - 安装 better-auth-best-practices 技能
   - 使用命令：`npx skills add https://github.com/better-auth/skills --skill better-auth-best-practices --yes --global`
   - 安装位置：`~\.agents\skills\better-auth-best-practices`
@@ -2028,4 +2119,288 @@ if (mode === 'login') {
 ✅ 编译成功
 ✅ 开发服务器正常运行（http://localhost:3000）
 
+---
 
+## 2026-02-15 熬汤日记同步功能修复与测试计划
+
+### 今日修复内容
+1. **Service Worker 修复** - 不缓存 POST 请求
+   - 问题：POST 请求被 Service Worker 拦截导致同步失败
+   - 解决：添加 `if (event.request.method !== 'GET')` 判断，非 GET 请求直接转发
+   - 文件：`public/sw.js`
+
+2. **同步计数文案修复** - 改为 "10/11 已同步" 格式
+   - 问题：显示"已同步11条"但实际只同步了10条，误导用户
+   - 解决：改为显示"本地 11 条，云端已同步 10 条"
+   - 文件：`components/DataStorageNotice.tsx`
+
+3. **同步统计逻辑修复** - 只在成功时更新计数
+   - 问题：新建记录未上传就显示为"已同步"
+   - 解决：`syncedRecords` 只在同步成功时更新，不在本地记录变化时更新
+   - 文件：`hooks/useSync.ts`
+
+4. **日志保留修复** - 改为 `console.error` 保留到生产环境
+   - 问题：Vercel 生产构建会移除 `console.log`
+   - 解决：改为 `console.error`，生产环境也能看到日志
+   - 文件：`hooks/useSync.ts`
+
+### 关键发现
+- **VPN 干扰问题**：开启 VPN 时 Supabase 连接被关闭（`net::ERR_CONNECTION_CLOSED`）
+- **解决方案**：关闭 VPN 或使用白名单让 Supabase 直连
+
+### 明日测试清单（本地 + 预览环境）
+
+| 功能 | 测试步骤 | 预期结果 | 本地测试 | 预览环境 |
+|------|---------|---------|---------|---------|
+| 登录 | 输入正确邮箱密码 | 登录成功，显示用户名 | ⬜ | ⬜ |
+| 同步 | 点击"立即同步" | 状态变绿色，计数正确（如 10/10） | ⬜ | ⬜ |
+| 新增记录 | 添加新记录 → 同步 | 云端数据+1，计数更新（如 11/11） | ⬜ | ⬜ |
+| 退出登录 | 点击"退出登录" | 退出成功，本地数据保留 | ⬜ | ⬜ |
+| 重新登录 | 用同一账号登录 | 数据自动同步回来 | ⬜ | ⬜ |
+| Console 日志 | F12 打开控制台 | 能看到红色日志输出 | ⬜ | ⬜ |
+
+### 测试环境
+- **本地**: http://localhost:3003
+- **预览**: （部署后更新）
+
+### 注意事项
+1. **关闭 VPN** 再测试（Supabase 连接问题）
+2. **强制刷新**（Ctrl+Shift+R）确保获取最新代码
+3. **检查 Service Worker** 是否更新（Application → Service Workers）
+
+---
+
+## 2026-02-15 下午 - 同步功能深度修复
+
+### 修复内容
+
+1. **autoSync 返回值修复** - 解决 toast 提示与实际状态不一致
+   - 问题：toast 显示"同步失败"但日志显示成功
+   - 原因：`autoSync` 函数没有正确返回 true/false
+   - 解决：修复所有返回路径，确保成功返回 `true`，失败/冲突返回 `false`
+   - 文件：`hooks/useSync.ts`
+
+2. **React Closure Trap 修复** - 解决手动同步失败问题
+   - 问题：点击"立即同步"按钮时数据比对不正确
+   - 原因：React closure 导致 `localData` 是旧数据
+   - 解决：使用 `localDataRef` 获取最新数据
+   - 文件：`hooks/useSync.ts`
+
+3. **Supabase 查询超时修复** - 添加重试机制
+   - 问题：查询云端数据时频繁超时（60秒超时）
+   - 原因：`AbortSignal.timeout` 在 Safari 等浏览器不兼容
+   - 解决：
+     - 修复浏览器兼容性（try-catch 判断）
+     - 缩短单次超时到 30 秒，失败后自动重试 2 次
+     - 添加详细查询日志便于诊断
+   - 文件：`hooks/useSync.ts`, `lib/supabase.ts`
+
+4. **状态灯显示修复** - 修复错误时显示绿色
+   - 问题：同步失败时状态灯仍显示绿色
+   - 原因：判断条件包含 `|| lastSyncTime`
+   - 解决：改为仅根据 `syncStatus` 判断
+   - 文件：`components/DataStorageNotice.tsx`
+
+5. **Profile 同步修复** - 名字修改后自动同步
+   - 问题：修改用户名后不会自动同步到云端
+   - 解决：在 `onSave` 回调中调用 `autoSync`
+   - 文件：`app/practice/page.tsx`
+
+6. **退出登录修复** - 重置 profile 并刷新页面
+   - 问题：退出登录后 profile 未重置
+   - 解决：清除 profile 为默认值后刷新页面
+   - 文件：`components/AccountBindingSection.tsx`
+
+### Git 提交记录
+- `288ea5a` - fix: 修复 autoSync 返回值
+- `c6ed75f` - fix: 修复 Supabase 查询超时问题，添加重试机制
+
+### 测试结果
+- ✅ 同步功能恢复正常（查询、比对、上传、下载）
+- ✅ Toast 提示正确反映同步状态
+- ✅ Profile 修改后自动同步
+- ✅ 状态灯颜色正确显示
+
+
+## 2026-02-18 移除设备限制逻辑，支持多设备登录
+
+### 背景
+- bee5f3b 版本有半成品的设备限制（登录时限制，但不会踢出旧设备）
+- 用户决定放弃冲突检测功能，允许多设备登录
+- 担心多设备登录时同步功能是否正常
+
+### 同步功能分析
+- ✅ **完全支持多设备登录**：使用 `user_id` 过滤数据
+- ✅ **冲突处理**：通过 `updated_at` 时间戳判断最新版本
+- ✅ **自动合并**：设备A添加记录1，设备B添加记录2，最终都有1和2
+- ⚠️ **同时修改**：如果两个设备同时修改同一条记录，以最后修改的为准
+
+### 主要改动
+1. **hooks/useAuth.ts**:
+   - 移除设备管理工具函数（`getOrCreateDeviceId`, `getDeviceName`）
+   - 移除设备状态（`currentDevice`, `deviceConflict`）
+   - 简化 `signIn`：不再检查和限制设备
+   - 简化 `signOut`：不再清空设备列表
+   - 移除 `loadDeviceInfo`, `confirmDeviceConflict`, `cancelDeviceConflict`
+   - **删除 176 行代码**
+
+2. **lib/supabase.ts**:
+   - 移除 `UserProfile` 接口中的 `logged_in_devices` 字段
+
+3. **components/AccountBindingSection.tsx**:
+   - 移除设备冲突相关的引用
+
+### 产品决策
+符合"简单"理念，移除设备限制，代码更简洁
+
+### 用户体验
+- ✅ 多个设备可以同时登录
+- ✅ 不需要每次登录确认替换设备
+- ✅ 同步功能完全正常工作
+
+### 数据库清理建议
+- ⚠️ 数据库中的 `logged_in_devices` 字段已经不再使用
+- 建议：在 Supabase Dashboard 中删除该字段（可选，不影响功能）
+- 建议：关闭 Realtime 功能（可选，如果不使用）
+
+### Git 提交
+- `d2bdf87` - fix: 回滚冲突检测功能，删除设备限制提示
+- `78878cf` - feat: 移除设备限制逻辑，支持多设备登录
+
+---
+
+## 2026-02-18 移除设备限制功能 + Bug修复
+
+### 背景
+- bee5f3b 版本有半成品的设备限制（登录时限制，但不会踢出旧设备）
+- 用户决定放弃冲突检测功能，允许多设备登录
+- 担心多设备登录时同步功能是否正常
+
+### 同步功能分析
+- ✅ **完全支持多设备登录**：使用 `user_id` 过滤数据
+- ✅ **冲突处理**：通过 `updated_at` 时间戳判断最新版本
+- ✅ **自动合并**：设备A添加记录1，设备B添加记录2，最终都有1和2
+- ⚠️ **同时修改**：如果两个设备同时修改同一条记录，以最后修改的为准
+
+### 主要改动
+
+#### 1. 移除设备限制功能
+**hooks/useAuth.ts**:
+- 移除设备管理工具函数（`getOrCreateDeviceId`, `getDeviceName`）
+- 移除设备状态（`currentDevice`, `deviceConflict`）
+- 简化 `signIn`：不再检查和限制设备
+- 简化 `signOut`：不再清空设备列表
+- 移除 `loadDeviceInfo`, `confirmDeviceConflict`, `cancelDeviceConflict`
+- **删除了 176 行代码**
+
+**lib/supabase.ts**:
+- 移除 `UserProfile` 接口中的 `logged_in_devices` 字段
+
+**components/AccountBindingSection.tsx**:
+- 移除设备冲突相关的引用
+- 删除 useEffect 中的 `deviceConflict` 引用
+- 删除整个设备冲突确认弹窗（76行）
+
+**components/DataStorageNotice.tsx**:
+- 删除"1个账号仅可登录1个设备"提示
+- 新增"支持多设备登录，旧设备不用时请清空本地数据"提示
+
+#### 2. Bug修复
+
+**Bug 1: 修改练习记录日期后不按新日期排序**
+- 问题：修改日期后，记录位置不变
+- 原因：`updateRecord` 函数只更新记录，没有重新排序
+- 修复：在 `updateRecord` 中添加排序逻辑，和 `addRecord` 保持一致
+- 文件：`hooks/usePracticeData.ts`
+
+**Bug 2: 修改日期后点击日历无法跳转**
+- 问题：修改日期后，点击日历无法跳转到对应记录
+- 原因：`recordRefs` 使用 `date` 作为 key，修改日期后 key 不匹配
+- 修复：
+  - 添加 `dateToIdMap` 映射：date -> record.id
+  - `handleDayClick` 先通过日期找到记录ID，再通过ID找到ref
+  - 记录的 ref 使用 `id` 作为 key（id 永远不变）
+- 文件：`app/practice/page.tsx`
+
+### 产品决策
+符合"简单"理念，移除设备限制，代码更简洁
+
+### 用户体验提升
+- ✅ 多个设备可以同时登录
+- ✅ 不需要每次登录确认替换设备
+- ✅ 同步功能完全正常工作
+- ✅ 修改日期后立即排序
+- ✅ 修改日期后日历跳转正常
+
+### 数据库清理（用户已执行）
+- ✅ 删除 `user_profiles` 表中的 `logged_in_devices` 字段
+- ⚠️ Realtime 功能关闭提醒（用户未操作）
+
+### Git 提交记录
+- `d2bdf87` - fix: 回滚冲突检测功能，删除设备限制提示
+- `78878cf` - feat: 移除设备限制逻辑，支持多设备登录
+- `7efd579` - fix: 删除设备冲突弹窗和相关引用
+- `39de78e` - fix: 修复修改练习记录日期后不按新日期排序的问题
+- `b2d8287` - fix: 修复修改日期后点击日历无法跳转到对应记录的问题
+- `2d9a623` - feat: 账户与同步页面添加多设备登录提示
+
+### 技术亮点
+1. **代码简化**：删除了 250+ 行设备管理相关代码
+2. **Bug修复**：两个关键 bug 同时修复
+3. **用户体验**：流程更顺畅，无设备限制
+
+---
+
+## 2026-02-21 练习选项同步功能完整修复
+
+### 背景
+用户发现 practice_options 表只有1个用户的数据，其他6个绑定了邮箱的账号没有同步练习选项。经排查发现多个问题并修复。
+
+### 问题诊断
+1. **RLS 策略问题**：practice_options 表有一条策略限制 `is_custom = true`，导致默认选项无法上传
+2. **选项同步缺失**：autoSync 只检查 records 和 profile 的差异，没有检查 options
+3. **新增选项不触发同步**：addOption 后没有调用 autoSync
+4. **删除选项不同步**：本地删除后没有删除云端数据
+5. **回调函数未定义**：handleSyncComplete 定义在使用之后导致页面崩溃
+
+### 修复内容
+
+#### 1. 修复 RLS 策略（Supabase）
+```sql
+-- 删除有问题的策略
+DROP POLICY IF EXISTS "Users can insert custom practice options" ON practice_options;
+
+-- 添加正确的策略
+CREATE POLICY "Users can insert own options"
+    ON practice_options FOR INSERT
+    TO public
+    WITH CHECK (auth.uid() = user_id);
+```
+
+#### 2. 修复代码问题
+- **app/practice/page.tsx**:
+  - 修复 `handleSyncComplete` 闭包问题（改为内联回调）
+  - 新增选项后延迟 100ms 触发 autoSync（确保 localStorage 已更新）
+  - 删除选项时调用 Supabase API 删除云端数据
+
+- **hooks/useSync.ts**:
+  - 添加选项差异检测逻辑（比对本地和云端选项数量及内容）
+  - 修改同步触发条件，选项变化也会触发上传/下载
+
+### 同步逻辑现状
+- ✅ 新增选项 → 自动同步到云端
+- ✅ 删除选项 → 同步删除云端数据
+- ✅ 全量覆盖模式：简单有效，满足基本需求
+- ⚠️ 无时间戳冲突检测（当前不需要，如有需求可后续添加）
+
+### Git 提交记录
+- `0026018` - fix: 修复 updateProfile 闭包问题
+- `4919716` - fix: 新增和删除选项后自动同步到云端
+- `27c4eb7` - fix: 修复 handleSyncComplete 未定义错误
+- `2255caf` - fix: autoSync 添加选项差异检测
+- `7d1afe9` - fix: 新增选项后延迟 100ms 再同步
+
+### 产品决策
+符合"简单"理念，采用全量覆盖模式而非时间戳冲突检测，代码更简单，满足当前需求。
+
+---

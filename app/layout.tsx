@@ -62,7 +62,9 @@ export default function RootLayout({
         <AnalyticsInitializer />
         <ServiceWorkerRegister />
         {children}
-        <Toaster position="top-center" />
+        <Toaster position="top-center" toastOptions={{
+          className: 'font-serif',
+        }} />
         <Analytics />
       </body>
     </html>

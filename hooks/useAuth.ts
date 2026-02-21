@@ -1,0 +1,229 @@
+"use client"
+
+import { useState, useEffect } from 'react'
+import { supabase } from '@/lib/supabase'
+import type { User } from '@supabase/supabase-js'
+
+// ==================== useAuth Hook ====================
+
+export function useAuth() {
+  const [user, setUser] = useState<User | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  // ==================== 初始化：检查登录状态 ====================
+  useEffect(() => {
+    // ⭐ 检查是否正在退出登录，如果是则强制清除 session
+    const isSigningOut = localStorage.getItem('__signing_out__')
+    if (isSigningOut) {
+      console.log('[useAuth] 检测到退出标志，强制清除 session')
+      localStorage.removeItem('__signing_out__')
+      supabase.auth.signOut().then(() => {
+        setUser(null)
+        setLoading(false)
+      })
+      return
+    }
+
+    // 获取当前会话
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null)
+      setLoading(false)
+    })
+
+    // 监听认证状态变化
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('[useAuth] onAuthStateChange:', event, 'session:', !!session)
+
+      // ⭐ 如果正在退出，不处理 session 恢复
+      if (localStorage.getItem('__signing_out__')) {
+        console.log('[useAuth] onAuthStateChange: 忽略，正在退出中')
+        return
+      }
+
+      console.log('[useAuth] 设置 user:', session?.user?.email ?? null)
+      setUser(session?.user ?? null)
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
+
+  // ==================== 注册 ====================
+  const signUp = async (email: string, password: string) => {
+    console.log('[useAuth] 开始注册...', { email })
+
+    // 先检测网络连接
+    try {
+      const testResponse = await fetch('https://xojbgxvwgvjanxsowqik.supabase.co', {
+        method: 'HEAD',
+        mode: 'no-cors',
+        signal: AbortSignal.timeout(5000)
+      })
+      console.log('[useAuth] 网络连接检测: 成功')
+    } catch (networkError: any) {
+      console.error('[useAuth] ❌ 网络连接检测失败:', networkError.message)
+      console.error('[useAuth] 可能的原因:')
+      console.error('  1. 网络连接问题（VPN/防火墙/公司网络限制）')
+      console.error('  2. DNS 解析失败')
+      console.error('  3. Supabase 服务暂时不可用')
+      throw new Error('无法连接到 Supabase 服务器，请检查网络连接或稍后重试')
+    }
+
+    try {
+      // 添加超时控制（60秒）
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('注册请求超时，请稍后重试')), 60000)
+      })
+
+      const signUpPromise = supabase.auth.signUp({
+        email,
+        password,
+      })
+
+      console.log('[useAuth] 等待 Supabase 响应...')
+
+      const { data, error } = await Promise.race([signUpPromise, timeoutPromise]) as any
+
+      console.log('[useAuth] 收到响应:', { data, error })
+
+      if (error) {
+        console.error('[useAuth] 注册失败:', error)
+        console.error('[useAuth] 错误详情:', {
+          message: error.message,
+          status: error.status,
+          name: error.name,
+          stack: error.stack
+        })
+
+        // 提供更详细的错误信息
+        if (error.message?.includes('User already registered')) {
+          throw new Error('该邮箱已注册，请直接登录')
+        }
+
+        // 网络连接错误
+        if (error.message?.includes('Failed to fetch') ||
+            error.message?.includes('ERR_CONNECTION_CLOSED') ||
+            error.message?.includes('ERR_NAME_NOT_RESOLVED') ||
+            error.status === 0) {
+          console.error('[useAuth] ❌ 网络连接错误')
+          throw new Error('网络连接失败，请检查：\n1. 是否能正常访问其他网站\n2. 是否开启了 VPN/代理（尝试关闭）\n3. 是否在公司/学校网络（可能有限制）\n4. 防火墙是否拦截了请求\n\n建议稍后重试，或使用手机热点测试')
+        }
+
+        // 如果是 504 或超时错误，可能已经注册成功
+        if (error.message?.includes('504') ||
+            error.message?.includes('Gateway Timeout') ||
+            error.message?.includes('超时') ||
+            error.status === 504) {
+          console.log('[useAuth] ⚠️ 注册超时，但可能已成功，尝试登录验证...')
+          throw { ...error, isTimeout: true }
+        }
+
+        throw error
+      }
+
+      console.log('[useAuth] 注册成功:', data)
+      console.log('[useAuth] 用户ID:', data.user?.id)
+
+      // Profile 会由数据库触发器自动创建，无需客户端处理
+
+      // ⭐ 立即更新用户状态（不等待 onAuthStateChange 事件）
+      if (data.user) {
+        console.log('[useAuth] 立即更新用户状态')
+        setUser(data.user)
+
+        // 如果有 session，也加载设备信息
+        if (data.session) {
+          await loadDeviceInfo(data.user.id)
+        }
+      }
+
+      return data
+    } catch (error: any) {
+      console.error('[useAuth] 注册异常:', error)
+      console.error('[useAuth] 错误详情:', {
+        message: error.message,
+        status: error.status,
+        name: error.name
+      })
+
+      // 提供友好的错误提示
+      if (error.message?.includes('超时')) {
+        throw new Error('注册请求超时，可能是网络问题或 Supabase 服务繁忙。建议：1. 检查网络连接 2. 等待几分钟后重试 3. 或稍后直接尝试登录')
+      }
+
+      throw error
+    }
+  }
+
+  // ==================== 登录 ====================
+  const signIn = async (email: string, password: string) => {
+    // 1. Supabase 验证密码
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
+
+    if (error) throw error
+
+    // ⭐ 立即更新用户状态
+    console.log('[useAuth] 登录成功，立即更新用户状态')
+    if (data.user) {
+      setUser(data.user)
+    }
+
+    return data
+  }
+
+  // ==================== 退出登录 ====================
+  const signOut = async () => {
+    if (!user) return
+
+    // ⭐ 设置退出标志，防止页面刷新后自动恢复登录
+    localStorage.setItem('__signing_out__', 'true')
+
+    // 调用 Supabase signOut（清除服务端 session 和本地存储）
+    const { error } = await supabase.auth.signOut({ scope: 'global' })
+    if (error) throw error
+
+    // ⭐ 立即清除本地状态（不等待 onAuthStateChange）
+    setUser(null)
+
+    // ⭐ 清除所有 Supabase 相关的存储数据
+    clearAllSupabaseStorage()
+  }
+
+  // ⭐ 辅助函数：清除所有 Supabase 存储
+  const clearAllSupabaseStorage = () => {
+    // 清除所有可能的 localStorage key（包括 Supabase 相关的）
+    const allKeys = Object.keys(localStorage)
+    allKeys.forEach(key => {
+      if (key.includes('supabase') || key.includes('sb-')) {
+        localStorage.removeItem(key)
+      }
+    })
+
+    // 清除 sessionStorage
+    const sessionKeys = Object.keys(sessionStorage)
+    sessionKeys.forEach(key => {
+      if (key.includes('supabase') || key.includes('sb-')) {
+        sessionStorage.removeItem(key)
+      }
+    })
+
+    // 清除所有 cookies（包括可能存储的 Supabase cookie）
+    const cookies = document.cookie.split(';')
+    cookies.forEach(cookie => {
+      const [name] = cookie.trim().split('=')
+      // 设置 cookie 过期时间为过去，从而删除它
+      document.cookie = `${name.trim()}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=${window.location.hostname}`
+      document.cookie = `${name.trim()}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`
+    })
+  }
+
+  return {
+    user,
+    loading,
+    signUp,
+    signIn,
+    signOut,
+  }
+}

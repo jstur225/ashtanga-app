@@ -1,13 +1,18 @@
 import { execSync } from 'child_process'
 
-// 获取 Git 版本号
-function getGitCommit() {
+// 获取 Git 版本信息
+function getGitVersion() {
   try {
-    return execSync('git rev-parse HEAD').toString().trim()
-  } catch {
-    return 'unknown'
+    const commitHash = execSync('git rev-parse --short HEAD').toString().trim()
+    const commitDate = execSync('git log -1 --format=%cd --date=iso').toString().trim()
+    const branch = execSync('git rev-parse --abbrev-ref HEAD').toString().trim()
+    return { commitHash, commitDate, branch }
+  } catch (e) {
+    return { commitHash: 'unknown', commitDate: 'unknown', branch: 'unknown' }
   }
 }
+
+const { commitHash, commitDate, branch } = getGitVersion()
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -25,10 +30,11 @@ const nextConfig = {
   experimental: {
     optimizePackageImports: ['@radix-ui', 'lucide-react', 'framer-motion'], // 优化导入
   },
-  // 环境变量 - 构建时注入
+  // 注入 Git 版本信息到环境变量
   env: {
-    NEXT_PUBLIC_GIT_COMMIT: getGitCommit(),
-    NEXT_PUBLIC_BUILD_TIME: new Date().toISOString(),
+    NEXT_PUBLIC_GIT_COMMIT_HASH: commitHash,
+    NEXT_PUBLIC_GIT_COMMIT_DATE: commitDate,
+    NEXT_PUBLIC_GIT_BRANCH: branch,
   },
 }
 

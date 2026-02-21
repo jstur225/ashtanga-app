@@ -7,6 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
 export interface PracticeRecord {
   id: string;
   created_at: string;
+  updated_at: string; // ⭐ 新增：最后修改时间，用于同步时判断最新版本
   date: string;
   type: string;
   duration: number;
@@ -19,7 +20,6 @@ export interface PracticeOption {
   id: string;
   created_at: string;
   label: string;
-  label_zh: string;
   notes?: string;
   is_custom: boolean;
 }
@@ -27,6 +27,7 @@ export interface PracticeOption {
 export interface UserProfile {
   id: string;
   created_at: string;
+  updated_at: string; // ⭐ 新增：最后修改时间，用于同步时判断最新版本
   name: string;
   signature: string;
   avatar: string | null;
@@ -35,50 +36,13 @@ export interface UserProfile {
   is_pro: boolean;
 }
 
-// 英文到中文的映射表（用于旧数据迁移）
-const LABEL_MAPPING: Record<string, string> = {
-  'Primary 1': '一序列',
-  'Primary 2': '一序列',
-  'Intermediate 1': '二序列',
-  'Intermediate 2': '二序列',
-  'Half': '半序列',
-  'Rest': '休息日',
-  // 兼容可能的变体
-  'Primary': '一序列',
-  'Intermediate': '二序列',
-  'Half Primary': '半序列',
-};
-
-// 根据英文label和notes组合判断中文显示
-const getChineseLabel = (label: string, notes?: string): string => {
-  // 如果已经是中文，直接返回
-  if (/[\u4e00-\u9fa5]/.test(label)) {
-    return label;
-  }
-
-  // 尝试直接映射
-  if (LABEL_MAPPING[label]) {
-    return LABEL_MAPPING[label];
-  }
-
-  // 根据关键词判断
-  const lowerLabel = label.toLowerCase();
-  if (lowerLabel.includes('primary')) return '一序列';
-  if (lowerLabel.includes('intermediate')) return '二序列';
-  if (lowerLabel.includes('half')) return '半序列';
-  if (lowerLabel.includes('rest')) return '休息日';
-
-  // 默认返回
-  return '一序列';
-};
-
 const DEFAULT_OPTIONS: PracticeOption[] = [
-  { id: '1', created_at: new Date().toISOString(), label: 'Primary 1', label_zh: '一序列', notes: 'Mysore', is_custom: false },
-  { id: '2', created_at: new Date().toISOString(), label: 'Primary 2', label_zh: '一序列', notes: 'Led class', is_custom: false },
-  { id: '3', created_at: new Date().toISOString(), label: 'Intermediate 1', label_zh: '二序列', notes: 'Mysore', is_custom: false },
-  { id: '4', created_at: new Date().toISOString(), label: 'Intermediate 2', label_zh: '二序列', notes: 'Led class', is_custom: false },
-  { id: '5', created_at: new Date().toISOString(), label: 'Half', label_zh: '半序列', notes: '站立+休息', is_custom: false },
-  { id: '6', created_at: new Date().toISOString(), label: 'Rest', label_zh: '休息日', notes: '满月/新月', is_custom: false },
+  { id: '1', created_at: new Date().toISOString(), label: '一序列', notes: 'Mysore', is_custom: false },
+  { id: '2', created_at: new Date().toISOString(), label: '一序列', notes: 'Led class', is_custom: false },
+  { id: '3', created_at: new Date().toISOString(), label: '二序列', notes: 'Mysore', is_custom: false },
+  { id: '4', created_at: new Date().toISOString(), label: '二序列', notes: 'Led class', is_custom: false },
+  { id: '5', created_at: new Date().toISOString(), label: '半序列', notes: '站立+休息', is_custom: false },
+  { id: '6', created_at: new Date().toISOString(), label: '休息日', notes: '满月/新月', is_custom: false },
 ];
 
 export const usePracticeData = () => {
@@ -88,6 +52,7 @@ export const usePracticeData = () => {
   const [profile, setProfile] = useLocalStorage<UserProfile>('ashtanga_profile', {
     id: '',
     created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
     name: '阿斯汤加习练者',
     signature: '练习、练习，一切随之而来。',
     avatar: null,
@@ -100,109 +65,41 @@ export const usePracticeData = () => {
     if (!stored || stored === '[]') {
       setOptions(DEFAULT_OPTIONS);
     } else {
-      // 数据迁移：处理旧数据格式（驼峰命名、缺失字段等）
+      // ⭐ 数据迁移：将旧版本的英文选项转换为中文
       try {
-        const parsedOptions = JSON.parse(stored);
-
-        // ⭐ 健壮性检查：确保是数组
-        if (!Array.isArray(parsedOptions)) {
-          console.error('[数据迁移] 数据格式错误，不是数组:', parsedOptions);
-          setOptions(DEFAULT_OPTIONS);
-          return;
-        }
-
-        // ⭐ 健壮性检查：处理空数组
-        if (parsedOptions.length === 0) {
-          setOptions(DEFAULT_OPTIONS);
-          return;
-        }
-
-        const needsMigration = parsedOptions.some((opt: any) =>
-          opt && (
-            opt.labelZh !== undefined ||              // 旧字段名（驼峰）
-            opt.isCustom !== undefined ||             // 旧字段名（驼峰）
-            opt.is_custom === undefined ||            // 缺失 is_custom
-            opt.label === undefined                   // 缺失 label
+        const parsedOptions: PracticeOption[] = JSON.parse(stored);
+        const hasEnglishLabels = parsedOptions.some(opt =>
+          ['Mysore', 'Led', 'Led Class', 'Half', 'Rest'].some(en =>
+            opt.label?.includes(en) || opt.notes?.includes(en)
           )
         );
 
-        if (needsMigration) {
-          const migratedOptions = parsedOptions.map((opt: any) => {
-            // ⭐ 健壮性处理：如果 opt 是 null/undefined，使用默认值
-            if (!opt) {
-              return {
-                id: uuidv4(),
-                created_at: new Date().toISOString(),
-                label: 'Primary 1',
-                label_zh: '一序列',
-                notes: 'Mysore',
-                is_custom: false,
-              };
+        if (hasEnglishLabels) {
+          console.log('🔄 [数据迁移] 检测到旧版本英文选项，自动转换为中文...');
+          const migratedOptions = parsedOptions.map(opt => {
+            // 只转换 label 为中文，保留原有的 notes 不变
+            const label = opt.label?.toLowerCase() || '';
+            const notes = opt.notes || '';
+
+            // 根据 label 和 notes 判断类型，只改 label
+            if (label.includes('rest') || label.includes('休息日')) {
+              return { ...opt, label: '休息日' };
+            } else if (label.includes('half') || label.includes('半序列')) {
+              return { ...opt, label: '半序列' };
+            } else if (label.includes('二序列') || label.includes('second') || label.includes('2')) {
+              return { ...opt, label: '二序列' };
+            } else if (label.includes('一序列') || label.includes('first') || label.includes('1') || label.includes('primary')) {
+              return { ...opt, label: '一序列' };
             }
-
-            // 获取原始 label（处理各种旧字段名）
-            const rawLabel = opt.label || '';
-            const rawLabelZh = opt.label_zh || opt.labelZh || '';
-
-            // 如果 label_zh 为空，使用映射表转换
-            let finalLabelZh = rawLabelZh;
-            if (!finalLabelZh || finalLabelZh === '') {
-              finalLabelZh = getChineseLabel(rawLabel, opt.notes);
-            }
-
-            return {
-              id: opt.id || uuidv4(),
-              created_at: opt.created_at || new Date().toISOString(),
-              label: rawLabel || '',                   // 英文 label 逐步废弃
-              label_zh: finalLabelZh,
-              notes: opt.notes,
-              is_custom: opt.is_custom !== undefined ? opt.is_custom : (opt.isCustom || false),
-            };
+            // 如果无法识别，保持原样
+            return opt;
           });
           setOptions(migratedOptions);
-          console.log('[数据迁移] 已修复旧数据格式:', migratedOptions);
+          console.log('✅ [数据迁移] 选项 label 已转换为中文格式');
         }
       } catch (e) {
-        console.error('Failed to migrate options data:', e);
-        // ⭐ 出错时使用默认选项
-        setOptions(DEFAULT_OPTIONS);
+        console.error('❌ [数据迁移] 解析选项失败:', e);
       }
-    }
-
-    // ⭐ 清理本地存储中损坏的记录数据
-    try {
-      const storedRecordsRaw = localStorage.getItem('ashtanga_records');
-      if (storedRecordsRaw) {
-        const storedRecords = JSON.parse(storedRecordsRaw);
-        if (Array.isArray(storedRecords)) {
-          const hasDamagedRecords = storedRecords.some((record: any) =>
-            Object.keys(record).some(key => /^\d+$/.test(key))
-          );
-          if (hasDamagedRecords) {
-            console.log('🧹 [数据清理] 检测到损坏的记录数据，自动修复...');
-            const cleanedRecords = storedRecords.map((record: any) => {
-              const hasNumericKeys = Object.keys(record).some(key => /^\d+$/.test(key));
-              if (hasNumericKeys) {
-                return {
-                  id: record.id,
-                  created_at: record.created_at,
-                  date: record.date,
-                  type: record.type,
-                  duration: record.duration,
-                  notes: typeof record.notes === 'string' ? record.notes : '',
-                  photos: Array.isArray(record.photos) ? record.photos : [],
-                  breakthrough: record.breakthrough,
-                };
-              }
-              return record;
-            });
-            setRecords(cleanedRecords);
-            console.log('✅ [数据清理] 已修复损坏的记录数据');
-          }
-        }
-      }
-    } catch (e) {
-      console.error('Failed to clean records data:', e);
     }
 
     // 为首次用户添加教程记录
@@ -249,11 +146,16 @@ export const usePracticeData = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // 只在组件挂载时执行一次
 
-  const addRecord = (record: Omit<PracticeRecord, 'id' | 'created_at' | 'photos'>) => {
+  const addRecord = (
+    record: Omit<PracticeRecord, 'id' | 'created_at' | 'updated_at' | 'photos'>,
+    onSync?: (record: PracticeRecord) => void // ⭐ 新增：同步回调
+  ) => {
+    const now = new Date().toISOString();
     const newRecord: PracticeRecord = {
       ...record,
       id: uuidv4(),
-      created_at: new Date().toISOString(),
+      created_at: now,
+      updated_at: now, // ⭐ 创建时设置更新时间
       photos: [], // MVP doesn't support photos
     };
 
@@ -267,27 +169,73 @@ export const usePracticeData = () => {
 
     setRecords(sortedRecords);
 
+    // ⭐ 触发同步回调
+    onSync?.(newRecord);
+
     return newRecord;
   };
 
-  const updateRecord = (id: string, data: Partial<PracticeRecord>) => {
-    setRecords((records || []).map(r => r.id === id ? { ...r, ...data } : r));
+  const updateRecord = (
+    id: string,
+    data: Partial<PracticeRecord>,
+    onSync?: (record: PracticeRecord) => void // ⭐ 新增：同步回调
+  ) => {
+    const now = new Date().toISOString();
+
+    // ⭐ 更新记录后按日期重新排序（修复修改日期后不排序的问题）
+    setRecords((prevRecords) => {
+      const updatedRecords = (prevRecords || []).map(r =>
+        r.id === id ? { ...r, ...data, updated_at: now } : r
+      );
+
+      // 按日期倒序排序（最新的在上面）
+      return updatedRecords.sort((a, b) => {
+        const dateA = new Date(a.date).getTime();
+        const dateB = new Date(b.date).getTime();
+        return dateB - dateA;
+      });
+    });
+
+    // ⭐ 触发同步回调
+    const updatedRecord = records?.find(r => r.id === id);
+    if (updatedRecord) {
+      onSync?.({ ...updatedRecord, ...data, updated_at: now });
+    }
   };
 
-  const deleteRecord = (id: string) => {
+  const deleteRecord = (
+    id: string,
+    onSync?: (id: string) => void // ⭐ 新增：同步回调
+  ) => {
     setRecords((records || []).filter(r => r.id !== id));
+
+    // ⭐ 触发同步回调
+    onSync?.(id);
   };
 
-  const updateProfile = (data: Partial<UserProfile>) => {
-    setProfile({ ...(profile!), ...data });
+  const updateProfile = (
+    data: Partial<UserProfile>,
+    onSync?: (profile: UserProfile) => void // ⭐ 新增：同步回调
+  ) => {
+    const now = new Date().toISOString();
+    const updatedProfile = {
+      ...profile!,
+      ...data,
+      updated_at: now // ⭐ 自动更新时间戳
+    };
+    setProfile(updatedProfile);
+
+    // ⭐ 触发同步回调
+    onSync?.(updatedProfile);
+
+    return updatedProfile;
   };
 
-  const addOption = (label: string, label_zh: string, notes?: string) => {
+  const addOption = (label: string, label_zh?: string, notes?: string) => {
     const newOption: PracticeOption = {
       id: uuidv4(),
       created_at: new Date().toISOString(),
-      label: '',        // 英文 label 逐步废弃，新选项统一为空
-      label_zh,         // 中文显示名
+      label: label_zh || label,
       notes,
       is_custom: true,
     };
@@ -295,9 +243,9 @@ export const usePracticeData = () => {
     return newOption;
   };
 
-  const updateOption = (id: string, label: string, label_zh: string, notes?: string) => {
+  const updateOption = (id: string, label: string, notes?: string) => {
     setOptions((options || []).map(o =>
-      o.id === id ? { ...o, label, label_zh, notes } : o
+      o.id === id ? { ...o, label, notes } : o
     ));
   };
 
@@ -328,30 +276,6 @@ export const usePracticeData = () => {
         return false;
       }
 
-      // ⭐ 修复：清理损坏的记录数据（有数字键的对象）
-      if (data.records) {
-        const cleanedRecords = data.records.map((record: any) => {
-          // 检查是否有数字键（如 "0", "1" 等），这是损坏的数据
-          const hasNumericKeys = Object.keys(record).some(key => /^\d+$/.test(key));
-          if (hasNumericKeys) {
-            console.log('[importData] 清理损坏的记录:', record.id);
-            // 只保留有效字段
-            return {
-              id: record.id,
-              created_at: record.created_at,
-              date: record.date,
-              type: record.type,
-              duration: record.duration,
-              notes: typeof record.notes === 'string' ? record.notes : '',
-              photos: Array.isArray(record.photos) ? record.photos : [],
-              breakthrough: record.breakthrough,
-            };
-          }
-          return record;
-        });
-        data.records = cleanedRecords;
-      }
-
       // 修复：导入记录后按日期倒序排序（最新的日期在上面）
       if (data.records) {
         const sortedRecords = [...data.records].sort((a, b) => {
@@ -360,7 +284,23 @@ export const usePracticeData = () => {
         setRecords(sortedRecords);
       }
 
-      if (data.options) setOptions(data.options);
+      // 修复：迁移旧的选项数据结构
+      if (data.options) {
+        const migratedOptions = data.options.map((opt: any) => {
+          const { label_zh, isCustom, ...rest } = opt;  // 移除旧字段
+          return {
+            ...rest,
+            // 如果有 label_zh，用它替换 label（中文覆盖英文）
+            label: label_zh || opt.label || '',
+            // 迁移 isCustom → is_custom
+            is_custom: isCustom !== undefined ? isCustom : (opt.is_custom !== undefined ? opt.is_custom : true),
+            // 确保 notes 字段存在
+            notes: opt.notes || '',
+          };
+        });
+        setOptions(migratedOptions);
+      }
+
       if (data.profile) setProfile(data.profile);
 
       console.log('Data imported successfully');
@@ -369,6 +309,21 @@ export const usePracticeData = () => {
       console.error('Failed to import data:', e);
       return false;
     }
+  };
+
+  const clearAllData = () => {
+    // 清空所有数据，但保留默认选项
+    setRecords([]);
+    setOptions(DEFAULT_OPTIONS);
+    setProfile({
+      id: '',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      name: '阿斯汤加习练者',
+      signature: '练习、练习，一切随之而来。',
+      avatar: null,
+      is_pro: false,
+    });
   };
 
   return {
@@ -384,5 +339,6 @@ export const usePracticeData = () => {
     deleteOption,
     exportData,
     importData,
+    clearAllData,
   };
 };

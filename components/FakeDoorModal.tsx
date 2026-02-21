@@ -2,13 +2,13 @@
 
 import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Cloud, Star, CheckCircle2, Trophy } from 'lucide-react'
+import { X, Cloud, Star, CheckCircle2, Trophy, Mic, Camera } from 'lucide-react'
 import { useLocalStorage } from 'react-use'
 import { trackEvent } from '@/lib/analytics'
 import { toast } from 'sonner'
 
 interface FakeDoorModalProps {
-  type: 'cloud' | 'pro'
+  type: 'cloud' | 'pro' | 'voice' | 'photo'
   isOpen: boolean
   onClose: () => void
   onVote?: () => void
@@ -17,25 +17,40 @@ interface FakeDoorModalProps {
 export function FakeDoorModal({ type, isOpen, onClose, onVote }: FakeDoorModalProps) {
   const [votedCloud, setVotedCloud] = useLocalStorage('voted_cloud_sync', false)
   const [votedPro, setVotedPro] = useLocalStorage('voted_pro_features', false)
+  const [votedVoice, setVotedVoice] = useLocalStorage('voted_voice_input', false)
+  const [votedPhoto, setVotedPhoto] = useLocalStorage('voted_photo_upload', false)
   const [proVotes, setProVotes] = useState(342)
 
-  const isVoted = type === 'cloud' ? votedCloud : votedPro
+  const isVoted = type === 'cloud' ? votedCloud : type === 'voice' ? votedVoice : type === 'photo' ? votedPhoto : votedPro
   const currentVotes = type === 'pro' && votedPro ? proVotes + 1 : proVotes
 
-  const handleVote = (choice?: 'sync' | 'photo' | 'both') => {
+  const handleVote = (choice?: 'sync' | 'photo' | 'both' | 'voice') => {
     if (isVoted) return
 
     if (type === 'cloud') {
       setVotedCloud(true)
-      trackEvent('vote_for_cloud_sync', {
-        vote: 'yes',
-        choice: choice!
-      })
       toast.success('收到你的心意啦~')
+      onVote?.()
+    } else if (type === 'voice') {
+      setVotedVoice(true)
+      toast.success('收到你的心意啦~')
+      // 语音输入假门测试埋点
+      trackEvent('vote_for_voice_input', {
+        vote: 'yes',
+        choice: choice || 'voice'
+      })
+      onVote?.()
+    } else if (type === 'photo') {
+      setVotedPhoto(true)
+      toast.success('收到你的心意啦~')
+      // 照片上传假门测试埋点
+      trackEvent('vote_for_photo_upload', {
+        vote: 'yes',
+        choice: choice || 'photo'
+      })
       onVote?.()
     } else {
       setVotedPro(true)
-      trackEvent('vote_for_cloud_sync', { vote: 'yes' })
       toast.success('收到你的心意啦~')
     }
 
@@ -44,10 +59,19 @@ export function FakeDoorModal({ type, isOpen, onClose, onVote }: FakeDoorModalPr
   }
 
   const handleSecondary = () => {
-    trackEvent('vote_for_cloud_sync', {
-      vote: 'no',
-      choice: 'none'
-    })
+    if (type === 'voice') {
+      // 语音输入假门测试 - 用户拒绝
+      trackEvent('vote_for_voice_input', {
+        vote: 'no',
+        choice: 'none'
+      })
+    } else if (type === 'photo') {
+      // 照片上传假门测试 - 用户拒绝
+      trackEvent('vote_for_photo_upload', {
+        vote: 'no',
+        choice: 'none'
+      })
+    }
     toast.success('收到你的心意啦~')
     onClose()
   }
@@ -60,6 +84,22 @@ export function FakeDoorModal({ type, isOpen, onClose, onVote }: FakeDoorModalPr
       icon: <Cloud className="w-12 h-12 text-primary" />,
       primaryBtn: votedCloud ? '已投票！' : '【我想要，投一票】',
       secondaryBtn: votedCloud ? '收到啦！' : '暂不需要',
+    },
+    voice: {
+      title: '🎙️语音记录觉察',
+      subtitle: '练完浑身是汗，不想碰键盘？',
+      desc: '<p class="mb-2">很多人练完有很多感受，但打字时总觉得<strong>「脑子卡住了，写出来的不是想表达的」</strong>。</p><p class="mb-3">语音记录想解决这个问题——<strong>按下说话，说完即走</strong>，不用想措辞，像对着自己嘟囔两句。</p><p class="text-xs text-muted-foreground italic">打字时总在「修改」，语音时更「真实」。那些转瞬即逝的念头，说出来才能抓住。</p><p class="mt-3 font-medium">你会用这个功能吗？</p>',
+      icon: <Mic className="w-12 h-12 text-primary" />,
+      primaryBtn: votedVoice ? '已收到你的心意 ✓' : '【我想要】练习后直接说',
+      secondaryBtn: votedVoice ? '关闭' : '暂不需要，打字就好',
+    },
+    photo: {
+      title: '📷体式照片日记',
+      subtitle: '练了这么久，你真的知道自己进步了多少吗？',
+      desc: '<p class="mb-2">很多人练了很久，却总觉得<strong>「还是老样子」</strong>。其实不是没进步，只是大脑会快速适应现状，忘了起点在哪里。</p><p class="mb-3">照片日记想解决这个问题——<strong>一个月拍一张站轮式</strong>，三个月后再看，身体的打开程度会告诉你答案。不用精致，不用滤镜，真实记录就好。</p><p class="text-xs text-muted-foreground italic">文字记录「感受」，照片定格「事实」。当你想放弃时，回看第一张照片，再看看现在的自己。</p><p class="mt-3 font-medium">你会用这个功能吗？</p>',
+      icon: <Camera className="w-12 h-12 text-primary" />,
+      primaryBtn: votedPhoto ? '已收到你的心意 ✓' : '【我想要】记录体式照片',
+      secondaryBtn: votedPhoto ? '关闭' : '暂不需要，只记录文字',
     },
     pro: {
       title: '解锁专业版 (Pro Features)',
@@ -104,21 +144,21 @@ export function FakeDoorModal({ type, isOpen, onClose, onVote }: FakeDoorModalPr
                 <X className="w-5 h-5" />
               </button>
 
-              <div className="flex flex-col items-center text-center">
+              <div className="flex flex-col items-center">
                 <div className="mb-4 p-3 rounded-full bg-primary/5">
                   {activeContent.icon}
                 </div>
 
-                <h2 className="text-xl font-serif text-foreground mb-1">
+                <h2 className="text-xl font-serif text-foreground mb-1 text-center">
                   {activeContent.title}
                 </h2>
-                <p className="text-primary font-serif text-xs mb-4">
+                <p className="text-primary font-serif text-xs mb-4 text-center">
                   {activeContent.subtitle}
                 </p>
 
-                {type === 'cloud' ? (
+                {type === 'cloud' || type === 'voice' || type === 'photo' ? (
                   <div
-                    className="text-muted-foreground font-serif leading-relaxed mb-6 text-sm"
+                    className={`text-muted-foreground font-serif leading-relaxed mb-6 text-sm ${type === 'voice' || type === 'photo' ? 'text-left' : 'text-center'}`}
                     dangerouslySetInnerHTML={{ __html: activeContent.desc || '' }}
                   />
                 ) : (
@@ -180,6 +220,50 @@ export function FakeDoorModal({ type, isOpen, onClose, onVote }: FakeDoorModalPr
                       className="w-full py-3 rounded-full bg-secondary text-foreground font-serif transition-all hover:bg-secondary/80 active:scale-[0.98] text-sm"
                     >
                       {isVoted ? '收到啦' : '暂时不需要'}
+                    </button>
+                  </div>
+                ) : type === 'voice' ? (
+                  // 语音输入：2个按钮
+                  <div className="w-full flex flex-col gap-2">
+                    <button
+                      onClick={() => handleVote('voice')}
+                      disabled={isVoted}
+                      className={`w-full py-3 rounded-full font-serif transition-all duration-300 shadow-lg text-sm ${
+                        isVoted
+                          ? 'bg-green-500 text-white cursor-default'
+                          : 'bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] text-white hover:opacity-90 active:scale-[0.98]'
+                      }`}
+                    >
+                      {isVoted ? '已收到你的心意 ✓' : '【我想要】练习后直接说'}
+                    </button>
+
+                    <button
+                      onClick={handleSecondary}
+                      className="w-full py-3 rounded-full bg-secondary text-foreground font-serif transition-all hover:bg-secondary/80 active:scale-[0.98] text-sm"
+                    >
+                      {isVoted ? '关闭' : '暂不需要，打字就好'}
+                    </button>
+                  </div>
+                ) : type === 'photo' ? (
+                  // 照片上传：2个按钮
+                  <div className="w-full flex flex-col gap-2">
+                    <button
+                      onClick={() => handleVote('photo')}
+                      disabled={isVoted}
+                      className={`w-full py-3 rounded-full font-serif transition-all duration-300 shadow-lg text-sm ${
+                        isVoted
+                          ? 'bg-green-500 text-white cursor-default'
+                          : 'bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] text-white hover:opacity-90 active:scale-[0.98]'
+                      }`}
+                    >
+                      {isVoted ? '已收到你的心意 ✓' : '【我想要】记录体式照片'}
+                    </button>
+
+                    <button
+                      onClick={handleSecondary}
+                      className="w-full py-3 rounded-full bg-secondary text-foreground font-serif transition-all hover:bg-secondary/80 active:scale-[0.98] text-sm"
+                    >
+                      {isVoted ? '关闭' : '暂不需要，只记录文字'}
                     </button>
                   </div>
                 ) : (

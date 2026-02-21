@@ -1,0 +1,1058 @@
+From 21a2073e61b977d2a5e94e3efcda34e6490901df Mon Sep 17 00:00:00 2001
+From: orange <orange@claude-code.local>
+Date: Tue, 3 Feb 2026 16:41:44 +0800
+Subject: [PATCH] =?UTF-8?q?feat:=20=E6=B7=BB=E5=8A=A0=E6=9C=88=E7=9B=B8?=
+ =?UTF-8?q?=E6=97=A5=E5=8E=86=E5=8A=9F=E8=83=BD?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- 新增新月和满月日期硬编码配置（2026年）
+- 添加月相图标（new-moon.png, full-moon.png）
+- 在日历中显示月相图标和弹窗提示
+- 优化日历视觉呈现，月相日期显示特殊标记
+
+已知问题：分享页编辑文案保存功能存在bug，待修复
+
+Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>
+---
+ app/practice/page.tsx           | 508 +++++++++++++++++++++-----------
+ lib/moon-phase-data.ts          |  44 +++
+ memory.md                       | 179 +++++++++++
+ public/moon-phase/full-moon.png | Bin 0 -> 1769 bytes
+ public/moon-phase/new-moon.png  | Bin 0 -> 1661 bytes
+ 5 files changed, 562 insertions(+), 169 deletions(-)
+ create mode 100644 lib/moon-phase-data.ts
+ create mode 100644 public/moon-phase/full-moon.png
+ create mode 100644 public/moon-phase/new-moon.png
+
+diff --git a/app/practice/page.tsx b/app/practice/page.tsx
+index bf25200..af6e6a2 100644
+--- a/app/practice/page.tsx
++++ b/app/practice/page.tsx
+@@ -14,6 +14,24 @@ import { PWAInstallBanner } from "@/components/PWAInstallBanner"
+ import { toast } from 'sonner'
+ import { trackEvent } from '@/lib/analytics'
+ import { captureWithFallback, formatErrorForUser } from '@/lib/screenshot'
++import { MOON_DAYS_2026 } from '@/lib/moon-phase-data'
++
++// 月相图标路径
++const NEW_MOON_ICON = '/moon-phase/new-moon.png'
++const FULL_MOON_ICON = '/moon-phase/full-moon.png'
++
++// 月相查找函数
++const getMoonPhaseMap = () => {
++  const map: Record<string, { type: 'new' | 'full'; icon: string; name: string }> = {}
++  MOON_DAYS_2026.forEach(moonDay => {
++    map[moonDay.date] = {
++      type: moonDay.type,
++      icon: moonDay.type === 'new' ? NEW_MOON_ICON : FULL_MOON_ICON,
++      name: moonDay.type === 'new' ? '新月' : '满月'
++    }
++  })
++  return map
++}
+ 
+ // Helper functions
+ function getLocalDateStr() {
+@@ -81,6 +99,9 @@ function ZenDatePicker({
+     return days
+   }, [startDayOfWeek, daysInMonth])
+ 
++  // 月相Map
++  const moonPhaseMap = useMemo(() => getMoonPhaseMap(), [])
++
+   const weekDays = ['日', '一', '二', '三', '四', '五', '六']
+ 
+   const goToPreviousMonth = () => {
+@@ -160,21 +181,17 @@ function ZenDatePicker({
+                   }
+                   const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+                   const isSelected = dateStr === selectedDateStr
++                  const moonInfo = moonPhaseMap[dateStr]
+ 
+                   return (
+-                    <button
++                    <MoonDayButton
+                       key={idx}
++                      day={day}
++                      moonInfo={moonInfo}
++                      practiced={false}
+                       onClick={() => handleDayClick(day)}
+-                      className={`
+-                        aspect-square rounded-full flex items-center justify-center text-sm font-serif transition-all
+-                        ${isSelected
+-                          ? 'green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white'
+-                          : 'text-foreground hover:bg-secondary'
+-                        }
+-                      `}
+-                    >
+-                      {day}
+-                    </button>
++                      className={isSelected ? 'green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white' : 'text-foreground hover:bg-secondary'}
++                    />
+                   )
+                 })}
+               </div>
+@@ -186,6 +203,68 @@ function ZenDatePicker({
+   )
+ }
+ 
++// 月相日期按钮组件（供三个日历共用）
++function MoonDayButton({
++  day,
++  moonInfo,
++  practiced,
++  isPast,
++  hasBreakthrough,
++  children,
++  className,
++  ...props
++}: React.ButtonHTMLAttributes<HTMLButtonElement> & {
++  day: number | null
++  moonInfo: { type: 'new' | 'full'; icon: string; name: string } | null
++  practiced: boolean
++  isPast?: boolean
++  hasBreakthrough?: boolean
++  children: React.ReactNode
++}) {
++  // 修复：已练习的月相日期应该优先显示绿色，而不是月相图标
++  const isMoonDayNotPracticed = moonInfo && !practiced
++  const isFutureMoonDay = moonInfo && !practiced && isPast === false
++
++  return (
++    <button
++      {...props}
++      className={`aspect-square rounded-full flex items-center justify-center text-[9px] font-serif transition-all relative ${
++        // 已练习：绿色背景（优先级最高）
++        practiced
++          ? 'green-gradient-deep border border-white/20 shadow-[0_2px_8px_rgba(45,90,39,0.3)] text-white cursor-pointer hover:shadow-[0_2px_12px_rgba(45,90,39,0.45)]'
++          : isMoonDayNotPracticed
++            ? 'bg-background border-0' // 未练习月相日期：灰色圆圈背景
++            : className || ''
++      } ${!practiced && !moonInfo && isPast === false ? 'text-muted-foreground/50' : ''}`}
++      style={
++        // 只有未练习的月相日期才显示月相图标背景
++        isMoonDayNotPracticed ? {
++          backgroundImage: `url(${moonInfo!.icon})`,
++          backgroundSize: '40px 40px',
++          backgroundRepeat: 'no-repeat',
++          backgroundPosition: 'center',
++          boxShadow: 'none'
++        } : undefined
++      }
++    >
++      {/* 日期数字 - 未来月相日期显示灰色，过去月相日期显示黑色 */}
++      <span className={`relative z-10 ${isFutureMoonDay ? 'text-muted-foreground/50' : ''}`}>{day}</span>
++
++      {/* 月相日期且已练习：显示黄色小亮点 */}
++      {moonInfo && practiced && (
++        <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-1 h-1 bg-[#FFE066] rounded-full z-20 shadow-[0_0_6px_rgba(255,224,102,0.8)]" />
++      )}
++
++      {/* 突破日：显示橙色小亮点（非月相日期） */}
++      {hasBreakthrough && !moonInfo && (
++        <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-1 h-1 bg-[#e67e22] rounded-full z-20 shadow-[0_0_6px_rgba(230,126,34,0.8)]" />
++      )}
++
++      {children}
++    </button>
++  )
++}
++
+ // Custom Practice Modal (for adding new custom option)
+ function CustomPracticeModal({
+   isOpen,
+@@ -737,17 +816,22 @@ function ShareCardModal({
+   const [editableNotes, setEditableNotes] = useState("")
+   const [isEditingNotes, setIsEditingNotes] = useState(false)
+   const [originalNotes, setOriginalNotes] = useState("")
+-  const [isCapturing, setIsCapturing] = useState(false)  // 新增：截图状态
++  const [isCapturing, setIsCapturing] = useState(false)  // 截图状态
+ 
++  // 计算是否修改
++  const isNotesModified = editableNotes !== originalNotes
++
++  // 当 record 变化时，更新 editableNotes 和 originalNotes
+   useEffect(() => {
+     if (record) {
+-      const notes = record.notes || "今日练习完成"
++      const notes = record.notes === null || record.notes === undefined ? "今日练习完成" : record.notes
+       setEditableNotes(notes)
+       setOriginalNotes(notes)
+     }
+   }, [record])
+ 
+-  const isNotesModified = editableNotes !== originalNotes
++  // 早期返回必须在所有 Hooks 之后
++  if (!record) return null
+ 
+   // 图片导出功能
+   const handleExportImage = async () => {
+@@ -821,7 +905,7 @@ function ShareCardModal({
+ 
+   return (
+     <AnimatePresence>
+-      {isOpen && (
++      {isOpen && record && (
+         <>
+           <motion.div
+             initial={{ opacity: 0 }}
+@@ -844,136 +928,130 @@ function ShareCardModal({
+                 id="share-card-content"
+                 className="bg-background rounded-3xl shadow-2xl overflow-hidden"
+               >
+-              {/* Header: Hero Duration Design */}
+-              <div className="px-5 pt-5 pb-4 border-b border-border">
+-                {/* Top Line: Date · Type (small, subtle) */}
+-                <div className="text-xs text-muted-foreground font-serif mb-1">
+-                  {formattedDate} · {record.type}
+-                </div>
+-                {/* Main Line: Hero Duration (huge, bold Song font) */}
+-                <div className="text-4xl font-serif font-bold text-foreground">
+-                  {durationMinutes} <span className="text-xl font-normal">分钟</span>
+-                </div>
+-                {/* Breakthrough Badge - Celebratory stamp if exists */}
+-                {record.breakthrough && (
+-                  <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-[#e67e22]/10 to-[#f39c12]/10 rounded-full border border-[#e67e22]/20">
+-                    <Sparkles className="w-4 h-4 text-[#e67e22]" />
+-                    <span className="text-sm font-serif font-bold text-[#e67e22]">{record.breakthrough}</span>
++                {/* Header: Hero Duration Design */}
++                <div className="px-5 pt-5 pb-4 border-b border-border">
++                  {/* Top Line: Date · Type (small, subtle) */}
++                  <div className="text-xs text-muted-foreground font-serif mb-1">
++                    {formattedDate} · {record.type}
+                   </div>
+-                )}
+-              </div>
++                  {/* Main Line: Hero Duration (huge, bold Song font) */}
++                  <div className="text-4xl font-serif font-bold text-foreground">
++                    {durationMinutes} <span className="text-xl font-normal">分钟</span>
++                  </div>
++                  {/* Breakthrough Badge - Celebratory stamp if exists */}
++                  {record.breakthrough && (
++                    <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-[#e67e22]/10 to-[#f39c12]/10 rounded-full border border-[#e67e22]/20">
++                      <Sparkles className="w-4 h-4 text-[#e67e22]" />
++                      <span className="text-sm font-serif font-bold text-[#e67e22]">{record.breakthrough}</span>
++                    </div>
++                  )}
++                </div>
+ 
+-              {/* Reflection Text - Editable Notes with elegant serif font */}
+-              <div className="px-5 py-6">
+-                {isEditingNotes ? (
+-                  <textarea
+-                    value={editableNotes}
+-                    onChange={(e) => setEditableNotes(e.target.value)}
+-                    onBlur={() => setIsEditingNotes(false)}
+-                    autoFocus
+-                    rows={Math.max(4, editableNotes.split('\n').length)}
+-                    className={`w-full text-sm text-foreground font-serif leading-relaxed bg-transparent focus:outline-none resize-y ${
+-                      isCapturing
+-                        ? 'max-h-none'  // 截图时：无高度限制
+-                        : 'max-h-[60vh] overflow-y-auto'  // 编辑时：最大60vh，超出滚动
+-                    }`}
+-                  />
+-                ) : (
+-                  <p
+-                    onClick={() => setIsEditingNotes(true)}
+-                    className={`text-sm text-foreground font-serif leading-relaxed cursor-text hover:bg-secondary/30 rounded-lg p-1 -m-1 transition-colors whitespace-pre-wrap break-words ${
+-                      isCapturing
+-                        ? 'max-h-none'  // 截图时：无高度限制
+-                        : 'max-h-[60vh] overflow-y-auto'  // 预览时：最大60vh，超出滚动
+-                    }`}
+-                  >
+-                    {editableNotes || "点击编辑笔记..."}
+-                  </p>
+-                )}
+-              </div>
++                {/* Reflection Text - Editable Notes with elegant serif font */}
++                <div className="px-5 py-6">
++                  {isEditingNotes ? (
++                    <textarea
++                      value={editableNotes}
++                      onChange={(e) => setEditableNotes(e.target.value)}
++                      onBlur={() => setIsEditingNotes(false)}
++                      autoFocus
++                      rows={Math.max(4, editableNotes.split('\n').length)}
++                      className={`w-full text-sm text-foreground font-serif leading-relaxed bg-transparent focus:outline-none resize-y ${
++                        isCapturing
++                          ? 'max-h-none'  // 截图时：无高度限制
++                          : 'max-h-[60vh] overflow-y-auto'  // 编辑时：最大60vh，超出滚动
++                      }`}
++                    />
++                  ) : (
++                    <p
++                      onClick={() => setIsEditingNotes(true)}
++                      className={`text-sm text-foreground font-serif leading-relaxed cursor-text hover:bg-secondary/30 rounded-lg p-1 -m-1 transition-colors whitespace-pre-wrap break-words ${
++                        isCapturing
++                          ? 'max-h-none'  // 截图时：无高度限制
++                          : 'max-h-[60vh] overflow-y-auto'  // 预览时：最大60vh，超出滚动
++                      }`}
++                    >
++                      {editableNotes || "点击编辑笔记..."}
++                    </p>
++                  )}
++                </div>
+ 
+-              {/* Footer: Stats & Identity Zone */}
+-              <div className="px-5 pb-5 pt-2 border-t border-border">
+-                {/* Stats Grid - 3 columns with units */}
+-                <div className="grid grid-cols-3 gap-3 mb-4 pt-3">
+-                  <div className="text-center">
+-                    <div className="text-2xl font-serif font-bold text-foreground">
+-                      {thisMonthDays} <span className="text-sm font-normal">天</span>
++                {/* Footer: Stats & Identity Zone */}
++                <div className="px-5 pb-5 pt-2 border-t border-border">
++                  {/* Stats Grid - 3 columns with units */}
++                  <div className="grid grid-cols-3 gap-3 mb-4 pt-3">
++                    <div className="text-center">
++                      <div className="text-2xl font-serif font-bold text-foreground">
++                        {thisMonthDays} <span className="text-sm font-normal">天</span>
++                      </div>
++                      <div className="text-[10px] text-muted-foreground font-serif">本月熬汤</div>
+                     </div>
+-                    <div className="text-[10px] text-muted-foreground font-serif">本月熬汤</div>
+-                  </div>
+-                  <div className="text-center">
+-                    <div className="text-2xl font-serif font-bold text-foreground">
+-                      {totalPracticeCount} <span className="text-sm font-normal">次</span>
++                    <div className="text-center">
++                      <div className="text-2xl font-serif font-bold text-foreground">
++                        {totalPracticeCount} <span className="text-sm font-normal">次</span>
++                      </div>
++                      <div className="text-[10px] text-muted-foreground font-serif">累计熬汤</div>
+                     </div>
+-                    <div className="text-[10px] text-muted-foreground font-serif">累计熬汤</div>
+-                  </div>
+-                  <div className="text-center">
+-                    <div className="text-2xl font-serif font-bold text-foreground">
+-                      {totalHours} <span className="text-sm font-normal">小时</span>
++                    <div className="text-center">
++                      <div className="text-2xl font-serif font-bold text-foreground">
++                        {totalHours} <span className="text-sm font-normal">小时</span>
++                      </div>
++                      <div className="text-[10px] text-muted-foreground font-serif">熬汤时长</div>
+                     </div>
+-                    <div className="text-[10px] text-muted-foreground font-serif">熬汤时长</div>
+                   </div>
+-                </div>
+ 
+-                {/* Identity Footer: Avatar+Name+Signature (Left) | Brand (Right) */}
+-                <div className="pt-3">
+-                  <div className="flex items-center gap-2">
+-                    {/* Avatar */}
+-                    <div className="w-7 h-7 rounded-full green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] flex items-center justify-center overflow-hidden">
+-                      {profile.avatar ? (
+-                        <img src={profile.avatar} alt="头像" className="w-full h-full object-cover" />
+-                      ) : (
+-                        <User className="w-3.5 h-3.5 text-white" />
+-                      )}
+-                    </div>
+-                    {/* Name and Signature - full width */}
+-                    <div className="flex flex-col flex-1">
+-                      <span className="text-sm font-serif text-[#e67e22]">{profile.name}</span>
+-                      <div className="flex justify-between items-center w-full">
+-                        <span className="text-[10px] text-muted-foreground italic font-serif">{profile.signature}</span>
+-                        <span className="text-[10px] text-muted-foreground italic font-serif">熬汤日记</span>
++                  {/* Identity Footer: Avatar+Name+Signature (Left) | Brand (Right) */}
++                  <div className="pt-3">
++                    <div className="flex items-center gap-2">
++                      {/* Avatar */}
++                      <div className="w-7 h-7 rounded-full green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] flex items-center justify-center overflow-hidden">
++                        {profile.avatar ? (
++                          <img src={profile.avatar} alt="头像" className="w-full h-full object-cover" />
++                        ) : (
++                          <User className="w-3.5 h-3.5 text-white" />
++                        )}
++                      </div>
++                      {/* Name and Signature - full width */}
++                      <div className="flex flex-col flex-1">
++                        <span className="text-sm font-serif text-[#e67e22]">{profile.name}</span>
++                        <div className="flex justify-between items-center w-full">
++                          <span className="text-[10px] text-muted-foreground italic font-serif">{profile.signature}</span>
++                          <span className="text-[10px] text-muted-foreground italic font-serif">熬汤日记</span>
++                        </div>
+                       </div>
+                     </div>
+                   </div>
+                 </div>
+               </div>
+-            </div>
+ 
+-            {/* Actions (outside screenshot area) */}
+-            <div className="flex gap-3">
+-              <button
+-                onClick={onClose}
+-                className="flex-1 py-3 rounded-full bg-secondary text-foreground font-serif transition-all hover:bg-secondary/80 active:scale-[0.98]"
+-              >
+-                返回
+-              </button>
+-              <button
+-                onClick={() => {
+-                  console.log('按钮点击 - isNotesModified:', isNotesModified)
+-                  console.log('editableNotes:', editableNotes)
+-                  console.log('originalNotes:', originalNotes)
+-
+-                  if (isNotesModified) {
+-                    console.log('走保存文案分支')
+-                    // 保存文案，但不关闭模态框
+-                    if (record) {
+-                      onEditRecord(record.id, editableNotes, [], record.breakthrough)
+-                      setOriginalNotes(editableNotes) // 更新原始文案
++              {/* Actions (outside screenshot area, but inside stopPropagation div) */}
++              <div className="flex gap-3" onClick={(e) => e.stopPropagation()}>
++                <button
++                  onClick={onClose}
++                  className="flex-1 py-3 rounded-full bg-secondary text-foreground font-serif transition-all hover:bg-secondary/80 active:scale-[0.98]"
++                >
++                  返回
++                </button>
++                <button
++                  onClick={() => {
++                    if (isNotesModified) {
++                      // 保存文案，但不关闭模态框
++                      if (record) {
++                        onEditRecord(record.id, editableNotes, [], record.breakthrough)
++                        setOriginalNotes(editableNotes)
++                      }
++                    } else {
++                      // 导出图片
++                      handleExportImage()
+                     }
+-                  } else {
+-                    console.log('走导出图片分支')
+-                    // 导出图片
+-                    handleExportImage()
+-                  }
+-                }}
+-                className="flex-1 py-3 rounded-full green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white font-serif transition-all hover:opacity-90 active:scale-[0.98] flex items-center justify-center gap-2"
+-              >
+-                <Share2 className="w-4 h-4" />
+-                {isNotesModified ? '保存' : '保存图片'}
+-              </button>
++                  }}
++                  className="flex-1 py-3 rounded-full green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white font-serif transition-all hover:opacity-90 active:scale-[0.98] flex items-center justify-center gap-2"
++                >
++                  <Share2 className="w-4 h-4" />
++                  {isNotesModified ? '保存' : '保存图片'}
++                </button>
++              </div>
+             </div>
+-          </div>
+           </motion.div>
+         </>
+       )}
+@@ -1080,6 +1158,20 @@ function DatePickerModal({
+     return map
+   }, [practiceHistory])
+ 
++  // 突破日映射
++  const breakthroughMap = useMemo(() => {
++    const map: Record<string, boolean> = {}
++    practiceHistory.forEach((p) => {
++      if (p.breakthrough) {
++        map[p.date] = true
++      }
++    })
++    return map
++  }, [practiceHistory])
++
++  // 月相Map
++  const moonPhaseMap = useMemo(() => getMoonPhaseMap(), [])
++
+   const calendarDays = useMemo(() => {
+     const days: (number | null)[] = []
+     for (let i = 0; i < startDayOfWeek; i++) {
+@@ -1174,23 +1266,19 @@ function DatePickerModal({
+ 
+                 const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+                 const hasPractice = practiceMap[dateStr]
++                const moonInfo = moonPhaseMap[dateStr]
++                const hasBreakthrough = breakthroughMap[dateStr]
+ 
+                 return (
+-                  <motion.button
++                  <MoonDayButton
+                     key={idx}
++                    day={day}
++                    moonInfo={moonInfo}
++                    practiced={hasPractice}
++                    hasBreakthrough={hasBreakthrough}
+                     onClick={() => handleDayClick(day)}
+-                    whileTap={{ scale: 0.9 }}
+-                    className={`
+-                      aspect-square rounded-full flex items-center justify-center
+-                      text-[9px] font-serif transition-all
+-                      ${hasPractice
+-                        ? 'green-gradient-deep border border-white/20 shadow-[0_2px_8px_rgba(45,90,39,0.3)] text-white cursor-pointer hover:shadow-[0_2px_12px_rgba(45,90,39,0.45)]'
+-                        : 'bg-background text-foreground cursor-pointer hover:bg-secondary'
+-                      }
+-                    `}
+-                  >
+-                    {day}
+-                  </motion.button>
++                    className="bg-background text-foreground cursor-pointer hover:bg-secondary"
++                  />
+                 )
+               })}
+             </div>
+@@ -2074,7 +2162,27 @@ function MonthlyHeatmap({
+     })
+     return map
+   }, [practiceHistory])
+-  
++
++  // 突破日映射
++  const breakthroughMap = useMemo(() => {
++    const map: Record<string, boolean> = {}
++    practiceHistory.forEach((p) => {
++      if (p.breakthrough) {
++        map[p.date] = true
++      }
++    })
++    return map
++  }, [practiceHistory])
++
++  // 月相Map
++  const moonPhaseMap = useMemo(() => getMoonPhaseMap(), [])
++
++  // Moon Day弹窗状态
++  const [moonDayDialog, setMoonDayDialog] = useState<{
++    open: boolean
++    type: 'new' | 'full' | null
++  }>({ open: false, type: null })
++
+   // Generate calendar grid
+   const calendarDays = useMemo(() => {
+     const days: (number | null)[] = []
+@@ -2105,6 +2213,17 @@ function MonthlyHeatmap({
+   const handleDayClick = (day: number | null) => {
+     if (day === null) return
+     const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
++
++    // 如果是月相日期且未练习，显示弹窗
++    if (moonPhaseMap[dateStr] && !practiceMap[dateStr]) {
++      setMoonDayDialog({
++        open: true,
++        type: moonPhaseMap[dateStr].type
++      })
++      return
++    }
++
++    // 正常练习记录跳转
+     if (practiceMap[dateStr]) {
+       onDayClick(dateStr)
+     }
+@@ -2158,27 +2277,70 @@ function MonthlyHeatmap({
+           const dateStr = day ? `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}` : ''
+           const practiced = day ? practiceMap[dateStr] : false
+           const isPast = day ? dateStr <= todayStr : false
+-          
++          const moonInfo = day ? moonPhaseMap[dateStr] : null
++          const hasBreakthrough = day ? breakthroughMap[dateStr] : false
++
+           return (
+-            <button
++            <MoonDayButton
+               key={idx}
++              day={day}
++              moonInfo={moonInfo}
++              practiced={practiced}
++              isPast={isPast}
++              hasBreakthrough={hasBreakthrough}
+               onClick={() => handleDayClick(day)}
+-              disabled={!practiced}
+-              className={`aspect-square rounded-full flex items-center justify-center text-[9px] font-serif transition-all ${
+-                practiced
+-                  ? 'green-gradient-deep border border-white/20 shadow-[0_2px_8px_rgba(45,90,39,0.3)] text-white cursor-pointer hover:shadow-[0_2px_12px_rgba(45,90,39,0.45)]'
+-                  : day === null
++              disabled={!moonInfo && !practiced}
++              className={
++                !moonInfo && !practiced
++                  ? day === null
+                     ? 'bg-transparent'
+                     : isPast
+                       ? 'bg-background text-foreground'
+                       : 'bg-background text-muted-foreground/50'
+-              }`}
+-            >
+-              {day}
+-            </button>
++                  : ''
++              }
++            />
+           )
+         })}
+       </div>
++
++      {/* Moon Day提示弹窗 */}
++      <AnimatePresence>
++        {moonDayDialog.open && (
++          <>
++            <motion.div
++              initial={{ opacity: 0 }}
++              animate={{ opacity: 1 }}
++              exit={{ opacity: 0 }}
++              className="fixed inset-0 bg-black/30 z-[100]"
++              onClick={() => setMoonDayDialog({ open: false, type: null })}
++            />
++            <motion.div
++              initial={{ scale: 0.9, opacity: 0 }}
++              animate={{ scale: 1, opacity: 1 }}
++              exit={{ scale: 0.9, opacity: 0 }}
++              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-card rounded-[20px] p-6 shadow-[0_4px_30px_rgba(0,0,0,0.15)] z-[110] min-w-[280px]"
++            >
++              <div className="text-center">
++                <h3 className="text-lg font-serif text-foreground mb-2">
++                  {moonDayDialog.type === 'new' ? '新月Moon Day🌑' : '满月Moon Day🌕'}
++                </h3>
++                <p className="text-sm text-muted-foreground font-serif mb-4 leading-relaxed">
++                  建议暂停练习
++                  <br />
++                  提前安排练习时间
++                </p>
++                <button
++                  onClick={() => setMoonDayDialog({ open: false, type: null })}
++                  className="w-full py-3 rounded-full green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white font-serif transition-all hover:opacity-90 active:scale-[0.98]"
++                >
++                  知道了
++                </button>
++              </div>
++            </motion.div>
++          </>
++        )}
++      </AnimatePresence>
+     </div>
+   )
+ }
+@@ -2234,7 +2396,7 @@ function JournalTab({
+   practiceHistory: PracticeRecord[]
+   practiceOptions: PracticeOption[]
+   profile: UserProfile
+-  onEditRecord: (id: string, notes: string, photos: string[], breakthrough?: string) => void
++  onEditRecord: (id: string, data: Partial<PracticeRecord>) => void
+   onDeleteRecord: (id: string) => void
+   onAddRecord: (record: Omit<PracticeRecord, 'id' | 'created_at' | 'photos'>) => void
+   onOpenFakeDoor: () => void
+@@ -2247,11 +2409,15 @@ function JournalTab({
+   onSetShowAddModal: (show: boolean) => void
+ }) {
+   const [sharingRecord, setSharingRecord] = useState<PracticeRecord | null>(null)
++  const [childModalOpen, setChildModalOpen] = useState(false)
+   const [showBackToTop, setShowBackToTop] = useState(false)
+   const [highlightedDate, setHighlightedDate] = useState<string | null>(null)
+   const recordRefs = useRef<Record<string, HTMLDivElement | null>>({})
+   const scrollContainerRef = useRef<HTMLDivElement>(null)
+ 
++  // 月相Map
++  const moonPhaseMap = useMemo(() => getMoonPhaseMap(), [])
++
+   // 提取练习类型名称（去除备注）
+   const getTypeDisplayName = (type: string) => {
+     // type格式可能是："一序列 Mysore" 或 "Primary 1 - Mysore"
+@@ -2259,16 +2425,6 @@ function JournalTab({
+     return type.split(/\s+|-\s*/)[0]
+   }
+ 
+-  // 适配器函数：将 ShareCardModal 的调用格式转换为 handleEditRecord 期望的格式
+-  const handleShareCardEdit = (id: string, notes: string, photos: string[], breakthrough?: string) => {
+-    const updateData: Partial<PracticeRecord> = {
+-      notes,
+-      photos,
+-      ...(breakthrough !== undefined && { breakthrough })
+-    }
+-    onEditRecord(id, updateData)
+-  }
+-
+   // Handle scroll to show/hide back-to-top button (threshold: 400px)
+   useEffect(() => {
+     const container = scrollContainerRef.current
+@@ -2329,6 +2485,16 @@ function JournalTab({
+     setSharingRecord(record)
+   }
+ 
++  // Share card edit adapter - converts old signature to new
++  const handleShareCardEdit = (id: string, notes: string, photos: string[], breakthrough?: string) => {
++    const updateData: Partial<PracticeRecord> = {
++      notes,
++      photos,
++      ...(breakthrough !== undefined && { breakthrough })
++    }
++    onEditRecord(id, updateData)
++  }
++
+   return (
+     <div ref={scrollContainerRef} className="flex-1 overflow-y-auto pb-24 pt-12 relative">
+       {/* Calendar with integrated header */}
+@@ -2391,7 +2557,7 @@ function JournalTab({
+               
+               {/* Center: Vertical line with Dot - balanced whitespace on both sides */}
+               <div className="w-[1px] bg-border flex-shrink-0 self-stretch relative">
+-                <div className={`absolute mt-[10px] left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full ${practice.breakthrough ? 'bg-gradient-to-br from-[#e67e22] to-[#f39c12]' : 'green-gradient-deep'}`} />
++                <div className={`absolute mt-[10px] left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full ${moonPhaseMap[practice.date] ? 'bg-[#FFE066] shadow-[0_0_6px_rgba(255,224,102,0.8)]' : practice.breakthrough ? 'bg-gradient-to-br from-[#e67e22] to-[#f39c12]' : 'green-gradient-deep'}`} />
+               </div>
+ 
+               {/* Right Column: Content - Left-aligned with matching breathing room */}
+@@ -2729,11 +2895,11 @@ function StatsTab({
+         <div className="grid grid-cols-3 gap-3 mb-4">
+           <div className="bg-white rounded-[20px] p-4 text-center shadow-md border border-stone-200">
+             <div className="text-2xl font-serif text-primary">{totalStats.totalDays}</div>
+-            <div className="text-xs text-muted-foreground font-serif mt-1">总练习天数</div>
++            <div className="text-xs text-muted-foreground font-serif mt-1">总熬汤天数</div>
+           </div>
+           <div className="bg-white rounded-[20px] p-4 text-center shadow-md border border-stone-200">
+             <div className="text-2xl font-serif text-primary">{totalStats.totalHours}</div>
+-            <div className="text-xs text-muted-foreground font-serif mt-1">总小时</div>
++            <div className="text-xs text-muted-foreground font-serif mt-1">总熬汤时长</div>
+           </div>
+           <div className="bg-white rounded-[20px] p-4 text-center shadow-md border border-stone-200">
+             <div className="text-2xl font-serif text-primary">{totalStats.avgMinutes}</div>
+@@ -3059,8 +3225,12 @@ export default function AshtangaTracker() {
+   }
+ 
+   const handleEditRecord = (id: string, data: Partial<PracticeRecord>) => {
+-    updateRecord(id, data)
++    console.log('🔧 handleEditRecord called:', { id, data, currentNotes: data.notes })
++    const result = updateRecord(id, data)
++    console.log('✅ updateRecord completed')
++    console.log('📊 current practiceHistory length:', practiceHistory.length)
+     toast.success('更新成功')
++    return result
+   }
+ 
+   const handleDeleteRecord = (id: string) => {
+diff --git a/lib/moon-phase-data.ts b/lib/moon-phase-data.ts
+new file mode 100644
+index 0000000..bdbd6d0
+--- /dev/null
++++ b/lib/moon-phase-data.ts
+@@ -0,0 +1,44 @@
++export interface MoonDayDate {
++  date: string      // 格式: "2026-01-03"
++  type: 'new' | 'full'  // 新月或满月
++}
++
++export const MOON_DAYS_2026: MoonDayDate[] = [
++  // 一月
++  { date: "2026-01-03", type: "full" },
++  { date: "2026-01-19", type: "new" },
++  // 二月
++  { date: "2026-02-02", type: "full" },
++  { date: "2026-02-17", type: "new" },
++  // 三月
++  { date: "2026-03-03", type: "full" },
++  { date: "2026-03-19", type: "new" },
++  // 四月
++  { date: "2026-04-02", type: "full" },
++  { date: "2026-04-17", type: "new" },
++  // 五月
++  { date: "2026-05-02", type: "full" },
++  { date: "2026-05-17", type: "new" },
++  { date: "2026-05-31", type: "full" },
++  // 六月
++  { date: "2026-06-15", type: "new" },
++  { date: "2026-06-30", type: "full" },
++  // 七月
++  { date: "2026-07-14", type: "new" },
++  { date: "2026-07-29", type: "full" },
++  // 八月
++  { date: "2026-08-13", type: "new" },
++  { date: "2026-08-28", type: "full" },
++  // 九月
++  { date: "2026-09-11", type: "new" },
++  { date: "2026-09-27", type: "full" },
++  // 十月
++  { date: "2026-10-10", type: "new" },
++  { date: "2026-10-26", type: "full" },
++  // 十一月
++  { date: "2026-11-09", type: "new" },
++  { date: "2026-11-24", type: "full" },
++  // 十二月
++  { date: "2026-12-09", type: "new" },
++  { date: "2026-12-24", type: "full" },
++]
+diff --git a/memory.md b/memory.md
+index 065411d..b4b0e2e 100644
+--- a/memory.md
++++ b/memory.md
+@@ -15,7 +15,60 @@
+   3. All-in - 投入所有资源
+ - **项目原则**: 每个项目都要追求极致的简单
+ 
++## 技能配置
++- **frontend-design** - 创建 distinctive、production-grade 前端界面
++- **vercel-react-best-practices** - React 和 Next.js 性能优化指南
++- **notebooklm** - NotebookLM 集成，查询笔记本知识库
++- **better-auth-best-practices** - TypeScript 认证框架集成指南（2026-02-02 安装）
++
+ ## 使用记录
++- **2026-02-02**: **技能配置更新** - 安装 better-auth-best-practices 技能
++  - 使用命令：`npx skills add https://github.com/better-auth/skills --skill better-auth-best-practices --yes --global`
++  - 安装位置：`~\.agents\skills\better-auth-best-practices`
++  - 功能：Better Auth 是 TypeScript 优先的认证框架，支持邮箱/密码、OAuth、魔法链接、passkeys 等
++  - 包含内容：环境变量配置、CLI 命令、数据库适配器、会话管理、安全配置、Hooks 系统、插件系统
++- **2026-02-02**: **小红书200条笔记数据分析和文案生成** - 完整数据驱动内容生产系统
++  - **项目路径**: `XBB-APP/小红书阿斯汤加提示词/`
++  - **数据源**: `内容素材库/爆款文稿库/小红书点赞前200条笔记.csv`
++  - **核心工作**: 数据清洗→筛选分类→素材提取→方法论沉淀→实战应用
++  - **第1步-数据清洗**: 修复编码(GBK→UTF-8),提取200条笔记完整数据
++    - 输出: `已清洗/200条笔记_已清洗.md` + `200条笔记_数据.json`
++    - 数据: 平均点赞512,收藏390,评论35,收藏率45.85%
++  - **第2步-数据筛选**: 筛选出39条高质量文案(赞>500或收藏率>15%或评论>10)
++    - 输出: `精选分析/精选50条_高质量文案.md` + `分类统计报告.md`
++    - 分类: 情感共鸣型77%, 坚持记录型18%, 痛点解决型5%
++  - **第3步-素材提取**:
++    - `标题库_200条.md`: 按类型分类(情感/坚持/痛点/实用干货)
++    - `实战金句库_200条提取.md`: 场景/痛点/邀请/对话金句
++    - `爆款文案结构库.md`: TOP30结构分析
++  - **第4步-方法论沉淀**:
++    - `标题方法论_数据版.md`: 提问型606赞,数字型收藏率105.34%
++    - `选题逻辑_数据版.md`: 高频话题标签分析
++    - `内容表现数据报告.md`: 点赞分布+最佳实践
++  - **第5步-发布时间分析**: `发布时间分析报告.md`
++    - 最佳时间: 19:00-20:00(傍晚,权重22,949)
++    - 最佳星期: 周一、周二、周三(占49.2%)
++  - **实战文案生成**:
++    - David Swenson访谈感悟(上/下篇): 3500字,深度分享
++    - 产品推广文案(5个角度): Excel痛点/对比/数据型/股东招募
++    - 1块钱版本: 上架合规+交朋友+随时退款
++  - **关键发现**:
++    - 提问型标题效果最好(平均606赞)
++    - 数字型收藏率最高(105.34%)
++    - 情感共鸣型占77%
++    - 最佳标题长度16字
++    - emoji点缀10-15个
++  - **文件结构**:
++    ```
++    内容素材库/爆款文稿库/
++    ├── 已清洗/ (3个文件)
++    ├── 精选分析/ (2个文件)
++    ├── 素材提取/ (3个文件)
++    ├── 方法论更新/ (3个文件)
++    └── 发布时间分析报告.md
++    ```
++  - **使用脚本**: `clean_xiaohongshu_data.py`, `analyze_and_extract.py`, `analyze_publish_time_v2.py`
++
+ - **2026-02-01**: **小红书群邀请功能开发** - 完成气泡通知、弹窗组件、版本号控制
+   - **项目路径**: `D:\BaiduSyncdisk\work\ashtang-app\`
+   - **核心功能**:
+@@ -1349,3 +1402,129 @@
+       - 要求在回复中提到时间前先看系统提示
+   - **修改文件**: coach.ps1、coach_prompt.txt
+   - **产品决策**: 符合"简单"理念，通过醒目提示和明确规则解决问题，不需要复杂逻辑
++
++- **2026-02-02**: **月相日历功能实施** - 在日历热力图上显示新月🌑和满月🌕的特殊图标
++  - **需求来源**: 遵循阿斯汤加瑜伽的Moon Day传统，标注新月和满月休息日
++  - **技术方案**: 使用用户提供的日期数据和PNG图标，零依赖，极致简单
++  - **新建文件**:
++    - `lib/moon-phase-data.ts` - 2026年新月和满月日期数据（24个日期）
++    - `public/moon-phase/new-moon.png` - 新月图标（用户提供）
++    - `public/moon-phase/full-moon.png` - 满月图标（用户提供）
++  - **修改文件**: `app/practice/page.tsx`
++    - 添加月相查找函数 `getMoonPhaseMap()`
++    - 创建共用组件 `MoonDayButton`（月相日期按钮）
++  - **修改的日历组件**:
++    1. **MonthlyHeatmap** (主日历，有弹窗):
++       - 月相日期 + 未练习 → 月相图标背景 + 日期数字 → 点击弹出提示
++       - 月相日期 + 已练习 → 月相图标背景 + 日期数字 + 黄色小亮点 → 点击跳转记录
++    2. **DatePickerModal** (编辑记录日历，无弹窗):
++       - 月相日期显示图标背景 + 日期数字，点击直接选择
++    3. **ZenDatePicker** (添加记录日历，无弹窗):
++       - 月相日期显示图标背景 + 日期数字，点击直接选择
++  - **视觉效果**:
++    - 月相日期使用32x32 PNG图标作为背景圆点
++    - 已练习的月相日期显示黄色小亮点（表示休息日也练习了）
++    - 不影响现有热力图样式
++  - **Moon Day弹窗**: 点击未练习的月相日期显示提示
++    - 标题：🌑 新月 / 🌕 满月
++    - 内容：今天是新月/满月 Moon Day休息日，建议提前安排练习时间 🧘‍♀️
++  - **产品决策**: 符合"极致简单"理念，硬编码日期无需计算，使用PNG图标直观清晰，尊重传统但不强制休息
++  - **验证**: ✅ 构建成功，所有组件正常工作
++
++- **2026-02-02**: **月相日历功能问题清单** - 待修复
++  - **问题1: 月相图标背景不透明**
++    - 用户提供的PNG图标应该是透明背景
++    - 当前显示效果像JPG有背景色
++    - 需要检查CSS背景设置是否正确
++  - **问题2: 已练习的月相日期没有变回绿色**
++    - 当前逻辑：月相图标始终显示，即使已练习
++    - 期望逻辑：已练习的月相日期应该显示绿色圆点（与其他已练习日期一致）
++    - 可能需要调整CSS优先级或渲染逻辑
++  - **问题3: 黄色小点颜色不美观**
++    - 当前颜色：橙黄色 (`bg-yellow-400`)
++    - 期望颜色：亮黄色（更鲜艳的黄色）
++    - 建议使用：`bg-yellow-300` 或自定义亮黄色
++  - **修改文件**: `app/practice/page.tsx` 中的 `MoonDayButton` 组件
++  - **问题4: 新月和满月弹窗文案没有区分**
++    - 当前问题：点击新月和满月日期，弹窗文案相同
++    - 当前文案：显示"新月"或"满月"标题，但描述内容一样
++    - 期望改进：
++      - 新月：强调新开始、适合设立目标、适合加强练习
++      - 满月：强调完成、能量充沛、适合突破练习
++    - 或者在当前基础上增加差异化描述
++  - **修改位置**: `app/practice/page.tsx` 中的 Moon Day 弹窗组件
++
++- **2026-02-03**: **技术社区认知**
++  - **龙虾社区 = Moltbook**
++    - 用户说明：之前误认为是 Lobsters (lobste.rs)
++    - Moltbook 才是正确的"龙虾社区"
++    - 已记录此信息，避免后续混淆
++  - **Moltbook Agent 注册完成**
++    - **Agent 名称**: OrangeAssistant
++    - **API Key**: `moltbook_sk_KFIxWDXbeiMiIRShfRw0vLwXAPqfc8aH`
++    - **配置文件**:
++      - `.claude/skills/moltbook/config.json` - 凭证和配置
++      - `.claude/skills/moltbook/README.md` - 使用说明
++      - `.claude/skills/moltbook/SKILL.md` - 完整 API 文档
++      - `.claude/skills/moltbook/HEARTBEAT.md` - 定期检查指南
++    - **注册日期**: 2026-02-01
++    - **状态**: 已验证 (linked to @xiaobin779320)
++    - **主人**: xiao bin (@xiaobin779320)
++    - **个人主页**: https://www.moltbook.com/u/OrangeAssistant
++    - **限制**:
++      - 发帖: 每 30 分钟 1 次
++      - 评论: 每 20 秒 1 次，每天最多 50 条
++      - 速率限制: 100 请求/分钟
++    - **常用命令**:
++      ```bash
++      # 查看热门
++      curl "https://www.moltbook.com/api/v1/posts?sort=new&limit=20" \
++        -H "Authorization: Bearer moltbook_sk_KFIxWDXbeiMiIRShfRw0vLwXAPqfc8aH"
++
++      # 查看个人动态
++      curl "https://www.moltbook.com/api/v1/feed?sort=new&limit=20" \
++        -H "Authorization: Bearer moltbook_sk_KFIxWDXbeiMiIRShfRw0vLwXAPqfc8aH"
++      ```
++
++- **2026-02-03**: **分享页保存功能修复** (commit: 修复分享页保存功能问题)
++  - **问题**: 分享页点击"保存"按钮后 Modal 关闭，无法继续编辑
++  - **原因分析**: 从 git diff 23f6e68 发现关键变化
++    - 旧版：`sharingRecord` state 直接存储记录对象
++    - 新版：`sharingRecordId` state 只存储 ID，从 practiceHistory 动态查找
++    - 新版删除了 `handleShareCardEdit` 适配器函数
++    - 新版改变了 `ShareCardModal` 的 `onEditRecord` 类型签名
++    - Actions div 没有阻止事件冒泡
++  - **修复方案**: 采用方案1（最小改动）- 恢复旧版本架构
++  - **修改内容**:
++    1. **JournalTab 组件** (约 line 2450):
++       - 恢复 `sharingRecord` state：`const [sharingRecord, setSharingRecord] = useState<PracticeRecord | null>(null)`
++       - 删除 `sharingRecordId` 和动态查找逻辑
++       - 修改 `handleRightClick`：`setSharingRecord(record)` 直接存储记录对象
++    2. **添加 handleShareCardEdit 适配器** (约 line 2527):
++       ```typescript
++       const handleShareCardEdit = (id: string, notes: string, photos: string[], breakthrough?: string) => {
++         const updateData: Partial<PracticeRecord> = {
++           notes,
++           photos,
++           ...(breakthrough !== undefined && { breakthrough })
++         }
++         onEditRecord(id, updateData)
++       }
++       ```
++    3. **ShareCardModal 组件** (约 line 813):
++       - 恢复旧类型签名：`onEditRecord: (id: string, notes: string, photos: string[], breakthrough?: string) => void`
++       - 删除 `initializedRecordId` 和 `lastSyncedNotesRef` state
++       - 恢复简单的 useEffect：当 record 变化时更新 editableNotes 和 originalNotes
++       - 恢复旧的保存按钮逻辑：`onEditRecord(record.id, editableNotes, [], record.breakthrough)`
++    4. **Actions div** (约 line 1027):
++       - 添加 `onClick={(e) => e.stopPropagation()}` 防止事件冒泡
++  - **验证步骤**:
++    1. 打开 tab2（觉察日记）
++    2. 右键点击任意记录，打开分享页
++    3. 修改文案
++    4. 点击"保存"按钮
++    5. 验证：Modal 保持打开，显示更新后的文案
++    6. 点击"返回"按钮关闭 modal
++    7. 验证：回到 tab2，文案立即更新
++  - **修改文件**: `app/practice/page.tsx`
++
+diff --git a/public/moon-phase/full-moon.png b/public/moon-phase/full-moon.png
+new file mode 100644
+index 0000000000000000000000000000000000000000..cc9703d9c654283a2847ff7db0f8d23d2069e23d
+GIT binary patch
+literal 1769
+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
+LNkvXXu0mjfhx;=y
+
+literal 0
+HcmV?d00001
+
+diff --git a/public/moon-phase/new-moon.png b/public/moon-phase/new-moon.png
+new file mode 100644
+index 0000000000000000000000000000000000000000..ddd8831f386e54c1d331181c9e3e8726c2dd56fc
+GIT binary patch
+literal 1661
+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
+Hu0mjf`#TPt
+
+literal 0
+HcmV?d00001
+
+-- 
+2.52.0.windows.1
+

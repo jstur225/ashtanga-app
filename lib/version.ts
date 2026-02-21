@@ -1,13 +1,34 @@
-// Git 版本信息 - 用于确认用户使用的代码版本
-// 这个文件在构建时自动更新
+// Git 版本信息工具
+// 在 next.config.mjs 中注入的环境变量
 
-export const GIT_VERSION = process.env.NEXT_PUBLIC_GIT_COMMIT || 'unknown'
-export const BUILD_TIME = process.env.NEXT_PUBLIC_BUILD_TIME || new Date().toISOString()
+export interface VersionInfo {
+  commitHash: string
+  commitDate: string
+  branch: string
+  buildTime: string
+}
 
-// 完整的版本信息对象
-export const getVersionInfo = () => ({
-  gitCommit: GIT_VERSION,
-  buildTime: BUILD_TIME,
-  environment: process.env.NODE_ENV,
-  shortCommit: GIT_VERSION.slice(0, 8)
-})
+export function getVersionInfo(): VersionInfo {
+  return {
+    commitHash: process.env.NEXT_PUBLIC_GIT_COMMIT_HASH || 'unknown',
+    commitDate: process.env.NEXT_PUBLIC_GIT_COMMIT_DATE || 'unknown',
+    branch: process.env.NEXT_PUBLIC_GIT_BRANCH || 'unknown',
+    buildTime: new Date().toISOString(),
+  }
+}
+
+export function formatVersionInfo(info: VersionInfo): string {
+  return `
+版本信息:
+- 分支: ${info.branch}
+- Commit: ${info.commitHash}
+- 提交时间: ${info.commitDate}
+- 构建时间: ${info.buildTime}
+  `.trim()
+}
+
+// 用于调试日志的简短版本字符串
+export function getVersionString(): string {
+  const info = getVersionInfo()
+  return `${info.branch}@${info.commitHash}`
+}
