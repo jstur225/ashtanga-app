@@ -32,6 +32,8 @@ export async function POST(request: NextRequest) {
         is_pro: profile.is_pro || false,
         email: profile.email || null,
         updated_at: profile.updated_at || new Date().toISOString(), // ⭐ 添加更新时间戳
+        historical_days: profile.historical_days || 0,           // ⭐ 历史练习天数
+        historical_avg_minutes: profile.historical_avg_minutes || 0, // ⭐ 历史平均时长
       }, {
         onConflict: 'user_id'
       })

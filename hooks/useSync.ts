@@ -398,8 +398,10 @@ export function useSync(
                 avatar: null,
                 phone: remoteData.profile.phone,
                 is_pro: remoteData.profile.is_pro || false,
+                historical_days: remoteData.profile.historical_days || 0,
+                historical_avg_minutes: remoteData.profile.historical_avg_minutes || 0,
               }
-            : { name: '阿斯汤加习练者', signature: remoteData.profile?.signature || '练习、练习，一切随之而来。', avatar: null, is_pro: false }
+            : { name: '阿斯汤加习练者', signature: remoteData.profile?.signature || '练习、练习，一切随之而来。', avatar: null, is_pro: false, historical_days: 0, historical_avg_minutes: 0 }
 
           onSyncComplete({
             records: mergedRecords,
@@ -456,8 +458,10 @@ export function useSync(
               avatar: null,
               phone: remoteData.profile.phone,
               is_pro: remoteData.profile.is_pro || false,
+              historical_days: remoteData.profile.historical_days || 0,
+              historical_avg_minutes: remoteData.profile.historical_avg_minutes || 0,
             }
-          : { name: '阿斯汤加习练者', signature: remoteData.profile?.signature || '练习、练习，一切随之而来。', avatar: null, is_pro: false }
+          : { name: '阿斯汤加习练者', signature: remoteData.profile?.signature || '练习、练习，一切随之而来。', avatar: null, is_pro: false, historical_days: 0, historical_avg_minutes: 0 }
 
         onSyncComplete({
           records: remoteRecordsToUse,
@@ -651,6 +655,8 @@ export function useSync(
           avatar: null, // ⚠️ 头像不上传
           phone: profileRes.data.phone,
           is_pro: profileRes.data.is_pro || false,
+          historical_days: profileRes.data.historical_days || 0,           // ⭐ 历史练习天数
+          historical_avg_minutes: profileRes.data.historical_avg_minutes || 0, // ⭐ 历史平均时长
         }
       }
 
@@ -924,8 +930,10 @@ export function useSync(
                 avatar: null,
                 phone: remoteData.profile.phone,
                 is_pro: remoteData.profile.is_pro || false,
+                historical_days: remoteData.profile.historical_days || 0,
+                historical_avg_minutes: remoteData.profile.historical_avg_minutes || 0,
               }
-            : { name: '阿斯汤加习练者', signature: remoteData.profile?.signature || '练习、练习，一切随之而来。', avatar: null, is_pro: false }
+            : { name: '阿斯汤加习练者', signature: remoteData.profile?.signature || '练习、练习，一切随之而来。', avatar: null, is_pro: false, historical_days: 0, historical_avg_minutes: 0 }
 
           onSyncComplete({
             records: remoteData.records,
