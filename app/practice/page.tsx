@@ -2007,43 +2007,46 @@ function SettingsModal({
 
                   {/* 历史练习数据校准 */}
                   <div className="pt-4 border-t border-stone-200">
-                    {/* 标题行：左边标题，右边累计时长 */}
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-sm font-serif text-foreground">历史练习数据校准</h3>
-                      <span className="text-xs text-primary font-serif">
-                        累计约 {Math.round(historicalDays * historicalAvgMinutes / 60)} 小时
-                      </span>
-                    </div>
-
-                    {/* 两个胶囊并排 */}
-                    <div className="grid grid-cols-2 gap-3 mb-4">
-                      {/* 历史练习天数 */}
-                      <div className="p-4 text-center">
-                        <input
-                          type="number"
-                          value={historicalDays}
-                          onChange={(e) => setHistoricalDays(Math.max(0, parseInt(e.target.value) || 0))}
-                          className="w-full bg-transparent text-3xl font-serif text-primary text-center focus:outline-none focus:ring-0 p-0"
-                          placeholder="0"
-                        />
-                        <div className="text-xs text-muted-foreground font-serif mt-1">历史练习天数</div>
+                    {/* 白色卡片 */}
+                    <div className="bg-white rounded-[20px] p-4 shadow-md border border-stone-200">
+                      {/* 标题行：左边标题，右边累计时长 */}
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-sm font-serif text-foreground">历史练习数据校准</h3>
+                        <span className="text-xs text-primary font-serif">
+                          累计约 {Math.round(historicalDays * historicalAvgMinutes / 60)} 小时
+                        </span>
                       </div>
 
-                      {/* 平均每次时长 */}
-                      <div className="p-4 text-center">
-                        <input
-                          type="number"
-                          value={historicalAvgMinutes}
-                          onChange={(e) => setHistoricalAvgMinutes(Math.max(0, parseInt(e.target.value) || 0))}
-                          className="w-full bg-transparent text-3xl font-serif text-primary text-center focus:outline-none focus:ring-0 p-0"
-                          placeholder="0"
-                        />
-                        <div className="text-xs text-muted-foreground font-serif mt-1">平均每次练习分钟</div>
+                      {/* 两个数字并排 */}
+                      <div className="grid grid-cols-2 gap-4 mb-3">
+                        {/* 历史练习天数 */}
+                        <div className="text-center">
+                          <input
+                            type="number"
+                            value={historicalDays}
+                            onChange={(e) => setHistoricalDays(Math.max(0, parseInt(e.target.value) || 0))}
+                            className="w-full bg-transparent text-4xl font-serif text-primary text-center focus:outline-none focus:ring-0 p-0"
+                            placeholder="0"
+                          />
+                          <div className="text-xs text-muted-foreground font-serif mt-1">历史练习天数</div>
+                        </div>
+
+                        {/* 平均每次时长 */}
+                        <div className="text-center">
+                          <input
+                            type="number"
+                            value={historicalAvgMinutes}
+                            onChange={(e) => setHistoricalAvgMinutes(Math.max(0, parseInt(e.target.value) || 0))}
+                            className="w-full bg-transparent text-4xl font-serif text-primary text-center focus:outline-none focus:ring-0 p-0"
+                            placeholder="0"
+                          />
+                          <div className="text-xs text-muted-foreground font-serif mt-1">平均每次练习分钟</div>
+                        </div>
                       </div>
                     </div>
 
                     {/* 说明文字 */}
-                    <div className="bg-amber-50 rounded-xl p-3 text-xs text-amber-700">
+                    <div className="bg-amber-50 rounded-xl p-3 text-xs text-amber-700 mt-4">
                       💡 如果您之前已有练习记录，可在此设置基础数据。设置后，统计数据会以此为基础累加。
                     </div>
                   </div>
