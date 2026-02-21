@@ -2006,11 +2006,11 @@ function SettingsModal({
                   </div>
 
                   {/* 历史练习数据校准 */}
-                  <div className="pt-4">
-                    {/* 标题行：左边带图标的标题，右边累计时长 */}
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4 text-primary" />
+                  <div className="pt-2">
+                    {/* 标题行 */}
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5 text-primary" />
                         <h3 className="text-sm font-serif text-foreground">历史练习数据校准</h3>
                       </div>
                       <span className="text-xs text-primary font-medium">
@@ -2018,40 +2018,41 @@ function SettingsModal({
                       </span>
                     </div>
 
-                    {/* 纯白色卡片 */}
-                    <div className="bg-white rounded-2xl p-5 border border-stone-200">
-                      {/* 两个数字并排 */}
-                      <div className="grid grid-cols-2 gap-6 mb-3">
-                        {/* 历史练习天数 */}
+                    {/* 左右两个独立卡片 */}
+                    <div className="grid grid-cols-2 gap-3">
+                      {/* 左边：历史练习天数 */}
+                      <div className="bg-white rounded-xl p-4 border border-stone-200">
                         <div className="text-center">
                           <input
                             type="number"
                             value={historicalDays}
                             onChange={(e) => setHistoricalDays(Math.max(0, parseInt(e.target.value) || 0))}
-                            className="w-full bg-transparent text-4xl font-serif text-primary text-center focus:outline-none focus:ring-0 p-0 placeholder:text-primary/30"
+                            className="w-full bg-transparent text-3xl font-serif text-primary text-center focus:outline-none focus:ring-0 p-0 placeholder:text-primary/30"
                             placeholder="0"
                           />
-                          <div className="text-[10px] text-muted-foreground font-serif mt-2">历史练习天数</div>
+                          <div className="text-[10px] text-muted-foreground font-serif mt-1.5">历史练习天数</div>
                         </div>
+                      </div>
 
-                        {/* 平均每次时长 */}
+                      {/* 右边：平均每次时长 */}
+                      <div className="bg-white rounded-xl p-4 border border-stone-200">
                         <div className="text-center">
                           <input
                             type="number"
                             value={historicalAvgMinutes}
                             onChange={(e) => setHistoricalAvgMinutes(Math.max(0, parseInt(e.target.value) || 0))}
-                            className="w-full bg-transparent text-4xl font-serif text-primary text-center focus:outline-none focus:ring-0 p-0 placeholder:text-primary/30"
+                            className="w-full bg-transparent text-3xl font-serif text-primary text-center focus:outline-none focus:ring-0 p-0 placeholder:text-primary/30"
                             placeholder="0"
                           />
-                          <div className="text-[10px] text-muted-foreground font-serif mt-2">平均每次练习分钟</div>
+                          <div className="text-[10px] text-muted-foreground font-serif mt-1.5">平均每次练习分钟</div>
                         </div>
                       </div>
-
-                      {/* 说明文字 */}
-                      <p className="text-[10px] text-muted-foreground/70 text-center font-serif">
-                        💡 设置后，统计数据会以此为基础累加
-                      </p>
                     </div>
+
+                    {/* 说明文字 */}
+                    <p className="text-[10px] text-muted-foreground/70 text-center font-serif mt-3">
+                      💡 设置后，统计数据会以此为基础累加
+                    </p>
                   </div>
                 </>
               )}
