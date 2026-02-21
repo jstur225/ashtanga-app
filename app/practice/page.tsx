@@ -2843,7 +2843,7 @@ function JournalTab({
   }
 
   // Calculate vanity metrics for share card
-  const totalPracticeCount = practiceHistory.length
+  const totalPracticeCount = practiceHistory.length + (profile?.historical_days || 0)
   const today = new Date()
   const thisMonthDays = useMemo(() => {
     const currentMonth = today.getMonth()
@@ -2854,8 +2854,10 @@ function JournalTab({
     }).length
   }, [practiceHistory, today])
   const totalHours = useMemo(() => {
-    return Math.round(practiceHistory.reduce((acc, r) => acc + r.duration, 0) / 3600)
-  }, [practiceHistory])
+    const localSeconds = practiceHistory.reduce((acc, r) => acc + r.duration, 0)
+    const historicalMinutes = (profile?.historical_days || 0) * (profile?.historical_avg_minutes || 0)
+    return Math.round((localSeconds / 60 + historicalMinutes) / 60)
+  }, [practiceHistory, profile])
 
   const handleDayClick = (dateStr: string) => {
     // ⭐ 通过日期找到记录ID，再通过ID找到ref（修复修改日期后无法跳转的问题）
