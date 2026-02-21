@@ -2007,8 +2007,8 @@ function SettingsModal({
 
                   {/* 历史练习数据校准 */}
                   <div className="pt-4">
-                    {/* 淡绿色卡片 */}
-                    <div className="bg-[#F0F4EE] rounded-2xl p-5 border border-[#E0E8DC]">
+                    {/* 浅黄色渐变卡片 */}
+                    <div className="rounded-2xl p-5 bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200">
                       {/* 标题行：左边标题，右边累计时长 */}
                       <div className="flex items-center justify-between mb-5">
                         <h3 className="text-sm font-serif text-foreground">历史练习数据校准</h3>
@@ -2045,7 +2045,7 @@ function SettingsModal({
                       </div>
 
                       {/* 说明文字 */}
-                      <p className="text-[10px] text-muted-foreground/80 text-center font-serif">
+                      <p className="text-[10px] text-amber-700/70 text-center font-serif">
                         💡 设置后，统计数据会以此为基础累加
                       </p>
                     </div>
