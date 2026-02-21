@@ -2035,7 +2035,7 @@ function SettingsModal({
                             className="w-full bg-transparent text-3xl font-serif text-primary text-center focus:outline-none focus:ring-0 p-0 placeholder:text-primary/30"
                             placeholder="0"
                           />
-                          <div className="text-[10px] text-muted-foreground font-serif mt-1.5">历史练习天数</div>
+                          <div className="text-[10px] text-muted-foreground font-serif mt-1.5">天数</div>
                         </div>
                       </div>
 
@@ -2054,7 +2054,7 @@ function SettingsModal({
                             className="w-full bg-transparent text-3xl font-serif text-primary text-center focus:outline-none focus:ring-0 p-0 placeholder:text-primary/30"
                             placeholder="0"
                           />
-                          <div className="text-[10px] text-muted-foreground font-serif mt-1.5">平均每次练习分钟</div>
+                          <div className="text-[10px] text-muted-foreground font-serif mt-1.5">分钟/次</div>
                         </div>
                       </div>
                     </div>
