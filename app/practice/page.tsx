@@ -2019,9 +2019,9 @@ function SettingsModal({
                     </div>
 
                     {/* 左右两个独立卡片 */}
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-2 gap-2">
                       {/* 左边：历史练习天数 */}
-                      <div className="bg-white rounded-xl p-4 border border-stone-200">
+                      <div className="bg-white rounded-xl p-3 border border-stone-200">
                         <div className="text-center">
                           <input
                             type="text"
@@ -2032,15 +2032,15 @@ function SettingsModal({
                               const val = e.target.value.replace(/[^0-9]/g, '')
                               setHistoricalDays(val === '' ? 0 : parseInt(val))
                             }}
-                            className="w-full bg-transparent text-3xl font-serif text-primary text-center focus:outline-none focus:ring-0 p-0 placeholder:text-primary/30"
+                            className="w-full bg-transparent text-2xl font-serif text-primary text-center focus:outline-none focus:ring-0 p-0 placeholder:text-primary/30"
                             placeholder="0"
                           />
-                          <div className="text-[10px] text-muted-foreground font-serif mt-1.5">天数</div>
+                          <div className="text-[10px] text-muted-foreground font-serif mt-1">天数</div>
                         </div>
                       </div>
 
                       {/* 右边：平均每次时长 */}
-                      <div className="bg-white rounded-xl p-4 border border-stone-200">
+                      <div className="bg-white rounded-xl p-3 border border-stone-200">
                         <div className="text-center">
                           <input
                             type="text"
@@ -2051,16 +2051,16 @@ function SettingsModal({
                               const val = e.target.value.replace(/[^0-9]/g, '')
                               setHistoricalAvgMinutes(val === '' ? 0 : parseInt(val))
                             }}
-                            className="w-full bg-transparent text-3xl font-serif text-primary text-center focus:outline-none focus:ring-0 p-0 placeholder:text-primary/30"
+                            className="w-full bg-transparent text-2xl font-serif text-primary text-center focus:outline-none focus:ring-0 p-0 placeholder:text-primary/30"
                             placeholder="0"
                           />
-                          <div className="text-[10px] text-muted-foreground font-serif mt-1.5">分钟/次</div>
+                          <div className="text-[10px] text-muted-foreground font-serif mt-1">分钟/次</div>
                         </div>
                       </div>
                     </div>
 
                     {/* 说明文字 */}
-                    <p className="text-[10px] text-muted-foreground/70 text-center font-serif mt-3">
+                    <p className="text-[10px] text-muted-foreground/70 text-center font-serif mt-2">
                       💡 设置后，统计数据会以此为基础累加
                     </p>
                   </div>
