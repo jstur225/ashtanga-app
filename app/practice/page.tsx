@@ -2011,7 +2011,7 @@ function SettingsModal({
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-1.5">
                         <Calendar className="w-3.5 h-3.5 text-primary" />
-                        <h3 className="text-sm font-serif text-foreground">历史练习数据校准</h3>
+                        <h3 className="text-sm font-serif text-foreground">过往练习</h3>
                       </div>
                       <span className="text-xs text-primary font-medium">
                         累计约 {Math.round(historicalDays * historicalAvgMinutes / 60)} 小时
