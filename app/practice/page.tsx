@@ -3271,7 +3271,6 @@ function StatsTab({
       totalDays,
       totalHours: Math.round(totalMinutes / 60),
       avgMinutes,
-      hasHistoricalData: historicalDays > 0,
     }
   }, [practiceHistory, profile])
 
@@ -3379,9 +3378,6 @@ function StatsTab({
           <div className="bg-white rounded-[20px] p-4 text-center shadow-md border border-stone-200">
             <div className="text-2xl font-serif text-primary">{totalStats.totalDays}</div>
             <div className="text-xs text-muted-foreground font-serif mt-1">总熬汤天数</div>
-            {totalStats.hasHistoricalData && (
-              <div className="text-[10px] text-amber-600 mt-0.5">含历史记录</div>
-            )}
           </div>
           <div className="bg-white rounded-[20px] p-4 text-center shadow-md border border-stone-200">
             <div className="text-2xl font-serif text-primary">{totalStats.totalHours}</div>
