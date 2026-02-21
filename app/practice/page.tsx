@@ -3749,8 +3749,12 @@ export default function AshtangaTracker() {
     toast.success('已添加自定义选项')
     // ⭐ 新增：如果已登录，自动同步到云端
     if (user) {
-      console.log('[handleAddOption] 用户已登录，触发自动同步...')
-      await autoSync()
+      console.log('[handleAddOption] 用户已登录，准备触发自动同步...')
+      // 延迟 100ms，确保 localStorage 已更新
+      setTimeout(async () => {
+        console.log('[handleAddOption] 触发自动同步...')
+        await autoSync()
+      }, 100)
     }
   }
 
