@@ -2012,24 +2012,24 @@ function SettingsModal({
                     {/* 两个胶囊并排 */}
                     <div className="grid grid-cols-2 gap-3 mb-4">
                       {/* 历史练习天数 */}
-                      <div className="bg-secondary rounded-2xl p-4 text-center">
+                      <div className="p-4 text-center">
                         <input
                           type="number"
                           value={historicalDays}
                           onChange={(e) => setHistoricalDays(Math.max(0, parseInt(e.target.value) || 0))}
-                          className="w-full bg-transparent text-3xl font-serif text-foreground text-center focus:outline-none focus:ring-0 p-0"
+                          className="w-full bg-transparent text-3xl font-serif text-primary text-center focus:outline-none focus:ring-0 p-0"
                           placeholder="0"
                         />
                         <div className="text-xs text-muted-foreground font-serif mt-1">历史练习天数</div>
                       </div>
 
                       {/* 平均每次时长 */}
-                      <div className="bg-secondary rounded-2xl p-4 text-center">
+                      <div className="p-4 text-center">
                         <input
                           type="number"
                           value={historicalAvgMinutes}
                           onChange={(e) => setHistoricalAvgMinutes(Math.max(0, parseInt(e.target.value) || 0))}
-                          className="w-full bg-transparent text-3xl font-serif text-foreground text-center focus:outline-none focus:ring-0 p-0"
+                          className="w-full bg-transparent text-3xl font-serif text-primary text-center focus:outline-none focus:ring-0 p-0"
                           placeholder="0"
                         />
                         <div className="text-xs text-muted-foreground font-serif mt-1">平均每次练习分钟</div>
