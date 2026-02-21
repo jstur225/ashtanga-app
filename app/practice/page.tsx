@@ -2024,9 +2024,14 @@ function SettingsModal({
                       <div className="bg-white rounded-xl p-4 border border-stone-200">
                         <div className="text-center">
                           <input
-                            type="number"
-                            value={historicalDays}
-                            onChange={(e) => setHistoricalDays(Math.max(0, parseInt(e.target.value) || 0))}
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            value={historicalDays === 0 ? '' : historicalDays}
+                            onChange={(e) => {
+                              const val = e.target.value.replace(/[^0-9]/g, '')
+                              setHistoricalDays(val === '' ? 0 : parseInt(val))
+                            }}
                             className="w-full bg-transparent text-3xl font-serif text-primary text-center focus:outline-none focus:ring-0 p-0 placeholder:text-primary/30"
                             placeholder="0"
                           />
@@ -2038,9 +2043,14 @@ function SettingsModal({
                       <div className="bg-white rounded-xl p-4 border border-stone-200">
                         <div className="text-center">
                           <input
-                            type="number"
-                            value={historicalAvgMinutes}
-                            onChange={(e) => setHistoricalAvgMinutes(Math.max(0, parseInt(e.target.value) || 0))}
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            value={historicalAvgMinutes === 0 ? '' : historicalAvgMinutes}
+                            onChange={(e) => {
+                              const val = e.target.value.replace(/[^0-9]/g, '')
+                              setHistoricalAvgMinutes(val === '' ? 0 : parseInt(val))
+                            }}
                             className="w-full bg-transparent text-3xl font-serif text-primary text-center focus:outline-none focus:ring-0 p-0 placeholder:text-primary/30"
                             placeholder="0"
                           />
