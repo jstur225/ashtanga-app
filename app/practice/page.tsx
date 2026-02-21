@@ -1894,18 +1894,6 @@ function SettingsModal({
     }
   }
 
-  // 调节历史天数
-  const adjustDays = (delta: number) => {
-    const newDays = Math.max(0, historicalDays + delta)
-    setHistoricalDays(newDays)
-  }
-
-  // 调节平均时长
-  const adjustAvgMinutes = (delta: number) => {
-    const newAvgMinutes = Math.max(0, historicalAvgMinutes + delta)
-    setHistoricalAvgMinutes(newAvgMinutes)
-  }
-
   return (
     <AnimatePresence>
       {isOpen && (
@@ -2021,64 +2009,35 @@ function SettingsModal({
                   <div className="pt-4 border-t border-stone-200">
                     <h3 className="text-sm font-serif text-foreground mb-4">历史练习数据校准</h3>
 
-                    {/* 历史练习天数 */}
-                    <div className="space-y-2 mb-4">
-                      <label className="text-xs font-serif text-muted-foreground">
-                        历史练习天数
-                      </label>
-                      <div className="flex items-center gap-3">
-                        <button
-                          onClick={() => adjustDays(-10)}
-                          className="p-2 rounded-full bg-stone-100 hover:bg-stone-200 transition-colors"
-                        >
-                          <Minus className="w-4 h-4" />
-                        </button>
+                    {/* 两个胶囊并排 */}
+                    <div className="grid grid-cols-2 gap-3 mb-4">
+                      {/* 历史练习天数 */}
+                      <div className="bg-secondary rounded-2xl p-4 text-center">
                         <input
                           type="number"
                           value={historicalDays}
                           onChange={(e) => setHistoricalDays(Math.max(0, parseInt(e.target.value) || 0))}
-                          className="w-20 px-2 py-2 rounded-xl bg-secondary text-foreground font-serif text-center focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                          className="w-full bg-transparent text-3xl font-serif text-foreground text-center focus:outline-none focus:ring-0 p-0"
+                          placeholder="0"
                         />
-                        <button
-                          onClick={() => adjustDays(10)}
-                          className="p-2 rounded-full bg-stone-100 hover:bg-stone-200 transition-colors"
-                        >
-                          <Plus className="w-4 h-4" />
-                        </button>
-                        <span className="text-xs text-muted-foreground">天</span>
+                        <div className="text-xs text-muted-foreground font-serif mt-1">历史练习天数</div>
                       </div>
-                    </div>
 
-                    {/* 历史平均时长 */}
-                    <div className="space-y-2 mb-4">
-                      <label className="text-xs font-serif text-muted-foreground">
-                        平均每次时长
-                      </label>
-                      <div className="flex items-center gap-3">
-                        <button
-                          onClick={() => adjustAvgMinutes(-5)}
-                          className="p-2 rounded-full bg-stone-100 hover:bg-stone-200 transition-colors"
-                        >
-                          <Minus className="w-4 h-4" />
-                        </button>
+                      {/* 平均每次时长 */}
+                      <div className="bg-secondary rounded-2xl p-4 text-center">
                         <input
                           type="number"
                           value={historicalAvgMinutes}
                           onChange={(e) => setHistoricalAvgMinutes(Math.max(0, parseInt(e.target.value) || 0))}
-                          className="w-20 px-2 py-2 rounded-xl bg-secondary text-foreground font-serif text-center focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                          className="w-full bg-transparent text-3xl font-serif text-foreground text-center focus:outline-none focus:ring-0 p-0"
+                          placeholder="0"
                         />
-                        <button
-                          onClick={() => adjustAvgMinutes(5)}
-                          className="p-2 rounded-full bg-stone-100 hover:bg-stone-200 transition-colors"
-                        >
-                          <Plus className="w-4 h-4" />
-                        </button>
-                        <span className="text-xs text-muted-foreground">分钟/次</span>
+                        <div className="text-xs text-muted-foreground font-serif mt-1">平均每次练习分钟</div>
                       </div>
                     </div>
 
                     {/* 预计历史总时长 */}
-                    <p className="text-xs text-muted-foreground mb-3">
+                    <p className="text-xs text-muted-foreground mb-3 text-center">
                       预计历史总时长：{historicalDays * historicalAvgMinutes} 分钟（约 {Math.round(historicalDays * historicalAvgMinutes / 60)} 小时）
                     </p>
 
