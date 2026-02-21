@@ -7,7 +7,7 @@ import { usePracticeData, type PracticeRecord, type PracticeOption, type UserPro
 import { usePWAInstall } from "@/hooks/usePWAInstall"
 import { useAuth } from "@/hooks/useAuth"
 import { useSync } from "@/hooks/useSync"
-import { BookOpen, BarChart3, Calendar, X, Camera, Pause, Play, Trash2, User, Settings, ChevronLeft, ChevronRight, ChevronUp, Cloud, Download, Upload, Plus, Share2, Sparkles, Check, Copy, ClipboardPaste, MessageCircle, Bug, AlertCircle } from "lucide-react"
+import { BookOpen, BarChart3, Calendar, X, Camera, Pause, Play, Trash2, User, Settings, ChevronLeft, ChevronRight, ChevronUp, Cloud, Download, Upload, Plus, Minus, Share2, Sparkles, Check, Copy, ClipboardPaste, MessageCircle, Bug, AlertCircle } from "lucide-react"
 import { FakeDoorModal } from "@/components/FakeDoorModal"
 import { VoiceButton } from "@/components/VoiceButton"
 import { PhotoUploadButton } from "@/components/PhotoUploadButton"
@@ -1803,6 +1803,16 @@ function SettingsModal({
   const [isExportingLog, setIsExportingLog] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // 历史数据校准
+  const [historicalDays, setHistoricalDays] = useState(profile.historical_days || 0)
+  const [historicalAvgMinutes, setHistoricalAvgMinutes] = useState(profile.historical_avg_minutes || 0)
+
+  // 当 profile 变化时同步历史数据
+  useEffect(() => {
+    setHistoricalDays(profile.historical_days || 0)
+    setHistoricalAvgMinutes(profile.historical_avg_minutes || 0)
+  }, [profile.historical_days, profile.historical_avg_minutes])
+
   // 当 initialSection 变化时，切换到对应标签页
   useEffect(() => {
     if (initialSection) {
@@ -1869,12 +1879,31 @@ function SettingsModal({
 
   const handleSave = () => {
     try {
-      onSave({ ...profile, name, signature, avatar })
+      onSave({
+        ...profile,
+        name,
+        signature,
+        avatar,
+        historical_days: historicalDays,
+        historical_avg_minutes: historicalAvgMinutes,
+      })
       onClose()
     } catch (error) {
       console.error('保存失败:', error)
       toast.error('保存失败，图片可能太大，请尝试压缩后再上传')
     }
+  }
+
+  // 调节历史天数
+  const adjustDays = (delta: number) => {
+    const newDays = Math.max(0, historicalDays + delta)
+    setHistoricalDays(newDays)
+  }
+
+  // 调节平均时长
+  const adjustAvgMinutes = (delta: number) => {
+    const newAvgMinutes = Math.max(0, historicalAvgMinutes + delta)
+    setHistoricalAvgMinutes(newAvgMinutes)
   }
 
   return (
@@ -1985,6 +2014,77 @@ function SettingsModal({
                         onChange={(e) => setSignature(e.target.value)}
                         className="w-full px-4 py-3 rounded-2xl bg-secondary text-foreground font-serif focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
                       />
+                    </div>
+                  </div>
+
+                  {/* 历史练习数据校准 */}
+                  <div className="pt-4 border-t border-stone-200">
+                    <h3 className="text-sm font-serif text-foreground mb-4">历史练习数据校准</h3>
+
+                    {/* 历史练习天数 */}
+                    <div className="space-y-2 mb-4">
+                      <label className="text-xs font-serif text-muted-foreground">
+                        历史练习天数
+                      </label>
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => adjustDays(-10)}
+                          className="p-2 rounded-full bg-stone-100 hover:bg-stone-200 transition-colors"
+                        >
+                          <Minus className="w-4 h-4" />
+                        </button>
+                        <input
+                          type="number"
+                          value={historicalDays}
+                          onChange={(e) => setHistoricalDays(Math.max(0, parseInt(e.target.value) || 0))}
+                          className="w-20 px-2 py-2 rounded-xl bg-secondary text-foreground font-serif text-center focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                        />
+                        <button
+                          onClick={() => adjustDays(10)}
+                          className="p-2 rounded-full bg-stone-100 hover:bg-stone-200 transition-colors"
+                        >
+                          <Plus className="w-4 h-4" />
+                        </button>
+                        <span className="text-xs text-muted-foreground">天</span>
+                      </div>
+                    </div>
+
+                    {/* 历史平均时长 */}
+                    <div className="space-y-2 mb-4">
+                      <label className="text-xs font-serif text-muted-foreground">
+                        平均每次时长
+                      </label>
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => adjustAvgMinutes(-5)}
+                          className="p-2 rounded-full bg-stone-100 hover:bg-stone-200 transition-colors"
+                        >
+                          <Minus className="w-4 h-4" />
+                        </button>
+                        <input
+                          type="number"
+                          value={historicalAvgMinutes}
+                          onChange={(e) => setHistoricalAvgMinutes(Math.max(0, parseInt(e.target.value) || 0))}
+                          className="w-20 px-2 py-2 rounded-xl bg-secondary text-foreground font-serif text-center focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                        />
+                        <button
+                          onClick={() => adjustAvgMinutes(5)}
+                          className="p-2 rounded-full bg-stone-100 hover:bg-stone-200 transition-colors"
+                        >
+                          <Plus className="w-4 h-4" />
+                        </button>
+                        <span className="text-xs text-muted-foreground">分钟/次</span>
+                      </div>
+                    </div>
+
+                    {/* 预计历史总时长 */}
+                    <p className="text-xs text-muted-foreground mb-3">
+                      预计历史总时长：{historicalDays * historicalAvgMinutes} 分钟（约 {Math.round(historicalDays * historicalAvgMinutes / 60)} 小时）
+                    </p>
+
+                    {/* 说明文字 */}
+                    <div className="bg-amber-50 rounded-xl p-3 text-xs text-amber-700">
+                      💡 如果您之前已有练习记录，可在此设置基础数据。设置后，统计数据会以此为基础累加。
                     </div>
                   </div>
                 </>
@@ -3144,26 +3244,36 @@ function StatsTab({
     return { practiceDays, totalMinutes, avgDuration }
   }, [practiceHistory, today, todayStr])
 
-  // Total stats (all time)
+  // Total stats (all time) - 包含历史数据校准
   const totalStats = useMemo(() => {
-    let totalDays = 0
-    let totalSeconds = 0
+    let localDays = 0
+    let localSeconds = 0
 
     practiceHistory.forEach((record) => {
       if (record.duration > 0) {
-        totalDays++
-        totalSeconds += record.duration
+        localDays++
+        localSeconds += record.duration
       }
     })
 
-    const avgMinutes = totalDays > 0 ? Math.round(totalSeconds / totalDays / 60) : 0
+    // 添加历史数据
+    const historicalDays = profile?.historical_days || 0
+    const historicalAvgMinutes = profile?.historical_avg_minutes || 0
+    const totalDays = localDays + historicalDays
+    const localMinutes = Math.round(localSeconds / 60)
+    const historicalMinutes = historicalDays * historicalAvgMinutes
+    const totalMinutes = localMinutes + historicalMinutes
+
+    const avgMinutes = totalDays > 0 ? Math.round(totalMinutes / totalDays) : 0
 
     return {
+      localDays,
       totalDays,
-      totalHours: Math.round(totalSeconds / 3600),
+      totalHours: Math.round(totalMinutes / 60),
       avgMinutes,
+      hasHistoricalData: historicalDays > 0,
     }
-  }, [practiceHistory])
+  }, [practiceHistory, profile])
 
   // Generate flowing dots based on view mode
   const flowingDots = useMemo(() => {
@@ -3269,6 +3379,9 @@ function StatsTab({
           <div className="bg-white rounded-[20px] p-4 text-center shadow-md border border-stone-200">
             <div className="text-2xl font-serif text-primary">{totalStats.totalDays}</div>
             <div className="text-xs text-muted-foreground font-serif mt-1">总熬汤天数</div>
+            {totalStats.hasHistoricalData && (
+              <div className="text-[10px] text-amber-600 mt-0.5">含历史记录</div>
+            )}
           </div>
           <div className="bg-white rounded-[20px] p-4 text-center shadow-md border border-stone-200">
             <div className="text-2xl font-serif text-primary">{totalStats.totalHours}</div>

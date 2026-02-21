@@ -34,6 +34,9 @@ export interface UserProfile {
   phone?: string;
   email?: string;
   is_pro: boolean;
+  // 新增：历史练习数据校准
+  historical_days?: number;           // 历史练习天数
+  historical_avg_minutes?: number;    // 历史平均每次时长（分钟）
 }
 
 const DEFAULT_OPTIONS: PracticeOption[] = [
