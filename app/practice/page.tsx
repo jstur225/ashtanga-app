@@ -3552,6 +3552,9 @@ export default function AshtangaTracker() {
         console.log('   云端记录数:', data.records.length)
 
         try {
+          // ⭐ 保存当前正在编辑的记录ID（在清空数据前）
+          const editingRecordId = editingRecord?.id
+
           // 清空本地数据
           clearAllData()
           console.log('   ✅ 本地数据已清空')
@@ -3562,6 +3565,19 @@ export default function AshtangaTracker() {
 
           if (importResult) {
             console.log('   ✅ 云端数据已导入')
+
+            // ⭐ 重新设置正在编辑的记录（从新的记录列表中查找）
+            if (editingRecordId) {
+              const newEditingRecord = data.records.find((r: PracticeRecord) => r.id === editingRecordId)
+              if (newEditingRecord) {
+                setEditingRecord(newEditingRecord)
+                console.log('   ✅ 已恢复编辑状态:', editingRecordId)
+              } else {
+                setEditingRecord(null)
+                console.log('   ⚠️ 正在编辑的记录在云端不存在，关闭编辑弹窗')
+              }
+            }
+
             toast.success(`✅ 已同步${data.records.length}条云端数据`, {
               duration: 3000,
               position: 'top-center'
