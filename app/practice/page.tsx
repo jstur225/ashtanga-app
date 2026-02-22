@@ -563,7 +563,7 @@ function EditRecordModal({
 
   useEffect(() => {
     if (record) {
-      setNotes(record.notes)
+      setNotes(record.notes || "")
       setBreakthroughEnabled(!!record.breakthrough)
       setBreakthroughText(record.breakthrough || "")
       setDate(record.date)
@@ -859,7 +859,7 @@ function ShareCardModal({
   // 当 record 变化时，更新 editableNotes 和 originalNotes
   useEffect(() => {
     if (record) {
-      const notes = record.notes === null || record.notes === undefined ? "今日练习完成" : record.notes
+      const notes = record.notes || "今日练习完成"
       setEditableNotes(notes)
       setOriginalNotes(notes)
     }
@@ -3823,9 +3823,11 @@ export default function AshtangaTracker() {
       has_notes: !!record.notes && record.notes.length > 0
     })
     toast.success('补卡成功！')
-    // 触发同步（如果用户已登录）
+    // ⭐ 延迟同步，确保 localStorage 已更新
     if (user) {
-      autoSync()
+      setTimeout(() => {
+        autoSync()
+      }, 100)
     }
   }
 

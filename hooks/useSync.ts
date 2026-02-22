@@ -60,7 +60,8 @@ export function useSync(
   // ⚠️ 注意：这里只更新本地记录数，syncedRecords 只在同步成功时更新
   useEffect(() => {
     const localCount = localData.records.length
-    const sortedRecords = [...localData.records].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    // ⭐ 按日期排序（最新的在前），然后截取最新的1000条
+    const sortedRecords = [...localData.records].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     const recordsToSync = sortedRecords.slice(0, MAX_SYNC_RECORDS)
     const localOnlyCount = localCount - recordsToSync.length
 
@@ -203,7 +204,8 @@ export function useSync(
       console.error(`📊 [autoSync] 数据对比：本地${localCount}条，云端${remoteCount}条`)
 
       // ⭐ 计算同步限制（用于显示上限提醒）
-      const sortedRecords = [...freshLocalData.records].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      // ⭐ 按日期排序（最新的在前），然后截取最新的1000条
+      const sortedRecords = [...freshLocalData.records].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
       const recordsToSync = sortedRecords.slice(0, MAX_SYNC_RECORDS)
       const localOnlyCount = localCount - recordsToSync.length
 
@@ -215,9 +217,9 @@ export function useSync(
       // ⭐ 使用截取后的 recordsToSync（最早的50条）进行比对，避免超过限制的记录触发冲突
       const effectiveLocalRecords = localOnlyCount > 0 ? recordsToSync : freshLocalData.records
 
-      // ⭐ 云端数据也只取前50条进行比对（内测版本限制）
+      // ⭐ 云端数据也只取前1000条进行比对（最新的1000条）
       const effectiveRemoteRecords = remoteCount > MAX_SYNC_RECORDS
-        ? [...remoteData.records].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()).slice(0, MAX_SYNC_RECORDS)
+        ? [...remoteData.records].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, MAX_SYNC_RECORDS)
         : remoteData.records
 
       if (remoteCount > 0 && localCount > 0) {
@@ -432,11 +434,11 @@ export function useSync(
         return false
       }
 
-      // 3. 只有云端有数据 → 使用云端（但只取前50条）
+      // 3. 只有云端有数据 → 使用云端（但只取前1000条）
       if (remoteCount > 0 && localCount === 0) {
-        // ⭐ 内测版本：只使用云端前50条数据
+        // ⭐ 只使用云端最新的1000条数据
         const remoteRecordsToUse = remoteCount > MAX_SYNC_RECORDS
-          ? [...remoteData.records].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()).slice(0, MAX_SYNC_RECORDS)
+          ? [...remoteData.records].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, MAX_SYNC_RECORDS)
           : remoteData.records
 
         if (remoteCount > MAX_SYNC_RECORDS) {
@@ -690,14 +692,14 @@ export function useSync(
   const uploadLocalRecords = async (userId: string, records: PracticeRecord[]) => {
     if (records.length === 0) return { success: true, localOnlyCount: 0 }
 
-    // ⭐ 新增：50条记录限制 - 保留最早的50条
-    // 按日期排序（最早的在前），然后截取前50条
-    const sortedRecords = [...records].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    // ⭐ 新增：1000条记录限制 - 保留最新的1000条
+    // 按日期排序（最新的在前），然后截取最新的1000条
+    const sortedRecords = [...records].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     const recordsToSync = sortedRecords.slice(0, MAX_SYNC_RECORDS)
     const localOnlyCount = records.length - recordsToSync.length
 
     if (localOnlyCount > 0) {
-      console.error(`⚠️ [uploadLocalRecords] 同步限制：只上传最早的${MAX_SYNC_RECORDS}条记录`)
+      console.error(`⚠️ [uploadLocalRecords] 同步限制：只上传最新的${MAX_SYNC_RECORDS}条记录`)
       addLog(`${localOnlyCount}条记录仅本地保存`, 'success')
     }
 
@@ -763,15 +765,15 @@ export function useSync(
         is_pro: false
       }
 
-      // ⭐ 新增：1000条记录限制 - 保留最早的1000条
-      // 按日期排序（最早的在前），然后截取前1000条
-      const sortedRecords = [...records].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      // ⭐ 新增：1000条记录限制 - 保留最新的1000条
+      // 按日期排序（最新的在前），然后截取最新的1000条
+      const sortedRecords = [...records].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
       const recordsToSync = sortedRecords.slice(0, MAX_SYNC_RECORDS)
       const localOnlyCount = records.length - recordsToSync.length // 仅本地保留的记录数
 
       if (localOnlyCount > 0) {
-        console.error(`⚠️ [uploadLocalData] 同步限制：只同步最早的${MAX_SYNC_RECORDS}条记录，${localOnlyCount}条新记录仅保留在本地`)
-        addLog(`${localOnlyCount}条记录仅本地保存`, 'success')
+        console.error(`⚠️ [uploadLocalData] 同步限制：只同步最新的${MAX_SYNC_RECORDS}条记录，${localOnlyCount}条旧记录仅保留在本地`)
+        addLog(`${localOnlyCount}条旧记录仅本地保存`, 'success')
       }
 
       // 1. 上传用户资料（使用服务端 API 绕过 RLS）
@@ -801,7 +803,7 @@ export function useSync(
       console.error('✅ 用户资料上传成功:', profileResult)
       addLog('上传用户资料', 'success')
 
-      // 2. 批量上传练习记录（使用 upsert）- 使用限制后的 recordsToSync（最早的50条）
+      // 2. 批量上传练习记录（使用 upsert）- 使用限制后的 recordsToSync（最新的1000条）
       if (recordsToSync.length > 0) {
         const recordsToUpload = recordsToSync.map(r => ({
           id: r.id,
