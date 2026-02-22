@@ -3842,7 +3842,13 @@ export default function AshtangaTracker() {
   }
 
   const handleEditRecord = (id: string, data: Partial<PracticeRecord>) => {
-    const result = updateRecord(id, data)
+    const result = updateRecord(id, data, (updatedRecord) => {
+      // ⭐ 编辑后触发同步，确保云端数据更新
+      if (user) {
+        console.log('[handleEditRecord] 编辑完成，触发同步...')
+        autoSync()
+      }
+    })
     toast.success('更新成功')
     return result
   }
