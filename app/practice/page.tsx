@@ -836,6 +836,7 @@ function ShareCardModal({
   onOpenVoiceFakeDoor,
   onOpenPhotoFakeDoor,
   syncStatus,
+  canEdit,
 }: {
   isOpen: boolean
   onClose: () => void
@@ -849,6 +850,7 @@ function ShareCardModal({
   onOpenVoiceFakeDoor?: () => void
   onOpenPhotoFakeDoor?: () => void
   syncStatus?: 'idle' | 'syncing' | 'success' | 'error'
+  canEdit?: () => boolean
 }) {
   const [editableNotes, setEditableNotes] = useState("")
   const [isEditingNotes, setIsEditingNotes] = useState(false)
@@ -1017,9 +1019,9 @@ function ShareCardModal({
                   ) : (
                     <p
                       onClick={() => {
-                        // ⭐ 同步进行时禁止编辑，防止笔记丢失
-                        if (syncStatus === 'syncing') {
-                          toast.info('同步中，请稍候再编辑...')
+                        // ⭐ 添加记录后3秒内禁止编辑，防止笔记丢失
+                        if (!canEdit()) {
+                          toast.info('数据同步中，请稍后再进行编辑')
                           return
                         }
                         setIsEditingNotes(true)
@@ -2817,6 +2819,26 @@ function JournalTab({
 }) {
   const [sharingRecordId, setSharingRecordId] = useState<string | null>(null)
   const [childModalOpen, setChildModalOpen] = useState(false)
+  // ⭐ 记录最后添加记录的时间，用于强制3秒内不能编辑
+  const [lastAddedRecordTime, setLastAddedRecordTime] = useState<number>(0)
+
+  // ⭐ 包装 onAddRecord，记录添加时间
+  const handleAddRecordWithTime = (record: Omit<PracticeRecord, 'id' | 'created_at' | 'photos'>) => {
+    setLastAddedRecordTime(Date.now())
+    onAddRecord(record)
+  }
+
+  // ⭐ 检查是否可以编辑（添加记录3秒后）
+  const canEdit = () => {
+    const timeSinceLastAdd = Date.now() - lastAddedRecordTime
+    return timeSinceLastAdd > 3000 || lastAddedRecordTime === 0
+  }
+
+  // ⭐ 获取剩余等待时间
+  const getRemainingWaitTime = () => {
+    const timeSinceLastAdd = Date.now() - lastAddedRecordTime
+    return Math.max(0, 3000 - timeSinceLastAdd)
+  }
   const [showBackToTop, setShowBackToTop] = useState(false)
   const [highlightedDate, setHighlightedDate] = useState<string | null>(null)
   const recordRefs = useRef<Record<string, HTMLDivElement | null>>({})
@@ -2905,9 +2927,9 @@ function JournalTab({
   // Left click -> Edit record
   const handleLeftClick = (record: PracticeRecord, e: React.MouseEvent) => {
     e.stopPropagation()
-    // ⭐ 同步进行时禁止编辑，防止笔记丢失
-    if (syncStatus === 'syncing') {
-      toast.info('同步中，请稍候再编辑...')
+    // ⭐ 添加记录后3秒内禁止编辑，防止笔记丢失
+    if (!canEdit()) {
+      toast.info('数据同步中，请稍后再进行编辑')
       return
     }
     onSetEditingRecord(record)
@@ -3047,12 +3069,13 @@ function JournalTab({
         onOpenVoiceFakeDoor={onOpenVoiceFakeDoor}
         onOpenPhotoFakeDoor={onOpenPhotoFakeDoor}
         syncStatus={syncStatus}
+        canEdit={canEdit}
       />
 
       <AddPracticeModal
         isOpen={showAddModal}
         onClose={() => onSetShowAddModal(false)}
-        onSave={onAddRecord}
+        onSave={handleAddRecordWithTime}
         practiceOptions={practiceOptions}
         practiceHistory={practiceHistory}
         onAddOption={onAddOption}
