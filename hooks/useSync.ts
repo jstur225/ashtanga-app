@@ -917,29 +917,42 @@ export function useSync(
 
       switch (strategy) {
         case 'remote':
-          // 使用云端数据
-          addLog('使用云端数据', 'success')
+          // 使用云端数据，但先上传本地独有的数据到云端（避免新建记录丢失）
+          addLog('使用云端数据（先上传本地记录）', 'success')
+
+          // ⭐ 先上传本地数据到云端，确保新记录不会丢失
+          const uploadResult = await uploadLocalData(user.id, localDataRef.current, user)
+          if (!uploadResult.success) {
+            throw new Error('上传本地数据失败')
+          }
+          addLog('本地数据已上传到云端', 'success')
+
+          // ⭐ 重新下载云端数据（现在包含本地上传的记录）
+          const updatedRemoteData = await downloadRemoteData(user.id)
+          if (!updatedRemoteData) {
+            throw new Error('下载更新后的云端数据失败')
+          }
 
           // ⭐ 构建完整的 profile 对象，确保包含 updated_at
-          const remoteProfile = remoteData.profile && remoteData.profile.name && !remoteData.profile.name.match(/^\d+$/)
+          const remoteProfile = updatedRemoteData.profile && updatedRemoteData.profile.name && !updatedRemoteData.profile.name.match(/^\d+$/)
             ? {
-                id: remoteData.profile.id || '',
-                user_id: remoteData.profile.user_id || '',
-                created_at: remoteData.profile.created_at || new Date().toISOString(),
-                updated_at: remoteData.profile.updated_at || remoteData.profile.created_at || new Date().toISOString(),
-                name: remoteData.profile.name,
-                signature: remoteData.profile.signature || '练习、练习，一切随之而来。',
+                id: updatedRemoteData.profile.id || '',
+                user_id: updatedRemoteData.profile.user_id || '',
+                created_at: updatedRemoteData.profile.created_at || new Date().toISOString(),
+                updated_at: updatedRemoteData.profile.updated_at || updatedRemoteData.profile.created_at || new Date().toISOString(),
+                name: updatedRemoteData.profile.name,
+                signature: updatedRemoteData.profile.signature || '练习、练习，一切随之而来。',
                 avatar: null,
-                phone: remoteData.profile.phone,
-                is_pro: remoteData.profile.is_pro || false,
-                historical_days: remoteData.profile.historical_days || 0,
-                historical_avg_minutes: remoteData.profile.historical_avg_minutes || 0,
+                phone: updatedRemoteData.profile.phone,
+                is_pro: updatedRemoteData.profile.is_pro || false,
+                historical_days: updatedRemoteData.profile.historical_days || 0,
+                historical_avg_minutes: updatedRemoteData.profile.historical_avg_minutes || 0,
               }
-            : { name: '阿斯汤加习练者', signature: remoteData.profile?.signature || '练习、练习，一切随之而来。', avatar: null, is_pro: false, historical_days: 0, historical_avg_minutes: 0 }
+            : { name: '阿斯汤加习练者', signature: updatedRemoteData.profile?.signature || '练习、练习，一切随之而来。', avatar: null, is_pro: false, historical_days: 0, historical_avg_minutes: 0 }
 
           onSyncComplete({
-            records: remoteData.records,
-            options: remoteData.options || [],
+            records: updatedRemoteData.records,
+            options: updatedRemoteData.options || [],
             profile: remoteProfile
           })
           break
