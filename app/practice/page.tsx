@@ -835,6 +835,7 @@ function ShareCardModal({
   onLogExport,
   onOpenVoiceFakeDoor,
   onOpenPhotoFakeDoor,
+  syncStatus,
 }: {
   isOpen: boolean
   onClose: () => void
@@ -847,6 +848,7 @@ function ShareCardModal({
   onLogExport: (log: any) => void
   onOpenVoiceFakeDoor?: () => void
   onOpenPhotoFakeDoor?: () => void
+  syncStatus?: 'idle' | 'syncing' | 'success' | 'error'
 }) {
   const [editableNotes, setEditableNotes] = useState("")
   const [isEditingNotes, setIsEditingNotes] = useState(false)
@@ -1014,7 +1016,14 @@ function ShareCardModal({
                     </div>
                   ) : (
                     <p
-                      onClick={() => setIsEditingNotes(true)}
+                      onClick={() => {
+                        // ⭐ 同步进行时禁止编辑，防止笔记丢失
+                        if (syncStatus === 'syncing') {
+                          toast.info('同步中，请稍候再编辑...')
+                          return
+                        }
+                        setIsEditingNotes(true)
+                      }}
                       className={`text-sm text-foreground font-serif leading-relaxed cursor-text hover:bg-secondary/30 rounded-lg p-1 -m-1 transition-colors whitespace-pre-wrap break-words ${
                         isCapturing
                           ? 'max-h-none'  // 截图时：无高度限制
@@ -2907,11 +2916,6 @@ function JournalTab({
   // Right click -> Share card
   const handleRightClick = (record: PracticeRecord, e: React.MouseEvent) => {
     e.stopPropagation()
-    // ⭐ 同步进行时禁止编辑，防止笔记丢失
-    if (syncStatus === 'syncing') {
-      toast.info('同步中，请稍候再编辑...')
-      return
-    }
     setSharingRecordId(record.id)
   }
 
@@ -3042,6 +3046,7 @@ function JournalTab({
         onLogExport={onLogExport}
         onOpenVoiceFakeDoor={onOpenVoiceFakeDoor}
         onOpenPhotoFakeDoor={onOpenPhotoFakeDoor}
+        syncStatus={syncStatus}
       />
 
       <AddPracticeModal
