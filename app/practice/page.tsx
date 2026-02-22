@@ -2896,12 +2896,22 @@ function JournalTab({
   // Left click -> Edit record
   const handleLeftClick = (record: PracticeRecord, e: React.MouseEvent) => {
     e.stopPropagation()
+    // ⭐ 同步进行时禁止编辑，防止笔记丢失
+    if (syncStatus === 'syncing') {
+      toast.info('同步中，请稍候再编辑...')
+      return
+    }
     onSetEditingRecord(record)
   }
 
   // Right click -> Share card
   const handleRightClick = (record: PracticeRecord, e: React.MouseEvent) => {
     e.stopPropagation()
+    // ⭐ 同步进行时禁止编辑，防止笔记丢失
+    if (syncStatus === 'syncing') {
+      toast.info('同步中，请稍候再编辑...')
+      return
+    }
     setSharingRecordId(record.id)
   }
 
