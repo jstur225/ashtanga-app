@@ -21,32 +21,33 @@
 - **notebooklm** - NotebookLM 集成，查询笔记本知识库
 - **better-auth-best-practices** - TypeScript 认证框架集成指南（2026-02-02 安装）
 
-- **2026-02-23**: **修复新建/补卡记录后立即编辑导致笔记丢失问题（第五轮 - 已优化）** 🔄 待测试
-  - **用户反馈**: 问题依旧，刷新后才能正常编辑
-  - **深入分析**: 发现同步回调会强制关闭弹窗
-    - 同步回调 `onSyncComplete` 中，如果找不到编辑记录，会调用 `setEditingRecord(null)`
-    - 这是因为新记录可能还没上传到云端，或冲突解决选择了云端数据
-    - `handleLeftClick` 也可能传递过期对象引用
-  - **第五轮修复** (commit: 331c524):
-    1. **同步回调**: 找不到记录时不再关闭弹窗，保持编辑状态，添加详细诊断日志
-    2. **handleLeftClick**: 从最新 `practiceHistory` 中重新查找记录，避免传递过期引用
-    3. **EditRecordModal**: 保留之前的修复（从最新列表查找）
+- **2026-02-23**: **修复新建/补卡记录后立即编辑导致笔记丢失问题（第六轮 - 已推送）** 🔄 待测试
+  - **用户反馈**: 问题依旧，刷新后显示旧内容，需要再次刷新才能正常编辑
+  - **深入分析**: React 状态更新延迟
+    - `practiceHistory` prop 可能不是最新的（React 异步渲染）
+    - `handleLeftClick` 传递的记录对象可能是过期的
+    - `handleSave` 使用的 `practiceHistory.find()` 可能找不到最新记录
+  - **第六轮修复** (commit: c0252d1):
+    1. **handleLeftClick**: 直接从 `localStorage` 读取最新记录，绕过 React 状态
+    2. **handleSave**: 也直接从 `localStorage` 读取最新记录
+    3. 保留第五轮的同步回调修复（不关闭弹窗）
   - **关键改动**:
     ```typescript
-    // 同步回调 - 不再关闭弹窗
-    if (newEditingRecord) {
-      setEditingRecord(newEditingRecord)
-    } else {
-      // 保持编辑状态，不关闭弹窗
-      console.error('编辑的记录在云端找不到，保持本地编辑状态')
-    }
+    // handleLeftClick - 直接读取 localStorage
+    const recordsStr = localStorage.getItem('ashtanga_records')
+    const records = JSON.parse(recordsStr)
+    const latestRecord = records.find(r => r.id === record.id)
+    onSetEditingRecord(latestRecord || record)
 
-    // handleLeftClick - 重新查找记录
-    const latestRecord = practiceHistory.find(r => r.id === record.id)
-    if (latestRecord) {
-      onSetEditingRecord(latestRecord)
-    }
+    // handleSave - 同样直接读取 localStorage
+    const recordsStr = localStorage.getItem('ashtanga_records')
+    const records = JSON.parse(recordsStr)
+    const targetRecord = records.find(r => r.id === record.id) || record
+    onSave(targetRecord.id, {...})
     ```
+  - **用户关键描述**:
+    - 新建记录 → 不刷新 → 编辑 → 消失 → 刷新 → 出现（旧内容）→ 再编辑 → 还是消失 → 再刷新 → 正常
+    - 这说明数据确实保存了，但显示时用了过期的对象
   - **用户测试发现的关键规律**:
     - ❌ **场景A（有问题）**: 新增记录 → 等待3秒 → 编辑 → 记录消失 → 刷新 → 记录出现（旧内容）
     - ✅ **场景B（正常）**: 新增记录 → 等待3秒 → 刷新页面 → 编辑 → 正常
