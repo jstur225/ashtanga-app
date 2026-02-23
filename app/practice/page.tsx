@@ -3900,14 +3900,20 @@ export default function AshtangaTracker() {
   }
 
   const handleEditRecord = (id: string, data: Partial<PracticeRecord>) => {
+    console.error('[handleEditRecord] 开始保存，id:', id, 'notes:', data.notes?.substring(0, 30))
     const result = updateRecord(id, data, (updatedRecord) => {
       // ⭐ 编辑后触发同步，确保云端数据更新
-      if (user) {
-        console.log('[handleEditRecord] 编辑完成，触发同步...')
-        autoSync()
-      }
+      console.error('[handleEditRecord] updateRecord 回调执行，updatedRecord:', updatedRecord ? '存在' : 'undefined')
+      // ⭐ 诊断：暂时禁用自动同步，测试记录是否还会消失
+      console.error('[handleEditRecord] ⚠️ 自动同步已禁用（诊断模式）')
+      // if (user) {
+      //   console.error('[handleEditRecord] 用户已登录，准备触发同步...')
+      //   autoSync()
+      // } else {
+      //   console.error('[handleEditRecord] 用户未登录，不触发同步')
+      // }
     })
-    toast.success('更新成功')
+    toast.success('更新成功（诊断模式：未同步）')
     return result
   }
 
