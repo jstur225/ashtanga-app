@@ -2947,7 +2947,15 @@ function JournalTab({
       toast.info('数据同步中，请稍后再进行编辑')
       return
     }
-    onSetEditingRecord(record)
+    // ⭐ 修复：从最新的 practiceHistory 中重新查找记录，避免对象引用过期
+    const latestRecord = practiceHistory.find(r => r.id === record.id)
+    if (latestRecord) {
+      onSetEditingRecord(latestRecord)
+    } else {
+      console.error('❌ [handleLeftClick] 找不到记录:', record.id)
+      // 兜底：使用原记录
+      onSetEditingRecord(record)
+    }
   }
 
   // Right click -> Share card
@@ -3622,12 +3630,21 @@ export default function AshtangaTracker() {
             // ⭐ 重新设置正在编辑的记录（从新的记录列表中查找）
             if (editingRecordId) {
               const newEditingRecord = data.records.find((r: PracticeRecord) => r.id === editingRecordId)
+              console.log('   🔍 查找编辑记录:', {
+                editingRecordId,
+                found: !!newEditingRecord,
+                cloudRecordIds: data.records.slice(0, 5).map((r: PracticeRecord) => r.id),
+                totalCloudRecords: data.records.length
+              })
               if (newEditingRecord) {
                 setEditingRecord(newEditingRecord)
                 console.log('   ✅ 已恢复编辑状态:', editingRecordId)
               } else {
-                setEditingRecord(null)
-                console.log('   ⚠️ 正在编辑的记录在云端不存在，关闭编辑弹窗')
+                // ⭐ 问题根源：云端数据不包含正在编辑的记录
+                // 这可能是新记录还没上传到云端，或者冲突解决时选择了旧数据
+                console.error('   ❌ 编辑的记录在云端找不到，保持本地编辑状态')
+                // 不要关闭弹窗，让用户继续编辑
+                // setEditingRecord(null)  // 暂时注释掉，避免打断用户编辑
               }
             }
 
