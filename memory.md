@@ -21,20 +21,30 @@
 - **notebooklm** - NotebookLM 集成，查询笔记本知识库
 - **better-auth-best-practices** - TypeScript 认证框架集成指南（2026-02-02 安装）
 
-- **2026-02-23**: **修复新建/补卡记录后立即编辑导致笔记丢失问题（第四轮 - 已修复）** ✅ 完成
-  - **当前状态**: 已实施修复，待用户测试验证
-  - **核心原因**: 对象引用过期。同步后 `clearAllData()` + `importData()` 重建了所有记录，`editingRecord` 存的旧对象引用指向了无效内存
-  - **修复方案**: 在 `EditRecordModal` 的 `handleSave` 中，从 `practiceHistory` 重新查找最新记录对象，确保使用有效的引用
-  - **修改文件**: `app/practice/page.tsx` (line 577-603)
-  - **修改内容**:
+- **2026-02-23**: **修复新建/补卡记录后立即编辑导致笔记丢失问题（第五轮 - 已优化）** 🔄 待测试
+  - **用户反馈**: 问题依旧，刷新后才能正常编辑
+  - **深入分析**: 发现同步回调会强制关闭弹窗
+    - 同步回调 `onSyncComplete` 中，如果找不到编辑记录，会调用 `setEditingRecord(null)`
+    - 这是因为新记录可能还没上传到云端，或冲突解决选择了云端数据
+    - `handleLeftClick` 也可能传递过期对象引用
+  - **第五轮修复** (commit: 331c524):
+    1. **同步回调**: 找不到记录时不再关闭弹窗，保持编辑状态，添加详细诊断日志
+    2. **handleLeftClick**: 从最新 `practiceHistory` 中重新查找记录，避免传递过期引用
+    3. **EditRecordModal**: 保留之前的修复（从最新列表查找）
+  - **关键改动**:
     ```typescript
-    // 修复前: 直接使用 record.id
-    onSave(record.id, {...})
+    // 同步回调 - 不再关闭弹窗
+    if (newEditingRecord) {
+      setEditingRecord(newEditingRecord)
+    } else {
+      // 保持编辑状态，不关闭弹窗
+      console.error('编辑的记录在云端找不到，保持本地编辑状态')
+    }
 
-    // 修复后: 从最新列表中重新查找
+    // handleLeftClick - 重新查找记录
     const latestRecord = practiceHistory.find(r => r.id === record.id)
     if (latestRecord) {
-      onSave(latestRecord.id, {...})
+      onSetEditingRecord(latestRecord)
     }
     ```
   - **用户测试发现的关键规律**:
