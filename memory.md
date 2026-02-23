@@ -21,12 +21,26 @@
 - **notebooklm** - NotebookLM 集成，查询笔记本知识库
 - **better-auth-best-practices** - TypeScript 认证框架集成指南（2026-02-02 安装）
 
-- **2026-02-23**: **修复新建/补卡记录后立即编辑导致笔记丢失问题（第六轮 - 已推送）** 🔄 待测试
-  - **用户反馈**: 问题依旧，刷新后显示旧内容，需要再次刷新才能正常编辑
-  - **深入分析**: React 状态更新延迟
-    - `practiceHistory` prop 可能不是最新的（React 异步渲染）
-    - `handleLeftClick` 传递的记录对象可能是过期的
-    - `handleSave` 使用的 `practiceHistory.find()` 可能找不到最新记录
+- **2026-02-23**: **修复新建/补卡记录后立即编辑导致笔记丢失问题（第七轮 - 已推送）** 🔄 待测试
+  - **根本原因发现**: `setRecords` 异步导致同步读取旧数据
+    - `updateRecord` 调用 `setRecords` 更新状态（异步）
+    - 100ms 后触发 `autoSync`，但 `localStorage` 可能还没更新
+    - `autoSync` 调用 `getLatestLocalData()` 读取到旧数据
+    - 对比时间戳时认为云端数据更新，用云端旧数据覆盖本地新数据
+  - **第七轮修复** (commit: 05584e1):
+    - 将同步延迟从 100ms 增加到 **500ms**
+    - 涉及 `updateRecord`、`handleAddRecord`、`handleAddOption`
+  - **用户关键描述**:
+    - 新建记录 → 不刷新 → 编辑 → 消失 → 刷新 → 出现（旧内容）→ 再编辑 → 还是消失 → 再刷新 → 正常
+    - 这说明数据确实保存了，但显示时用了过期的对象
+  - **日志说明**: 使用 `console.error` 替代 `console.log`（Vercel 不会移除）
+  - **前六轮修复总结**:
+    1. 第一轮: 添加记录后3秒内禁止编辑
+    2. 第二轮: 编辑后触发同步 `autoSync()`
+    3. 第三轮: 同步时恢复编辑状态
+    4. 第四轮: `handleSave` 从最新列表查找记录
+    5. 第五轮: 同步回调不关闭弹窗
+    6. 第六轮: `handleLeftClick` 和 `handleSave` 直接读 `localStorage`
   - **第六轮修复** (commit: c0252d1):
     1. **handleLeftClick**: 直接从 `localStorage` 读取最新记录，绕过 React 状态
     2. **handleSave**: 也直接从 `localStorage` 读取最新记录
