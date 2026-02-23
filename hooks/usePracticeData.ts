@@ -212,13 +212,13 @@ export const usePracticeData = () => {
     });
 
     // ⭐ 触发同步回调（使用在 setRecords 中捕获的更新后记录）
-    // 延迟执行 onSync，确保 localStorage 已更新
+    // ⭐ 延迟 500ms 执行 onSync，确保 localStorage 已完全更新（修复竞争条件）
     setTimeout(() => {
-      console.error('[updateRecord] 100ms后，updatedRecord:', updatedRecord ? '存在' : 'undefined')
+      console.error('[updateRecord] 500ms后，updatedRecord:', updatedRecord ? '存在' : 'undefined')
       if (updatedRecord) {
         onSync?.(updatedRecord);
       }
-    }, 100);
+    }, 500);
   };
 
   const deleteRecord = (

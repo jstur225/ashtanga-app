@@ -3941,11 +3941,11 @@ export default function AshtangaTracker() {
       has_notes: !!record.notes && record.notes.length > 0
     })
     toast.success('补卡成功！')
-    // ⭐ 延迟同步，确保 localStorage 已更新
+    // ⭐ 延迟 500ms 同步，确保 localStorage 已完全更新
     if (user) {
       setTimeout(() => {
         autoSync()
-      }, 100)
+      }, 500)
     }
   }
 
@@ -3957,12 +3957,12 @@ export default function AshtangaTracker() {
     toast.success('已添加自定义选项')
     // ⭐ 新增：如果已登录，自动同步到云端
     if (user) {
-      console.log('[handleAddOption] 用户已登录，准备触发自动同步...')
-      // 延迟 100ms，确保 localStorage 已更新
+      console.error('[handleAddOption] 用户已登录，500ms后触发自动同步...')
+      // 延迟 500ms，确保 localStorage 已完全更新
       setTimeout(async () => {
-        console.log('[handleAddOption] 触发自动同步...')
+        console.error('[handleAddOption] 触发自动同步...')
         await autoSync()
-      }, 100)
+      }, 500)
     }
   }
 
