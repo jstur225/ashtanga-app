@@ -181,7 +181,7 @@ export const usePracticeData = () => {
   const updateRecord = (
     id: string,
     data: Partial<PracticeRecord>,
-    onSync?: (record: PracticeRecord) => void // ⭐ 新增：同步回调
+    onSync?: (record: PracticeRecord) => void
   ) => {
     const now = new Date().toISOString();
 
@@ -196,21 +196,10 @@ export const usePracticeData = () => {
       console.error('[updateRecord] 读取 localStorage 失败:', e);
     }
 
-    // ⭐ UI 诊断：用 toast 显示关键信息
-    import('sonner').then(({ toast }) => {
-      toast.info(`开始更新，ID:${id?.substring(0, 8)}，localStorage:${latestRecords.length}条`, { duration: 2000 })
-    })
-    console.error('[updateRecord] ========== 开始更新 ==========')
-    console.error('[updateRecord] 传入 id:', id)
-    console.error('[updateRecord] localStorage records 数:', latestRecords.length)
-
     // 在 localStorage 数据中查找并更新
     const targetRecord = latestRecords.find(r => r.id === id);
     if (!targetRecord) {
-      console.error('[updateRecord] ❌ localStorage 中找不到记录:', id)
-      import('sonner').then(({ toast }) => {
-        toast.error(`localStorage找不到:${id?.substring(0, 8)}`, { duration: 3000 })
-      })
+      console.error('[updateRecord] 找不到记录:', id);
       return;
     }
 
@@ -226,15 +215,8 @@ export const usePracticeData = () => {
     // 直接写入 localStorage
     try {
       localStorage.setItem('ashtanga_records', JSON.stringify(sortedRecords));
-      console.error('[updateRecord] ✅ 直接写入 localStorage 成功')
-      import('sonner').then(({ toast }) => {
-        toast.success(`已更新，共${sortedRecords.length}条`, { duration: 2000 })
-      })
     } catch (e) {
-      console.error('[updateRecord] ❌ 写入 localStorage 失败:', e)
-      import('sonner').then(({ toast }) => {
-        toast.error('写入失败', { duration: 3000 })
-      })
+      console.error('[updateRecord] 写入 localStorage 失败:', e);
       return;
     }
 

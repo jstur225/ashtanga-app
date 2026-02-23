@@ -575,48 +575,16 @@ function EditRecordModal({
   }, [record])
 
   const handleSave = () => {
-    console.error('💾 [handleSave] 开始保存')
-    toast.info(`保存开始，recordID:${record?.id?.substring(0, 8)}`, { duration: 2000 })
     if (record) {
-      // ⭐ 修复：直接从 localStorage 读取最新记录，确保 ID 正确
-      let targetRecord = record
-      let foundInStorage = false
-      try {
-        const recordsStr = localStorage.getItem('ashtanga_records')
-        console.error('📦 [handleSave] localStorage 长度:', recordsStr?.length || 0)
-        toast.info(`localStorage长度:${recordsStr?.length || 0}`, { duration: 1500 })
-        if (recordsStr) {
-          const records = JSON.parse(recordsStr)
-          const latestRecord = records.find((r: PracticeRecord) => r.id === record.id)
-          if (latestRecord) {
-            foundInStorage = true
-            console.error('✅ [handleSave] 使用 localStorage 记录，当前notes:', latestRecord.notes?.substring(0, 30))
-            toast.success(`找到记录，records数:${records.length}`, { duration: 1500 })
-            targetRecord = latestRecord
-          } else {
-            console.error('❌ [handleSave] localStorage 中找不到记录:', record.id)
-            toast.error(`localStorage找不到:${record.id?.substring(0, 8)}`, { duration: 3000 })
-          }
-        }
-      } catch (e) {
-        console.error('❌ [handleSave] 读取 localStorage 失败:', e)
-        toast.error('读取localStorage失败', { duration: 3000 })
-      }
-
-      console.error('🚀 [handleSave] 调用 onSave，id:', targetRecord.id, '新notes:', notes?.substring(0, 30))
-      toast.info(`调用onSave，ID:${targetRecord.id?.substring(0, 8)}`, { duration: 2000 })
-      onSave(targetRecord.id, {
+      onSave(record.id, {
         notes,
         breakthrough: breakthroughEnabled ? breakthroughText : undefined,
         date,
         type,
-        duration: duration * 60, // 转换为秒
+        duration: duration * 60,
       })
-      toast.success('保存命令已发送')
+      toast.success('更新成功')
       onClose()
-    } else {
-      console.error('❌ [handleSave] record 为 null')
-      toast.error('record为null', { duration: 3000 })
     }
   }
 
@@ -2966,37 +2934,6 @@ function JournalTab({
       toast.info('数据同步中，请稍后再进行编辑')
       return
     }
-    // ⭐ 修复：直接从 localStorage 读取最新记录，确保不是过期对象
-    console.error('🔍 [handleLeftClick] 开始执行，record.id:', record.id)
-    let foundInStorage = false
-    try {
-      const recordsStr = localStorage.getItem('ashtanga_records')
-      console.error('📦 [handleLeftClick] localStorage recordsStr:', recordsStr ? `长度${recordsStr.length}` : 'null')
-      toast.info(`localStorage长度:${recordsStr?.length || 0}`, { duration: 1500 })
-      if (recordsStr) {
-        const records = JSON.parse(recordsStr)
-        console.error('📊 [handleLeftClick] 解析后记录数:', records.length)
-        const latestRecord = records.find((r: PracticeRecord) => r.id === record.id)
-        if (latestRecord) {
-          foundInStorage = true
-          console.error('✅ [handleLeftClick] 找到记录，notes:', latestRecord.notes?.substring(0, 30))
-          toast.success(`找到记录，共${records.length}条`, { duration: 1500 })
-          onSetEditingRecord(latestRecord)
-          return
-        } else {
-          console.error('❌ [handleLeftClick] 在 localStorage 中找不到记录:', record.id)
-          console.error('   可用ID列表:', records.slice(0, 3).map((r: PracticeRecord) => r.id))
-          toast.error(`localStorage找不到:${record.id?.substring(0, 8)}`, { duration: 3000 })
-        }
-      }
-    } catch (e) {
-      console.error('❌ [handleLeftClick] 读取 localStorage 失败:', e)
-      toast.error('读取localStorage失败', { duration: 3000 })
-    }
-    // 兜底：使用传入的记录
-    console.error('⚠️ [handleLeftClick] 使用传入的记录（可能过期）:', record.id)
-    toast.warning('使用缓存记录（可能过期）', { duration: 2000 })
-    toast.warning('使用缓存记录（可能不是最新）')
     onSetEditingRecord(record)
   }
 
@@ -3915,38 +3852,13 @@ export default function AshtangaTracker() {
   }
 
   const handleEditRecord = (id: string, data: Partial<PracticeRecord>) => {
-    console.error('[handleEditRecord] ========== 开始保存 ==========')
-    console.error('[handleEditRecord] 传入 id:', id)
-    console.error('[handleEditRecord] 传入 data.keys:', Object.keys(data))
-    toast.info(`handleEditRecord ID:${id?.substring(0, 8)}`, { duration: 3000 })
-
-    // ⭐ 诊断：直接从 localStorage 检查 id 是否存在
-    try {
-      const recordsStr = localStorage.getItem('ashtanga_records')
-      if (recordsStr) {
-        const records = JSON.parse(recordsStr)
-        const found = records.find((r: PracticeRecord) => r.id === id)
-        console.error('[handleEditRecord] localStorage 中:', found ? '找到记录' : '未找到记录')
-        toast.info(`localStorage:${found ? '找到' : '未找到'}`, { duration: 2000 })
+    updateRecord(id, data, () => {
+      // 编辑后触发同步
+      if (user) {
+        autoSync()
       }
-    } catch (e) {
-      console.error('[handleEditRecord] 检查 localStorage 失败:', e)
-    }
-
-    const result = updateRecord(id, data, (updatedRecord) => {
-      // ⭐ 编辑后触发同步，确保云端数据更新
-      console.error('[handleEditRecord] updateRecord 回调执行，updatedRecord:', updatedRecord ? '存在' : 'undefined')
-      // ⭐ 诊断：暂时禁用自动同步，测试记录是否还会消失
-      console.error('[handleEditRecord] ⚠️ 自动同步已禁用（诊断模式）')
-      // if (user) {
-      //   console.error('[handleEditRecord] 用户已登录，准备触发同步...')
-      //   autoSync()
-      // } else {
-      //   console.error('[handleEditRecord] 用户未登录，不触发同步')
-      // }
     })
-    toast.success('更新成功（诊断模式：未同步）')
-    return result
+    toast.success('更新成功')
   }
 
   const handleDeleteRecord = async (id: string) => {
@@ -3978,29 +3890,21 @@ export default function AshtangaTracker() {
       has_breakthrough: !!record.breakthrough,
       has_notes: !!record.notes && record.notes.length > 0
     })
-    toast.success('补卡成功！（诊断模式：未同步）')
-    // ⭐ 诊断：暂时禁用自动同步
-    console.error('[handleAddRecord] ⚠️ 自动同步已禁用（诊断模式）')
+    toast.success('补卡成功！')
     // 延迟 500ms 同步，确保 localStorage 已完全更新
-    // if (user) {
-    //   setTimeout(() => {
-    //     autoSync()
-    //   }, 500)
-    // }
+    if (user) {
+      setTimeout(() => {
+        autoSync()
+      }, 500)
+    }
   }
 
   const handleAddOption = async (name: string, notes: string) => {
-    console.log('handleAddOption called with:', name, notes)
-    // 修复：直接使用 addOption(name, name, notes) 避免竞态条件
     addOption(name, name, notes)
-    console.log('current practiceOptionsData after add:', practiceOptionsData)
     toast.success('已添加自定义选项')
-    // ⭐ 新增：如果已登录，自动同步到云端
+    // 如果已登录，自动同步到云端
     if (user) {
-      console.error('[handleAddOption] 用户已登录，500ms后触发自动同步...')
-      // 延迟 500ms，确保 localStorage 已完全更新
       setTimeout(async () => {
-        console.error('[handleAddOption] 触发自动同步...')
         await autoSync()
       }, 500)
     }
