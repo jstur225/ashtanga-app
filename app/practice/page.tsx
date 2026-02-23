@@ -576,29 +576,32 @@ function EditRecordModal({
 
   const handleSave = () => {
     if (record) {
-      // ⭐ 修复：从最新的 practiceHistory 中重新查找记录，避免对象引用过期
-      const latestRecord = practiceHistory.find(r => r.id === record.id)
-      if (latestRecord) {
-        onSave(latestRecord.id, {
-          notes,
-          breakthrough: breakthroughEnabled ? breakthroughText : undefined,
-          date,
-          type,
-          duration: duration * 60, // 转换为秒
-        })
-        onClose()
-      } else {
-        console.error('❌ [handleSave] 找不到记录:', record.id)
-        // 即使找不到，也尝试用原 ID 保存（兜底方案）
-        onSave(record.id, {
-          notes,
-          breakthrough: breakthroughEnabled ? breakthroughText : undefined,
-          date,
-          type,
-          duration: duration * 60,
-        })
-        onClose()
+      // ⭐ 修复：直接从 localStorage 读取最新记录，确保 ID 正确
+      let targetRecord = record
+      try {
+        const recordsStr = localStorage.getItem('ashtanga_records')
+        if (recordsStr) {
+          const records = JSON.parse(recordsStr)
+          const latestRecord = records.find((r: PracticeRecord) => r.id === record.id)
+          if (latestRecord) {
+            console.log('[handleSave] 使用 localStorage 中的记录:', latestRecord.id)
+            targetRecord = latestRecord
+          } else {
+            console.error('❌ [handleSave] localStorage 中找不到记录:', record.id)
+          }
+        }
+      } catch (e) {
+        console.error('❌ [handleSave] 读取 localStorage 失败:', e)
       }
+
+      onSave(targetRecord.id, {
+        notes,
+        breakthrough: breakthroughEnabled ? breakthroughText : undefined,
+        date,
+        type,
+        duration: duration * 60, // 转换为秒
+      })
+      onClose()
     }
   }
 
@@ -2947,15 +2950,24 @@ function JournalTab({
       toast.info('数据同步中，请稍后再进行编辑')
       return
     }
-    // ⭐ 修复：从最新的 practiceHistory 中重新查找记录，避免对象引用过期
-    const latestRecord = practiceHistory.find(r => r.id === record.id)
-    if (latestRecord) {
-      onSetEditingRecord(latestRecord)
-    } else {
-      console.error('❌ [handleLeftClick] 找不到记录:', record.id)
-      // 兜底：使用原记录
-      onSetEditingRecord(record)
+    // ⭐ 修复：直接从 localStorage 读取最新记录，确保不是过期对象
+    try {
+      const recordsStr = localStorage.getItem('ashtanga_records')
+      if (recordsStr) {
+        const records = JSON.parse(recordsStr)
+        const latestRecord = records.find((r: PracticeRecord) => r.id === record.id)
+        if (latestRecord) {
+          console.log('[handleLeftClick] 从 localStorage 读取最新记录:', latestRecord.id, 'notes:', latestRecord.notes?.substring(0, 20))
+          onSetEditingRecord(latestRecord)
+          return
+        }
+      }
+    } catch (e) {
+      console.error('❌ [handleLeftClick] 读取 localStorage 失败:', e)
     }
+    // 兜底：使用传入的记录
+    console.warn('[handleLeftClick] 使用传入的记录（可能过期）:', record.id)
+    onSetEditingRecord(record)
   }
 
   // Right click -> Share card
