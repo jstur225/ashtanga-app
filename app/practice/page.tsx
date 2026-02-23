@@ -3946,13 +3946,15 @@ export default function AshtangaTracker() {
       has_breakthrough: !!record.breakthrough,
       has_notes: !!record.notes && record.notes.length > 0
     })
-    toast.success('补卡成功！')
-    // ⭐ 延迟 500ms 同步，确保 localStorage 已完全更新
-    if (user) {
-      setTimeout(() => {
-        autoSync()
-      }, 500)
-    }
+    toast.success('补卡成功！（诊断模式：未同步）')
+    // ⭐ 诊断：暂时禁用自动同步
+    console.error('[handleAddRecord] ⚠️ 自动同步已禁用（诊断模式）')
+    // 延迟 500ms 同步，确保 localStorage 已完全更新
+    // if (user) {
+    //   setTimeout(() => {
+    //     autoSync()
+    //   }, 500)
+    // }
   }
 
   const handleAddOption = async (name: string, notes: string) => {
@@ -4735,22 +4737,25 @@ export default function AshtangaTracker() {
         onSave={async (profile) => {
           // 先保存到本地
           updateProfile(profile)
+          // ⭐ 诊断：暂时禁用同步
+          console.error('[Settings] ⚠️ 资料同步已禁用（诊断模式）')
+          toast.success('✅ 资料已保存（诊断模式：未同步）')
           // 如果已登录，自动同步到云端
-          if (user) {
-            toast.loading('正在同步到云端...', { id: 'sync-profile' })
-            try {
-              const result = await autoSync()
-              toast.dismiss('sync-profile')
-              if (result) {
-                toast.success('✅ 资料已同步到云端')
-              } else {
-                toast.error('❌ 同步失败，请稍后重试')
-              }
-            } catch (e) {
-              toast.dismiss('sync-profile')
-              toast.error('❌ 同步失败')
-            }
-          }
+          // if (user) {
+          //   toast.loading('正在同步到云端...', { id: 'sync-profile' })
+          //   try {
+          //     const result = await autoSync()
+          //     toast.dismiss('sync-profile')
+          //     if (result) {
+          //       toast.success('✅ 资料已同步到云端')
+          //     } else {
+          //       toast.error('❌ 同步失败，请稍后重试')
+          //     }
+          //   } catch (e) {
+          //     toast.dismiss('sync-profile')
+          //     toast.error('❌ 同步失败')
+          //   }
+          // }
         }}
         onOpenExport={() => {
           const data = exportData()
