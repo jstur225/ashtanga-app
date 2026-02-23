@@ -3915,7 +3915,24 @@ export default function AshtangaTracker() {
   }
 
   const handleEditRecord = (id: string, data: Partial<PracticeRecord>) => {
-    console.error('[handleEditRecord] 开始保存，id:', id, 'notes:', data.notes?.substring(0, 30))
+    console.error('[handleEditRecord] ========== 开始保存 ==========')
+    console.error('[handleEditRecord] 传入 id:', id)
+    console.error('[handleEditRecord] 传入 data.keys:', Object.keys(data))
+    toast.info(`handleEditRecord ID:${id?.substring(0, 8)}`, { duration: 3000 })
+
+    // ⭐ 诊断：直接从 localStorage 检查 id 是否存在
+    try {
+      const recordsStr = localStorage.getItem('ashtanga_records')
+      if (recordsStr) {
+        const records = JSON.parse(recordsStr)
+        const found = records.find((r: PracticeRecord) => r.id === id)
+        console.error('[handleEditRecord] localStorage 中:', found ? '找到记录' : '未找到记录')
+        toast.info(`localStorage:${found ? '找到' : '未找到'}`, { duration: 2000 })
+      }
+    } catch (e) {
+      console.error('[handleEditRecord] 检查 localStorage 失败:', e)
+    }
+
     const result = updateRecord(id, data, (updatedRecord) => {
       // ⭐ 编辑后触发同步，确保云端数据更新
       console.error('[handleEditRecord] updateRecord 回调执行，updatedRecord:', updatedRecord ? '存在' : 'undefined')
