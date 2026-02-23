@@ -183,68 +183,68 @@ export const usePracticeData = () => {
     data: Partial<PracticeRecord>,
     onSync?: (record: PracticeRecord) => void // ⭐ 新增：同步回调
   ) => {
+    const now = new Date().toISOString();
+
+    // ⭐ 修复：直接从 localStorage 读取最新记录，避免 React 状态延迟
+    let latestRecords: PracticeRecord[] = [];
+    try {
+      const recordsStr = localStorage.getItem('ashtanga_records');
+      if (recordsStr) {
+        latestRecords = JSON.parse(recordsStr);
+      }
+    } catch (e) {
+      console.error('[updateRecord] 读取 localStorage 失败:', e);
+    }
+
     // ⭐ UI 诊断：用 toast 显示关键信息
     import('sonner').then(({ toast }) => {
-      toast.info(`开始更新，ID:${id?.substring(0, 8)}`, { duration: 2000 })
+      toast.info(`开始更新，ID:${id?.substring(0, 8)}，localStorage:${latestRecords.length}条`, { duration: 2000 })
     })
     console.error('[updateRecord] ========== 开始更新 ==========')
     console.error('[updateRecord] 传入 id:', id)
-    console.error('[updateRecord] 当前 records 数:', records?.length || 0)
-    console.error('[updateRecord] 所有记录的ID:', records?.map(r => r.id?.substring(0, 8)))
+    console.error('[updateRecord] localStorage records 数:', latestRecords.length)
 
-    const now = new Date().toISOString();
-    let updatedRecord: PracticeRecord | undefined;
+    // 在 localStorage 数据中查找并更新
+    const targetRecord = latestRecords.find(r => r.id === id);
+    if (!targetRecord) {
+      console.error('[updateRecord] ❌ localStorage 中找不到记录:', id)
+      import('sonner').then(({ toast }) => {
+        toast.error(`localStorage找不到:${id?.substring(0, 8)}`, { duration: 3000 })
+      })
+      return;
+    }
 
-    // ⭐ 更新记录后按日期重新排序（修复修改日期后不排序的问题）
-    setRecords((prevRecords) => {
-      console.error('[updateRecord] setRecords 回调执行')
-      console.error('[updateRecord] prevRecords 数:', prevRecords?.length || 0)
-      console.error('[updateRecord] prevRecords IDs:', prevRecords?.map(r => r.id?.substring(0, 8)))
+    // 更新记录
+    const updatedRecord: PracticeRecord = { ...targetRecord, ...data, updated_at: now };
+    const updatedRecords = latestRecords.map(r => r.id === id ? updatedRecord : r);
 
-      // ⭐ 诊断：检查 id 匹配
-      const foundRecord = prevRecords?.find(r => r.id === id)
-      console.error('[updateRecord] 直接查找结果:', foundRecord ? '找到' : '未找到')
-      if (foundRecord) {
-        console.error('[updateRecord] 找到的记录 notes:', foundRecord.notes?.substring(0, 30))
-      }
-
-      const updatedRecords = (prevRecords || []).map(r => {
-        if (r.id === id) {
-          updatedRecord = { ...r, ...data, updated_at: now };
-          console.error('[updateRecord] ✅ map中找到记录并更新')
-          return updatedRecord;
-        }
-        return r;
-      });
-
-      if (!updatedRecord) {
-        console.error('[updateRecord] ❌ 警告：map中未找到记录:', id)
-        import('sonner').then(({ toast }) => {
-          toast.error(`未找到记录:${id?.substring(0, 8)}`, { duration: 3000 })
-        })
-      } else {
-        console.error('[updateRecord] ✅ updatedRecord 已设置，新notes:', updatedRecord.notes?.substring(0, 30))
-        import('sonner').then(({ toast }) => {
-          toast.success(`已更新，records数:${updatedRecords.length}`, { duration: 2000 })
-        })
-      }
-
-      // 按日期倒序排序（最新的在上面）
-      return updatedRecords.sort((a, b) => {
-        const dateA = new Date(a.date).getTime();
-        const dateB = new Date(b.date).getTime();
-        return dateB - dateA;
-      });
+    // 按日期倒序排序
+    const sortedRecords = updatedRecords.sort((a, b) => {
+      return new Date(b.date).getTime() - new Date(a.date).getTime();
     });
 
-    // ⭐ 触发同步回调（使用在 setRecords 中捕获的更新后记录）
-    // ⭐ 延迟 500ms 执行 onSync，确保 localStorage 已完全更新（修复竞争条件）
+    // 直接写入 localStorage
+    try {
+      localStorage.setItem('ashtanga_records', JSON.stringify(sortedRecords));
+      console.error('[updateRecord] ✅ 直接写入 localStorage 成功')
+      import('sonner').then(({ toast }) => {
+        toast.success(`已更新，共${sortedRecords.length}条`, { duration: 2000 })
+      })
+    } catch (e) {
+      console.error('[updateRecord] ❌ 写入 localStorage 失败:', e)
+      import('sonner').then(({ toast }) => {
+        toast.error('写入失败', { duration: 3000 })
+      })
+      return;
+    }
+
+    // 同时更新 React 状态（异步，但不依赖它）
+    setRecords(sortedRecords);
+
+    // 触发同步回调
     setTimeout(() => {
-      console.error('[updateRecord] 500ms后检查，updatedRecord:', updatedRecord ? '存在' : 'undefined')
-      if (updatedRecord) {
-        onSync?.(updatedRecord);
-      }
-    }, 500);
+      onSync?.(updatedRecord);
+    }, 100);
   };
 
   const deleteRecord = (
