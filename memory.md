@@ -21,17 +21,21 @@
 - **notebooklm** - NotebookLM 集成，查询笔记本知识库
 - **better-auth-best-practices** - TypeScript 认证框架集成指南（2026-02-02 安装）
 
-- **2026-02-23**: **修复新建/补卡记录后立即编辑导致笔记丢失问题（第十轮 - ID匹配诊断）** 🔄 待测试
-  - **用户最新反馈** (禁用同步后):
-    - 编辑记录保存后仍然消失
-    - 数据胶囊里也没有
-    - **结论**: 问题在本地保存逻辑，不在同步
-  - **第十轮诊断** (commit: ee3d801):
-    - 添加详细日志检查:
-      1. `updateRecord` - 检查传入的 id、当前 records、匹配情况
-      2. `handleLeftClick` - 检查点击编辑时的记录 ID
-      3. `handleSave` - 检查保存时的记录 ID
-    - 目标: 确认编辑时使用的 ID 是否与本地存储匹配
+- **2026-02-23**: **修复新建/补卡记录后立即编辑导致笔记丢失问题（第十一轮 - 根本性修复）** 🔄 待测试
+  - **问题确认**: ID 一致但 `updateRecord` 找不到记录
+    - `prevRecords` 是 React 旧状态，不包含新建的记录
+    - 这是 React 闭包/异步状态问题
+  - **第十一轮修复** (commit: 69cb0ea):
+    - **根本性解决方案**: 重写 `updateRecord`，直接操作 localStorage
+    - 步骤:
+      1. 直接从 localStorage 读取最新记录
+      2. 在 localStorage 数据中查找并更新
+      3. 直接写入 localStorage（不依赖 React 状态）
+      4. 同时更新 React 状态（异步，但不依赖它）
+    - 绕过 React 状态的异步问题
+  - **之前诊断** (commit: 9d95f72):
+    - 确认 ID 一致但 `updateRecord` 找不到记录
+    - 问题在 React 状态延迟，不在同步
   - **之前诊断**: 完全禁用同步后问题依旧，确认问题在本地保存
   - **之前修复（第七轮）**: `setRecords` 异步导致同步读取旧数据
     - 将同步延迟从 100ms 增加到 **500ms**
