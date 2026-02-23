@@ -120,6 +120,9 @@ export interface UserProfile {
   avatar: string | null // ⚠️ 头像只存本地，不上传云端（存本地URL或null）
   phone?: string
   is_pro: boolean
+  // 新增：历史练习数据校准
+  historical_days?: number // 历史练习天数
+  historical_avg_minutes?: number // 历史平均每次时长（分钟）
 }
 
 // Tables

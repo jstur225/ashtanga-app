@@ -34,6 +34,9 @@ export interface UserProfile {
   phone?: string;
   email?: string;
   is_pro: boolean;
+  // 新增：历史练习数据校准
+  historical_days?: number;           // 历史练习天数
+  historical_avg_minutes?: number;    // 历史平均每次时长（分钟）
 }
 
 const DEFAULT_OPTIONS: PracticeOption[] = [
@@ -178,29 +181,52 @@ export const usePracticeData = () => {
   const updateRecord = (
     id: string,
     data: Partial<PracticeRecord>,
-    onSync?: (record: PracticeRecord) => void // ⭐ 新增：同步回调
+    onSync?: (record: PracticeRecord) => void
   ) => {
     const now = new Date().toISOString();
 
-    // ⭐ 更新记录后按日期重新排序（修复修改日期后不排序的问题）
-    setRecords((prevRecords) => {
-      const updatedRecords = (prevRecords || []).map(r =>
-        r.id === id ? { ...r, ...data, updated_at: now } : r
-      );
+    // ⭐ 修复：直接从 localStorage 读取最新记录，避免 React 状态延迟
+    let latestRecords: PracticeRecord[] = [];
+    try {
+      const recordsStr = localStorage.getItem('ashtanga_records');
+      if (recordsStr) {
+        latestRecords = JSON.parse(recordsStr);
+      }
+    } catch (e) {
+      console.error('[updateRecord] 读取 localStorage 失败:', e);
+    }
 
-      // 按日期倒序排序（最新的在上面）
-      return updatedRecords.sort((a, b) => {
-        const dateA = new Date(a.date).getTime();
-        const dateB = new Date(b.date).getTime();
-        return dateB - dateA;
-      });
+    // 在 localStorage 数据中查找并更新
+    const targetRecord = latestRecords.find(r => r.id === id);
+    if (!targetRecord) {
+      console.error('[updateRecord] 找不到记录:', id);
+      return;
+    }
+
+    // 更新记录
+    const updatedRecord: PracticeRecord = { ...targetRecord, ...data, updated_at: now };
+    const updatedRecords = latestRecords.map(r => r.id === id ? updatedRecord : r);
+
+    // 按日期倒序排序
+    const sortedRecords = updatedRecords.sort((a, b) => {
+      return new Date(b.date).getTime() - new Date(a.date).getTime();
     });
 
-    // ⭐ 触发同步回调
-    const updatedRecord = records?.find(r => r.id === id);
-    if (updatedRecord) {
-      onSync?.({ ...updatedRecord, ...data, updated_at: now });
+    // 直接写入 localStorage
+    try {
+      localStorage.setItem('ashtanga_records', JSON.stringify(sortedRecords));
+    } catch (e) {
+      console.error('[updateRecord] 写入 localStorage 失败:', e);
+      return;
     }
+
+    // 同时更新 React 状态（异步，但不依赖它）
+    setRecords(sortedRecords);
+
+    // 触发同步回调
+    setTimeout(() => {
+      onSync?.(updatedRecord);
+    }, 100);
   };
 
   const deleteRecord = (

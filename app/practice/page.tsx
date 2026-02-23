@@ -7,7 +7,7 @@ import { usePracticeData, type PracticeRecord, type PracticeOption, type UserPro
 import { usePWAInstall } from "@/hooks/usePWAInstall"
 import { useAuth } from "@/hooks/useAuth"
 import { useSync } from "@/hooks/useSync"
-import { BookOpen, BarChart3, Calendar, X, Camera, Pause, Play, Trash2, User, Settings, ChevronLeft, ChevronRight, ChevronUp, Cloud, Download, Upload, Plus, Share2, Sparkles, Check, Copy, ClipboardPaste, MessageCircle, Bug, AlertCircle } from "lucide-react"
+import { BookOpen, BarChart3, Calendar, X, Camera, Pause, Play, Trash2, User, Settings, ChevronLeft, ChevronRight, ChevronUp, Cloud, Download, Upload, Plus, Minus, Share2, Sparkles, Check, Copy, ClipboardPaste, MessageCircle, Bug, AlertCircle } from "lucide-react"
 import { FakeDoorModal } from "@/components/FakeDoorModal"
 import { VoiceButton } from "@/components/VoiceButton"
 import { PhotoUploadButton } from "@/components/PhotoUploadButton"
@@ -563,7 +563,7 @@ function EditRecordModal({
 
   useEffect(() => {
     if (record) {
-      setNotes(record.notes)
+      setNotes(record.notes || "")
       setBreakthroughEnabled(!!record.breakthrough)
       setBreakthroughText(record.breakthrough || "")
       setDate(record.date)
@@ -581,8 +581,9 @@ function EditRecordModal({
         breakthrough: breakthroughEnabled ? breakthroughText : undefined,
         date,
         type,
-        duration: duration * 60, // 转换为秒
+        duration: duration * 60,
       })
+      toast.success('更新成功')
       onClose()
     }
   }
@@ -835,6 +836,7 @@ function ShareCardModal({
   onLogExport,
   onOpenVoiceFakeDoor,
   onOpenPhotoFakeDoor,
+  syncStatus,
 }: {
   isOpen: boolean
   onClose: () => void
@@ -847,6 +849,7 @@ function ShareCardModal({
   onLogExport: (log: any) => void
   onOpenVoiceFakeDoor?: () => void
   onOpenPhotoFakeDoor?: () => void
+  syncStatus?: 'idle' | 'syncing' | 'success' | 'error'
 }) {
   const [editableNotes, setEditableNotes] = useState("")
   const [isEditingNotes, setIsEditingNotes] = useState(false)
@@ -859,7 +862,7 @@ function ShareCardModal({
   // 当 record 变化时，更新 editableNotes 和 originalNotes
   useEffect(() => {
     if (record) {
-      const notes = record.notes === null || record.notes === undefined ? "今日练习完成" : record.notes
+      const notes = record.notes || "今日练习完成"
       setEditableNotes(notes)
       setOriginalNotes(notes)
     }
@@ -1017,8 +1020,8 @@ function ShareCardModal({
                       onClick={() => setIsEditingNotes(true)}
                       className={`text-sm text-foreground font-serif leading-relaxed cursor-text hover:bg-secondary/30 rounded-lg p-1 -m-1 transition-colors whitespace-pre-wrap break-words ${
                         isCapturing
-                          ? 'max-h-none'  // 截图时：无高度限制
-                          : 'max-h-[60vh] overflow-y-auto'  // 预览时：最大60vh，超出滚动
+                          ? 'max-h-none'
+                          : 'max-h-[60vh] overflow-y-auto'
                       }`}
                     >
                       {editableNotes || "点击编辑笔记，或尝试右下方的语音输入，轻松说出你的想法..."}
@@ -1803,6 +1806,16 @@ function SettingsModal({
   const [isExportingLog, setIsExportingLog] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // 历史数据校准
+  const [historicalDays, setHistoricalDays] = useState(profile.historical_days || 0)
+  const [historicalAvgMinutes, setHistoricalAvgMinutes] = useState(profile.historical_avg_minutes || 0)
+
+  // 当 profile 变化时同步历史数据
+  useEffect(() => {
+    setHistoricalDays(profile.historical_days || 0)
+    setHistoricalAvgMinutes(profile.historical_avg_minutes || 0)
+  }, [profile.historical_days, profile.historical_avg_minutes])
+
   // 当 initialSection 变化时，切换到对应标签页
   useEffect(() => {
     if (initialSection) {
@@ -1869,7 +1882,14 @@ function SettingsModal({
 
   const handleSave = () => {
     try {
-      onSave({ ...profile, name, signature, avatar })
+      onSave({
+        ...profile,
+        name,
+        signature,
+        avatar,
+        historical_days: historicalDays,
+        historical_avg_minutes: historicalAvgMinutes,
+      })
       onClose()
     } catch (error) {
       console.error('保存失败:', error)
@@ -1986,6 +2006,66 @@ function SettingsModal({
                         className="w-full px-4 py-3 rounded-2xl bg-secondary text-foreground font-serif focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
                       />
                     </div>
+                  </div>
+
+                  {/* 历史练习数据校准 */}
+                  <div className="pt-2">
+                    {/* 标题行 */}
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5 text-primary" />
+                        <h3 className="text-sm font-serif text-foreground">过往练习</h3>
+                      </div>
+                      <span className="text-xs text-primary font-medium">
+                        累计约 {Math.round(historicalDays * historicalAvgMinutes / 60)} 小时
+                      </span>
+                    </div>
+
+                    {/* 左右两个独立卡片 */}
+                    <div className="grid grid-cols-2 gap-2">
+                      {/* 左边：历史练习天数 */}
+                      <div className="bg-white rounded-xl p-3 border border-stone-200">
+                        <div className="text-center">
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            value={historicalDays === 0 ? '' : historicalDays}
+                            onChange={(e) => {
+                              const val = e.target.value.replace(/[^0-9]/g, '')
+                              setHistoricalDays(val === '' ? 0 : parseInt(val))
+                            }}
+                            className="w-full bg-transparent text-2xl font-serif text-primary text-center focus:outline-none focus:ring-0 p-0 placeholder:text-primary/30"
+                            placeholder="0"
+                          />
+                          <div className="text-[10px] text-muted-foreground font-serif mt-1">天数</div>
+                        </div>
+                      </div>
+
+                      {/* 右边：平均每次时长 */}
+                      <div className="bg-white rounded-xl p-3 border border-stone-200">
+                        <div className="text-center">
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            value={historicalAvgMinutes === 0 ? '' : historicalAvgMinutes}
+                            onChange={(e) => {
+                              const val = e.target.value.replace(/[^0-9]/g, '')
+                              setHistoricalAvgMinutes(val === '' ? 0 : parseInt(val))
+                            }}
+                            className="w-full bg-transparent text-2xl font-serif text-primary text-center focus:outline-none focus:ring-0 p-0 placeholder:text-primary/30"
+                            placeholder="0"
+                          />
+                          <div className="text-[10px] text-muted-foreground font-serif mt-1">分钟/次</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 说明文字 */}
+                    <p className="text-[10px] text-muted-foreground/70 text-center font-serif mt-2">
+                      💡 设置后，统计数据会以此为基础累加
+                    </p>
                   </div>
                 </>
               )}
@@ -2780,7 +2860,7 @@ function JournalTab({
   }
 
   // Calculate vanity metrics for share card
-  const totalPracticeCount = practiceHistory.length
+  const totalPracticeCount = practiceHistory.length + (profile?.historical_days || 0)
   const today = new Date()
   const thisMonthDays = useMemo(() => {
     const currentMonth = today.getMonth()
@@ -2791,8 +2871,10 @@ function JournalTab({
     }).length
   }, [practiceHistory, today])
   const totalHours = useMemo(() => {
-    return Math.round(practiceHistory.reduce((acc, r) => acc + r.duration, 0) / 3600)
-  }, [practiceHistory])
+    const localSeconds = practiceHistory.reduce((acc, r) => acc + r.duration, 0)
+    const historicalMinutes = (profile?.historical_days || 0) * (profile?.historical_avg_minutes || 0)
+    return Math.round((localSeconds / 60 + historicalMinutes) / 60)
+  }, [practiceHistory, profile])
 
   const handleDayClick = (dateStr: string) => {
     // ⭐ 通过日期找到记录ID，再通过ID找到ref（修复修改日期后无法跳转的问题）
@@ -2953,6 +3035,7 @@ function JournalTab({
         onLogExport={onLogExport}
         onOpenVoiceFakeDoor={onOpenVoiceFakeDoor}
         onOpenPhotoFakeDoor={onOpenPhotoFakeDoor}
+        syncStatus={syncStatus}
       />
 
       <AddPracticeModal
@@ -3144,26 +3227,35 @@ function StatsTab({
     return { practiceDays, totalMinutes, avgDuration }
   }, [practiceHistory, today, todayStr])
 
-  // Total stats (all time)
+  // Total stats (all time) - 包含历史数据校准
   const totalStats = useMemo(() => {
-    let totalDays = 0
-    let totalSeconds = 0
+    let localDays = 0
+    let localSeconds = 0
 
     practiceHistory.forEach((record) => {
       if (record.duration > 0) {
-        totalDays++
-        totalSeconds += record.duration
+        localDays++
+        localSeconds += record.duration
       }
     })
 
-    const avgMinutes = totalDays > 0 ? Math.round(totalSeconds / totalDays / 60) : 0
+    // 添加历史数据
+    const historicalDays = profile?.historical_days || 0
+    const historicalAvgMinutes = profile?.historical_avg_minutes || 0
+    const totalDays = localDays + historicalDays
+    const localMinutes = Math.round(localSeconds / 60)
+    const historicalMinutes = historicalDays * historicalAvgMinutes
+    const totalMinutes = localMinutes + historicalMinutes
+
+    const avgMinutes = totalDays > 0 ? Math.round(totalMinutes / totalDays) : 0
 
     return {
+      localDays,
       totalDays,
-      totalHours: Math.round(totalSeconds / 3600),
+      totalHours: Math.round(totalMinutes / 60),
       avgMinutes,
     }
-  }, [practiceHistory])
+  }, [practiceHistory, profile])
 
   // Generate flowing dots based on view mode
   const flowingDots = useMemo(() => {
@@ -3464,6 +3556,9 @@ export default function AshtangaTracker() {
         console.log('   云端记录数:', data.records.length)
 
         try {
+          // ⭐ 保存当前正在编辑的记录ID（在清空数据前）
+          const editingRecordId = editingRecord?.id
+
           // 清空本地数据
           clearAllData()
           console.log('   ✅ 本地数据已清空')
@@ -3474,6 +3569,27 @@ export default function AshtangaTracker() {
 
           if (importResult) {
             console.log('   ✅ 云端数据已导入')
+
+            // ⭐ 重新设置正在编辑的记录（从新的记录列表中查找）
+            if (editingRecordId) {
+              const newEditingRecord = data.records.find((r: PracticeRecord) => r.id === editingRecordId)
+              console.error('   🔍 [Sync] 查找编辑记录:', {
+                editingRecordId,
+                found: !!newEditingRecord,
+                cloudRecordCount: data.records.length
+              })
+              if (newEditingRecord) {
+                setEditingRecord(newEditingRecord)
+                console.error('   ✅ [Sync] 已恢复编辑状态')
+                toast.success('同步完成，编辑状态已恢复')
+              } else {
+                console.error('   ❌ [Sync] 编辑的记录在云端找不到，保持本地编辑状态')
+                toast.warning('同步提示：新记录尚未上传到云端，继续编辑')
+                // 不要关闭弹窗，让用户继续编辑
+                // setEditingRecord(null)
+              }
+            }
+
             toast.success(`✅ 已同步${data.records.length}条云端数据`, {
               duration: 3000,
               position: 'top-center'
@@ -3700,9 +3816,13 @@ export default function AshtangaTracker() {
   }
 
   const handleEditRecord = (id: string, data: Partial<PracticeRecord>) => {
-    const result = updateRecord(id, data)
+    updateRecord(id, data, () => {
+      // 编辑后触发同步
+      if (user) {
+        autoSync()
+      }
+    })
     toast.success('更新成功')
-    return result
   }
 
   const handleDeleteRecord = async (id: string) => {
@@ -3735,26 +3855,22 @@ export default function AshtangaTracker() {
       has_notes: !!record.notes && record.notes.length > 0
     })
     toast.success('补卡成功！')
-    // 触发同步（如果用户已登录）
+    // 延迟 500ms 同步，确保 localStorage 已完全更新
     if (user) {
-      autoSync()
+      setTimeout(() => {
+        autoSync()
+      }, 500)
     }
   }
 
   const handleAddOption = async (name: string, notes: string) => {
-    console.log('handleAddOption called with:', name, notes)
-    // 修复：直接使用 addOption(name, name, notes) 避免竞态条件
     addOption(name, name, notes)
-    console.log('current practiceOptionsData after add:', practiceOptionsData)
     toast.success('已添加自定义选项')
-    // ⭐ 新增：如果已登录，自动同步到云端
+    // 如果已登录，自动同步到云端
     if (user) {
-      console.log('[handleAddOption] 用户已登录，准备触发自动同步...')
-      // 延迟 100ms，确保 localStorage 已更新
       setTimeout(async () => {
-        console.log('[handleAddOption] 触发自动同步...')
         await autoSync()
-      }, 100)
+      }, 500)
     }
   }
 
@@ -4521,22 +4637,25 @@ export default function AshtangaTracker() {
         onSave={async (profile) => {
           // 先保存到本地
           updateProfile(profile)
+          // ⭐ 诊断：暂时禁用同步
+          console.error('[Settings] ⚠️ 资料同步已禁用（诊断模式）')
+          toast.success('✅ 资料已保存（诊断模式：未同步）')
           // 如果已登录，自动同步到云端
-          if (user) {
-            toast.loading('正在同步到云端...', { id: 'sync-profile' })
-            try {
-              const result = await autoSync()
-              toast.dismiss('sync-profile')
-              if (result) {
-                toast.success('✅ 资料已同步到云端')
-              } else {
-                toast.error('❌ 同步失败，请稍后重试')
-              }
-            } catch (e) {
-              toast.dismiss('sync-profile')
-              toast.error('❌ 同步失败')
-            }
-          }
+          // if (user) {
+          //   toast.loading('正在同步到云端...', { id: 'sync-profile' })
+          //   try {
+          //     const result = await autoSync()
+          //     toast.dismiss('sync-profile')
+          //     if (result) {
+          //       toast.success('✅ 资料已同步到云端')
+          //     } else {
+          //       toast.error('❌ 同步失败，请稍后重试')
+          //     }
+          //   } catch (e) {
+          //     toast.dismiss('sync-profile')
+          //     toast.error('❌ 同步失败')
+          //   }
+          // }
         }}
         onOpenExport={() => {
           const data = exportData()

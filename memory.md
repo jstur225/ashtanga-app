@@ -21,7 +21,163 @@
 - **notebooklm** - NotebookLM 集成，查询笔记本知识库
 - **better-auth-best-practices** - TypeScript 认证框架集成指南（2026-02-02 安装）
 
-## 使用记录
+- **2026-02-23**: **新发现：练习选项同步问题** 🐛 待调查
+  - **问题描述**:
+    - 有用户自定义了练习选项（截图可见），但在 Supabase 后台看不到
+    - 用户已开通账号（绑定邮箱）
+    - 后台 `practice_options` 表只有 **13条记录**
+    - 但已有 **10个绑定邮箱的用户**
+    - 预期数量：每个用户至少有 30-50 个选项（默认+自定义），总记录数应该远多于13条
+  - **现象对比**:
+    - 我自己测试：新建选项 → 同步 → 上传，能在后台看到自己的选项
+    - 其他用户：有自定义选项，但后台看不到
+  - **可能原因**（待验证）:
+    1. 练习选项同步逻辑有bug，某些情况下未触发同步
+    2. 选项同步被覆盖或合并逻辑有问题
+    3. 用户设备上选项存在但未上传到云端
+    4. 多设备同步时选项丢失
+  - **下一步调查**:
+    - 检查 `useSync.ts` 中选项同步逻辑
+    - 检查 `addOption` 后是否正确触发同步
+    - 检查云端数据合并时是否丢失选项
+    - 2026-02-24 处理
+
+- **2026-02-23**: **修复新建/补卡记录后立即编辑导致笔记丢失问题（第十二轮 - 最终修复）** ✅ 完成
+  - **问题确认**: ID 一致但 `updateRecord` 找不到记录
+    - `prevRecords` 是 React 旧状态，不包含新建的记录
+    - 这是 React 闭包/异步状态问题
+  - **最终修复** (commit: f831664):
+    - **根本解决方案**: 重写 `updateRecord`，直接操作 localStorage
+    - **清理代码**: 移除所有诊断日志，恢复同步功能
+    - **核心改动**:
+      ```typescript
+      // 直接从 localStorage 读取最新记录
+      const recordsStr = localStorage.getItem('ashtanga_records');
+      const latestRecords = JSON.parse(recordsStr);
+
+      // 查找并更新
+      const updatedRecords = latestRecords.map(r =>
+        r.id === id ? { ...r, ...data, updated_at: now } : r
+      );
+
+      // 直接写入 localStorage（不依赖 React 状态）
+      localStorage.setItem('ashtanga_records', JSON.stringify(sortedRecords));
+
+      // 同时更新 React 状态（异步，但不依赖它）
+      setRecords(sortedRecords);
+      ```
+  - **测试结果**: ✅ 新建记录后编辑不再丢失
+  - **恢复功能**: 同步功能已恢复，500ms 延迟确保 localStorage 更新
+  - **最终清理** (commit: 23b21e1):
+    - 移除点击编辑时显示记录ID的toast
+    - 移除3秒内禁止编辑的限制逻辑
+    - 代码更加简洁
+  - **用户验证**: ✅ 修复成功，新建记录后编辑不再丢失
+  - **之前诊断**: 完全禁用同步后问题依旧，确认问题在本地保存
+  - **之前修复（第七轮）**: `setRecords` 异步导致同步读取旧数据
+    - 将同步延迟从 100ms 增加到 **500ms**
+  - **第七轮修复** (commit: 05584e1):
+    - 将同步延迟从 100ms 增加到 **500ms**
+    - 涉及 `updateRecord`、`handleAddRecord`、`handleAddOption`
+  - **用户关键描述**:
+    - 新建记录 → 不刷新 → 编辑 → 消失 → 刷新 → 出现（旧内容）→ 再编辑 → 还是消失 → 再刷新 → 正常
+    - 这说明数据确实保存了，但显示时用了过期的对象
+  - **日志说明**: 使用 `console.error` 替代 `console.log`（Vercel 不会移除）
+  - **前六轮修复总结**:
+    1. 第一轮: 添加记录后3秒内禁止编辑
+    2. 第二轮: 编辑后触发同步 `autoSync()`
+    3. 第三轮: 同步时恢复编辑状态
+    4. 第四轮: `handleSave` 从最新列表查找记录
+    5. 第五轮: 同步回调不关闭弹窗
+    6. 第六轮: `handleLeftClick` 和 `handleSave` 直接读 `localStorage`
+  - **第六轮修复** (commit: c0252d1):
+    1. **handleLeftClick**: 直接从 `localStorage` 读取最新记录，绕过 React 状态
+    2. **handleSave**: 也直接从 `localStorage` 读取最新记录
+    3. 保留第五轮的同步回调修复（不关闭弹窗）
+  - **关键改动**:
+    ```typescript
+    // handleLeftClick - 直接读取 localStorage
+    const recordsStr = localStorage.getItem('ashtanga_records')
+    const records = JSON.parse(recordsStr)
+    const latestRecord = records.find(r => r.id === record.id)
+    onSetEditingRecord(latestRecord || record)
+
+    // handleSave - 同样直接读取 localStorage
+    const recordsStr = localStorage.getItem('ashtanga_records')
+    const records = JSON.parse(recordsStr)
+    const targetRecord = records.find(r => r.id === record.id) || record
+    onSave(targetRecord.id, {...})
+    ```
+  - **用户关键描述**:
+    - 新建记录 → 不刷新 → 编辑 → 消失 → 刷新 → 出现（旧内容）→ 再编辑 → 还是消失 → 再刷新 → 正常
+    - 这说明数据确实保存了，但显示时用了过期的对象
+  - **用户测试发现的关键规律**:
+    - ❌ **场景A（有问题）**: 新增记录 → 等待3秒 → 编辑 → 记录消失 → 刷新 → 记录出现（旧内容）
+    - ✅ **场景B（正常）**: 新增记录 → 等待3秒 → 刷新页面 → 编辑 → 正常
+  - **关键差异**: 场景A不刷新就编辑会丢失，场景B刷新后再编辑就正常
+  - **问题分析**:
+    - 编辑保存没有生效，或者被覆盖了
+    - 编辑时使用的 `editingRecord` 可能是旧的对象引用
+    - 或者 `record.id` 不对，导致保存到了错误的记录
+  - **已尝试的修复**:
+    - ✅ 新建记录后强制3秒内不能编辑
+    - ✅ 编辑后触发 `autoSync()` 确保同步到云端
+    - ❌ 但问题仍然存在
+  - **下一步排查方向**（明天）:
+    1. 检查 `editingRecord` 的对象引用是否正确
+    2. 检查编辑时 `record.id` 是否匹配
+    3. 检查 `handleEditRecord` 中的 `updateRecord` 调用
+    4. 添加更多日志追踪编辑流程
+  - **提交**: 8d4b0db（当前版本）
+
+- **2026-02-23**: **修复新建/补卡记录后立即编辑导致笔记丢失问题（第三轮）** ✅ 已回滚
+  - **问题**: 用户新建记录后，数据胶囊中也没有，说明数据根本没保存到 localStorage
+  - **根本原因**: 新建记录触发同步，检测到冲突（本地1条，云端1条）。用户选择"使用云端数据"时，会直接清空本地数据并导入云端数据。但新建的记录在云端还不存在，所以被删除了
+  - **修复内容**:
+    - **hooks/useSync.ts** - 当选择"使用云端数据"时，先上传本地数据到云端，确保新记录不会丢失，然后再下载合并后的云端数据
+  - **提交**: 17ecea6（已回滚）
+
+- **2026-02-23**: **修复新建/补卡记录后立即编辑导致笔记丢失问题（第二轮）** ✅ 已推送
+  - **问题**: 第一轮修复后用户测试仍有问题，新建/补卡后立即编辑，笔记仍消失
+  - **根本原因**: 同步完成后回调会调用 `clearAllData()` 和 `importData()`，完全替换 `practiceHistory` 数组。`editingRecord` 保存的是旧的对象引用，指向已被删除的记录
+  - **修复内容**:
+    - **app/practice/page.tsx** - 在同步回调中，导入云端数据前保存 `editingRecordId`，导入后从新的记录列表中重新查找并恢复编辑状态
+  - **提交**: df4222e
+
+- **2026-02-23**: **修复新建/补卡记录后立即编辑导致笔记丢失问题** ✅ 已完成
+  - **问题**: 用户在熬汤日记 App 中报告：练习完成后立即修改记录（时间或内容），笔记会丢失；补卡后马上去修改觉察内容，整个笔记会消失
+  - **根本原因**: 同步功能引入的竞态条件
+    1. `updateRecord` 函数中 `setRecords` 是异步的，但 `onSync` 回调使用的是旧的 `records` 状态
+    2. 添加记录后立即触发同步，但 localStorage 可能还没更新
+    3. 同步排序方向问题（最早的在前而非最新的在前）
+  - **修复内容**:
+    1. **hooks/usePracticeData.ts** - `updateRecord` 函数使用函数式更新捕获更新后的记录，并延迟 100ms 执行 `onSync`
+    2. **hooks/useSync.ts** - 同步排序方向改为最新的在前（而非最早的），确保新记录优先同步
+    3. **app/practice/page.tsx** - `handleAddRecord` 延迟 100ms 再触发同步，确保 localStorage 已更新
+    4. **app/practice/page.tsx** - `EditRecordModal` 和 `ShareCardModal` 初始化添加空值保护
+  - **符合"简单"理念**: 修复方案简单直接，不引入复杂逻辑，只修改必要代码
+
+- **2026-02-21**: **过往练习功能** ✅ 已完成，待发布
+  - **背景**: 很多用户已有长期练习历史（如练习100天），但使用APP后要从零开始记录，感觉"很亏"
+  - **核心功能**:
+    - ✅ 在设置 → 个人资料页面添加过往练习区域
+    - ✅ 可设置历史练习天数和历史平均每次时长
+    - ✅ 所有统计数据（总天数、总时长、平均值）以此为基础累加
+    - ✅ 支持直接输入数字，输入体验优化（可删除0）
+    - ✅ 分享卡片统计联动（累计次数和时长包含历史数据）
+  - **UI设计迭代**:
+    - 初版：带加减按钮调节
+    - 优化：左右独立卡片，浅黄色背景
+    - 最终：纯白色双卡片，标题在外，更紧凑简洁
+    - 标题："历史练习数据校准" → "过往练习"
+    - 标签："历史练习天数" → "天数"，"平均每次练习分钟" → "分钟/次"
+  - **数据结构修改**:
+    - `UserProfile` 接口添加 `historical_days` 和 `historical_avg_minutes` 字段
+    - 修改文件: `hooks/usePracticeData.ts`, `lib/supabase.ts`
+  - **数据同步**:
+    - 历史数据作为 profile 的一部分，自动随用户资料同步到云端
+  - **发布状态**: 代码在 master2 分支，计划下周发布（避免发布太密集）
+
 - **2026-02-18**: **编辑记录弹窗 - 语音+照片双假门测试** - 新增照片上传假门测试
   - **背景**: 用户希望在编辑记录的文本输入框右下角，在现有的麦克风图标旁边添加一个上传照片图标，两者都是假门测试，用于测试用户对这两个功能的兴趣度
   - **核心改动**:

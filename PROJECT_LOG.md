@@ -983,6 +983,80 @@ if (result) {
 
 ## 开发日志
 
+### 2026-02-23: 修复新建/补卡后编辑记录丢失问题 ✅
+
+**阶段**: Bug修复（第十二轮最终修复）
+
+**问题描述**:
+- 新建记录 → 不刷新 → 编辑 → 保存 → 记录消失
+- 刷新后记录恢复，但显示旧内容
+- 再次编辑 → 仍然消失
+- 再次刷新 → 才能正常编辑
+
+**根本原因**:
+- React 的 `setRecords` 是异步的
+- `updateRecord` 中的 `prevRecords` 是旧状态，不包含新建的记录
+- 编辑时传入的 ID 在 `prevRecords` 中找不到，导致更新失败
+
+**解决方案**:
+- 重写 `updateRecord`，直接操作 localStorage，不依赖 React 状态
+- 步骤：
+  1. 从 localStorage 读取最新记录
+  2. 在本地数据中查找并更新
+  3. 直接写入 localStorage
+  4. 同时更新 React 状态（异步，但不依赖它）
+
+**核心代码**:
+```typescript
+const updateRecord = (id, data, onSync) => {
+  const now = new Date().toISOString();
+
+  // 直接从 localStorage 读取最新记录
+  const recordsStr = localStorage.getItem('ashtanga_records');
+  const latestRecords = JSON.parse(recordsStr);
+
+  // 查找并更新
+  const updatedRecords = latestRecords.map(r =>
+    r.id === id ? { ...r, ...data, updated_at: now } : r
+  );
+
+  // 直接写入 localStorage
+  localStorage.setItem('ashtanga_records', JSON.stringify(sortedRecords));
+
+  // 同时更新 React 状态
+  setRecords(sortedRecords);
+
+  // 触发同步
+  setTimeout(() => onSync?.(updatedRecord), 100);
+};
+```
+
+**诊断过程**:
+1. 禁用同步功能 → 问题依旧 → 确定是本地保存问题
+2. 添加详细日志 → 发现 ID 一致但找不到记录
+3. 确认 `prevRecords` 不包含新记录 → 确定是 React 状态延迟
+4. 重写 `updateRecord` → 直接操作 localStorage → 问题解决
+
+**清理工作**:
+- 移除所有诊断日志和 toast
+- 移除3秒内禁止编辑的限制
+- 移除点击编辑时显示 ID 的 toast
+- 恢复同步功能（500ms 延迟）
+
+**Git提交**:
+- `69cb0ea` - fix: 重写 updateRecord，直接操作 localStorage
+- `f831664` - cleanup: 移除诊断代码，恢复同步功能
+- `23b21e1` - cleanup: 移除3秒编辑限制和ID显示toast
+
+**测试结果**: ✅ 修复成功，新建记录后编辑不再丢失
+
+**新发现问题** 🐛:
+- 练习选项同步异常：后台只有13条记录，但10个用户应该更多
+- 有用户自定义选项但在后台看不到
+- 待 2026-02-24 调查
+
+---
+
 ### 2026-01-25: 新用户教程记录系统 ✅
 
 **目标**: 为新用户提供使用教程和示范
