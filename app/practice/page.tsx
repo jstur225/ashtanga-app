@@ -4637,25 +4637,22 @@ export default function AshtangaTracker() {
         onSave={async (profile) => {
           // 先保存到本地
           updateProfile(profile)
-          // ⭐ 诊断：暂时禁用同步
-          console.error('[Settings] ⚠️ 资料同步已禁用（诊断模式）')
-          toast.success('✅ 资料已保存（诊断模式：未同步）')
           // 如果已登录，自动同步到云端
-          // if (user) {
-          //   toast.loading('正在同步到云端...', { id: 'sync-profile' })
-          //   try {
-          //     const result = await autoSync()
-          //     toast.dismiss('sync-profile')
-          //     if (result) {
-          //       toast.success('✅ 资料已同步到云端')
-          //     } else {
-          //       toast.error('❌ 同步失败，请稍后重试')
-          //     }
-          //   } catch (e) {
-          //     toast.dismiss('sync-profile')
-          //     toast.error('❌ 同步失败')
-          //   }
-          // }
+          if (user) {
+            toast.loading('正在同步到云端...', { id: 'sync-profile' })
+            try {
+              const result = await autoSync()
+              toast.dismiss('sync-profile')
+              if (result) {
+                toast.success('✅ 资料已同步到云端')
+              } else {
+                toast.error('❌ 同步失败，请稍后重试')
+              }
+            } catch (e) {
+              toast.dismiss('sync-profile')
+              toast.error('❌ 同步失败')
+            }
+          }
         }}
         onOpenExport={() => {
           const data = exportData()
