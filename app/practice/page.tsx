@@ -576,14 +576,29 @@ function EditRecordModal({
 
   const handleSave = () => {
     if (record) {
-      onSave(record.id, {
-        notes,
-        breakthrough: breakthroughEnabled ? breakthroughText : undefined,
-        date,
-        type,
-        duration: duration * 60, // 转换为秒
-      })
-      onClose()
+      // ⭐ 修复：从最新的 practiceHistory 中重新查找记录，避免对象引用过期
+      const latestRecord = practiceHistory.find(r => r.id === record.id)
+      if (latestRecord) {
+        onSave(latestRecord.id, {
+          notes,
+          breakthrough: breakthroughEnabled ? breakthroughText : undefined,
+          date,
+          type,
+          duration: duration * 60, // 转换为秒
+        })
+        onClose()
+      } else {
+        console.error('❌ [handleSave] 找不到记录:', record.id)
+        // 即使找不到，也尝试用原 ID 保存（兜底方案）
+        onSave(record.id, {
+          notes,
+          breakthrough: breakthroughEnabled ? breakthroughText : undefined,
+          date,
+          type,
+          duration: duration * 60,
+        })
+        onClose()
+      }
     }
   }
 
