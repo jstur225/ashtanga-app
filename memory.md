@@ -21,21 +21,32 @@
 - **notebooklm** - NotebookLM 集成，查询笔记本知识库
 - **better-auth-best-practices** - TypeScript 认证框架集成指南（2026-02-02 安装）
 
-- **2026-02-23**: **修复新建/补卡记录后立即编辑导致笔记丢失问题（第十一轮 - 根本性修复）** 🔄 待测试
+- **2026-02-23**: **修复新建/补卡记录后立即编辑导致笔记丢失问题（第十二轮 - 最终修复）** ✅ 完成
   - **问题确认**: ID 一致但 `updateRecord` 找不到记录
     - `prevRecords` 是 React 旧状态，不包含新建的记录
     - 这是 React 闭包/异步状态问题
-  - **第十一轮修复** (commit: 69cb0ea):
-    - **根本性解决方案**: 重写 `updateRecord`，直接操作 localStorage
-    - 步骤:
-      1. 直接从 localStorage 读取最新记录
-      2. 在 localStorage 数据中查找并更新
-      3. 直接写入 localStorage（不依赖 React 状态）
-      4. 同时更新 React 状态（异步，但不依赖它）
-    - 绕过 React 状态的异步问题
-  - **之前诊断** (commit: 9d95f72):
-    - 确认 ID 一致但 `updateRecord` 找不到记录
-    - 问题在 React 状态延迟，不在同步
+  - **最终修复** (commit: f831664):
+    - **根本解决方案**: 重写 `updateRecord`，直接操作 localStorage
+    - **清理代码**: 移除所有诊断日志，恢复同步功能
+    - **核心改动**:
+      ```typescript
+      // 直接从 localStorage 读取最新记录
+      const recordsStr = localStorage.getItem('ashtanga_records');
+      const latestRecords = JSON.parse(recordsStr);
+
+      // 查找并更新
+      const updatedRecords = latestRecords.map(r =>
+        r.id === id ? { ...r, ...data, updated_at: now } : r
+      );
+
+      // 直接写入 localStorage（不依赖 React 状态）
+      localStorage.setItem('ashtanga_records', JSON.stringify(sortedRecords));
+
+      // 同时更新 React 状态（异步，但不依赖它）
+      setRecords(sortedRecords);
+      ```
+  - **测试结果**: ✅ 新建记录后编辑不再丢失
+  - **恢复功能**: 同步功能已恢复，500ms 延迟确保 localStorage 更新
   - **之前诊断**: 完全禁用同步后问题依旧，确认问题在本地保存
   - **之前修复（第七轮）**: `setRecords` 异步导致同步读取旧数据
     - 将同步延迟从 100ms 增加到 **500ms**
