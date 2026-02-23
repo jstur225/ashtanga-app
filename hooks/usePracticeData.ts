@@ -183,24 +183,40 @@ export const usePracticeData = () => {
     data: Partial<PracticeRecord>,
     onSync?: (record: PracticeRecord) => void // ⭐ 新增：同步回调
   ) => {
-    console.error('[updateRecord] 开始更新，id:', id, 'data:', Object.keys(data))
+    console.error('[updateRecord] ========== 开始更新 ==========')
+    console.error('[updateRecord] 传入 id:', id)
+    console.error('[updateRecord] 当前 records 数:', records?.length || 0)
+    console.error('[updateRecord] 所有记录的ID:', records?.map(r => r.id?.substring(0, 8)))
+
     const now = new Date().toISOString();
     let updatedRecord: PracticeRecord | undefined;
 
     // ⭐ 更新记录后按日期重新排序（修复修改日期后不排序的问题）
     setRecords((prevRecords) => {
-      console.error('[updateRecord] setRecords 回调执行，prevRecords数:', prevRecords?.length || 0)
+      console.error('[updateRecord] setRecords 回调执行')
+      console.error('[updateRecord] prevRecords 数:', prevRecords?.length || 0)
+      console.error('[updateRecord] prevRecords IDs:', prevRecords?.map(r => r.id?.substring(0, 8)))
+
+      // ⭐ 诊断：检查 id 匹配
+      const foundRecord = prevRecords?.find(r => r.id === id)
+      console.error('[updateRecord] 直接查找结果:', foundRecord ? '找到' : '未找到')
+      if (foundRecord) {
+        console.error('[updateRecord] 找到的记录 notes:', foundRecord.notes?.substring(0, 30))
+      }
+
       const updatedRecords = (prevRecords || []).map(r => {
         if (r.id === id) {
           updatedRecord = { ...r, ...data, updated_at: now };
-          console.error('[updateRecord] 找到并更新记录，新notes:', updatedRecord.notes?.substring(0, 30))
+          console.error('[updateRecord] ✅ map中找到记录并更新')
           return updatedRecord;
         }
         return r;
       });
 
       if (!updatedRecord) {
-        console.error('[updateRecord] ⚠️ 警告：未找到要更新的记录:', id)
+        console.error('[updateRecord] ❌ 警告：map中未找到记录:', id)
+      } else {
+        console.error('[updateRecord] ✅ updatedRecord 已设置，新notes:', updatedRecord.notes?.substring(0, 30))
       }
 
       // 按日期倒序排序（最新的在上面）
@@ -214,7 +230,7 @@ export const usePracticeData = () => {
     // ⭐ 触发同步回调（使用在 setRecords 中捕获的更新后记录）
     // ⭐ 延迟 500ms 执行 onSync，确保 localStorage 已完全更新（修复竞争条件）
     setTimeout(() => {
-      console.error('[updateRecord] 500ms后，updatedRecord:', updatedRecord ? '存在' : 'undefined')
+      console.error('[updateRecord] 500ms后检查，updatedRecord:', updatedRecord ? '存在' : 'undefined')
       if (updatedRecord) {
         onSync?.(updatedRecord);
       }
