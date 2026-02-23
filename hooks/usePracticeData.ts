@@ -183,18 +183,25 @@ export const usePracticeData = () => {
     data: Partial<PracticeRecord>,
     onSync?: (record: PracticeRecord) => void // ⭐ 新增：同步回调
   ) => {
+    console.error('[updateRecord] 开始更新，id:', id, 'data:', Object.keys(data))
     const now = new Date().toISOString();
     let updatedRecord: PracticeRecord | undefined;
 
     // ⭐ 更新记录后按日期重新排序（修复修改日期后不排序的问题）
     setRecords((prevRecords) => {
+      console.error('[updateRecord] setRecords 回调执行，prevRecords数:', prevRecords?.length || 0)
       const updatedRecords = (prevRecords || []).map(r => {
         if (r.id === id) {
           updatedRecord = { ...r, ...data, updated_at: now };
+          console.error('[updateRecord] 找到并更新记录，新notes:', updatedRecord.notes?.substring(0, 30))
           return updatedRecord;
         }
         return r;
       });
+
+      if (!updatedRecord) {
+        console.error('[updateRecord] ⚠️ 警告：未找到要更新的记录:', id)
+      }
 
       // 按日期倒序排序（最新的在上面）
       return updatedRecords.sort((a, b) => {
@@ -207,6 +214,7 @@ export const usePracticeData = () => {
     // ⭐ 触发同步回调（使用在 setRecords 中捕获的更新后记录）
     // 延迟执行 onSync，确保 localStorage 已更新
     setTimeout(() => {
+      console.error('[updateRecord] 100ms后，updatedRecord:', updatedRecord ? '存在' : 'undefined')
       if (updatedRecord) {
         onSync?.(updatedRecord);
       }

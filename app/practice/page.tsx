@@ -575,25 +575,29 @@ function EditRecordModal({
   }, [record])
 
   const handleSave = () => {
+    console.error('💾 [handleSave] 开始保存')
     if (record) {
       // ⭐ 修复：直接从 localStorage 读取最新记录，确保 ID 正确
       let targetRecord = record
       try {
         const recordsStr = localStorage.getItem('ashtanga_records')
+        console.error('📦 [handleSave] localStorage 长度:', recordsStr?.length || 0)
         if (recordsStr) {
           const records = JSON.parse(recordsStr)
           const latestRecord = records.find((r: PracticeRecord) => r.id === record.id)
           if (latestRecord) {
-            console.log('[handleSave] 使用 localStorage 中的记录:', latestRecord.id)
+            console.error('✅ [handleSave] 使用 localStorage 记录，当前notes:', latestRecord.notes?.substring(0, 30))
             targetRecord = latestRecord
           } else {
             console.error('❌ [handleSave] localStorage 中找不到记录:', record.id)
+            toast.error('错误：找不到要保存的记录')
           }
         }
       } catch (e) {
         console.error('❌ [handleSave] 读取 localStorage 失败:', e)
       }
 
+      console.error('🚀 [handleSave] 调用 onSave，id:', targetRecord.id, '新notes:', notes?.substring(0, 30))
       onSave(targetRecord.id, {
         notes,
         breakthrough: breakthroughEnabled ? breakthroughText : undefined,
@@ -601,7 +605,10 @@ function EditRecordModal({
         type,
         duration: duration * 60, // 转换为秒
       })
+      toast.success('保存命令已发送')
       onClose()
+    } else {
+      console.error('❌ [handleSave] record 为 null')
     }
   }
 
@@ -2951,22 +2958,30 @@ function JournalTab({
       return
     }
     // ⭐ 修复：直接从 localStorage 读取最新记录，确保不是过期对象
+    console.error('🔍 [handleLeftClick] 开始执行，record.id:', record.id)
     try {
       const recordsStr = localStorage.getItem('ashtanga_records')
+      console.error('📦 [handleLeftClick] localStorage recordsStr:', recordsStr ? `长度${recordsStr.length}` : 'null')
       if (recordsStr) {
         const records = JSON.parse(recordsStr)
+        console.error('📊 [handleLeftClick] 解析后记录数:', records.length)
         const latestRecord = records.find((r: PracticeRecord) => r.id === record.id)
         if (latestRecord) {
-          console.log('[handleLeftClick] 从 localStorage 读取最新记录:', latestRecord.id, 'notes:', latestRecord.notes?.substring(0, 20))
+          console.error('✅ [handleLeftClick] 找到记录，notes:', latestRecord.notes?.substring(0, 30))
+          toast.success(`找到记录: ${latestRecord.notes?.substring(0, 20) || '无内容'}...`)
           onSetEditingRecord(latestRecord)
           return
+        } else {
+          console.error('❌ [handleLeftClick] 在 localStorage 中找不到记录:', record.id)
+          console.error('   可用ID列表:', records.slice(0, 3).map((r: PracticeRecord) => r.id))
         }
       }
     } catch (e) {
       console.error('❌ [handleLeftClick] 读取 localStorage 失败:', e)
     }
     // 兜底：使用传入的记录
-    console.warn('[handleLeftClick] 使用传入的记录（可能过期）:', record.id)
+    console.error('⚠️ [handleLeftClick] 使用传入的记录（可能过期）:', record.id)
+    toast.warning('使用缓存记录（可能不是最新）')
     onSetEditingRecord(record)
   }
 
@@ -3642,21 +3657,20 @@ export default function AshtangaTracker() {
             // ⭐ 重新设置正在编辑的记录（从新的记录列表中查找）
             if (editingRecordId) {
               const newEditingRecord = data.records.find((r: PracticeRecord) => r.id === editingRecordId)
-              console.log('   🔍 查找编辑记录:', {
+              console.error('   🔍 [Sync] 查找编辑记录:', {
                 editingRecordId,
                 found: !!newEditingRecord,
-                cloudRecordIds: data.records.slice(0, 5).map((r: PracticeRecord) => r.id),
-                totalCloudRecords: data.records.length
+                cloudRecordCount: data.records.length
               })
               if (newEditingRecord) {
                 setEditingRecord(newEditingRecord)
-                console.log('   ✅ 已恢复编辑状态:', editingRecordId)
+                console.error('   ✅ [Sync] 已恢复编辑状态')
+                toast.success('同步完成，编辑状态已恢复')
               } else {
-                // ⭐ 问题根源：云端数据不包含正在编辑的记录
-                // 这可能是新记录还没上传到云端，或者冲突解决时选择了旧数据
-                console.error('   ❌ 编辑的记录在云端找不到，保持本地编辑状态')
+                console.error('   ❌ [Sync] 编辑的记录在云端找不到，保持本地编辑状态')
+                toast.warning('同步提示：新记录尚未上传到云端，继续编辑')
                 // 不要关闭弹窗，让用户继续编辑
-                // setEditingRecord(null)  // 暂时注释掉，避免打断用户编辑
+                // setEditingRecord(null)
               }
             }
 
