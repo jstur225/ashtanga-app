@@ -576,28 +576,35 @@ function EditRecordModal({
 
   const handleSave = () => {
     console.error('💾 [handleSave] 开始保存')
+    toast.info(`保存开始，recordID:${record?.id?.substring(0, 8)}`, { duration: 2000 })
     if (record) {
       // ⭐ 修复：直接从 localStorage 读取最新记录，确保 ID 正确
       let targetRecord = record
+      let foundInStorage = false
       try {
         const recordsStr = localStorage.getItem('ashtanga_records')
         console.error('📦 [handleSave] localStorage 长度:', recordsStr?.length || 0)
+        toast.info(`localStorage长度:${recordsStr?.length || 0}`, { duration: 1500 })
         if (recordsStr) {
           const records = JSON.parse(recordsStr)
           const latestRecord = records.find((r: PracticeRecord) => r.id === record.id)
           if (latestRecord) {
+            foundInStorage = true
             console.error('✅ [handleSave] 使用 localStorage 记录，当前notes:', latestRecord.notes?.substring(0, 30))
+            toast.success(`找到记录，records数:${records.length}`, { duration: 1500 })
             targetRecord = latestRecord
           } else {
             console.error('❌ [handleSave] localStorage 中找不到记录:', record.id)
-            toast.error('错误：找不到要保存的记录')
+            toast.error(`localStorage找不到:${record.id?.substring(0, 8)}`, { duration: 3000 })
           }
         }
       } catch (e) {
         console.error('❌ [handleSave] 读取 localStorage 失败:', e)
+        toast.error('读取localStorage失败', { duration: 3000 })
       }
 
       console.error('🚀 [handleSave] 调用 onSave，id:', targetRecord.id, '新notes:', notes?.substring(0, 30))
+      toast.info(`调用onSave，ID:${targetRecord.id?.substring(0, 8)}`, { duration: 2000 })
       onSave(targetRecord.id, {
         notes,
         breakthrough: breakthroughEnabled ? breakthroughText : undefined,
@@ -609,6 +616,7 @@ function EditRecordModal({
       onClose()
     } else {
       console.error('❌ [handleSave] record 为 null')
+      toast.error('record为null', { duration: 3000 })
     }
   }
 
@@ -2952,6 +2960,7 @@ function JournalTab({
   // Left click -> Edit record
   const handleLeftClick = (record: PracticeRecord, e: React.MouseEvent) => {
     e.stopPropagation()
+    toast.info(`点击编辑，ID:${record?.id?.substring(0, 8)}`, { duration: 2000 })
     // ⭐ 添加记录后3秒内禁止编辑，防止笔记丢失
     if (!canEdit()) {
       toast.info('数据同步中，请稍后再进行编辑')
@@ -2959,28 +2968,34 @@ function JournalTab({
     }
     // ⭐ 修复：直接从 localStorage 读取最新记录，确保不是过期对象
     console.error('🔍 [handleLeftClick] 开始执行，record.id:', record.id)
+    let foundInStorage = false
     try {
       const recordsStr = localStorage.getItem('ashtanga_records')
       console.error('📦 [handleLeftClick] localStorage recordsStr:', recordsStr ? `长度${recordsStr.length}` : 'null')
+      toast.info(`localStorage长度:${recordsStr?.length || 0}`, { duration: 1500 })
       if (recordsStr) {
         const records = JSON.parse(recordsStr)
         console.error('📊 [handleLeftClick] 解析后记录数:', records.length)
         const latestRecord = records.find((r: PracticeRecord) => r.id === record.id)
         if (latestRecord) {
+          foundInStorage = true
           console.error('✅ [handleLeftClick] 找到记录，notes:', latestRecord.notes?.substring(0, 30))
-          toast.success(`找到记录: ${latestRecord.notes?.substring(0, 20) || '无内容'}...`)
+          toast.success(`找到记录，共${records.length}条`, { duration: 1500 })
           onSetEditingRecord(latestRecord)
           return
         } else {
           console.error('❌ [handleLeftClick] 在 localStorage 中找不到记录:', record.id)
           console.error('   可用ID列表:', records.slice(0, 3).map((r: PracticeRecord) => r.id))
+          toast.error(`localStorage找不到:${record.id?.substring(0, 8)}`, { duration: 3000 })
         }
       }
     } catch (e) {
       console.error('❌ [handleLeftClick] 读取 localStorage 失败:', e)
+      toast.error('读取localStorage失败', { duration: 3000 })
     }
     // 兜底：使用传入的记录
     console.error('⚠️ [handleLeftClick] 使用传入的记录（可能过期）:', record.id)
+    toast.warning('使用缓存记录（可能过期）', { duration: 2000 })
     toast.warning('使用缓存记录（可能不是最新）')
     onSetEditingRecord(record)
   }

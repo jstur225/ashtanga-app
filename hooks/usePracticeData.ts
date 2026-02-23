@@ -183,6 +183,10 @@ export const usePracticeData = () => {
     data: Partial<PracticeRecord>,
     onSync?: (record: PracticeRecord) => void // ⭐ 新增：同步回调
   ) => {
+    // ⭐ UI 诊断：用 toast 显示关键信息
+    import('sonner').then(({ toast }) => {
+      toast.info(`开始更新，ID:${id?.substring(0, 8)}`, { duration: 2000 })
+    })
     console.error('[updateRecord] ========== 开始更新 ==========')
     console.error('[updateRecord] 传入 id:', id)
     console.error('[updateRecord] 当前 records 数:', records?.length || 0)
@@ -215,8 +219,14 @@ export const usePracticeData = () => {
 
       if (!updatedRecord) {
         console.error('[updateRecord] ❌ 警告：map中未找到记录:', id)
+        import('sonner').then(({ toast }) => {
+          toast.error(`未找到记录:${id?.substring(0, 8)}`, { duration: 3000 })
+        })
       } else {
         console.error('[updateRecord] ✅ updatedRecord 已设置，新notes:', updatedRecord.notes?.substring(0, 30))
+        import('sonner').then(({ toast }) => {
+          toast.success(`已更新，records数:${updatedRecords.length}`, { duration: 2000 })
+        })
       }
 
       // 按日期倒序排序（最新的在上面）
