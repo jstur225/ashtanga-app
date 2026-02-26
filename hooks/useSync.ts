@@ -306,7 +306,9 @@ export function useSync(
         if (localProfile && remoteProfile) {
           // ⭐ 只比对 name 和 signature，avatar 不上传
           const hasContentDiff = localProfile.name !== remoteProfile.name ||
-              localProfile.signature !== remoteProfile.signature
+              localProfile.signature !== remoteProfile.signature ||
+              (localProfile.historical_days || 0) !== (remoteProfile.historical_days || 0) ||
+              (localProfile.historical_avg_minutes || 0) !== (remoteProfile.historical_avg_minutes || 0)
 
           if (hasContentDiff) {
             profileChanged = true
