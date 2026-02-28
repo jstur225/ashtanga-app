@@ -3,11 +3,11 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { useLocalStorage, useInterval } from 'react-use';
 import { motion, AnimatePresence } from "framer-motion"
-import { usePracticeData, type PracticeRecord, type PracticeOption, type UserProfile } from "@/hooks/usePracticeData"
+import { usePracticeData, type PracticeRecord, type PracticeOption, type UserProfile, GUIDED_AUDIO_OPTION } from "@/hooks/usePracticeData"
 import { usePWAInstall } from "@/hooks/usePWAInstall"
 import { useAuth } from "@/hooks/useAuth"
 import { useSync } from "@/hooks/useSync"
-import { BookOpen, BarChart3, Calendar, X, Camera, Pause, Play, Trash2, User, Settings, ChevronLeft, ChevronRight, ChevronUp, Cloud, Download, Upload, Plus, Minus, Share2, Sparkles, Check, Copy, ClipboardPaste, MessageCircle, Bug, AlertCircle } from "lucide-react"
+import { BookOpen, BarChart3, Calendar, X, Camera, Pause, Play, Trash2, User, Settings, ChevronLeft, ChevronRight, ChevronUp, Cloud, Download, Upload, Plus, Minus, Share2, Sparkles, Check, Copy, ClipboardPaste, MessageCircle, Bug, AlertCircle, Volume2, SkipBack, SkipForward } from "lucide-react"
 import { FakeDoorModal } from "@/components/FakeDoorModal"
 import { VoiceButton } from "@/components/VoiceButton"
 import { PhotoUploadButton } from "@/components/PhotoUploadButton"
@@ -3520,6 +3520,16 @@ export default function AshtangaTracker() {
   const [confirmPhrase, setConfirmPhrase] = useState('')
   const [isSaving, setIsSaving] = useState(false)
 
+  // 音频播放器状态
+  const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null)
+  const [audioProgress, setAudioProgress] = useState(0)  // 0-100
+  const [audioDuration, setAudioDuration] = useState(0)  // 总时长（秒）
+  const [audioCurrentTime, setAudioCurrentTime] = useState(0)  // 当前时间（秒）
+  const [isAudioLoaded, setIsAudioLoaded] = useState(false)
+  const [isAudioLoading, setIsAudioLoading] = useState(false)  // 加载中状态
+  const [audioError, setAudioError] = useState<string | null>(null)  // 加载错误
+  const [seekStep, setSeekStep] = useState<number>(15)  // 快进/后退步长（默认15秒）
+
   // 路由
   const router = useRouter()
   const [exportLogs, setExportLogs] = useLocalStorage<{
@@ -3647,15 +3657,29 @@ export default function AshtangaTracker() {
 
   // Initialize practice options from hook data
   useEffect(() => {
-    // 先过滤掉id为"custom"的选项（如果存在）
-    const regularOptions = practiceOptionsData.filter(o => o.id !== "custom")
+    // 先过滤掉id为"custom"和"guided_audio"的选项（如果存在）
+    const regularOptions = practiceOptionsData.filter(o => o.id !== "custom" && o.id !== "guided_audio")
+
+    // 检查是否已存在口令跟练选项
+    const hasGuidedAudio = practiceOptionsData.some(o => o.id === "guided_audio")
 
     setPracticeOptions([
+      // 在最前面添加口令跟练选项（如果不存在）
+      ...(hasGuidedAudio ? [] : [{
+        id: GUIDED_AUDIO_OPTION.id,
+        label: GUIDED_AUDIO_OPTION.label,
+        notes: GUIDED_AUDIO_OPTION.notes,
+        isCustom: false,
+        is_preset: true,
+        can_edit: false
+      }]),
       ...regularOptions.map(o => ({
         id: o.id,
         label: o.label,
         notes: o.notes,
-        isCustom: o.is_custom
+        isCustom: o.is_custom,
+        is_preset: o.is_preset,
+        can_edit: o.can_edit
       })),
       // 始终在最后添加"自定义"按钮
       { id: "custom", label: "自定义", notes: null, isCustom: false }
@@ -3710,27 +3734,28 @@ export default function AshtangaTracker() {
   const handleOptionTap = (option: PracticeOption) => {
     const now = Date.now()
     const lastTap = lastTapRef.current
-    
+
     // Check for double tap (within 300ms on the same option)
     if (lastTap && lastTap.id === option.id && now - lastTap.time < 300) {
-      // Double tap - open edit modal (but not for custom button)
+      // Double tap - open edit modal (but not for custom button and preset options)
       lastTapRef.current = null
-      if (option.id !== "custom") {
+      // 预设选项不能编辑
+      if (option.id !== "custom" && !option.is_preset && option.can_edit !== false) {
         setEditingOption(option)
         setShowEditModal(true)
       }
       return
     }
-    
+
     // Single tap
     lastTapRef.current = { id: option.id, time: now }
-    
+
     // Handle custom option
     if (option.id === "custom") {
       setShowCustomModal(true)
       return
     }
-    
+
     // Select the option
     setSelectedOption(option.id)
     setCustomPracticeName("")
@@ -4211,13 +4236,57 @@ export default function AshtangaTracker() {
 
   const handleStartPractice = () => {
     if (selectedOption) {
-      const now = Date.now()
-      setStartTime(now)
-      setIsPracticing(true)
-      setIsPaused(false)
-      setTotalPausedTime(0)
-      setPauseStartTime(null)
-      setElapsedTime(0)
+      // 口令跟练模式：先加载音频
+      if (selectedOption === 'guided_audio') {
+        setIsAudioLoading(true)
+        setAudioError(null)
+
+        const audio = new Audio(GUIDED_AUDIO_OPTION.audio_src)
+
+        audio.addEventListener('loadedmetadata', () => {
+          setAudioDuration(audio.duration)
+          setIsAudioLoaded(true)
+          setIsAudioLoading(false)
+
+          // 音频加载完成，开始计时和播放
+          const now = Date.now()
+          setStartTime(now)
+          setIsPracticing(true)
+          setIsPaused(false)
+          setTotalPausedTime(0)
+          setPauseStartTime(null)
+          setElapsedTime(0)
+          audio.play()
+        })
+
+        audio.addEventListener('timeupdate', () => {
+          setAudioCurrentTime(audio.currentTime)
+          setAudioProgress((audio.currentTime / audio.duration) * 100)
+        })
+
+        audio.addEventListener('ended', () => {
+          // 音频结束，自动结束练习
+          handleEndRequest()
+        })
+
+        audio.addEventListener('error', () => {
+          console.error('音频加载失败')
+          setIsAudioLoading(false)
+          setAudioError('音频加载失败，请检查网络连接')
+        })
+
+        setAudioElement(audio)
+      } else {
+        // 普通模式：直接开始计时
+        const now = Date.now()
+        setStartTime(now)
+        setIsPracticing(true)
+        setIsPaused(false)
+        setTotalPausedTime(0)
+        setPauseStartTime(null)
+        setElapsedTime(0)
+      }
+
       trackEvent('start_practice', { type: getSelectedLabel() })
     }
   }
@@ -4227,6 +4296,10 @@ export default function AshtangaTracker() {
     if (!isPaused) {
       // Pause
       setPauseStartTime(now)
+      // 音频同步暂停
+      if (audioElement && selectedOption === 'guided_audio') {
+        audioElement.pause()
+      }
     } else {
       // Resume
       if (pauseStartTime) {
@@ -4234,6 +4307,10 @@ export default function AshtangaTracker() {
         setTotalPausedTime((totalPausedTime || 0) + pausedDuration)
       }
       setPauseStartTime(null)
+      // 音频同步继续
+      if (audioElement && selectedOption === 'guided_audio') {
+        audioElement.play()
+      }
     }
     setIsPaused(!isPaused)
     trackEvent(isPaused ? 'resume_practice' : 'pause_practice')
@@ -4252,6 +4329,27 @@ export default function AshtangaTracker() {
     return option?.notes || ""
   }, [selectedOption, practiceOptions])
 
+  // 音频时间格式化
+  const formatAudioTime = (seconds: number): string => {
+    if (!seconds || isNaN(seconds)) return '00:00'
+    const mins = Math.floor(seconds / 60)
+    const secs = Math.floor(seconds % 60)
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+  }
+
+  // 快进/后退功能
+  const handleAudioSeek = (direction: 'forward' | 'backward') => {
+    if (audioElement && isAudioLoaded) {
+      const seconds = direction === 'forward' ? seekStep : -seekStep
+      const newTime = Math.max(0, Math.min(audioElement.duration, audioElement.currentTime + seconds))
+      audioElement.currentTime = newTime
+      setAudioCurrentTime(newTime)
+    }
+  }
+
+  // 步长选项
+  const SEEK_STEP_OPTIONS = [10, 15, 30]
+
   const handleEndRequest = () => {
     setShowConfirmEnd(true)
   }
@@ -4265,6 +4363,17 @@ export default function AshtangaTracker() {
     setStartTime(null)
     setPauseStartTime(null)
     setTotalPausedTime(0)
+
+    // 清理音频资源
+    if (audioElement) {
+      audioElement.pause()
+      audioElement.src = ''
+      setAudioElement(null)
+      setIsAudioLoaded(false)
+      setAudioProgress(0)
+      setAudioCurrentTime(0)
+      setAudioDuration(0)
+    }
   }
 
   const handleSavePractice = useCallback((notes: string, photos: string[], breakthrough?: string) => {
@@ -4412,6 +4521,129 @@ export default function AshtangaTracker() {
           </div>
         </div>
 
+        {/* 音频播放器 - 仅在口令跟练模式显示 */}
+        {selectedOption === 'guided_audio' && (
+          <motion.div
+            className="w-full max-w-sm mx-auto mt-4 px-6"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            {/* 加载中状态 */}
+            {isAudioLoading && (
+              <div className="flex flex-col items-center justify-center py-6">
+                <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                <p className="text-sm text-muted-foreground mt-4 font-serif">加载音频中...</p>
+              </div>
+            )}
+
+            {/* 加载错误状态 */}
+            {audioError && (
+              <div className="flex flex-col items-center justify-center py-6">
+                <AlertCircle className="w-12 h-12 text-destructive" />
+                <p className="text-sm text-destructive mt-4 font-serif text-center">{audioError}</p>
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => {
+                    // 返回首页
+                    setIsPracticing(false)
+                    setSelectedOption(null)
+                    // 清理音频资源
+                    if (audioElement) {
+                      audioElement.pause()
+                      audioElement.src = ''
+                      setAudioElement(null)
+                    }
+                    setIsAudioLoaded(false)
+                    setAudioError(null)
+                  }}
+                  className="mt-4 px-6 py-2 rounded-full bg-muted text-sm font-serif"
+                >
+                  返回首页
+                </motion.button>
+              </div>
+            )}
+
+            {/* 正常播放器界面 */}
+            {isAudioLoaded && !isAudioLoading && !audioError && (
+              <>
+                {/* 进度条 */}
+                <div className="relative h-1.5 bg-muted rounded-full overflow-hidden">
+                  <div
+                    className="absolute inset-y-0 left-0 bg-primary rounded-full transition-all duration-300"
+                    style={{ width: `${audioProgress}%` }}
+                  />
+                </div>
+
+                {/* 时间显示 */}
+                <div className="flex justify-between text-xs text-muted-foreground mt-2 font-serif">
+                  <span>{formatAudioTime(audioCurrentTime)}</span>
+                  <span>{formatAudioTime(audioDuration)}</span>
+                </div>
+
+                {/* 步长选择器 */}
+                <div className="flex items-center justify-center gap-2 mt-3">
+                  <span className="text-xs text-muted-foreground font-serif">快进/后退:</span>
+                  {SEEK_STEP_OPTIONS.map((step) => (
+                    <motion.button
+                      key={step}
+                      whileTap={{ scale: 0.9 }}
+                      onClick={() => setSeekStep(step)}
+                      className={`px-3 py-1 rounded-full text-xs font-serif ${
+                        seekStep === step
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-muted text-muted-foreground'
+                      }`}
+                    >
+                      {step}秒
+                    </motion.button>
+                  ))}
+                </div>
+
+                {/* 控制按钮 */}
+                <div className="flex items-center justify-center gap-4 mt-4">
+                  {/* 后退 */}
+                  <motion.button
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => handleAudioSeek('backward')}
+                    className="w-10 h-10 rounded-full bg-muted flex items-center justify-center relative"
+                  >
+                    <SkipBack className="w-4 h-4" />
+                    <span className="absolute text-[8px] font-medium">{seekStep}</span>
+                  </motion.button>
+
+                  {/* 播放/暂停 */}
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    onClick={handlePauseResume}
+                    className="w-14 h-14 rounded-full green-gradient flex items-center justify-center shadow-lg"
+                  >
+                    {isPaused ? (
+                      <Play className="w-6 h-6 text-primary-foreground ml-0.5" />
+                    ) : (
+                      <Pause className="w-6 h-6 text-primary-foreground" />
+                    )}
+                  </motion.button>
+
+                  {/* 前进 */}
+                  <motion.button
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => handleAudioSeek('forward')}
+                    className="w-10 h-10 rounded-full bg-muted flex items-center justify-center relative"
+                  >
+                    <SkipForward className="w-4 h-4" />
+                    <span className="absolute text-[8px] font-medium">{seekStep}</span>
+                  </motion.button>
+                </div>
+
+                {/* 音频标题 */}
+                <p className="text-center text-xs text-muted-foreground mt-3 font-serif">
+                  老掌门人一级序列口令
+                </p>
+              </>
+            )}
+          </motion.div>
+        )}
+
         <ConfirmEndDialog isOpen={showConfirmEnd} onClose={() => setShowConfirmEnd(false)} onConfirm={handleConfirmEnd} />
 
         <CompletionSheet
@@ -4453,6 +4685,7 @@ export default function AshtangaTracker() {
             {practiceOptions.map((option) => {
               const isSelected = selectedOption === option.id
               const isCustomButton = option.id === "custom"
+              const isGuidedAudio = option.id === "guided_audio"
 
               return (
                 <motion.button
@@ -4467,13 +4700,18 @@ export default function AshtangaTracker() {
                         ? "green-gradient text-primary-foreground backdrop-blur-[16px] border border-white/30 shadow-[0_8px_24px_rgba(45,90,39,0.3)]"
                         : isCustomButton
                           ? "bg-background text-muted-foreground border-2 border-dashed border-muted-foreground/30 shadow-[0_2px_12px_rgba(0,0,0,0.03)]"
-                          : "bg-background text-foreground shadow-[0_4px_16px_rgba(0,0,0,0.06)] border border-stone-100/50"
+                          : isGuidedAudio
+                            ? "bg-primary/10 text-primary border border-primary/30 shadow-[0_4px_16px_rgba(45,90,39,0.1)]"
+                            : "bg-background text-foreground shadow-[0_4px_16px_rgba(0,0,0,0.06)] border border-stone-100/50"
                     }
                   `}
                 >
-                  <span className="text-[14px] leading-snug break-words w-full line-clamp-2">{isCustomButton ? "+ 自定义" : option.label}</span>
+                  <span className="text-[14px] leading-snug break-words w-full line-clamp-2 flex items-center justify-center gap-1">
+                    {isCustomButton ? "+ 自定义" : option.label}
+                    {isGuidedAudio && <Volume2 className="w-3.5 h-3.5 inline-block" />}
+                  </span>
                   {!isCustomButton && option.notes && (
-                    <span className={`text-[11px] mt-0.5 leading-snug break-words w-full line-clamp-2 ${isSelected ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
+                    <span className={`text-[11px] mt-0.5 leading-snug break-words w-full line-clamp-2 ${isSelected ? 'text-primary-foreground/70' : isGuidedAudio ? 'text-primary/70' : 'text-muted-foreground'}`}>
                       {option.notes}
                     </span>
                   )}
