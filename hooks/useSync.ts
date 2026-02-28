@@ -391,7 +391,8 @@ export function useSync(
           addLog(`同步云端变更：新增${remoteOnly.length}条，更新${remoteNewer.length}条`, 'success')
 
           // ⭐ 构建完整的 profile 对象，确保包含 updated_at
-          const mergedProfile = remoteData.profile && remoteData.profile.name && !remoteData.profile.name.match(/^\d+$/)
+          // 修复：只要云端有 profile 数据，就使用它，不要进行二次判断
+          const mergedProfile = remoteData.profile && remoteData.profile.name
             ? {
                 id: remoteData.profile.id || '',
                 user_id: remoteData.profile.user_id || '',
@@ -405,7 +406,7 @@ export function useSync(
                 historical_days: remoteData.profile.historical_days || 0,
                 historical_avg_minutes: remoteData.profile.historical_avg_minutes || 0,
               }
-            : { name: '阿斯汤加习练者', signature: remoteData.profile?.signature || '练习、练习，一切随之而来。', avatar: null, is_pro: false, historical_days: 0, historical_avg_minutes: 0 }
+            : freshLocalData.profile || { name: '阿斯汤加习练者', signature: '练习、练习，一切随之而来。', avatar: null, is_pro: false, historical_days: 0, historical_avg_minutes: 0 }
 
           onSyncComplete({
             records: mergedRecords,
@@ -451,7 +452,8 @@ export function useSync(
         addLog(`使用云端数据：${remoteRecordsToUse.length}条记录`, 'success')
 
         // ⭐ 构建完整的 profile 对象，确保包含 updated_at
-        const cloudProfile = remoteData.profile && remoteData.profile.name && !remoteData.profile.name.match(/^\d+$/) && remoteData.profile.name !== '阿斯汤加习练者'
+        // 修复：只要云端有 profile 数据，就使用它，不要进行二次判断
+        const cloudProfile = remoteData.profile && remoteData.profile.name
           ? {
               id: remoteData.profile.id || '',
               user_id: remoteData.profile.user_id || '',
@@ -541,10 +543,25 @@ export function useSync(
     // ⭐ 使用 ref 获取最新的 localData
     const freshLocalData = localDataRef.current
 
+    // ⭐ 智能合并 profile：比较时间戳，使用更新的那个
+    let mergedProfile = freshLocalData.profile
+    if (remoteData.profile) {
+      const localTime = new Date(freshLocalData.profile?.updated_at || freshLocalData.profile?.created_at || 0).getTime()
+      const remoteTime = new Date(remoteData.profile.updated_at || remoteData.profile.created_at).getTime()
+
+      if (remoteTime > localTime) {
+        mergedProfile = remoteData.profile
+      }
+    }
+
     if (remoteOnly.length > 0) {
       // 云端有新数据，下载到本地
       addLog(`下载${remoteOnly.length}条云端记录`, 'success')
-      onSyncComplete({ records: [...freshLocalData.records, ...remoteOnly], options: remoteData.options || [] })
+      onSyncComplete({
+        records: [...freshLocalData.records, ...remoteOnly],
+        options: remoteData.options || [],
+        profile: mergedProfile // ⭐ 添加 profile
+      })
     }
 
     if (localOnly.length > 0) {
@@ -716,6 +733,7 @@ export function useSync(
       notes: r.notes || '',
       photos: null, // ⚠️ 照片暂不同步
       breakthrough: r.breakthrough || null,
+      start_time: r.start_time || null, // ⭐ 练习开始时间
       updated_at: r.updated_at || r.created_at || new Date().toISOString(), // ⭐ 添加更新时间
     }))
 
@@ -816,6 +834,7 @@ export function useSync(
           notes: r.notes || '',
           photos: r.photos && r.photos.length > 0 ? JSON.stringify(r.photos) : null, // ⚠️ 转换为 JSON 字符串
           breakthrough: r.breakthrough || null,
+          start_time: r.start_time || null, // ⭐ 练习开始时间
           updated_at: r.updated_at || r.created_at || new Date().toISOString(), // ⭐ 添加更新时间
         }))
 
@@ -923,7 +942,8 @@ export function useSync(
           addLog('使用云端数据', 'success')
 
           // ⭐ 构建完整的 profile 对象，确保包含 updated_at
-          const remoteProfile = remoteData.profile && remoteData.profile.name && !remoteData.profile.name.match(/^\d+$/)
+          // 修复：只要云端有 profile 数据，就使用它，不要进行二次判断
+          const remoteProfile = remoteData.profile && remoteData.profile.name
             ? {
                 id: remoteData.profile.id || '',
                 user_id: remoteData.profile.user_id || '',
