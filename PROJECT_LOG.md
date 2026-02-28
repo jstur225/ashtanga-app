@@ -7,6 +7,194 @@
 
 ---
 
+## 2026-02-28: 修复同步时名字签名被重置问题 ✅ 完成
+
+**阶段**: Bug修复（同步功能优化）
+
+**问题描述**:
+- 用户在同步练习记录时，选择"智能合并"后，个人资料（名字、签名）有时会被重置为默认状态
+
+**根本原因分析**:
+
+1. **问题1**: `smartMerge` 函数未处理 profile 数据
+   - 只同步了练习记录和选项，完全没有处理 profile
+   - 如果云端 profile 被错误构建为默认值，智能合并不会修正
+
+2. **问题2**: 使用云端数据时错误的有效性判断
+   - 多处代码排除了 `'阿斯汤加习练者'` 这个值，认为它是"无效的"
+   - 但实际上用户可能恰好喜欢用这个名字
+   - 选择"使用云端数据"时，如果云端是默认名字，会被强制重置
+
+3. **问题3**: 同步对比逻辑与构建逻辑不一致
+   - 对比阶段已正确识别 profile 变更来源
+   - 但构建 `mergedProfile` 时重新进行"有效性"判断，覆盖了对比结果
+
+**修复方案**:
+
+### 修复1: 智能合并时正确处理 profile 数据
+**文件**: `hooks/useSync.ts:547` (`smartMerge` 函数)
+```typescript
+// 智能合并 profile：比较时间戳，使用更新的那个
+let mergedProfile = freshLocalData.profile
+if (remoteData.profile) {
+  const localTime = new Date(freshLocalData.profile?.updated_at || freshLocalData.profile?.created_at || 0).getTime()
+  const remoteTime = new Date(remoteData.profile.updated_at || remoteData.profile.created_at).getTime()
+
+  if (remoteTime > localTime) {
+    mergedProfile = remoteData.profile
+  }
+}
+
+onSyncComplete({
+  records: [...freshLocalData.records, ...remoteOnly],
+  options: remoteData.options || [],
+  profile: mergedProfile // ⭐ 添加 profile
+})
+```
+
+### 修复2: 移除错误的默认值判断
+**文件**: `hooks/useSync.ts`
+**位置**: 394-408 行, 454-468 行, 928-942 行
+
+**修复前**:
+```typescript
+const mergedProfile = remoteData.profile && remoteData.profile.name && !remoteData.profile.name.match(/^\d+$/) && remoteData.profile.name !== '阿斯汤加习练者'
+  ? { /* 使用云端 */ }
+  : { name: '阿斯汤加习练者', ... } // 默认值
+```
+
+**修复后**:
+```typescript
+const mergedProfile = remoteData.profile && remoteData.profile.name
+  ? { /* 直接使用云端数据 */ }
+  : freshLocalData.profile || { name: '阿斯汤加习练者', ... } // 只有真正没有数据时才用默认值
+```
+
+**关键原则**: 默认值 `'阿斯汤加习练者'` 只是一个初始值，不应该在同步过程中被当作"无效数据"处理。
+
+### 修复3: 信任同步对比结果
+**文件**: `hooks/useSync.ts:394-408`
+- 直接使用 `profileChangeSource` 的结果
+- 不要重新判断 profile 是否"有效"
+
+**验证方案**:
+
+1. **测试用例1**: 智能合并时 profile 不被重置
+   - 设备 A：修改名字为 "小明"，等待同步到云端
+   - 设备 B：触发冲突，选择智能合并
+   - 验证：设备 B 的名字应该是 "小明"（不是默认值）
+
+2. **测试用例2**: 云端是默认名字时不被强制重置
+   - 云端 profile 名字为 "阿斯汤加习练者"
+   - 本地 profile 名字为 "小明"
+   - 同步时选择"使用云端数据"
+   - 验证：云端数据被正确下载，名字为 "阿斯汤加习练者"（不是又被重置一次）
+
+3. **测试用例3**: 基于时间戳的正确合并
+   - 本地 profile 更新时间为今天 10:00，名字为 "小明"
+   - 云端 profile 更新时间为今天 12:00，名字为 "大明"
+   - 触发智能合并
+   - 验证：最终名字为 "大明"（云端更新）
+
+**Git提交**:
+- `fd9ea26` - fix(sync): 修复同步时名字签名被重置的问题
+
+**修改文件**:
+| 文件 | 位置 | 说明 |
+|------|------|------|
+| `hooks/useSync.ts` | 394-408, 454-468, 547, 928-942 | 主要修复位置 |
+
+**下一步**:
+- 继续观察同步功能是否稳定
+- 处理其他已知问题（练习选项同步异常）
+
+---
+
+## 2026-02-27: 飞书多维表格读取技能 ✅ 完成
+
+### 背景
+用户希望将飞书读取功能单独做成一个 Claude Code 技能，可以直接发送多维表格链接，Claude 就能读取表格内容进行分析。
+
+### 实现
+创建了 `.claude/skills/feishu-bitable-read/` 技能：
+
+**文件结构**:
+```
+.claude/skills/feishu-bitable-read/
+├── skill.yml          # 技能定义
+├── config.json        # 配置文件（app_id, app_secret）
+└── read_bitable.py    # 核心逻辑
+```
+
+**核心功能**:
+1. **URL 解析**: 从 `https://xxx.feishu.cn/base/{app_token}?table={table_id}` 提取参数
+2. **Token 管理**: 自动获取 tenant_access_token
+3. **分页读取**: 处理大量数据的分页获取（每页 500 条）
+4. **字段映射**: 自动将 field_id 转换为字段名显示
+5. **缓存机制**: 默认 5 分钟缓存，避免重复调用 API
+6. **表格目录**: 支持配置多个表格，使用 key 快速切换
+7. **默认表格**: 无需输入 URL，自动使用默认表格
+8. **待发货清单**: 一键查看待发货订单和订货清单
+
+**表格目录** (`config.json`):
+```json
+{
+  "default_table": "orders",
+  "tables": {
+    "orders": {
+      "name": "有赞订单",
+      "url": "https://xxx.feishu.cn/base/xxx",
+      "description": "有赞商城订单数据"
+    }
+  }
+}
+```
+
+**使用方式**:
+```bash
+# 查看待发货订单（使用默认表格）
+/feishu-bitable-read
+
+# 使用指定表格 key
+/feishu-bitable-read orders
+
+# 使用完整链接
+/feishu-bitable-read https://xxx.feishu.cn/base/xxx
+
+# 查看表格目录
+/feishu-bitable-read --list-tables
+```
+
+**配置凭证**:
+- `app_id`: cli_a92a4d950d385cef
+- `app_secret`: rbhvYLZ8zJj5Lx3Vz4DlLcBEcJ2FgEVj
+
+### 测试验证
+使用有赞订单表格链接测试成功：
+- 表格名称: 有赞订单
+- 记录总数: 486 条
+- 字段数量: 161 个
+
+### 版本迭代
+
+**v1.0 (2026-02-27)**: 基础功能
+- URL 解析、Token 管理、分页读取、缓存机制
+
+**v2.0 (2026-02-27)**: 智能表格目录
+- 添加表格目录管理功能
+- 支持默认表格（无需输入 URL）
+- 支持表格 key 快速切换
+- 待发货订单统计功能
+- `--list-tables` 查看表格目录
+
+### 复用代码
+从 `XBB-APP/ashtanga-xiaohongshu/_scripts/sync_feishu_content.py` 复用了：
+- `get_tenant_token()` 方法
+- `get_all_records()` 分页逻辑
+- 错误处理模式
+
+---
+
 ## 用户画像
 - **姓名**: orange
 - **角色**: 产品经理
@@ -1199,5 +1387,58 @@ Edge浏览器：点击右下角→ 选择添加到手机
 - 一键安装，无需审核，跨平台（iOS+Android）
 
 **下一步**: 继续使用和测试，发现问题
+
+---
+
+### 2026-02-26: NotebookLM自动化流程完成 ✅
+
+**阶段**: 小红书文案生成自动化
+
+**核心功能**:
+- ✅ NotebookLM MCP自动化控制脚本
+- ✅ 文案生成并同步到飞书知识库
+- ✅ 飞书表格状态管理
+
+**NotebookLM输入格式**:
+```
+以"[主题内容]"为主题，帮我写3个不同角度的小红书文案
+```
+- NotebookLM已内置提示词，无需重复
+- 自动生成3个角度：对话叙述型、痛点共鸣型、干货分享型
+
+**飞书同步流程**:
+1. MCP控制Chrome打开NotebookLM
+2. 输入主题，自动生成文案
+3. 移除Markdown `**` 加粗格式（飞书/小红书不支持）
+4. 创建文档到"📁 02-创作中"文件夹
+5. 添加状态管理区块（带跳转链接）
+6. 创建飞书表格记录
+
+**飞书表格字段**:
+- 选题/灵感: 文本
+- 排期日期: Unix时间戳（毫秒）
+- 状态: 🟡待生成/🟠待审核/🟢待发布/🔵已发布/⏸️暂停
+- 知识库链接: 链接
+- ~~文案角度~~: 已删除
+
+**技术实现**:
+- `input_and_send.py` - MCP+Playwright自动化输入
+- `sync_generated_to_feishu.py` - 飞书同步脚本
+- `get_wiki_nodes.py` - 知识库节点查询
+
+**文档存放位置**:
+- Node Token: `UkvnwPEwoioBXxkd0RXcINlcnqd` (📁 02-创作中)
+
+**规范固化**:
+- 创建 `CONTENT_RULES.md` 记录所有格式规范
+- 禁止 `**` 加粗语法
+- 正确的NotebookLM输入格式
+- 完整的同步流程
+
+**Git状态**: 工作区有未提交文件（generated_马年第一练.md等）
+
+**下一步**:
+- 测试更多选题的自动化流程
+- 优化状态管理区块的交互
 
 ---

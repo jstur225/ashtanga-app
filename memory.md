@@ -20,6 +20,78 @@
 - **vercel-react-best-practices** - React 和 Next.js 性能优化指南
 - **notebooklm** - NotebookLM 集成，查询笔记本知识库
 - **better-auth-best-practices** - TypeScript 认证框架集成指南（2026-02-02 安装）
+- **2026-02-28**: **修复同步时名字签名被重置问题** ✅ 完成
+  - **问题描述**: 用户选择"智能合并"后，个人资料（名字、签名）有时被重置为默认状态
+  - **根本原因**:
+    1. `smartMerge` 函数没有处理 profile 数据
+    2. 多处使用错误的有效性判断，将默认值 `'阿斯汤加习练者'` 视为"无效数据"
+    3. 同步对比结果与构建逻辑不一致
+  - **修复方案**:
+    1. 智能合并时根据时间戳选择较新的 profile 数据
+    2. 移除错误的默认值判断，只要云端有数据就使用
+    3. 信任同步对比结果，不要重新判断
+  - **修改文件**: `hooks/useSync.ts`（4处判断逻辑）
+  - **Git提交**: `fd9ea26`
+
+- **feishu-bitable-read** - 飞书多维表格读取（2026-02-27 创建，2026-02-27 升级）
+  - 位置: `.claude/skills/feishu-bitable-read/`
+  - 功能: 读取飞书多维表格内容，支持表格目录管理、待发货订单统计
+  - 使用:
+    - `/feishu-bitable-read` - 使用默认表格查看待发货订单
+    - `/feishu-bitable-read orders` - 使用指定表格 key
+    - `/feishu-bitable-read --list-tables` - 查看表格目录
+  - 配置: `config.json` 中设置 `app_id`、`app_secret` 和表格目录
+  - 缓存: 默认 5 分钟缓存，避免重复调用 API
+  - 默认表格: `orders`（有赞订单表）
+  - 智能识别: 说"订单"自动使用默认订单表
+
+- **2026-02-26**: **飞书文档添加状态管理快捷入口** ✅ 完成
+  - **问题**: 文档审核后需要手动去表格改状态，操作繁琐
+  - **解决方案**: 在生成的飞书云文档顶部添加"状态管理区块"
+  - **实现**:
+    - 新增 `add_status_management_block()` 函数
+    - 自动添加：当前状态显示 + 可点击跳转链接
+    - 点击链接直接跳转到表格对应记录行，可立即修改状态
+  - **使用**: 保存文档到知识库时自动生成
+  - **效果**:
+    ```
+    📋 选题状态管理
+    ─────────────────────
+    当前状态：🟠待审核
+    👉 点击修改状态（可点击链接）
+    点击上方链接直接跳转到表格对应行，可修改状态、添加数据
+    ─────────────────────
+    ```
+
+- **2026-02-26**: **小红书项目目录英文名化** ✅ 完成
+  - **原名**: `小红书阿斯汤加提示词/`
+  - **新名**: `ashtanga-xiaohongshu/`
+  - **更新文件**: 10 个文件中的路径引用
+    - `README.md`
+    - `PROJECT_WORKFLOW.md`
+    - `generate_content.py`
+    - `sync_feishu_content.py`
+    - `call_notebooklm.py`
+    - `fix_doc_content.py`
+    - `save_to_feishu_kb.py`
+    - `setup/add_frontmatter.py`
+    - `setup/import_to_old_notebook.py`
+    - `setup/direct_import.py`
+
+- **2026-02-26**: **小红书项目目录整合** ✅ 完成
+  - **问题**: `xiaohongshu_automation/` 和 `小红书阿斯汤加提示词/_scripts/` 分开存放，认知负担重
+  - **整合方案**: 将环境配置脚本移入 `_scripts/setup/`
+  - **操作**:
+    - 创建 `_scripts/setup/` 子目录
+    - 移动 5 个脚本：`notebooklm_login.py`、`import_to_old_notebook.py`、`add_frontmatter.py`、`direct_import.py`、`merge_notebooks.py`
+    - 删除 `xiaohongshu_automation/` 目录
+  - **新结构**:
+    ```
+    ashtanga-xiaohongshu/
+    └── _scripts/
+        ├── production/          # 日常生产脚本
+        └── setup/               # 初始化脚本
+    ```
 
 - **2026-02-23**: **新发现：练习选项同步问题** 🐛 待调查
   - **问题描述**:
@@ -2558,5 +2630,67 @@ CREATE POLICY "Users can insert own options"
 
 ### 产品决策
 符合"简单"理念，采用全量覆盖模式而非时间戳冲突检测，代码更简单，满足当前需求。
+
+---
+
+## 2026-02-28: 有赞消息订阅实时同步方案 ✅ 完成
+
+### 背景
+当前系统采用每小时定时轮询同步（9-18点），延迟最高1小时。通过有赞消息订阅（Webhook）可实现毫秒级实时同步，并节省99%的API调用。
+
+### 实施内容
+
+#### 1. 创建 Webhook 接收服务
+- **文件**: `webhook_server.py`
+- **功能**:
+  - Flask应用监听8000端口
+  - 路由：`/webhook/youzan` 接收POST请求
+  - 验证Event-Sign签名（MD5）
+  - 根据Event-Type分发处理
+  - 异步处理订单（避免超时）
+  - 自动同步到飞书多维表格
+
+#### 2. 部署脚本
+- **deploy.sh**: 自动化部署脚本，包含依赖安装、systemd服务配置
+- **webhook.service**: systemd服务配置，使用gunicorn运行
+- **nginx.conf**: 反向代理配置（可选）
+- **.env.example**: 环境变量配置模板
+
+#### 3. 依赖配置
+- **requirements.txt**: 添加Flask、gunicorn、requests依赖
+
+### 有赞后台配置
+- 推送地址：`http://你的服务器IP:8000/webhook/youzan`
+- 订阅事件：
+  - `trade_TradeCreate` - 订单创建
+  - `TRADE_ORDER_STATE` - 订单状态变更
+  - `TRADE_ORDER_REFUND` - 退款事件
+
+### 部署步骤
+```bash
+# 1. 上传到云服务器
+scp webhook_server.py deploy.sh webhook.service root@your-server:/opt/youzan-webhook/
+
+# 2. 运行部署脚本
+sudo bash deploy.sh
+
+# 3. 配置环境变量
+sudo systemctl edit webhook --full
+# 修改 YOUZAN_CLIENT_ID, YOUZAN_CLIENT_SECRET 等
+
+# 4. 重启服务
+sudo systemctl restart webhook
+```
+
+### 验证步骤
+1. 本地启动：`python webhook_server.py`
+2. 使用ngrok测试：`ngrok http 8000`
+3. 在有赞后台配置ngrok地址测试推送
+4. 创建测试订单，观察飞书是否实时更新
+5. 部署到云服务器后，改用正式域名/IP
+
+### 成本估算
+- 云服务器：50元/年（1核1G即可）
+- 流量费用：极低（文本推送，月均<1GB）
 
 ---
