@@ -3718,18 +3718,11 @@ export default function AshtangaTracker() {
   }, [isPracticing])
 
   // Timer logic - Timestamp based for background/lock screen support
-  // 口令跟练模式下，计时跟随音频进度
   useInterval(() => {
     if (isPracticing && !isPaused && startTime) {
-      // 口令跟练模式：使用音频时间
-      if (selectedOption === 'guided_audio' && audioCurrentTime > 0) {
-        setElapsedTime(Math.floor(audioCurrentTime))
-      } else {
-        // 普通模式：使用系统时间
-        const now = Date.now()
-        const diff = Math.floor((now - startTime - (totalPausedTime || 0)) / 1000)
-        setElapsedTime(Math.max(0, diff))
-      }
+      const now = Date.now()
+      const diff = Math.floor((now - startTime - (totalPausedTime || 0)) / 1000)
+      setElapsedTime(Math.max(0, diff))
     }
   }, isPracticing && !isPaused ? 1000 : null)
 
