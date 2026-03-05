@@ -4616,6 +4616,61 @@ export default function AshtangaTracker() {
 
         {/* Control buttons - moved up 30% to avoid clipping on mobile */}
         <div className="px-6 pb-32">
+          {/* 音频加载状态 - 仅在口令跟练模式显示，替代暂停/结束按钮 */}
+          {selectedOption === 'guided_audio' && isAudioLoading && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex flex-col items-center justify-center py-3"
+            >
+              <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              <p className="text-sm text-muted-foreground mt-4 font-serif">
+                {isUsingCache ? '从缓存读取...' : audioDownloadProgress > 0 ? `下载中 ${audioDownloadProgress}%` : '加载音频中...'}
+              </p>
+              {/* 下载进度条 */}
+              {!isUsingCache && audioDownloadProgress > 0 && (
+                <div className="w-48 h-1 bg-muted rounded-full mt-2 overflow-hidden">
+                  <div
+                    className="h-full bg-primary rounded-full transition-all duration-300"
+                    style={{ width: `${audioDownloadProgress}%` }}
+                  />
+                </div>
+              )}
+              {/* 第一次下载提示 */}
+              {!isUsingCache && audioDownloadProgress > 0 && (
+                <p className="text-xs text-muted-foreground/70 mt-3 font-serif text-center">
+                  💡 首次下载需要一点时间，之后就能快速打开啦
+                </p>
+              )}
+            </motion.div>
+          )}
+
+          {/* 音频错误状态 - 仅在口令跟练模式显示 */}
+          {selectedOption === 'guided_audio' && audioError && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex flex-col items-center justify-center py-6"
+            >
+              <AlertCircle className="w-12 h-12 text-destructive mb-3" />
+              <p className="text-sm text-destructive font-serif text-center">
+                {audioError}
+              </p>
+              <button
+                onClick={() => {
+                  setAudioError(null)
+                  loadAudioAndStart()
+                }}
+                className="mt-4 px-6 py-2 rounded-full green-gradient text-white text-sm font-serif"
+              >
+                重试
+              </button>
+            </motion.div>
+          )}
+
+          {/* 暂停/结束按钮 - 音频加载完成后显示 */}
+          {(!selectedOption || selectedOption !== 'guided_audio' || (isAudioLoaded && !isAudioLoading && !audioError)) && (
+          <>
           {/* 暂停/结束按钮 - 恢复原始样式 */}
           <div className="flex gap-4 justify-center">
             <motion.button
@@ -4643,6 +4698,7 @@ export default function AshtangaTracker() {
               结束
             </motion.button>
           </div>
+          </>
 
           {/* 步长选择器 + 前进/后退按钮 - 仅在口令跟练模式显示 */}
           {selectedOption === 'guided_audio' && isAudioLoaded && !isAudioLoading && !audioError && (
@@ -4684,86 +4740,6 @@ export default function AshtangaTracker() {
             </div>
           )}
         </div>
-
-        {/* 音频播放器 - 仅在口令跟练模式显示（加载状态和错误状态） */}
-        {selectedOption === 'guided_audio' && (
-          <motion.div
-            className="w-full max-w-sm mx-auto -mt-10 px-6"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            {/* 加载中状态 */}
-            {isAudioLoading && (
-              <div className="flex flex-col items-center justify-center py-3">
-                <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                <p className="text-sm text-muted-foreground mt-4 font-serif">
-                  {isUsingCache ? '从缓存读取...' : audioDownloadProgress > 0 ? `下载中 ${audioDownloadProgress}%` : '加载音频中...'}
-                </p>
-                {/* 下载进度条 */}
-                {!isUsingCache && audioDownloadProgress > 0 && (
-                  <div className="w-48 h-1 bg-muted rounded-full mt-2 overflow-hidden">
-                    <div
-                      className="h-full bg-primary rounded-full transition-all duration-300"
-                      style={{ width: `${audioDownloadProgress}%` }}
-                    />
-                  </div>
-                )}
-                {/* 第一次下载提示 */}
-                {!isUsingCache && audioDownloadProgress > 0 && (
-                  <p className="text-xs text-muted-foreground/70 mt-3 font-serif text-center">
-                    💡 首次下载需要一点时间，之后就能快速打开啦
-                  </p>
-                )}
-              </div>
-            )}
-
-            {/* 加载错误状态 */}
-            {audioError && (
-              <div className="flex flex-col items-center justify-center py-6">
-                <AlertCircle className="w-12 h-12 text-destructive" />
-                <p className="text-sm text-destructive mt-4 font-serif text-center">{audioError}</p>
-                <div className="flex gap-3 mt-4">
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => {
-                      // 清除缓存后重试
-                      audioCache.clearCache().then(() => {
-                        setAudioError(null)
-                        setIsAudioLoading(true)
-                        setAudioDownloadProgress(0)
-                        // 触发重新加载
-                        handleStartPractice()
-                      })
-                    }}
-                    className="px-6 py-2 rounded-full bg-primary text-primary-foreground text-sm font-serif"
-                  >
-                    重试
-                  </motion.button>
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => {
-                      // 返回首页
-                      setIsPracticing(false)
-                      setSelectedOption(null)
-                      // 清理音频资源
-                      if (audioElement) {
-                        audioElement.pause()
-                        audioElement.src = ''
-                        setAudioElement(null)
-                      }
-                      setIsAudioLoaded(false)
-                      setAudioError(null)
-                    }}
-                    className="px-6 py-2 rounded-full bg-muted text-sm font-serif"
-                  >
-                    返回首页
-                  </motion.button>
-                </div>
-              </div>
-            )}
-
-          </motion.div>
-        )}
 
         <ConfirmEndDialog isOpen={showConfirmEnd} onClose={() => setShowConfirmEnd(false)} onConfirm={handleConfirmEnd} />
 
