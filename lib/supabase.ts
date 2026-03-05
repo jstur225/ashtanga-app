@@ -98,6 +98,7 @@ export interface PracticeRecord {
   notes: string
   photos: string[]
   breakthrough?: string | null
+  start_time?: string | null // ⭐ 新增：练习开始时间，格式 HH:MM
   deleted_at?: string | null // 软删除字段
 }
 

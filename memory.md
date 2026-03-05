@@ -20,6 +20,37 @@
 - **vercel-react-best-practices** - React 和 Next.js 性能优化指南
 - **notebooklm** - NotebookLM 集成，查询笔记本知识库
 - **better-auth-best-practices** - TypeScript 认证框架集成指南（2026-02-02 安装）
+- **2026-02-28**: **实现口令跟练功能** ✅ 完成
+  - **功能描述**: 在首页Tab1添加"口令跟练"特殊选项，跟随老掌门人口令音频练习
+  - **核心特性**:
+    1. 首页显示"口令跟练 🔊"选项（在最前面，不可编辑/删除）
+    2. 计时页面集成音频播放器（加载、播放/暂停、进度显示）
+    3. 支持快进/后退功能（10秒/15秒/30秒步长可选）
+    4. 音频播放与练习计时同步（暂停时音频也暂停）
+    5. 音频结束时自动结束练习
+    6. 音频加载失败时显示错误提示
+  - **技术实现**:
+    - `hooks/usePracticeData.ts`: 添加 `GUIDED_AUDIO_OPTION` 预设选项，扩展 `PracticeOption` 接口
+    - `app/practice/page.tsx`: 添加音频播放器状态、控制逻辑和UI
+    - `public/audio/`: 创建音频文件存放目录
+  - **音频文件**: 需将 `guruji-led-primary.mp3` 放入 `public/audio/` 目录
+
+- **2026-03-05**: **修复同步功能 start_time 字段缺失问题** ✅ 完成
+  - **问题描述**: 2月28日后同步功能停止工作，16条新记录无法上传到 Supabase，提示"已同步接近1000"但后台只有381条
+  - **根本原因**:
+    1. TypeScript 接口 `PracticeRecord` 缺少 `start_time` 字段
+    2. `hooks/useSync.ts` 第736行和第837行尝试上传 `r.start_time`，但接口未定义该字段
+    3. Supabase 报错："Could not find the 'start_time' column"
+  - **修复方案**:
+    1. 在 `hooks/usePracticeData.ts` 的 `PracticeRecord` 接口添加 `start_time?: string` 字段
+    2. 在 `lib/supabase.ts` 的 `PracticeRecord` 接口添加 `start_time?: string | null` 字段
+  - **待办事项**: 需要在 Supabase Dashboard 执行 SQL 添加 `start_time` 列
+    ```sql
+    ALTER TABLE practice_records
+    ADD COLUMN IF NOT EXISTS start_time VARCHAR(5);
+    ```
+  - **修改文件**: `hooks/usePracticeData.ts`, `lib/supabase.ts`
+
 - **2026-02-28**: **修复同步时名字签名被重置问题** ✅ 完成
   - **问题描述**: 用户选择"智能合并"后，个人资料（名字、签名）有时被重置为默认状态
   - **根本原因**:

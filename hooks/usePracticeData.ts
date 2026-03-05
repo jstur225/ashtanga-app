@@ -14,6 +14,7 @@ export interface PracticeRecord {
   notes: string;
   photos: string[];
   breakthrough?: string;
+  start_time?: string; // ⭐ 新增：练习开始时间，格式 HH:MM
 }
 
 export interface PracticeOption {
@@ -22,6 +23,9 @@ export interface PracticeOption {
   label: string;
   notes?: string;
   is_custom: boolean;
+  is_preset?: boolean;      // 新增：是否预设特殊选项
+  audio_src?: string;       // 新增：音频文件路径
+  can_edit?: boolean;       // 新增：是否可编辑（默认true）
 }
 
 export interface UserProfile {
@@ -38,6 +42,18 @@ export interface UserProfile {
   historical_days?: number;           // 历史练习天数
   historical_avg_minutes?: number;    // 历史平均每次时长（分钟）
 }
+
+// 口令跟练预设选项
+export const GUIDED_AUDIO_OPTION: PracticeOption = {
+  id: 'guided_audio',
+  created_at: '2026-01-01T00:00:00.000Z',
+  label: '口令跟练',
+  notes: '老掌门人',
+  is_custom: false,
+  is_preset: true,
+  audio_src: '/audio/guruji-led-primary.mp3',
+  can_edit: false
+};
 
 const DEFAULT_OPTIONS: PracticeOption[] = [
   { id: '1', created_at: new Date().toISOString(), label: '一序列', notes: 'Mysore', is_custom: false },
