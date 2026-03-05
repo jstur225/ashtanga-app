@@ -4570,39 +4570,40 @@ export default function AshtangaTracker() {
             </motion.button>
           </div>
 
-          {/* 步长选择器 - 仅在口令跟练模式显示，参考Tab3的90/180/365样式 */}
+          {/* 步长选择器 + 前进/后退按钮 - 仅在口令跟练模式显示 */}
           {selectedOption === 'guided_audio' && isAudioLoaded && !isAudioLoading && !audioError && (
-            <div className="flex items-center justify-center gap-3 mt-4">
-              {SEEK_STEP_OPTIONS.map((step) => (
-                <button
-                  key={step}
-                  onClick={() => setSeekStep(step)}
-                  className={`px-4 py-2 rounded-full text-sm font-serif transition-all ${
-                    seekStep === step
-                      ? 'green-gradient text-white shadow-sm'
-                      : 'text-stone-400 hover:text-stone-600 bg-muted/50'
-                  }`}
-                >
-                  {step}秒
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* 前进/后退按钮 - 仅在口令跟练模式显示，位于步长选择器下方 */}
-          {selectedOption === 'guided_audio' && isAudioLoaded && !isAudioLoading && !audioError && (
-            <div className="flex items-center justify-between mt-3 px-12">
+            <div className="flex items-center justify-center gap-4 mt-4">
+              {/* 后退按钮 */}
               <motion.button
                 whileTap={{ scale: 0.9 }}
                 onClick={() => handleAudioSeek('backward')}
-                className="w-10 h-10 rounded-full bg-muted/80 flex items-center justify-center"
+                className="w-10 h-10 rounded-full bg-muted/80 flex items-center justify-center flex-shrink-0"
               >
                 <SkipBack className="w-4 h-4" />
               </motion.button>
+
+              {/* 步长选择器 */}
+              <div className="flex items-center gap-2">
+                {SEEK_STEP_OPTIONS.map((step) => (
+                  <button
+                    key={step}
+                    onClick={() => setSeekStep(step)}
+                    className={`px-4 py-2 rounded-full text-sm font-serif transition-all ${
+                      seekStep === step
+                        ? 'green-gradient text-white shadow-sm'
+                        : 'text-stone-400 hover:text-stone-600 bg-muted/50'
+                    }`}
+                  >
+                    {step}秒
+                  </button>
+                ))}
+              </div>
+
+              {/* 前进按钮 */}
               <motion.button
                 whileTap={{ scale: 0.9 }}
                 onClick={() => handleAudioSeek('forward')}
-                className="w-10 h-10 rounded-full bg-muted/80 flex items-center justify-center"
+                className="w-10 h-10 rounded-full bg-muted/80 flex items-center justify-center flex-shrink-0"
               >
                 <SkipForward className="w-4 h-4" />
               </motion.button>
