@@ -4817,7 +4817,12 @@ export default function AshtangaTracker() {
                   `}
                 >
                   <span className="text-[14px] leading-snug break-words w-full line-clamp-2 flex items-center justify-center gap-1">
-                    {isCustomButton ? "+ 自定义" : option.label}
+                    {isCustomButton ? "+ 自定义" : (
+                      <>
+                        {(option as PracticeOption & { icon?: string }).icon}
+                        {option.label}
+                      </>
+                    )}
                   </span>
                   {!isCustomButton && option.notes && (
                     <span className={`text-[11px] mt-0.5 leading-snug break-words w-full line-clamp-2 ${isSelected ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
