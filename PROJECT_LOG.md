@@ -1,5 +1,30 @@
 # 阿斯汤加打卡app - 项目记录
 
+## 2026-03-05: 修复 Vercel 构建错误 ✅
+
+**阶段**: Bug修复（部署问题）
+
+**问题描述**:
+- Vercel 部署失败，报错：`await isn't allowed in non-async function`
+- 错误位置：`app/practice/page.tsx:4272`
+
+**根本原因**:
+`handleStartPractice` 函数使用了 `await` 调用 `audioCache.isCacheValid()`，但函数定义缺少 `async` 关键字。
+
+**修复方案**:
+```typescript
+// 修复前
+const handleStartPractice = () => {
+
+// 修复后
+const handleStartPractice = async () => {
+```
+
+**Git提交**:
+- `c386e4d` (master2) - fix: 修复 handleStartPractice 函数缺少 async 关键字
+
+---
+
 ## 项目概述
 **创建时间**: 2026-01-14
 **项目阶段**: 需求验证阶段
