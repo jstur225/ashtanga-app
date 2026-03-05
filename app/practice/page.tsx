@@ -4256,7 +4256,9 @@ export default function AshtangaTracker() {
         // 先暂停，等音频加载完成后再开始
         setIsPaused(true)
 
-        const audio = new Audio(GUIDED_AUDIO_OPTION.audio_src)
+        const audio = new Audio()
+        audio.crossOrigin = 'anonymous'
+        audio.src = GUIDED_AUDIO_OPTION.audio_src
 
         audio.addEventListener('loadedmetadata', () => {
           setAudioDuration(audio.duration)
@@ -4278,10 +4280,16 @@ export default function AshtangaTracker() {
           handleEndRequest()
         })
 
-        audio.addEventListener('error', () => {
-          console.error('音频加载失败')
+        audio.addEventListener('error', (e) => {
+          console.error('音频加载失败:', e, audio.error)
+          const errorCode = audio.error?.code
+          let errorMsg = '音频加载失败'
+          if (errorCode === 1) errorMsg = '音频加载被中断'
+          if (errorCode === 2) errorMsg = '网络错误，请检查网络连接'
+          if (errorCode === 3) errorMsg = '音频解码失败'
+          if (errorCode === 4) errorMsg = '音频格式不支持'
           setIsAudioLoading(false)
-          setAudioError('音频加载失败，请检查网络连接')
+          setAudioError(errorMsg)
         })
 
         setAudioElement(audio)
@@ -4552,25 +4560,73 @@ export default function AshtangaTracker() {
               <div className="flex flex-col items-center justify-center py-6">
                 <AlertCircle className="w-12 h-12 text-destructive" />
                 <p className="text-sm text-destructive mt-4 font-serif text-center">{audioError}</p>
-                <motion.button
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => {
-                    // 返回首页
-                    setIsPracticing(false)
-                    setSelectedOption(null)
-                    // 清理音频资源
-                    if (audioElement) {
-                      audioElement.pause()
-                      audioElement.src = ''
-                      setAudioElement(null)
-                    }
-                    setIsAudioLoaded(false)
-                    setAudioError(null)
-                  }}
-                  className="mt-4 px-6 py-2 rounded-full bg-muted text-sm font-serif"
-                >
-                  返回首页
-                </motion.button>
+                <div className="flex gap-3 mt-4">
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => {
+                      // 重试加载音频
+                      setAudioError(null)
+                      setIsAudioLoading(true)
+
+                      const audio = new Audio()
+                      audio.crossOrigin = 'anonymous'
+                      audio.src = GUIDED_AUDIO_OPTION.audio_src
+
+                      audio.addEventListener('loadedmetadata', () => {
+                        setAudioDuration(audio.duration)
+                        setIsAudioLoaded(true)
+                        setIsAudioLoading(false)
+                        setIsPaused(false)
+                        audio.play()
+                      })
+
+                      audio.addEventListener('timeupdate', () => {
+                        setAudioCurrentTime(audio.currentTime)
+                        setAudioProgress((audio.currentTime / audio.duration) * 100)
+                      })
+
+                      audio.addEventListener('ended', () => {
+                        handleEndRequest()
+                      })
+
+                      audio.addEventListener('error', (e) => {
+                        console.error('音频加载失败:', e, audio.error)
+                        const errorCode = audio.error?.code
+                        let errorMsg = '音频加载失败'
+                        if (errorCode === 1) errorMsg = '音频加载被中断'
+                        if (errorCode === 2) errorMsg = '网络错误，请检查网络连接'
+                        if (errorCode === 3) errorMsg = '音频解码失败'
+                        if (errorCode === 4) errorMsg = '音频格式不支持'
+                        setIsAudioLoading(false)
+                        setAudioError(errorMsg)
+                      })
+
+                      setAudioElement(audio)
+                    }}
+                    className="px-6 py-2 rounded-full bg-primary text-primary-foreground text-sm font-serif"
+                  >
+                    重试
+                  </motion.button>
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => {
+                      // 返回首页
+                      setIsPracticing(false)
+                      setSelectedOption(null)
+                      // 清理音频资源
+                      if (audioElement) {
+                        audioElement.pause()
+                        audioElement.src = ''
+                        setAudioElement(null)
+                      }
+                      setIsAudioLoaded(false)
+                      setAudioError(null)
+                    }}
+                    className="px-6 py-2 rounded-full bg-muted text-sm font-serif"
+                  >
+                    返回首页
+                  </motion.button>
+                </div>
               </div>
             )}
 
