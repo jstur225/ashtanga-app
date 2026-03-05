@@ -98,7 +98,7 @@ export interface PracticeRecord {
   notes: string
   photos: string[]
   breakthrough?: string | null
-  start_time?: string | null // ⭐ 新增：练习开始时间，格式 HH:MM
+  start_time?: string | null // ⭐ 新增：练习开始时间，ISO 8601 格式（如 2026-03-05T11:53:00+08:00）
   deleted_at?: string | null // 软删除字段
 }
 

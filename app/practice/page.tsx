@@ -4282,9 +4282,9 @@ export default function AshtangaTracker() {
       console.log('getSelectedLabel returned:', selectedLabel)
       console.log('elapsedTime:', elapsedTime)
 
-      // 将开始时间戳转换为 HH:MM 格式（使用 ref，因为 startTime state 已被重置）
-      const startTimeFormatted = startTimeRef.current
-        ? new Date(startTimeRef.current).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false })
+      // 将开始时间戳转换为 ISO 8601 格式（使用 ref，因为 startTime state 已被重置）
+      const startTimeISO = startTimeRef.current
+        ? new Date(startTimeRef.current).toISOString()
         : undefined
 
       // Create new practice record
@@ -4294,7 +4294,7 @@ export default function AshtangaTracker() {
         duration: elapsedTime,
         notes: notes || "今日练习完成",
         breakthrough,
-        start_time: startTimeFormatted, // ⭐ 记录练习开始时间
+        start_time: startTimeISO, // ⭐ 记录练习开始时间（完整 ISO 格式）
       })
 
       // ⭐ 清空 ref（保存完成后）
