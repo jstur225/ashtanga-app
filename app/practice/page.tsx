@@ -4688,13 +4688,13 @@ export default function AshtangaTracker() {
         {/* 音频播放器 - 仅在口令跟练模式显示（加载状态和错误状态） */}
         {selectedOption === 'guided_audio' && (
           <motion.div
-            className="w-full max-w-sm mx-auto mt-1 px-6"
+            className="w-full max-w-sm mx-auto -mt-4 px-6"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
           >
             {/* 加载中状态 */}
             {isAudioLoading && (
-              <div className="flex flex-col items-center justify-center py-3 pb-8">
+              <div className="flex flex-col items-center justify-center py-3">
                 <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
                 <p className="text-sm text-muted-foreground mt-4 font-serif">
                   {isUsingCache ? '从缓存读取...' : audioDownloadProgress > 0 ? `下载中 ${audioDownloadProgress}%` : '加载音频中...'}
