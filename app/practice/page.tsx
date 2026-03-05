@@ -4701,26 +4701,26 @@ export default function AshtangaTracker() {
 
           {/* 步长选择器 + 前进/后退按钮 - 仅在口令跟练模式显示 */}
           {selectedOption === 'guided_audio' && isAudioLoaded && !isAudioLoading && !audioError && (
-            <div className="flex items-center justify-center gap-4 mt-4">
+            <div className="flex items-center justify-center gap-3 mt-4">
               {/* 后退按钮 */}
               <motion.button
                 whileTap={{ scale: 0.9 }}
                 onClick={() => handleAudioSeek('backward')}
-                className="w-10 h-10 rounded-full bg-muted/80 flex items-center justify-center flex-shrink-0"
+                className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-stone-400 hover:text-stone-600 transition-all"
               >
-                <SkipBack className="w-4 h-4" />
+                <SkipBack className="w-3.5 h-3.5" />
               </motion.button>
 
               {/* 步长选择器 */}
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
                 {SEEK_STEP_OPTIONS.map((step) => (
                   <button
                     key={step}
                     onClick={() => setSeekStep(step)}
-                    className={`px-4 py-2 rounded-full text-sm font-serif transition-all ${
+                    className={`px-2 py-1 rounded-full text-xs font-mono transition-all ${
                       seekStep === step
                         ? 'green-gradient text-white shadow-sm'
-                        : 'text-stone-400 hover:text-stone-600 bg-muted/50'
+                        : 'text-stone-400 hover:text-stone-600'
                     }`}
                   >
                     {step}秒
@@ -4732,9 +4732,9 @@ export default function AshtangaTracker() {
               <motion.button
                 whileTap={{ scale: 0.9 }}
                 onClick={() => handleAudioSeek('forward')}
-                className="w-10 h-10 rounded-full bg-muted/80 flex items-center justify-center flex-shrink-0"
+                className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-stone-400 hover:text-stone-600 transition-all"
               >
-                <SkipForward className="w-4 h-4" />
+                <SkipForward className="w-3.5 h-3.5" />
               </motion.button>
             </div>
           )}
