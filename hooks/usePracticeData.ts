@@ -14,7 +14,7 @@ export interface PracticeRecord {
   notes: string;
   photos: string[];
   breakthrough?: string;
-  start_time?: string; // ⭐ 新增：练习开始时间，格式 HH:MM
+  start_time?: string; // ⭐ 新增：练习开始时间，ISO 8601 格式（如 2026-03-05T11:53:00+08:00）
 }
 
 export interface PracticeOption {

@@ -3530,6 +3530,9 @@ export default function AshtangaTracker() {
   const [audioError, setAudioError] = useState<string | null>(null)  // 加载错误
   const [seekStep, setSeekStep] = useState<number>(15)  // 快进/后退步长（默认15秒）
 
+  // ⭐ 用于保存练习开始时间（在 handleConfirmEnd 重置 startTime state 后仍能使用）
+  const startTimeRef = useRef<number | null>(null)
+
   // 路由
   const router = useRouter()
   const [exportLogs, setExportLogs] = useLocalStorage<{
@@ -4251,6 +4254,7 @@ export default function AshtangaTracker() {
           // 音频加载完成，开始计时和播放
           const now = Date.now()
           setStartTime(now)
+          startTimeRef.current = now // ⭐ 保存到 ref
           setIsPracticing(true)
           setIsPaused(false)
           setTotalPausedTime(0)
@@ -4280,6 +4284,7 @@ export default function AshtangaTracker() {
         // 普通模式：直接开始计时
         const now = Date.now()
         setStartTime(now)
+        startTimeRef.current = now // ⭐ 保存到 ref
         setIsPracticing(true)
         setIsPaused(false)
         setTotalPausedTime(0)
@@ -4361,6 +4366,7 @@ export default function AshtangaTracker() {
     setIsPracticing(false)
     // Clear timer persistence
     setStartTime(null)
+    // ⭐ 注意：不清空 startTimeRef，供 handleSavePractice 使用
     setPauseStartTime(null)
     setTotalPausedTime(0)
 
@@ -4390,6 +4396,11 @@ export default function AshtangaTracker() {
       console.log('getSelectedLabel returned:', selectedLabel)
       console.log('elapsedTime:', elapsedTime)
 
+      // 将开始时间戳转换为 ISO 8601 格式（使用 ref，因为 startTime state 已被重置）
+      const startTimeISO = startTimeRef.current
+        ? new Date(startTimeRef.current).toISOString()
+        : undefined
+
       // Create new practice record
       const record = addRecord({
         date: new Date().toISOString().split('T')[0],
@@ -4397,7 +4408,12 @@ export default function AshtangaTracker() {
         duration: elapsedTime,
         notes: notes || "今日练习完成",
         breakthrough,
+        start_time: startTimeISO, // ⭐ 记录练习开始时间（完整 ISO 格式）
       })
+
+      // ⭐ 清空 ref（保存完成后）
+      startTimeRef.current = null
+
       console.log('Record added:', record)
 
       trackEvent('finish_practice', {
