@@ -4688,7 +4688,7 @@ export default function AshtangaTracker() {
         {/* 音频播放器 - 仅在口令跟练模式显示（加载状态和错误状态） */}
         {selectedOption === 'guided_audio' && (
           <motion.div
-            className="w-full max-w-sm mx-auto -mt-4 px-6"
+            className="w-full max-w-sm mx-auto -mt-10 px-6"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
           >
