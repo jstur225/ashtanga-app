@@ -3524,12 +3524,12 @@ export default function AshtangaTracker() {
   // 音频播放器状态
   const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null)
   const [audioProgress, setAudioProgress] = useState(0)  // 0-100
-  const [audioDuration, setAudioDuration] = useState(0)  // 总时长（秒）
-  const [audioCurrentTime, setAudioCurrentTime] = useState(0)  // 当前时间（秒）
-  const [isAudioLoaded, setIsAudioLoaded] = useState(false)
-  const [isAudioLoading, setIsAudioLoading] = useState(false)  // 加载中状态
+  const [audioDuration, setAudioDuration] = useLocalStorage<number>('ashtanga_audio_duration', 0)  // 总时长（秒）- 持久化
+  const [audioCurrentTime, setAudioCurrentTime] = useLocalStorage<number>('ashtanga_audio_time', 0)  // 当前时间（秒）- 持久化
+  const [isAudioLoaded, setIsAudioLoaded] = useLocalStorage<boolean>('ashtanga_audio_loaded', false)  // 是否已加载 - 持久化
+  const [isAudioLoading, setIsAudioLoading] = useState(false)  // 加载中状态（不持久化，刷新后重新加载）
   const [audioError, setAudioError] = useState<string | null>(null)  // 加载错误
-  const [seekStep, setSeekStep] = useState<number>(15)  // 快进/后退步长（默认15秒）
+  const [seekStep, setSeekStep] = useLocalStorage<number>('ashtanga_audio_seek_step', 15)  // 快进/后退步长 - 持久化
   const [audioDownloadProgress, setAudioDownloadProgress] = useState<number>(0)  // 下载进度（0-100）
   const [isUsingCache, setIsUsingCache] = useState<boolean>(false)  // 是否使用缓存
 
@@ -3741,6 +3741,12 @@ export default function AshtangaTracker() {
       const currentTotalPaused = (totalPausedTime || 0) + (isPaused ? (now - (pauseStartTime || now)) : 0)
       const diff = Math.floor((pausedAt - startTime - (totalPausedTime || 0)) / 1000)
       setElapsedTime(Math.max(0, diff))
+
+      // ⭐ 恢复音频状态：如果正在口令跟练且音频之前已加载，重新初始化音频
+      if (selectedOption === 'guided_audio' && isAudioLoaded) {
+        console.log('[Page Reload] 检测到口令跟练模式，正在恢复音频...')
+        reinitializeAudio(audioCurrentTime)
+      }
     }
   }, [])
 
@@ -4378,6 +4384,80 @@ export default function AshtangaTracker() {
     }
   }
 
+  // ⭐ 页面刷新后重新初始化音频（恢复播放状态）
+  const reinitializeAudio = async (restoreTime: number = 0) => {
+    if (!GUIDED_AUDIO_OPTION.audio_src) return
+
+    setIsAudioLoading(true)
+    setAudioError(null)
+
+    try {
+      // 检查是否有缓存
+      const hasCache = await audioCache.isCacheValid()
+
+      if (hasCache) {
+        console.log('[音频恢复] 使用本地缓存')
+        setIsUsingCache(true)
+        const audioBuffer = await audioCache.getAudioBuffer()
+
+        if (audioBuffer) {
+          const blob = new Blob([audioBuffer], { type: 'audio/mp4' })
+          const url = URL.createObjectURL(blob)
+
+          const audio = new Audio()
+          audio.src = url
+
+          // 恢复到之前的时间点
+          if (restoreTime > 0) {
+            audio.currentTime = restoreTime
+          }
+
+          audio.addEventListener('loadedmetadata', () => {
+            setAudioDuration(audio.duration)
+            setIsAudioLoaded(true)
+            setIsAudioLoading(false)
+            // 如果之前是暂停状态，保持暂停；否则自动播放
+            if (!isPaused) {
+              audio.play()
+            }
+          })
+
+          audio.addEventListener('timeupdate', () => {
+            setAudioCurrentTime(audio.currentTime)
+            setAudioProgress((audio.currentTime / audio.duration) * 100)
+          })
+
+          audio.addEventListener('ended', () => {
+            handleEndRequest()
+          })
+
+          audio.addEventListener('error', (e) => {
+            console.error('[音频恢复] 播放失败:', e)
+            audioCache.clearCache()
+            setAudioError('音频恢复失败，请刷新页面重试')
+            setIsAudioLoading(false)
+          })
+
+          setAudioElement(audio)
+        } else {
+          throw new Error('缓存数据无效')
+        }
+      } else {
+        // 没有缓存，显示错误（刷新后应该已经有缓存）
+        console.error('[音频恢复] 没有本地缓存')
+        setAudioError('音频缓存已失效，请重新开始练习')
+        setIsAudioLoading(false)
+        // 重置音频状态
+        setIsAudioLoaded(false)
+        setAudioCurrentTime(0)
+      }
+    } catch (err) {
+      console.error('[音频恢复] 失败:', err)
+      setAudioError('音频恢复失败')
+      setIsAudioLoading(false)
+    }
+  }
+
   const handlePauseResume = () => {
     const now = Date.now()
     if (!isPaused) {
@@ -4457,11 +4537,12 @@ export default function AshtangaTracker() {
       audioElement.pause()
       audioElement.src = ''
       setAudioElement(null)
-      setIsAudioLoaded(false)
-      setAudioProgress(0)
-      setAudioCurrentTime(0)
-      setAudioDuration(0)
     }
+    // ⭐ 清理音频持久化状态
+    setIsAudioLoaded(false)
+    setAudioProgress(0)
+    setAudioCurrentTime(0)
+    setAudioDuration(0)
   }
 
   const handleSavePractice = useCallback((notes: string, photos: string[], breakthrough?: string) => {
