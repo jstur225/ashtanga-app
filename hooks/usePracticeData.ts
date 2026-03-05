@@ -14,6 +14,7 @@ export interface PracticeRecord {
   notes: string;
   photos: string[];
   breakthrough?: string;
+  start_time?: string; // ⭐ 新增：练习开始时间，格式 HH:MM
 }
 
 export interface PracticeOption {
