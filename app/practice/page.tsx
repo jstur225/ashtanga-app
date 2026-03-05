@@ -7,7 +7,7 @@ import { usePracticeData, type PracticeRecord, type PracticeOption, type UserPro
 import { usePWAInstall } from "@/hooks/usePWAInstall"
 import { useAuth } from "@/hooks/useAuth"
 import { useSync } from "@/hooks/useSync"
-import { BookOpen, BarChart3, Calendar, X, Camera, Pause, Play, Trash2, User, Settings, ChevronLeft, ChevronRight, ChevronUp, Cloud, Download, Upload, Plus, Minus, Share2, Sparkles, Check, Copy, ClipboardPaste, MessageCircle, Bug, AlertCircle, Volume2, SkipBack, SkipForward } from "lucide-react"
+import { BookOpen, BarChart3, Calendar, X, Camera, Pause, Play, Trash2, User, Settings, ChevronLeft, ChevronRight, ChevronUp, Cloud, Download, Upload, Plus, Minus, Share2, Sparkles, Check, Copy, ClipboardPaste, MessageCircle, Bug, AlertCircle, SkipBack, SkipForward } from "lucide-react"
 import { FakeDoorModal } from "@/components/FakeDoorModal"
 import { VoiceButton } from "@/components/VoiceButton"
 import { PhotoUploadButton } from "@/components/PhotoUploadButton"
@@ -4239,10 +4239,22 @@ export default function AshtangaTracker() {
 
   const handleStartPractice = () => {
     if (selectedOption) {
-      // 口令跟练模式：先加载音频
+      // 先进入练习界面（立即给用户反馈）
+      const now = Date.now()
+      setStartTime(now)
+      startTimeRef.current = now // ⭐ 保存到 ref
+      setIsPracticing(true)
+      setIsPaused(false)
+      setTotalPausedTime(0)
+      setPauseStartTime(null)
+      setElapsedTime(0)
+
+      // 口令跟练模式：加载音频
       if (selectedOption === 'guided_audio') {
         setIsAudioLoading(true)
         setAudioError(null)
+        // 先暂停，等音频加载完成后再开始
+        setIsPaused(true)
 
         const audio = new Audio(GUIDED_AUDIO_OPTION.audio_src)
 
@@ -4251,15 +4263,8 @@ export default function AshtangaTracker() {
           setIsAudioLoaded(true)
           setIsAudioLoading(false)
 
-          // 音频加载完成，开始计时和播放
-          const now = Date.now()
-          setStartTime(now)
-          startTimeRef.current = now // ⭐ 保存到 ref
-          setIsPracticing(true)
+          // 音频加载完成，自动开始播放和计时
           setIsPaused(false)
-          setTotalPausedTime(0)
-          setPauseStartTime(null)
-          setElapsedTime(0)
           audio.play()
         })
 
@@ -4280,16 +4285,6 @@ export default function AshtangaTracker() {
         })
 
         setAudioElement(audio)
-      } else {
-        // 普通模式：直接开始计时
-        const now = Date.now()
-        setStartTime(now)
-        startTimeRef.current = now // ⭐ 保存到 ref
-        setIsPracticing(true)
-        setIsPaused(false)
-        setTotalPausedTime(0)
-        setPauseStartTime(null)
-        setElapsedTime(0)
       }
 
       trackEvent('start_practice', { type: getSelectedLabel() })
@@ -4701,7 +4696,6 @@ export default function AshtangaTracker() {
             {practiceOptions.map((option) => {
               const isSelected = selectedOption === option.id
               const isCustomButton = option.id === "custom"
-              const isGuidedAudio = option.id === "guided_audio"
 
               return (
                 <motion.button
@@ -4716,18 +4710,15 @@ export default function AshtangaTracker() {
                         ? "green-gradient text-primary-foreground backdrop-blur-[16px] border border-white/30 shadow-[0_8px_24px_rgba(45,90,39,0.3)]"
                         : isCustomButton
                           ? "bg-background text-muted-foreground border-2 border-dashed border-muted-foreground/30 shadow-[0_2px_12px_rgba(0,0,0,0.03)]"
-                          : isGuidedAudio
-                            ? "bg-primary/10 text-primary border border-primary/30 shadow-[0_4px_16px_rgba(45,90,39,0.1)]"
-                            : "bg-background text-foreground shadow-[0_4px_16px_rgba(0,0,0,0.06)] border border-stone-100/50"
+                          : "bg-background text-foreground shadow-[0_4px_16px_rgba(0,0,0,0.06)] border border-stone-100/50"
                     }
                   `}
                 >
                   <span className="text-[14px] leading-snug break-words w-full line-clamp-2 flex items-center justify-center gap-1">
                     {isCustomButton ? "+ 自定义" : option.label}
-                    {isGuidedAudio && <Volume2 className="w-3.5 h-3.5 inline-block" />}
                   </span>
                   {!isCustomButton && option.notes && (
-                    <span className={`text-[11px] mt-0.5 leading-snug break-words w-full line-clamp-2 ${isSelected ? 'text-primary-foreground/70' : isGuidedAudio ? 'text-primary/70' : 'text-muted-foreground'}`}>
+                    <span className={`text-[11px] mt-0.5 leading-snug break-words w-full line-clamp-2 ${isSelected ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
                       {option.notes}
                     </span>
                   )}
