@@ -51,7 +51,7 @@ export const GUIDED_AUDIO_OPTION: PracticeOption = {
   notes: '老掌门人口令',
   is_custom: false,
   is_preset: true,
-  audio_src: '/audio/guruji-led-primary.mp3',
+  audio_src: '/audio/guruji-led-primary.m4a',
   can_edit: false
 };
 
