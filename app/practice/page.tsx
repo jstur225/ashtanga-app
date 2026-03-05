@@ -4705,8 +4705,9 @@ export default function AshtangaTracker() {
               {/* 后退按钮 */}
               <motion.button
                 whileTap={{ scale: 0.9 }}
+                whileHover={{ scale: 1.05 }}
                 onClick={() => handleAudioSeek('backward')}
-                className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-stone-400 hover:text-stone-600 transition-all"
+                className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-stone-400 hover:text-stone-600 transition-all active:green-gradient active:text-white"
               >
                 <SkipBack className="w-3.5 h-3.5" />
               </motion.button>
@@ -4731,8 +4732,9 @@ export default function AshtangaTracker() {
               {/* 前进按钮 */}
               <motion.button
                 whileTap={{ scale: 0.9 }}
+                whileHover={{ scale: 1.05 }}
                 onClick={() => handleAudioSeek('forward')}
-                className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-stone-400 hover:text-stone-600 transition-all"
+                className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-stone-400 hover:text-stone-600 transition-all active:green-gradient active:text-white"
               >
                 <SkipForward className="w-3.5 h-3.5" />
               </motion.button>
