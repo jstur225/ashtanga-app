@@ -1,0 +1,68 @@
+{
+  "code": 0,
+  "data": {
+    "has_more": false,
+    "items": [
+      {
+        "fields": {
+          "创建日期": 1772086233000,
+          "发布排期": 1740499200000,
+          "父记录": [
+            {
+              "table_id": "tblHnoAMur4hffED",
+              "text_arr": [],
+              "type": "text"
+            }
+          ],
+          "状态": "🟢待发布",
+          "知识库链接": {
+            "link": "https://my.feishu.cn/docx/EEbzdppHwonsCJxG502cq2ecnGd",
+            "text": "查看文案"
+          },
+          "选题/灵感": "马年第一练，她笑着说肚子挤得慌"
+        },
+        "id": "recvcjjeXuVyID",
+        "record_id": "recvcjjeXuVyID"
+      },
+      {
+        "fields": {
+          "创建日期": 1772087800000,
+          "发布排期": 1772035200000,
+          "父记录": [
+            {
+              "table_id": "tblHnoAMur4hffED",
+              "text_arr": [],
+              "type": "text"
+            }
+          ],
+          "状态": "🟠待审核",
+          "知识库链接": {
+            "link": "https://my.feishu.cn/docx/Z8V1d91bDo3nLsxYZetc4vLlnFh",
+            "text": "查看文案"
+          },
+          "选题/灵感": "简单介绍一下当前app的开发状态和进度"
+        },
+        "id": "recvcjpP3h88O6",
+        "record_id": "recvcjpP3h88O6"
+      },
+      {
+        "fields": {
+          "创建日期": 1772093725000,
+          "父记录": [
+            {
+              "table_id": "tblHnoAMur4hffED",
+              "text_arr": [],
+              "type": "text"
+            }
+          ],
+          "状态": "🟡待生成",
+          "选题/灵感": "2026要频繁大量记录自己的练习"
+        },
+        "id": "recvcjOGrai8cR",
+        "record_id": "recvcjOGrai8cR"
+      }
+    ],
+    "total": 3
+  },
+  "msg": "success"
+}

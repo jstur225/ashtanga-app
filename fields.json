@@ -1,0 +1,360 @@
+{
+  "code": 0,
+  "data": {
+    "has_more": false,
+    "items": [
+      {
+        "field_id": "fldt3rm5dr",
+        "field_name": "选题/灵感",
+        "is_extend": false,
+        "is_primary": true,
+        "is_synced": false,
+        "property": null,
+        "type": 1,
+        "ui_type": "Text"
+      },
+      {
+        "field_id": "fldyAxDY3P",
+        "field_name": "状态",
+        "is_extend": false,
+        "is_primary": false,
+        "is_synced": false,
+        "property": {
+          "options": [
+            {
+              "color": 0,
+              "id": "optSHeAfeP",
+              "name": "🟡待生成"
+            },
+            {
+              "color": 1,
+              "id": "optOY9ZtaO",
+              "name": "🟠待审核"
+            },
+            {
+              "color": 2,
+              "id": "optA7iXNHk",
+              "name": "🔵已发布"
+            },
+            {
+              "color": 3,
+              "id": "optUZWQrlI",
+              "name": "⏸️暂停"
+            }
+          ]
+        },
+        "type": 3,
+        "ui_type": "SingleSelect"
+      },
+      {
+        "field_id": "fldbqJUm2y",
+        "field_name": "排期日期",
+        "is_extend": false,
+        "is_primary": false,
+        "is_synced": false,
+        "property": {
+          "auto_fill": false,
+          "date_formatter": "yyyy/MM/dd"
+        },
+        "type": 5,
+        "ui_type": "DateTime"
+      },
+      {
+        "field_id": "fldl9sojHq",
+        "field_name": "文案角度",
+        "is_extend": false,
+        "is_primary": false,
+        "is_synced": false,
+        "property": {
+          "options": [
+            {
+              "color": 0,
+              "id": "optGeRzatZ",
+              "name": "角度1-对话叙述型"
+            },
+            {
+              "color": 1,
+              "id": "optzL10fb6",
+              "name": "角度2-第二人称提问型"
+            },
+            {
+              "color": 2,
+              "id": "optXoY3MzB",
+              "name": "角度3-清单对比型"
+            },
+            {
+              "color": 3,
+              "id": "optqZSRfj2",
+              "name": "角度4-数据展示型"
+            },
+            {
+              "color": 4,
+              "id": "optbfYKIXu",
+              "name": "角度5-疑问回答型"
+            },
+            {
+              "color": 5,
+              "id": "optPBOemWy",
+              "name": "角度6-场景代入型"
+            },
+            {
+              "color": 6,
+              "id": "optlrS3CbX",
+              "name": "角度7-单刀直入型"
+            },
+            {
+              "color": 7,
+              "id": "optxgmXmc8",
+              "name": "角度8-对比反问型"
+            },
+            {
+              "color": 8,
+              "id": "opt410876474",
+              "name": "角度1-对话叙述型、角度2-第二人称提问型、角度6-场景代入型"
+            }
+          ]
+        },
+        "type": 4,
+        "ui_type": "MultiSelect"
+      },
+      {
+        "field_id": "fldum0jCvZ",
+        "field_name": "选题类型",
+        "is_extend": false,
+        "is_primary": false,
+        "is_synced": false,
+        "property": {
+          "options": [
+            {
+              "color": 0,
+              "id": "optcLHv5Wd",
+              "name": "产品推广"
+            },
+            {
+              "color": 1,
+              "id": "optCeOEv0T",
+              "name": "练习感悟"
+            },
+            {
+              "color": 2,
+              "id": "optb5wwz9M",
+              "name": "知识科普"
+            },
+            {
+              "color": 3,
+              "id": "optzGBRwYa",
+              "name": "用户故事"
+            },
+            {
+              "color": 4,
+              "id": "optD3Zvpo8",
+              "name": "节日热点"
+            }
+          ]
+        },
+        "type": 3,
+        "ui_type": "SingleSelect"
+      },
+      {
+        "field_id": "fld4rcW03i",
+        "field_name": "知识库链接",
+        "is_extend": false,
+        "is_primary": false,
+        "is_synced": false,
+        "property": null,
+        "type": 15,
+        "ui_type": "Url"
+      },
+      {
+        "field_id": "fldHdCIOBZ",
+        "field_name": "小红书链接",
+        "is_extend": false,
+        "is_primary": false,
+        "is_synced": false,
+        "property": null,
+        "type": 15,
+        "ui_type": "Url"
+      },
+      {
+        "field_id": "fldrajqSAt",
+        "field_name": "点赞数",
+        "is_extend": false,
+        "is_primary": false,
+        "is_synced": false,
+        "property": {
+          "formatter": "0.0"
+        },
+        "type": 2,
+        "ui_type": "Number"
+      },
+      {
+        "field_id": "fldwBieW3b",
+        "field_name": "收藏数",
+        "is_extend": false,
+        "is_primary": false,
+        "is_synced": false,
+        "property": {
+          "formatter": "0.0"
+        },
+        "type": 2,
+        "ui_type": "Number"
+      },
+      {
+        "field_id": "fldTjuNZbg",
+        "field_name": "评论数",
+        "is_extend": false,
+        "is_primary": false,
+        "is_synced": false,
+        "property": {
+          "formatter": "0.0"
+        },
+        "type": 2,
+        "ui_type": "Number"
+      },
+      {
+        "field_id": "fldE5Lz7AN",
+        "field_name": "发布日期",
+        "is_extend": false,
+        "is_primary": false,
+        "is_synced": false,
+        "property": {
+          "auto_fill": false,
+          "date_formatter": "yyyy/MM/dd"
+        },
+        "type": 5,
+        "ui_type": "DateTime"
+      },
+      {
+        "field_id": "fldGpAmn3V",
+        "field_name": "备注",
+        "is_extend": false,
+        "is_primary": false,
+        "is_synced": false,
+        "property": null,
+        "type": 1,
+        "ui_type": "Text"
+      },
+      {
+        "field_id": "fld2GldGuT",
+        "field_name": "曝光",
+        "is_extend": false,
+        "is_primary": false,
+        "is_synced": false,
+        "property": {
+          "formatter": "0.0"
+        },
+        "type": 2,
+        "ui_type": "Number"
+      },
+      {
+        "field_id": "fldbewUrps",
+        "field_name": "观看",
+        "is_extend": false,
+        "is_primary": false,
+        "is_synced": false,
+        "property": {
+          "formatter": "0.0"
+        },
+        "type": 2,
+        "ui_type": "Number"
+      },
+      {
+        "field_id": "fldzDYXqhO",
+        "field_name": "封面点击率",
+        "is_extend": false,
+        "is_primary": false,
+        "is_synced": false,
+        "property": {
+          "formatter": "0.0"
+        },
+        "type": 2,
+        "ui_type": "Number"
+      },
+      {
+        "field_id": "fldtLo19LF",
+        "field_name": "点赞",
+        "is_extend": false,
+        "is_primary": false,
+        "is_synced": false,
+        "property": {
+          "formatter": "0.0"
+        },
+        "type": 2,
+        "ui_type": "Number"
+      },
+      {
+        "field_id": "fldREptyzk",
+        "field_name": "评论",
+        "is_extend": false,
+        "is_primary": false,
+        "is_synced": false,
+        "property": {
+          "formatter": "0.0"
+        },
+        "type": 2,
+        "ui_type": "Number"
+      },
+      {
+        "field_id": "fldmcSQC24",
+        "field_name": "收藏",
+        "is_extend": false,
+        "is_primary": false,
+        "is_synced": false,
+        "property": {
+          "formatter": "0.0"
+        },
+        "type": 2,
+        "ui_type": "Number"
+      },
+      {
+        "field_id": "fldWAa5O1V",
+        "field_name": "涨粉",
+        "is_extend": false,
+        "is_primary": false,
+        "is_synced": false,
+        "property": {
+          "formatter": "0.0"
+        },
+        "type": 2,
+        "ui_type": "Number"
+      },
+      {
+        "field_id": "fldXqeDdiB",
+        "field_name": "分享",
+        "is_extend": false,
+        "is_primary": false,
+        "is_synced": false,
+        "property": {
+          "formatter": "0.0"
+        },
+        "type": 2,
+        "ui_type": "Number"
+      },
+      {
+        "field_id": "fld6nxAKVu",
+        "field_name": "人均观看时长",
+        "is_extend": false,
+        "is_primary": false,
+        "is_synced": false,
+        "property": null,
+        "type": 1,
+        "ui_type": "Text"
+      },
+      {
+        "field_id": "fldDp0VCGk",
+        "field_name": "弹幕",
+        "is_extend": false,
+        "is_primary": false,
+        "is_synced": false,
+        "property": {
+          "formatter": "0.0"
+        },
+        "type": 2,
+        "ui_type": "Number"
+      }
+    ],
+    "page_token": "fldDp0VCGk",
+    "total": 22
+  },
+  "msg": "success"
+}

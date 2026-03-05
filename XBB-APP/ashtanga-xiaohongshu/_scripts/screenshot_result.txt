@@ -1,0 +1,3 @@
+event: message
+data: {"result":{"content":[{"type":"text","text":"Error calling tool: Request timed out after 120000ms"}],"isError":true},"jsonrpc":"2.0","id":2}
+

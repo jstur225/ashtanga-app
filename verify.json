@@ -1,0 +1,19 @@
+{
+  "code": 0,
+  "data": {
+    "record": {
+      "fields": {
+        "创建日期": 1772093725000,
+        "状态": "🟠待审核",
+        "知识库链接": {
+          "link": "https://my.feishu.cn/docx/QsxDdkxANoNzMOx8lpccN1L6nGf",
+          "text": "查看文案"
+        },
+        "选题/灵感": "2026要频繁大量记录自己的练习"
+      },
+      "id": "recvcjOGrai8cR",
+      "record_id": "recvcjOGrai8cR"
+    }
+  },
+  "msg": "success"
+}

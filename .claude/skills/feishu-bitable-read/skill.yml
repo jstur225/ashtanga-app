@@ -1,0 +1,48 @@
+name: feishu-bitable-read
+description: |
+  读取飞书多维表格内容。支持从飞书多维表格链接自动提取表格标识，
+  获取表格中的所有记录数据。
+
+  使用方法：
+  /feishu-bitable-read [表格链接或key] [选项]
+
+  示例：
+  # 使用默认表格（查看待发货订单）
+  /feishu-bitable-read
+
+  # 使用表格 key
+  /feishu-bitable-read orders
+
+  # 使用完整链接
+  /feishu-bitable-read https://xxx.feishu.cn/base/xxx?table=xxx
+
+  # 查看所有配置的表格
+  /feishu-bitable-read --list-tables
+
+  功能：
+  - 自动读取默认表格（订单表）
+  - 支持表格目录管理
+  - 5分钟缓存机制
+  - 待发货订单清单
+
+command: |
+  python "{{skill_dir}}\read_bitable.py" "{{url_or_key}}" --pending-shipping
+
+args:
+  - name: url_or_key
+    description: 飞书多维表格链接或表格 key（可选，默认使用默认表格）
+    required: false
+
+config:
+  - name: app_id
+    description: 飞书应用 ID
+    required: true
+  - name: app_secret
+    description: 飞书应用密钥
+    required: true
+    secret: true
+  - name: default_table
+    description: 默认表格 key
+    default: orders
+  - name: tables
+    description: 表格目录配置

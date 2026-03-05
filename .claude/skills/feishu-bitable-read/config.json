@@ -1,0 +1,12 @@
+{
+  "app_id": "cli_a92a4d950d385cef",
+  "app_secret": "rbhvYLZ8zJj5Lx3Vz4DlLcBEcJ2FgEVj",
+  "default_table": "orders",
+  "tables": {
+    "orders": {
+      "name": "有赞订单",
+      "url": "https://hcnvvdrnyqqj.feishu.cn/base/Qw3rbxCJiaQNhfslfQnc22N0n1f?table=tblkLbMqtPqIMY1x",
+      "description": "有赞商城订单数据，用于查看订单状态、待发货清单"
+    }
+  }
+}

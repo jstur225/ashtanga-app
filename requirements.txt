@@ -1,0 +1,11 @@
+# 有赞Webhook服务依赖
+
+# Web框架
+flask>=3.0.0
+gunicorn>=21.2.0
+
+# HTTP请求
+requests>=2.31.0
+
+# 环境变量管理（可选）
+python-dotenv>=1.0.0

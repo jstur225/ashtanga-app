@@ -1,0 +1,27 @@
+[Unit]
+Description=有赞Webhook接收服务
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/youzan-webhook
+Environment="PATH=/opt/youzan-webhook/venv/bin"
+Environment="PYTHONPATH=/opt/youzan-webhook"
+Environment="YOUZAN_CLIENT_ID=your_client_id"
+Environment="YOUZAN_CLIENT_SECRET=your_client_secret"
+Environment="YOUZAN_KDT_ID=your_kdt_id"
+Environment="FEISHU_APP_ID=your_feishu_app_id"
+Environment="FEISHU_APP_SECRET=your_feishu_app_secret"
+Environment="FEISHU_TABLE_TOKEN=your_table_token"
+Environment="FEISHU_TABLE_ID=your_table_id"
+Environment="PORT=8000"
+ExecStart=/opt/youzan-webhook/venv/bin/gunicorn -w 4 -b 0.0.0.0:8000 --access-logfile /var/log/youzan-webhook/access.log --error-logfile /var/log/youzan-webhook/error.log webhook_server:app
+ExecReload=/bin/kill -s HUP $MAINPID
+ExecStop=/bin/kill -s TERM $MAINPID
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

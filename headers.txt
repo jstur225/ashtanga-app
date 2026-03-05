@@ -1,0 +1,8 @@
+HTTP/1.1 200 OK
+Content-Type: text/event-stream
+Cache-Control: no-cache
+Connection: keep-alive
+mcp-session-id: 12046a8e-59cb-45fb-b639-94313877fd1f
+Date: Thu, 26 Feb 2026 08:18:36 GMT
+Transfer-Encoding: chunked
+

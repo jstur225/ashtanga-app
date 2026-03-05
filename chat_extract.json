@@ -1,0 +1,3 @@
+event: message
+data: {"result":{"content":[{"type":"text","text":"{\"success\":false,\"tabId\":1512276348,\"engine\":\"cdp\",\"error\":{\"kind\":\"syntax_error\",\"message\":\"SyntaxError: missing ) after argument list\",\"details\":{\"lineNumber\":1,\"columnNumber\":50}},\"metrics\":{\"elapsedMs\":6}}"}],"isError":true},"jsonrpc":"2.0","id":2}
+

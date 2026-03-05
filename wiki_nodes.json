@@ -1,0 +1,45 @@
+[
+  {
+    "space_name": "阿斯汤加小红书",
+    "space_id": "7610676574500752603",
+    "nodes": [
+      {
+        "title": "表格",
+        "node_token": "JKV9wsajOiPwLvkDJ3zcqu3cnwc",
+        "node_type": "origin",
+        "children": [
+          {
+            "title": "📁 01-选题池",
+            "node_token": "BymqwvOfNiTpMWkI3W6c2LofnRe",
+            "node_type": "origin"
+          },
+          {
+            "title": "📁 02-创作中",
+            "node_token": "UkvnwPEwoioBXxkd0RXcINlcnqd",
+            "node_type": "origin"
+          },
+          {
+            "title": "📁 03-已发布",
+            "node_token": "VvLvw4rutiq1DMkwpL2chUZOnqg",
+            "node_type": "origin"
+          },
+          {
+            "title": "📁 素材库",
+            "node_token": "ZtqbwYXKqiWayekNmmYcJjFXnvb",
+            "node_type": "origin"
+          },
+          {
+            "title": "📁 方法论",
+            "node_token": "Heh5wH3gpiKUK0kJUYscn5SrnYd",
+            "node_type": "origin"
+          },
+          {
+            "title": "马年第一练 - 小红书文案",
+            "node_token": "VpuQwTMNAiL3EPkF4aVcKtVznMd",
+            "node_type": "origin"
+          }
+        ]
+      }
+    ]
+  }
+]

@@ -27,6 +27,7 @@ import { supabase } from '@/lib/supabase'
 import { deletePracticeRecord } from '@/lib/database'
 import { useRouter } from 'next/navigation'
 import { getVersionInfo } from '@/lib/version'
+import { audioCache } from '@/lib/audioCache'
 
 // 月相图标路径
 const NEW_MOON_ICON = '/moon-phase/new-moon.png'
@@ -3529,6 +3530,8 @@ export default function AshtangaTracker() {
   const [isAudioLoading, setIsAudioLoading] = useState(false)  // 加载中状态
   const [audioError, setAudioError] = useState<string | null>(null)  // 加载错误
   const [seekStep, setSeekStep] = useState<number>(15)  // 快进/后退步长（默认15秒）
+  const [audioDownloadProgress, setAudioDownloadProgress] = useState<number>(0)  // 下载进度（0-100）
+  const [isUsingCache, setIsUsingCache] = useState<boolean>(false)  // 是否使用缓存
 
   // ⭐ 用于保存练习开始时间（在 handleConfirmEnd 重置 startTime state 后仍能使用）
   const startTimeRef = useRef<number | null>(null)
@@ -4256,50 +4259,119 @@ export default function AshtangaTracker() {
       setPauseStartTime(null)
       setElapsedTime(0)
 
-      // 口令跟练模式：加载音频
+      // 口令跟练模式：加载音频（使用 IndexedDB 缓存）
       if (selectedOption === 'guided_audio') {
         setIsAudioLoading(true)
         setAudioError(null)
+        setAudioDownloadProgress(0)
         // 先暂停，等音频加载完成后再开始
         setIsPaused(true)
 
-        const audio = new Audio()
-        audio.crossOrigin = 'anonymous'
-        audio.src = GUIDED_AUDIO_OPTION.audio_src
+        try {
+          // 检查是否有缓存
+          const hasCache = await audioCache.isCacheValid()
 
-        audio.addEventListener('loadedmetadata', () => {
-          setAudioDuration(audio.duration)
-          setIsAudioLoaded(true)
+          if (hasCache) {
+            // 使用缓存
+            console.log('[音频] 使用本地缓存')
+            setIsUsingCache(true)
+            const audioBuffer = await audioCache.getAudioBuffer()
+
+            if (audioBuffer) {
+              // 创建 Blob URL
+              const blob = new Blob([audioBuffer], { type: 'audio/mp4' })
+              const url = URL.createObjectURL(blob)
+
+              const audio = new Audio()
+              audio.src = url
+
+              audio.addEventListener('loadedmetadata', () => {
+                setAudioDuration(audio.duration)
+                setIsAudioLoaded(true)
+                setIsAudioLoading(false)
+                setIsPaused(false)
+                audio.play()
+              })
+
+              audio.addEventListener('timeupdate', () => {
+                setAudioCurrentTime(audio.currentTime)
+                setAudioProgress((audio.currentTime / audio.duration) * 100)
+              })
+
+              audio.addEventListener('ended', () => {
+                handleEndRequest()
+              })
+
+              audio.addEventListener('error', (e) => {
+                console.error('[音频] 缓存播放失败:', e)
+                // 缓存可能损坏，清除后重试
+                audioCache.clearCache()
+                setAudioError('音频播放失败，请重试')
+                setIsAudioLoading(false)
+              })
+
+              setAudioElement(audio)
+            } else {
+              throw new Error('缓存数据无效')
+            }
+          } else {
+            // 从网络下载并缓存
+            console.log('[音频] 从网络下载')
+            setIsUsingCache(false)
+
+            try {
+              const arrayBuffer = await audioCache.downloadAndCache(
+                GUIDED_AUDIO_OPTION.audio_src,
+                (loaded, total) => {
+                  if (total > 0) {
+                    const progress = Math.round((loaded / total) * 100)
+                    setAudioDownloadProgress(progress)
+                  }
+                }
+              )
+
+              // 创建 Blob URL 播放
+              const blob = new Blob([arrayBuffer], { type: 'audio/mp4' })
+              const url = URL.createObjectURL(blob)
+
+              const audio = new Audio()
+              audio.src = url
+
+              audio.addEventListener('loadedmetadata', () => {
+                setAudioDuration(audio.duration)
+                setIsAudioLoaded(true)
+                setIsAudioLoading(false)
+                setIsPaused(false)
+                audio.play()
+              })
+
+              audio.addEventListener('timeupdate', () => {
+                setAudioCurrentTime(audio.currentTime)
+                setAudioProgress((audio.currentTime / audio.duration) * 100)
+              })
+
+              audio.addEventListener('ended', () => {
+                handleEndRequest()
+              })
+
+              audio.addEventListener('error', (e) => {
+                console.error('[音频] 播放失败:', e)
+                setIsAudioLoading(false)
+                setAudioError('音频播放失败')
+              })
+
+              setAudioElement(audio)
+            } catch (downloadErr) {
+              console.error('[音频] 下载失败:', downloadErr)
+              setAudioError('音频下载失败，请检查网络连接')
+              setIsAudioLoading(false)
+            }
+          }
+        } catch (err) {
+          console.error('[音频] 加载失败:', err)
+          setAudioError('音频加载失败')
           setIsAudioLoading(false)
-
-          // 音频加载完成，自动开始播放和计时
-          setIsPaused(false)
-          audio.play()
-        })
-
-        audio.addEventListener('timeupdate', () => {
-          setAudioCurrentTime(audio.currentTime)
-          setAudioProgress((audio.currentTime / audio.duration) * 100)
-        })
-
-        audio.addEventListener('ended', () => {
-          // 音频结束，自动结束练习
-          handleEndRequest()
-        })
-
-        audio.addEventListener('error', (e) => {
-          console.error('音频加载失败:', e, audio.error)
-          const errorCode = audio.error?.code
-          let errorMsg = '音频加载失败'
-          if (errorCode === 1) errorMsg = '音频加载被中断'
-          if (errorCode === 2) errorMsg = '网络错误，请检查网络连接'
-          if (errorCode === 3) errorMsg = '音频解码失败'
-          if (errorCode === 4) errorMsg = '音频格式不支持'
-          setIsAudioLoading(false)
-          setAudioError(errorMsg)
-        })
-
-        setAudioElement(audio)
+        }
       }
 
       trackEvent('start_practice', { type: getSelectedLabel() })
@@ -4622,7 +4694,18 @@ export default function AshtangaTracker() {
             {isAudioLoading && (
               <div className="flex flex-col items-center justify-center py-6">
                 <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                <p className="text-sm text-muted-foreground mt-4 font-serif">加载音频中...</p>
+                <p className="text-sm text-muted-foreground mt-4 font-serif">
+                  {isUsingCache ? '从缓存读取...' : audioDownloadProgress > 0 ? `下载中 ${audioDownloadProgress}%` : '加载音频中...'}
+                </p>
+                {/* 下载进度条 */}
+                {!isUsingCache && audioDownloadProgress > 0 && (
+                  <div className="w-48 h-1 bg-muted rounded-full mt-2 overflow-hidden">
+                    <div
+                      className="h-full bg-primary rounded-full transition-all duration-300"
+                      style={{ width: `${audioDownloadProgress}%` }}
+                    />
+                  </div>
+                )}
               </div>
             )}
 
@@ -4635,44 +4718,14 @@ export default function AshtangaTracker() {
                   <motion.button
                     whileTap={{ scale: 0.95 }}
                     onClick={() => {
-                      // 重试加载音频
-                      setAudioError(null)
-                      setIsAudioLoading(true)
-
-                      const audio = new Audio()
-                      audio.crossOrigin = 'anonymous'
-                      audio.src = GUIDED_AUDIO_OPTION.audio_src
-
-                      audio.addEventListener('loadedmetadata', () => {
-                        setAudioDuration(audio.duration)
-                        setIsAudioLoaded(true)
-                        setIsAudioLoading(false)
-                        setIsPaused(false)
-                        audio.play()
+                      // 清除缓存后重试
+                      audioCache.clearCache().then(() => {
+                        setAudioError(null)
+                        setIsAudioLoading(true)
+                        setAudioDownloadProgress(0)
+                        // 触发重新加载
+                        handleStartPractice()
                       })
-
-                      audio.addEventListener('timeupdate', () => {
-                        setAudioCurrentTime(audio.currentTime)
-                        setAudioProgress((audio.currentTime / audio.duration) * 100)
-                      })
-
-                      audio.addEventListener('ended', () => {
-                        handleEndRequest()
-                      })
-
-                      audio.addEventListener('error', (e) => {
-                        console.error('音频加载失败:', e, audio.error)
-                        const errorCode = audio.error?.code
-                        let errorMsg = '音频加载失败'
-                        if (errorCode === 1) errorMsg = '音频加载被中断'
-                        if (errorCode === 2) errorMsg = '网络错误，请检查网络连接'
-                        if (errorCode === 3) errorMsg = '音频解码失败'
-                        if (errorCode === 4) errorMsg = '音频格式不支持'
-                        setIsAudioLoading(false)
-                        setAudioError(errorMsg)
-                      })
-
-                      setAudioElement(audio)
                     }}
                     className="px-6 py-2 rounded-full bg-primary text-primary-foreground text-sm font-serif"
                   >
