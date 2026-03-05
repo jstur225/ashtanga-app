@@ -4698,7 +4698,6 @@ export default function AshtangaTracker() {
               结束
             </motion.button>
           </div>
-          </>
 
           {/* 步长选择器 + 前进/后退按钮 - 仅在口令跟练模式显示 */}
           {selectedOption === 'guided_audio' && isAudioLoaded && !isAudioLoading && !audioError && (
@@ -4738,6 +4737,8 @@ export default function AshtangaTracker() {
                 <SkipForward className="w-4 h-4" />
               </motion.button>
             </div>
+          )}
+          </>
           )}
         </div>
 
