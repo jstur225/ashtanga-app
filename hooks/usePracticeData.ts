@@ -258,7 +258,12 @@ export const usePracticeData = () => {
     return updatedProfile;
   };
 
-  const addOption = (label: string, label_zh?: string, notes?: string) => {
+  const addOption = (
+    label: string,
+    label_zh?: string,
+    notes?: string,
+    onSync?: () => void // ⭐ 新增：同步回调
+  ) => {
     const newOption: PracticeOption = {
       id: uuidv4(),
       created_at: new Date().toISOString(),
@@ -267,17 +272,41 @@ export const usePracticeData = () => {
       is_custom: true,
     };
     setOptions([...(options || []), newOption]);
+
+    // ⭐ 触发同步回调（延迟执行，确保状态已更新）
+    setTimeout(() => {
+      onSync?.();
+    }, 100);
+
     return newOption;
   };
 
-  const updateOption = (id: string, label: string, notes?: string) => {
+  const updateOption = (
+    id: string,
+    label: string,
+    notes?: string,
+    onSync?: () => void // ⭐ 新增：同步回调
+  ) => {
     setOptions((options || []).map(o =>
       o.id === id ? { ...o, label, notes } : o
     ));
+
+    // ⭐ 触发同步回调（延迟执行，确保状态已更新）
+    setTimeout(() => {
+      onSync?.();
+    }, 100);
   };
 
-  const deleteOption = (id: string) => {
+  const deleteOption = (
+    id: string,
+    onSync?: () => void // ⭐ 新增：同步回调
+  ) => {
     setOptions((options || []).filter(o => o.id !== id));
+
+    // ⭐ 触发同步回调（延迟执行，确保状态已更新）
+    setTimeout(() => {
+      onSync?.();
+    }, 100);
   };
 
   const exportData = () => {

@@ -3749,7 +3749,8 @@ export default function AshtangaTracker() {
 
     // Create a new permanent custom option and save to localStorage
     // 修复：直接使用 addOption(name, name, notes) 避免竞态条件
-    addOption(name, name, notes)
+    // ⭐ 传入 autoSync 回调，添加后自动同步
+    addOption(name, name, notes, user ? () => autoSync() : undefined)
 
     // Update local state will be handled by useEffect when practiceOptionsData changes
     setCustomPracticeName(name)
@@ -3760,7 +3761,8 @@ export default function AshtangaTracker() {
 
   const handleEditSave = (id: string, name: string, notes: string) => {
     // Update localStorage
-    updateOption(id, name, notes)
+    // ⭐ 传入 autoSync 回调，修改后自动同步
+    updateOption(id, name, notes, user ? () => autoSync() : undefined)
 
     // Update local state
     setPracticeOptions(prev => prev.map(o =>
@@ -3779,7 +3781,8 @@ export default function AshtangaTracker() {
     }
 
     // Update localStorage
-    deleteOption(id)
+    // ⭐ 传入 autoSync 回调，删除后自动同步
+    deleteOption(id, user ? () => autoSync() : undefined)
 
     // Update local state
     setPracticeOptions(prev => prev.filter(o => o.id !== id))
@@ -3789,7 +3792,7 @@ export default function AshtangaTracker() {
 
     toast.success('已删除选项')
 
-    // ⭐ 新增：如果已登录，从云端删除并触发同步
+    // ⭐ 新增：如果已登录，从云端删除选项
     if (user) {
       console.log('[handleEditDelete] 用户已登录，从云端删除选项...')
       try {
@@ -3805,8 +3808,6 @@ export default function AshtangaTracker() {
           toast.error('云端删除失败，选项仅在本设备删除')
         } else {
           console.log('[handleEditDelete] 云端删除成功')
-          // 触发同步确保状态一致
-          await autoSync()
         }
       } catch (err) {
         console.error('[handleEditDelete] 删除异常:', err)
@@ -3864,14 +3865,9 @@ export default function AshtangaTracker() {
   }
 
   const handleAddOption = async (name: string, notes: string) => {
-    addOption(name, name, notes)
+    // ⭐ 传入 autoSync 回调，添加后自动同步
+    addOption(name, name, notes, user ? () => autoSync() : undefined)
     toast.success('已添加自定义选项')
-    // 如果已登录，自动同步到云端
-    if (user) {
-      setTimeout(async () => {
-        await autoSync()
-      }, 500)
-    }
   }
 
   const handleVoteCloud = () => {
