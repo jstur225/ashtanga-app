@@ -3715,11 +3715,18 @@ export default function AshtangaTracker() {
   }, [isPracticing])
 
   // Timer logic - Timestamp based for background/lock screen support
+  // 口令跟练模式下，计时跟随音频进度
   useInterval(() => {
     if (isPracticing && !isPaused && startTime) {
-      const now = Date.now()
-      const diff = Math.floor((now - startTime - (totalPausedTime || 0)) / 1000)
-      setElapsedTime(Math.max(0, diff))
+      // 口令跟练模式：使用音频时间
+      if (selectedOption === 'guided_audio' && audioCurrentTime > 0) {
+        setElapsedTime(Math.floor(audioCurrentTime))
+      } else {
+        // 普通模式：使用系统时间
+        const now = Date.now()
+        const diff = Math.floor((now - startTime - (totalPausedTime || 0)) / 1000)
+        setElapsedTime(Math.max(0, diff))
+      }
     }
   }, isPracticing && !isPaused ? 1000 : null)
 
@@ -4510,9 +4517,44 @@ export default function AshtangaTracker() {
           </motion.div>
         </main>
 
+        {/* 音频播放器进度条 - 仅在口令跟练模式显示，放在大圆圈和按钮之间 */}
+        {selectedOption === 'guided_audio' && isAudioLoaded && !isAudioLoading && !audioError && (
+          <motion.div
+            className="w-full max-w-sm mx-auto px-6 mb-4"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            {/* 进度条 */}
+            <div className="relative h-1.5 bg-muted rounded-full overflow-hidden">
+              <div
+                className="absolute inset-y-0 left-0 bg-primary rounded-full transition-all duration-300"
+                style={{ width: `${audioProgress}%` }}
+              />
+            </div>
+
+            {/* 时间显示 */}
+            <div className="flex justify-between text-xs text-muted-foreground mt-2 font-serif">
+              <span>{formatAudioTime(audioCurrentTime)}</span>
+              <span>{formatAudioTime(audioDuration)}</span>
+            </div>
+          </motion.div>
+        )}
+
         {/* Control buttons - moved up 30% to avoid clipping on mobile */}
         <div className="px-6 pb-32">
-          <div className="flex gap-4 justify-center">
+          <div className="flex gap-4 justify-center items-center">
+            {/* 口令跟练模式：后退按钮 */}
+            {selectedOption === 'guided_audio' && isAudioLoaded && !isAudioLoading && !audioError && (
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                onClick={() => handleAudioSeek('backward')}
+                className="w-12 h-12 rounded-full bg-muted flex items-center justify-center relative"
+              >
+                <SkipBack className="w-5 h-5" />
+                <span className="absolute text-[8px] font-medium">{seekStep}</span>
+              </motion.button>
+            )}
+
             <motion.button
               whileTap={{ scale: 0.95 }}
               onClick={handlePauseResume}
@@ -4537,10 +4579,43 @@ export default function AshtangaTracker() {
             >
               结束
             </motion.button>
+
+            {/* 口令跟练模式：前进按钮 */}
+            {selectedOption === 'guided_audio' && isAudioLoaded && !isAudioLoading && !audioError && (
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                onClick={() => handleAudioSeek('forward')}
+                className="w-12 h-12 rounded-full bg-muted flex items-center justify-center relative"
+              >
+                <SkipForward className="w-5 h-5" />
+                <span className="absolute text-[8px] font-medium">{seekStep}</span>
+              </motion.button>
+            )}
           </div>
+
+          {/* 步长选择器 - 仅在口令跟练模式显示 */}
+          {selectedOption === 'guided_audio' && isAudioLoaded && !isAudioLoading && !audioError && (
+            <div className="flex items-center justify-center gap-2 mt-3">
+              <span className="text-xs text-muted-foreground font-serif">快进/后退:</span>
+              {SEEK_STEP_OPTIONS.map((step) => (
+                <motion.button
+                  key={step}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => setSeekStep(step)}
+                  className={`px-3 py-1 rounded-full text-xs font-serif ${
+                    seekStep === step
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted text-muted-foreground'
+                  }`}
+                >
+                  {step}秒
+                </motion.button>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* 音频播放器 - 仅在口令跟练模式显示 */}
+        {/* 音频播放器 - 仅在口令跟练模式显示（加载状态和错误状态） */}
         {selectedOption === 'guided_audio' && (
           <motion.div
             className="w-full max-w-sm mx-auto mt-4 px-6"
@@ -4630,84 +4705,6 @@ export default function AshtangaTracker() {
               </div>
             )}
 
-            {/* 正常播放器界面 */}
-            {isAudioLoaded && !isAudioLoading && !audioError && (
-              <>
-                {/* 进度条 */}
-                <div className="relative h-1.5 bg-muted rounded-full overflow-hidden">
-                  <div
-                    className="absolute inset-y-0 left-0 bg-primary rounded-full transition-all duration-300"
-                    style={{ width: `${audioProgress}%` }}
-                  />
-                </div>
-
-                {/* 时间显示 */}
-                <div className="flex justify-between text-xs text-muted-foreground mt-2 font-serif">
-                  <span>{formatAudioTime(audioCurrentTime)}</span>
-                  <span>{formatAudioTime(audioDuration)}</span>
-                </div>
-
-                {/* 步长选择器 */}
-                <div className="flex items-center justify-center gap-2 mt-3">
-                  <span className="text-xs text-muted-foreground font-serif">快进/后退:</span>
-                  {SEEK_STEP_OPTIONS.map((step) => (
-                    <motion.button
-                      key={step}
-                      whileTap={{ scale: 0.9 }}
-                      onClick={() => setSeekStep(step)}
-                      className={`px-3 py-1 rounded-full text-xs font-serif ${
-                        seekStep === step
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-muted text-muted-foreground'
-                      }`}
-                    >
-                      {step}秒
-                    </motion.button>
-                  ))}
-                </div>
-
-                {/* 控制按钮 */}
-                <div className="flex items-center justify-center gap-4 mt-4">
-                  {/* 后退 */}
-                  <motion.button
-                    whileTap={{ scale: 0.9 }}
-                    onClick={() => handleAudioSeek('backward')}
-                    className="w-10 h-10 rounded-full bg-muted flex items-center justify-center relative"
-                  >
-                    <SkipBack className="w-4 h-4" />
-                    <span className="absolute text-[8px] font-medium">{seekStep}</span>
-                  </motion.button>
-
-                  {/* 播放/暂停 */}
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    onClick={handlePauseResume}
-                    className="w-14 h-14 rounded-full green-gradient flex items-center justify-center shadow-lg"
-                  >
-                    {isPaused ? (
-                      <Play className="w-6 h-6 text-primary-foreground ml-0.5" />
-                    ) : (
-                      <Pause className="w-6 h-6 text-primary-foreground" />
-                    )}
-                  </motion.button>
-
-                  {/* 前进 */}
-                  <motion.button
-                    whileTap={{ scale: 0.9 }}
-                    onClick={() => handleAudioSeek('forward')}
-                    className="w-10 h-10 rounded-full bg-muted flex items-center justify-center relative"
-                  >
-                    <SkipForward className="w-4 h-4" />
-                    <span className="absolute text-[8px] font-medium">{seekStep}</span>
-                  </motion.button>
-                </div>
-
-                {/* 音频标题 */}
-                <p className="text-center text-xs text-muted-foreground mt-3 font-serif">
-                  老掌门人一级序列口令
-                </p>
-              </>
-            )}
           </motion.div>
         )}
 
