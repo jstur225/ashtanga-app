@@ -4548,10 +4548,9 @@ export default function AshtangaTracker() {
               <motion.button
                 whileTap={{ scale: 0.9 }}
                 onClick={() => handleAudioSeek('backward')}
-                className="w-12 h-12 rounded-full bg-muted flex items-center justify-center relative"
+                className="w-12 h-12 rounded-full bg-muted flex items-center justify-center"
               >
                 <SkipBack className="w-5 h-5" />
-                <span className="absolute text-[8px] font-medium">{seekStep}</span>
               </motion.button>
             )}
 
@@ -4585,10 +4584,9 @@ export default function AshtangaTracker() {
               <motion.button
                 whileTap={{ scale: 0.9 }}
                 onClick={() => handleAudioSeek('forward')}
-                className="w-12 h-12 rounded-full bg-muted flex items-center justify-center relative"
+                className="w-12 h-12 rounded-full bg-muted flex items-center justify-center"
               >
                 <SkipForward className="w-5 h-5" />
-                <span className="absolute text-[8px] font-medium">{seekStep}</span>
               </motion.button>
             )}
           </div>
