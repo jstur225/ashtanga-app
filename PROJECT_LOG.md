@@ -7,6 +7,120 @@
 
 ---
 
+## 2026-03-05: 修复口令跟练功能点击无反应问题 ✅
+
+**阶段**: Bug修复（口令跟练功能）
+
+**问题描述**:
+- 点击口令跟练选项后，再点击"开始练习"没有反应
+- 用户感觉界面卡死，没有任何反馈
+
+**根本原因分析**:
+
+1. **音频加载阻塞界面**: `handleStartPractice` 函数中，口令跟练模式会创建 `Audio` 对象并等待 `loadedmetadata` 事件
+2. **延迟进入练习界面**: 只有在音频加载完成后（约几秒到十几秒，取决于网络），才设置 `setIsPracticing(true)` 进入练习界面
+3. **用户无感知**: 在此期间用户看不到任何反馈，以为点击无效
+
+**修复方案**:
+
+### 修复1: 立即进入练习界面
+**文件**: `app/practice/page.tsx:4240` (`handleStartPractice` 函数)
+
+**修复前**:
+```typescript
+const handleStartPractice = () => {
+  if (selectedOption) {
+    // 口令跟练模式：先加载音频
+    if (selectedOption === 'guided_audio') {
+      setIsAudioLoading(true)
+      const audio = new Audio(GUIDED_AUDIO_OPTION.audio_src)
+
+      audio.addEventListener('loadedmetadata', () => {
+        // 音频加载完成后才进入练习界面
+        setIsPracticing(true)  // ⭐ 延迟执行
+        audio.play()
+      })
+    }
+  }
+}
+```
+
+**修复后**:
+```typescript
+const handleStartPractice = () => {
+  if (selectedOption) {
+    // 先进入练习界面（立即给用户反馈）
+    const now = Date.now()
+    setStartTime(now)
+    setIsPracticing(true)  // ⭐ 立即执行
+    setIsPaused(false)
+    // ...
+
+    // 口令跟练模式：加载音频
+    if (selectedOption === 'guided_audio') {
+      setIsAudioLoading(true)
+      setAudioError(null)
+      setIsPaused(true)  // ⭐ 先暂停，等音频加载完成
+
+      const audio = new Audio(GUIDED_AUDIO_OPTION.audio_src)
+
+      audio.addEventListener('loadedmetadata', () => {
+        setAudioDuration(audio.duration)
+        setIsAudioLoaded(true)
+        setIsAudioLoading(false)
+
+        // 音频加载完成，自动开始播放和计时
+        setIsPaused(false)  // ⭐ 加载完成后自动开始
+        audio.play()
+      })
+      // ...
+      setAudioElement(audio)
+    }
+  }
+}
+```
+
+### 修复2: 统一口令跟练选项样式
+**文件**: `app/practice/page.tsx:4714-4720`
+
+- 移除 `isGuidedAudio` 特殊样式判断
+- 移除 `Volume2` 图标
+- 样式改为和其他普通选项完全一致
+
+**代码变更**:
+```typescript
+// 之前：特殊样式和图标
+const isGuidedAudio = option.id === "guided_audio"
+// ...
+isGuidedAudio
+  ? "bg-primary/10 text-primary border border-primary/30..."
+  : "bg-background text-foreground..."
+// ...
+{isGuidedAudio && <Volume2 className="w-3.5 h-3.5 inline-block" />}
+
+// 现在：和其他选项一样
+"bg-background text-foreground shadow-[0_4px_16px_rgba(0,0,0,0.06)] border border-stone-100/50"
+```
+
+**Git提交**:
+- `a3f3189` (master2) - fix: 修复口令跟练功能点击无反应问题
+- `ce7a3e8` (master) - fix: 修复口令跟练功能点击无反应问题
+
+**用户体验改进**:
+- 点击"开始练习"立即进入计时界面，不再卡顿
+- 音频加载期间显示"加载中..."状态
+- 音频加载完成后自动开始播放和计时
+- 口令跟练选项样式和其他选项一致，不突兀
+
+**测试建议**:
+1. 选择"一序列跟练"选项
+2. 点击"开始练习"
+3. 验证是否立即进入计时界面
+4. 验证是否显示"加载中..."
+5. 验证音频加载完成后是否自动开始播放
+
+---
+
 ## 2026-02-28: 修复同步时名字签名被重置问题 ✅ 完成
 
 **阶段**: Bug修复（同步功能优化）
@@ -1387,6 +1501,104 @@ Edge浏览器：点击右下角→ 选择添加到手机
 - 一键安装，无需审核，跨平台（iOS+Android）
 
 **下一步**: 继续使用和测试，发现问题
+
+---
+
+### 2026-03-05: 小红书群邀请弹窗更新 ✅
+
+**阶段**: UI优化（弹窗交互简化）
+
+**需求背景**:
+- 原有弹窗使用文本框 + 复制按钮的方式邀请用户加入小红书群
+- 用户体验不够直观，需要简化为图片展示 + 一键关闭
+
+**核心改动**:
+
+#### 1. 文案改为图片展示
+**文件**: `components/XiaohongshuInviteModal.tsx`
+- 移除 `XIAOHONGSHU_INVITE_TEXT` 常量（原有复制文案）
+- 移除复制框 UI（textarea + 复制按钮）
+- 添加图片显示区域（使用 next/image）
+- 图片路径: `public/进群方法.png`
+
+**代码变更**:
+```tsx
+// 之前：复制框
+<div className="bg-secondary/50 rounded-xl p-3 space-y-2">
+  <p className="text-xs text-muted-foreground font-mono">📋 复制下方内容</p>
+  <div className="bg-background rounded-lg p-3 text-xs text-muted-foreground font-mono break-all select-text">
+    {XIAOHONGSHU_INVITE_TEXT}
+  </div>
+</div>
+
+// 现在：图片展示
+<div className="rounded-xl overflow-hidden border border-border">
+  <Image
+    src="/进群方法.png"
+    alt="进群方法"
+    width={400}
+    height={300}
+    className="w-full h-auto"
+    priority
+  />
+</div>
+```
+
+#### 2. 按钮交互简化
+**文件**: `components/XiaohongshuInviteModal.tsx`
+- 按钮文案从 "一键复制" 改为 "马上去加入"
+- 移除 `handleCopyAndJump` 函数（包含剪贴板操作和 toast 提示）
+- 点击后直接调用 `onClose()` 关闭弹窗
+- 移除 `copied` state 和 `useState` 导入
+- 移除 `toast` 和 `Copy` icon 导入
+
+**代码变更**:
+```tsx
+// 之前：复制功能
+const handleCopyAndJump = async () => {
+  await navigator.clipboard.writeText(XIAOHONGSHU_INVITE_TEXT)
+  setCopied(true)
+  toast.success('✅ 已复制！打开小红书即可自动识别')
+}
+
+// 现在：直接关闭
+const handleJoin = () => {
+  onClose()
+}
+```
+
+#### 3. 版本号更新
+**文件**: `components/XiaohongshuInviteModal.tsx`
+```tsx
+// 版本号 - 每次更新文案时修改此版本号
+export const INVITE_VERSION = 'v2'  // 从 v1 更新到 v2
+```
+
+**作用**: 版本号变化会触发红点提示，让用户知道有更新
+
+**Git提交**:
+- `c2d4b66` (master2) - feat: 更新小红书群邀请弹窗为图片展示
+- `cdccd4d` (master) - feat: 更新小红书群邀请弹窗为图片展示
+
+**文件变更**:
+| 文件 | 变更类型 | 说明 |
+|------|----------|------|
+| `components/XiaohongshuInviteModal.tsx` | 修改 | 弹窗组件重构 |
+| `public/进群方法.png` | 新增 | 进群方法图片（2.2MB） |
+
+**验证方法**:
+1. 清除 localStorage 测试红点显示:
+   ```javascript
+   localStorage.removeItem('xhs_invite_read')
+   localStorage.removeItem('xhs_invite_version')
+   location.reload()
+   ```
+2. 点击头像查看弹窗是否正常显示图片
+3. 点击"马上去加入"按钮弹窗是否关闭
+
+**下一步计划**:
+- 继续观察用户反馈
+- 根据进群转化率决定是否进一步优化
 
 ---
 
