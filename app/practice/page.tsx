@@ -4248,7 +4248,7 @@ export default function AshtangaTracker() {
     return nonCustomOptions.length >= 8
   }, [practiceOptions])
 
-  const handleStartPractice = () => {
+  const handleStartPractice = async () => {
     if (selectedOption) {
       // 先进入练习界面（立即给用户反馈）
       const now = Date.now()
@@ -4707,6 +4707,12 @@ export default function AshtangaTracker() {
                     />
                   </div>
                 )}
+                {/* 第一次下载提示 */}
+                {!isUsingCache && audioDownloadProgress > 0 && (
+                  <p className="text-xs text-muted-foreground/70 mt-3 font-serif text-center">
+                    💡 首次下载需要一点时间，之后就能快速打开啦
+                  </p>
+                )}
               </div>
             )}
 
@@ -4818,7 +4824,12 @@ export default function AshtangaTracker() {
                   `}
                 >
                   <span className="text-[14px] leading-snug break-words w-full line-clamp-2 flex items-center justify-center gap-1">
-                    {isCustomButton ? "+ 自定义" : option.label}
+                    {isCustomButton ? "+ 自定义" : (
+                      <>
+                        {(option as PracticeOption & { icon?: string }).icon}
+                        {option.label}
+                      </>
+                    )}
                   </span>
                   {!isCustomButton && option.notes && (
                     <span className={`text-[11px] mt-0.5 leading-snug break-words w-full line-clamp-2 ${isSelected ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
