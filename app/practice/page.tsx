@@ -4277,6 +4277,11 @@ export default function AshtangaTracker() {
       console.log('getSelectedLabel returned:', selectedLabel)
       console.log('elapsedTime:', elapsedTime)
 
+      // 将开始时间戳转换为 HH:MM 格式
+      const startTimeFormatted = startTime
+        ? new Date(startTime).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false })
+        : undefined
+
       // Create new practice record
       const record = addRecord({
         date: new Date().toISOString().split('T')[0],
@@ -4284,6 +4289,7 @@ export default function AshtangaTracker() {
         duration: elapsedTime,
         notes: notes || "今日练习完成",
         breakthrough,
+        start_time: startTimeFormatted, // ⭐ 记录练习开始时间
       })
       console.log('Record added:', record)
 
@@ -4319,7 +4325,7 @@ export default function AshtangaTracker() {
       setIsSaving(false)
       console.log('setIsSaving(false) called')
     }
-  }, [elapsedTime, getSelectedLabel, addRecord, isSaving])
+  }, [elapsedTime, getSelectedLabel, addRecord, isSaving, startTime])
 
   // Full-screen Timer View with Hero Transition
   if (isPracticing) {
