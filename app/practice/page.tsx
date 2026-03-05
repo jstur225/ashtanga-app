@@ -4542,18 +4542,8 @@ export default function AshtangaTracker() {
 
         {/* Control buttons - moved up 30% to avoid clipping on mobile */}
         <div className="px-6 pb-32">
-          <div className="flex gap-4 justify-center items-center">
-            {/* 口令跟练模式：后退按钮 */}
-            {selectedOption === 'guided_audio' && isAudioLoaded && !isAudioLoading && !audioError && (
-              <motion.button
-                whileTap={{ scale: 0.9 }}
-                onClick={() => handleAudioSeek('backward')}
-                className="w-12 h-12 rounded-full bg-muted flex items-center justify-center"
-              >
-                <SkipBack className="w-5 h-5" />
-              </motion.button>
-            )}
-
+          {/* 暂停/结束按钮 - 恢复原始样式 */}
+          <div className="flex gap-4 justify-center">
             <motion.button
               whileTap={{ scale: 0.95 }}
               onClick={handlePauseResume}
@@ -4578,9 +4568,37 @@ export default function AshtangaTracker() {
             >
               结束
             </motion.button>
+          </div>
 
-            {/* 口令跟练模式：前进按钮 */}
-            {selectedOption === 'guided_audio' && isAudioLoaded && !isAudioLoading && !audioError && (
+          {/* 步长选择器 - 仅在口令跟练模式显示，参考Tab3的90/180/365样式 */}
+          {selectedOption === 'guided_audio' && isAudioLoaded && !isAudioLoading && !audioError && (
+            <div className="flex items-center justify-center gap-3 mt-4">
+              {SEEK_STEP_OPTIONS.map((step) => (
+                <button
+                  key={step}
+                  onClick={() => setSeekStep(step)}
+                  className={`px-4 py-2 rounded-full text-sm font-serif transition-all ${
+                    seekStep === step
+                      ? 'green-gradient text-white shadow-sm'
+                      : 'text-stone-400 hover:text-stone-600 bg-muted/50'
+                  }`}
+                >
+                  {step}秒
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* 前进/后退按钮 - 仅在口令跟练模式显示，位于步长选择器下方 */}
+          {selectedOption === 'guided_audio' && isAudioLoaded && !isAudioLoading && !audioError && (
+            <div className="flex items-center justify-between mt-4 px-4">
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                onClick={() => handleAudioSeek('backward')}
+                className="w-12 h-12 rounded-full bg-muted flex items-center justify-center"
+              >
+                <SkipBack className="w-5 h-5" />
+              </motion.button>
               <motion.button
                 whileTap={{ scale: 0.9 }}
                 onClick={() => handleAudioSeek('forward')}
@@ -4588,27 +4606,6 @@ export default function AshtangaTracker() {
               >
                 <SkipForward className="w-5 h-5" />
               </motion.button>
-            )}
-          </div>
-
-          {/* 步长选择器 - 仅在口令跟练模式显示 */}
-          {selectedOption === 'guided_audio' && isAudioLoaded && !isAudioLoading && !audioError && (
-            <div className="flex items-center justify-center gap-2 mt-3">
-              <span className="text-xs text-muted-foreground font-serif">快进/后退:</span>
-              {SEEK_STEP_OPTIONS.map((step) => (
-                <motion.button
-                  key={step}
-                  whileTap={{ scale: 0.9 }}
-                  onClick={() => setSeekStep(step)}
-                  className={`px-3 py-1 rounded-full text-xs font-serif ${
-                    seekStep === step
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted text-muted-foreground'
-                  }`}
-                >
-                  {step}秒
-                </motion.button>
-              ))}
             </div>
           )}
         </div>
