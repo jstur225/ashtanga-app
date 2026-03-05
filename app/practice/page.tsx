@@ -7,7 +7,7 @@ import { usePracticeData, type PracticeRecord, type PracticeOption, type UserPro
 import { usePWAInstall } from "@/hooks/usePWAInstall"
 import { useAuth } from "@/hooks/useAuth"
 import { useSync } from "@/hooks/useSync"
-import { BookOpen, BarChart3, Calendar, X, Camera, Pause, Play, Trash2, User, Settings, ChevronLeft, ChevronRight, ChevronUp, Cloud, Download, Upload, Plus, Minus, Share2, Sparkles, Check, Copy, ClipboardPaste, MessageCircle, Bug, AlertCircle, SkipBack, SkipForward } from "lucide-react"
+import { BookOpen, BarChart3, Calendar, X, Camera, Pause, Play, Trash2, User, Settings, ChevronLeft, ChevronRight, ChevronUp, Cloud, Download, Upload, Plus, Minus, Share2, Sparkles, Check, Copy, ClipboardPaste, MessageCircle, Bug, AlertCircle, SkipBack, SkipForward, Volume2 } from "lucide-react"
 import { FakeDoorModal } from "@/components/FakeDoorModal"
 import { VoiceButton } from "@/components/VoiceButton"
 import { PhotoUploadButton } from "@/components/PhotoUploadButton"
@@ -3677,8 +3677,7 @@ export default function AshtangaTracker() {
         notes: GUIDED_AUDIO_OPTION.notes,
         isCustom: false,
         is_preset: true,
-        can_edit: false,
-        icon: GUIDED_AUDIO_OPTION.icon
+        can_edit: false
       }]),
       ...regularOptions.map(o => ({
         id: o.id,
@@ -3757,6 +3756,8 @@ export default function AshtangaTracker() {
       if (option.id !== "custom" && !option.is_preset && option.can_edit !== false) {
         setEditingOption(option)
         setShowEditModal(true)
+      } else if (option.is_preset || option.can_edit === false) {
+        toast('预设按钮暂不支持编辑')
       }
       return
     }
@@ -4826,8 +4827,8 @@ export default function AshtangaTracker() {
                   <span className="text-[14px] leading-snug break-words w-full line-clamp-2 flex items-center justify-center gap-1">
                     {isCustomButton ? "+ 自定义" : (
                       <>
-                        {(option as PracticeOption & { icon?: string }).icon}
                         {option.label}
+                        {option.is_preset && <Volume2 className="w-4 h-4" />}
                       </>
                     )}
                   </span>

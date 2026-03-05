@@ -44,7 +44,7 @@ export interface UserProfile {
 }
 
 // 口令跟练预设选项
-export const GUIDED_AUDIO_OPTION: PracticeOption & { icon?: string } = {
+export const GUIDED_AUDIO_OPTION: PracticeOption = {
   id: 'guided_audio',
   created_at: '2026-01-01T00:00:00.000Z',
   label: '一序列口令',
@@ -52,8 +52,7 @@ export const GUIDED_AUDIO_OPTION: PracticeOption & { icon?: string } = {
   is_custom: false,
   is_preset: true,
   audio_src: '/audio/guruji-led-primary.m4a',
-  can_edit: false,
-  icon: '🔊'
+  can_edit: false
 };
 
 const DEFAULT_OPTIONS: PracticeOption[] = [
