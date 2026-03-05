@@ -7,7 +7,7 @@ import { usePracticeData, type PracticeRecord, type PracticeOption, type UserPro
 import { usePWAInstall } from "@/hooks/usePWAInstall"
 import { useAuth } from "@/hooks/useAuth"
 import { useSync } from "@/hooks/useSync"
-import { BookOpen, BarChart3, Calendar, X, Camera, Pause, Play, Trash2, User, Settings, ChevronLeft, ChevronRight, ChevronUp, Cloud, Download, Upload, Plus, Minus, Share2, Sparkles, Check, Copy, ClipboardPaste, MessageCircle, Bug, AlertCircle, SkipBack, SkipForward, Volume2 } from "lucide-react"
+import { BookOpen, BarChart3, Calendar, X, Camera, Pause, Play, Trash2, User, Settings, ChevronLeft, ChevronRight, ChevronUp, Cloud, Download, Upload, Plus, Minus, Share2, Sparkles, Check, Copy, ClipboardPaste, MessageCircle, Bug, AlertCircle, SkipBack, SkipForward, Headphones } from "lucide-react"
 import { FakeDoorModal } from "@/components/FakeDoorModal"
 import { VoiceButton } from "@/components/VoiceButton"
 import { PhotoUploadButton } from "@/components/PhotoUploadButton"
@@ -4828,7 +4828,7 @@ export default function AshtangaTracker() {
                     {isCustomButton ? "+ 自定义" : (
                       <>
                         {option.label}
-                        {option.is_preset && <Volume2 className="w-4 h-4" />}
+                        {option.is_preset && <Headphones className="w-4 h-4" style={{ color: 'rgba(74, 122, 68)' }} />}
                       </>
                     )}
                   </span>
