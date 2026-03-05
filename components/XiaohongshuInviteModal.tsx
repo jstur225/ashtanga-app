@@ -1,16 +1,11 @@
 'use client'
 
-import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Copy } from 'lucide-react'
-import { toast } from 'sonner'
+import { X } from 'lucide-react'
+import Image from 'next/image'
 
 // 版本号 - 每次更新文案时修改此版本号
-export const INVITE_VERSION = 'v1'
-
-// 复制文案（固定内容）
-const XIAOHONGSHU_INVITE_TEXT =
-  '0【全选复制，xiaohongshu等你归来】 3月1日前可入，"🆓熬汤日记内测交流群"趣味空间 MF8158 :/#b🤔🍉🐂😗🐯😉🐯🥭😌😚🐶🐭'
+export const INVITE_VERSION = 'v2'
 
 interface XiaohongshuInviteModalProps {
   isOpen: boolean
@@ -18,39 +13,9 @@ interface XiaohongshuInviteModalProps {
 }
 
 export function XiaohongshuInviteModal({ isOpen, onClose }: XiaohongshuInviteModalProps) {
-  const [copied, setCopied] = useState(false)
-
-  const handleCopyAndJump = async () => {
-    try {
-      // 复制文案到剪贴板
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(XIAOHONGSHU_INVITE_TEXT)
-      } else {
-        // 降级方案（兼容旧浏览器）
-        const textArea = document.createElement('textarea')
-        textArea.value = XIAOHONGSHU_INVITE_TEXT
-        textArea.style.position = 'fixed'
-        textArea.style.opacity = '0'
-        document.body.appendChild(textArea)
-        textArea.select()
-        document.execCommand('copy')
-        document.body.removeChild(textArea)
-      }
-
-      // 显示成功提示
-      setCopied(true)
-      toast.success('✅ 已复制！打开小红书即可自动识别', {
-        duration: 2000,
-        position: 'top-center',
-      })
-
-    } catch (err) {
-      console.error('复制失败:', err)
-      toast.error('❌ 复制失败，请手动复制', {
-        duration: 3000,
-        position: 'top-center',
-      })
-    }
+  const handleJoin = () => {
+    // 直接关闭弹窗
+    onClose()
   }
 
   return (
@@ -103,22 +68,24 @@ export function XiaohongshuInviteModal({ isOpen, onClose }: XiaohongshuInviteMod
                   入股不亏，垫子上见！🧘‍♂️
                 </p>
 
-                {/* 复制框 - 可手动选择复制 */}
-                <div className="bg-secondary/50 rounded-xl p-3 space-y-2">
-                  <p className="text-xs text-muted-foreground font-mono">📋 复制下方内容</p>
-                  <div className="bg-background rounded-lg p-3 text-xs text-muted-foreground font-mono break-all select-text">
-                    {XIAOHONGSHU_INVITE_TEXT}
-                  </div>
+                {/* 进群方法图片 */}
+                <div className="rounded-xl overflow-hidden border border-border">
+                  <Image
+                    src="/进群方法.png"
+                    alt="进群方法"
+                    width={400}
+                    height={300}
+                    className="w-full h-auto"
+                    priority
+                  />
                 </div>
 
-                {/* 复制按钮 */}
+                {/* 加入按钮 */}
                 <button
-                  onClick={handleCopyAndJump}
-                  disabled={copied}
-                  className="w-full py-4 rounded-full bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white font-serif transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  onClick={handleJoin}
+                  className="w-full py-4 rounded-full bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white font-serif transition-all hover:opacity-90 active:scale-[0.98] flex items-center justify-center gap-2"
                 >
-                  <Copy className="w-4 h-4" />
-                  {copied ? '✅ 已复制' : '一键复制'}
+                  马上去加入
                 </button>
               </div>
             </motion.div>
