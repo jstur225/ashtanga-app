@@ -4591,20 +4591,20 @@ export default function AshtangaTracker() {
 
           {/* 前进/后退按钮 - 仅在口令跟练模式显示，位于步长选择器下方 */}
           {selectedOption === 'guided_audio' && isAudioLoaded && !isAudioLoading && !audioError && (
-            <div className="flex items-center justify-between mt-4 px-4">
+            <div className="flex items-center justify-between mt-3 px-12">
               <motion.button
                 whileTap={{ scale: 0.9 }}
                 onClick={() => handleAudioSeek('backward')}
-                className="w-12 h-12 rounded-full bg-muted flex items-center justify-center"
+                className="w-10 h-10 rounded-full bg-muted/80 flex items-center justify-center"
               >
-                <SkipBack className="w-5 h-5" />
+                <SkipBack className="w-4 h-4" />
               </motion.button>
               <motion.button
                 whileTap={{ scale: 0.9 }}
                 onClick={() => handleAudioSeek('forward')}
-                className="w-12 h-12 rounded-full bg-muted flex items-center justify-center"
+                className="w-10 h-10 rounded-full bg-muted/80 flex items-center justify-center"
               >
-                <SkipForward className="w-5 h-5" />
+                <SkipForward className="w-4 h-4" />
               </motion.button>
             </div>
           )}
