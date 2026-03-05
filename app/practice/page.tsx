@@ -3520,6 +3520,9 @@ export default function AshtangaTracker() {
   const [confirmPhrase, setConfirmPhrase] = useState('')
   const [isSaving, setIsSaving] = useState(false)
 
+  // ⭐ 用于保存练习开始时间（在 handleConfirmEnd 重置 startTime 后仍能使用）
+  const startTimeRef = useRef<number | null>(null)
+
   // 路由
   const router = useRouter()
   const [exportLogs, setExportLogs] = useLocalStorage<{
@@ -4209,6 +4212,7 @@ export default function AshtangaTracker() {
     if (selectedOption) {
       const now = Date.now()
       setStartTime(now)
+      startTimeRef.current = now // ⭐ 保存到 ref
       setIsPracticing(true)
       setIsPaused(false)
       setTotalPausedTime(0)
@@ -4259,6 +4263,7 @@ export default function AshtangaTracker() {
     setIsPracticing(false)
     // Clear timer persistence
     setStartTime(null)
+    // ⭐ 注意：不清空 startTimeRef，供 handleSavePractice 使用
     setPauseStartTime(null)
     setTotalPausedTime(0)
   }
@@ -4277,9 +4282,9 @@ export default function AshtangaTracker() {
       console.log('getSelectedLabel returned:', selectedLabel)
       console.log('elapsedTime:', elapsedTime)
 
-      // 将开始时间戳转换为 HH:MM 格式
-      const startTimeFormatted = startTime
-        ? new Date(startTime).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false })
+      // 将开始时间戳转换为 HH:MM 格式（使用 ref，因为 startTime state 已被重置）
+      const startTimeFormatted = startTimeRef.current
+        ? new Date(startTimeRef.current).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false })
         : undefined
 
       // Create new practice record
@@ -4291,6 +4296,9 @@ export default function AshtangaTracker() {
         breakthrough,
         start_time: startTimeFormatted, // ⭐ 记录练习开始时间
       })
+
+      // ⭐ 清空 ref（保存完成后）
+      startTimeRef.current = null
       console.log('Record added:', record)
 
       trackEvent('finish_practice', {
@@ -4325,7 +4333,7 @@ export default function AshtangaTracker() {
       setIsSaving(false)
       console.log('setIsSaving(false) called')
     }
-  }, [elapsedTime, getSelectedLabel, addRecord, isSaving, startTime])
+  }, [elapsedTime, getSelectedLabel, addRecord, isSaving])
 
   // Full-screen Timer View with Hero Transition
   if (isPracticing) {
