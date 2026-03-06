@@ -1,7 +1,7 @@
 # Git 配置修复完成
 
 **修复时间**: 2026-01-26
-**新工作路径**: `D:\BaiduSyncdisk\work\ashtang-app`
+**新工作路径**: `D:\BaiduSyncdisk\work\cursor app\ashtang-app`
 
 ## 问题诊断
 
@@ -58,7 +58,7 @@ fatal: unable to read config file 'D:/runjian/git/Git/home/BIN/.gitconfig': No s
 - **缓冲区**: 524288000 (500MB)
 
 #### 项目配置
-- **仓库路径**: `D:\BaiduSyncdisk\work\ashtang-app`
+- **仓库路径**: `D:\BaiduSyncdisk\work\cursor app\ashtang-app`
 - **远程仓库**: https://github.com/jstur225/ashtanga-app.git
 - **分支**: master
 
@@ -78,7 +78,7 @@ git config --global http.proxy
 
 ### ✅ Git 推送正常
 ```bash
-cd D:\BaiduSyncdisk\work\ashtang-app
+cd D:\BaiduSyncdisk\work\cursor app\ashtang-app
 git push origin master
 # 成功！
 ```
@@ -102,7 +102,7 @@ export HOME="D:/BaiduSyncdisk/work/git-home"
 
 ### 命令行推送
 ```bash
-cd D:\BaiduSyncdisk\work\ashtang-app
+cd D:\BaiduSyncdisk\work\cursor app\ashtang-app
 git add .
 git commit -m "描述"
 git push origin master
@@ -114,7 +114,7 @@ git push origin master
 - 所有项目共享
 - 包含用户信息和代理设置
 
-**项目配置**: `D:\BaiduSyncdisk\work\ashtang-app\.git\config`
+**项目配置**: `D:\BaiduSyncdisk\work\cursor app\ashtang-app\.git\config`
 - 项目特定配置
 - 当前无代理配置（已移到全局）
 
@@ -145,7 +145,7 @@ A: `git config --global --list`
 
 ## 工作路径总结
 
-**主工作路径**: `D:\BaiduSyncdisk\work\ashtang-app\`
+**主工作路径**: `D:\BaiduSyncdisk\work\cursor app\ashtang-app\`
 - Git 仓库
 - 所有代码
 - 部署源路径
@@ -162,7 +162,7 @@ A: `git config --global --list`
 ## 后续工作
 
 所有 Git 操作都在新路径进行：
-- 开发: `D:\BaiduSyncdisk\work\ashtang-app`
+- 开发: `D:\BaiduSyncdisk\work\cursor app\ashtang-app`
 - 配置: `D:\BaiduSyncdisk\work\git-home\.gitconfig`
 - 推送: 自动使用全局代理配置
 
