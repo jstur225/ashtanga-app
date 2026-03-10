@@ -4246,7 +4246,7 @@ export default function AshtangaTracker() {
     return nonCustomOptions.length >= 8
   }, [practiceOptions])
 
-  const handleStartPractice = () => {
+  const handleStartPractice = async () => {
     if (selectedOption) {
       // 先进入练习界面（立即给用户反馈）
       const now = Date.now()
