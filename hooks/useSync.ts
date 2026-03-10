@@ -859,29 +859,36 @@ export function useSync(
         }
       }
 
-      // 3. 批量上传练习选项（包括默认和自定义，全部同步）
+      // 3. 批量上传练习选项（只同步自定义选项，默认选项不上传）
       if (options.length > 0) {
-        const optionsToUpload = options.map(o => ({
-          id: o.id,
-          user_id: userId,
-          label: o.label || '',
-          notes: o.notes || null,
-          is_custom: o.is_custom || false,
-        }))
+        // ⭐ 只上传自定义选项（is_custom: true），默认选项不上传
+        const customOptions = options.filter(o => o.is_custom)
+        
+        if (customOptions.length > 0) {
+          const optionsToUpload = customOptions.map(o => ({
+            id: o.id,
+            user_id: userId,
+            label: o.label || '',
+            notes: o.notes || null,
+            is_custom: o.is_custom || false,
+          }))
 
-        const { error: optionsError } = await supabase
-          .from(TABLES.PRACTICE_OPTIONS)
-          .upsert(optionsToUpload, {
-            onConflict: 'id'
-          })
+          const { error: optionsError } = await supabase
+            .from(TABLES.PRACTICE_OPTIONS)
+            .upsert(optionsToUpload, {
+              onConflict: 'id'
+            })
 
-        if (optionsError) {
-          console.error('❌ 批量上传选项失败:', optionsError)
-          console.error('   错误详情:', JSON.stringify(optionsError, null, 2))
-          console.error('   上传的数据:', JSON.stringify(optionsToUpload, null, 2))
-          addLog('批量上传选项', 'error', undefined, optionsError.message)
+          if (optionsError) {
+            console.error('❌ 批量上传选项失败:', optionsError)
+            console.error('   错误详情:', JSON.stringify(optionsError, null, 2))
+            console.error('   上传的数据:', JSON.stringify(optionsToUpload, null, 2))
+            addLog('批量上传选项', 'error', undefined, optionsError.message)
+          } else {
+            addLog(`批量上传${customOptions.length}个自定义选项`, 'success')
+          }
         } else {
-          addLog(`批量上传${options.length}个选项`, 'success')
+          console.error('ℹ️ [uploadLocalData] 没有自定义选项需要上传')
         }
       }
 
