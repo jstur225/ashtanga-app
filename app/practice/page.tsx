@@ -3726,6 +3726,8 @@ export default function AshtangaTracker() {
       if (option.id !== "custom" && !option.is_preset && option.can_edit !== false) {
         setEditingOption(option)
         setShowEditModal(true)
+      } else if (option.is_preset || option.can_edit === false) {
+        toast('预设选项暂不可以修改')
       }
       return
     }
