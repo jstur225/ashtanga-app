@@ -14,6 +14,7 @@ import { PhotoUploadButton } from "@/components/PhotoUploadButton"
 import { ImportModal } from "@/components/ImportModal"
 import { ExportModal } from "@/components/ExportModal"
 import { XiaohongshuInviteModal, INVITE_VERSION } from "@/components/XiaohongshuInviteModal"
+import { PWAInstallTutorialModal } from "@/components/PWAInstallTutorialModal"
 import { PWAInstallBanner } from "@/components/PWAInstallBanner"
 import { AccountBindingSection } from "@/components/AccountBindingSection"
 import { AuthModal } from "@/components/AuthModal"
@@ -3141,61 +3142,10 @@ function StatsTab({
     if (installed) {
       toast.success('✅ 已安装到主屏幕！现在可以从主屏幕打开了')
     } else {
-      // 无法自动弹出安装提示，显示手动指引
-      const userAgent = navigator.userAgent
-      const isIOS = /iPad|iPhone|iPod/.test(userAgent)
-      const isAndroid = /Android/.test(userAgent)
-
-      // 检测浏览器
-      const isChrome = /Chrome/.test(userAgent) && /Google Inc/.test(navigator.vendor)
-      const isSafari = /Safari/.test(userAgent) && /Apple Computer/.test(navigator.vendor)
-      const isEdge = /Edg/.test(userAgent)
-      const isSamsung = /SamsungBrowser/.test(userAgent)
-      const isSupportedBrowser = isChrome || isSafari || isEdge || isSamsung
-
-      if (isIOS) {
-        toast.custom(
-          (t) => (
-            <div className="bg-white border border-green-200 rounded-lg shadow-lg p-4 max-w-sm mx-auto">
-              <div className="flex flex-col gap-1">
-                <div className="text-sm font-semibold text-green-900">💡 安装到主屏幕方法</div>
-                <div className="text-xs text-green-700">使用Safari浏览器：点击右上角分享按钮⎋↑ → 选择"添加到主屏幕"</div>
-                <div className="text-xs text-green-600 mt-1">之后可像App一样使用，获得最佳体验。</div>
-              </div>
-            </div>
-          ),
-          { duration: 10000 }
-        )
-      } else if (isAndroid) {
-        toast.custom(
-          (t) => (
-            <div className="bg-white border border-green-200 rounded-lg shadow-lg p-4 max-w-sm mx-auto">
-              <div className="flex flex-col gap-1">
-                <div className="text-sm font-semibold text-green-900">💡 安装到主屏幕方法</div>
-                <div className="text-xs text-green-700">Chrome浏览器：点击右上角→ 选择添加到主屏幕</div>
-                <div className="text-xs text-green-700">Edge浏览器：点击右下角→ 选择添加到手机</div>
-                <div className="text-xs text-green-600 mt-1">安装后可像App一样使用，获得最佳体验。</div>
-              </div>
-            </div>
-          ),
-          { duration: 10000 }
-        )
-      } else {
-        toast('💡 电脑用户：请用手机浏览器安装', {
-          duration: 4000,
-        })
-      }
+      // 显示图片教程弹窗
+      setShowPWAInstallTutorial(true)
     }
   }
-
-  const [viewMode, setViewMode] = useState<'quarter' | 'half' | 'year'>('quarter')
-  const [dateOffset, setDateOffset] = useState(0)
-  const [hasVotedPro] = useLocalStorage('has_voted_pro', false)
-
-  const today = new Date()
-  const todayStr = getLocalDateStr()
-
-  // Generate heatmap data for the year
   const heatmapData = useMemo(() => {
     const data: Record<string, boolean> = {}
     practiceHistory.forEach((p) => {
@@ -3314,7 +3264,7 @@ function StatsTab({
       </div>
 
       {/* PWA Install Banner */}
-      <PWAInstallBanner />
+      <PWAInstallBanner onShowTutorial={() => setShowPWAInstallTutorial(true)} />
 
       <div className="px-6 pb-48">
         {/* Profile Section with PRO Badge - NOW FIRST */}
@@ -3548,6 +3498,9 @@ export default function AshtangaTracker() {
 
   // 小红书群邀请弹窗状态
   const [showXiaohongshuModal, setShowXiaohongshuModal] = useState(false)
+
+  // PWA 安装教程弹窗状态
+  const [showPWAInstallTutorial, setShowPWAInstallTutorial] = useState(false)
 
   // 已读版本号（localStorage持久化）
   const [readInviteVersion, setReadInviteVersion] = useLocalStorage('xhs_invite_version', '')
@@ -5362,6 +5315,12 @@ export default function AshtangaTracker() {
           // 关闭时再次确保标记为已读（双重保险）
           setReadInviteVersion(INVITE_VERSION)
         }}
+      />
+
+      {/* PWA 安装教程弹窗 */}
+      <PWAInstallTutorialModal
+        isOpen={showPWAInstallTutorial}
+        onClose={() => setShowPWAInstallTutorial(false)}
       />
 
       {/* Auth Modal - 登录/注册/忘记密码 */}
