@@ -4109,11 +4109,8 @@ export default function AshtangaTracker() {
       type: r.type?.substring(0, 30),
       duration: r.duration,
       hasNotes: !!r.notes,
-      notesPreview: r.notes?.substring(0, 50) || null,
       hasPhotos: !!r.photos?.length,
       photosCount: r.photos?.length || 0,
-      hasBreakthrough: !!r.breakthrough,
-      breakthroughPreview: r.breakthrough?.substring(0, 50) || null,
       createdAt: r.created_at
     }))
 
@@ -4132,7 +4129,8 @@ export default function AshtangaTracker() {
     try {
       const storedErrors = localStorage.getItem('__errorHistory')
       if (storedErrors) {
-        errorHistory = JSON.parse(storedErrors)
+        const allErrors = JSON.parse(storedErrors)
+        errorHistory = allErrors.slice(-10)
       }
     } catch (e) {
       errorHistory = [{ error: '读取错误历史失败', details: String(e) }]
@@ -4201,7 +4199,8 @@ export default function AshtangaTracker() {
     try {
       const storedLogs = localStorage.getItem('sync_logs')
       if (storedLogs) {
-        syncLogs = JSON.parse(storedLogs)
+        const allLogs = JSON.parse(storedLogs)
+        syncLogs = allLogs.slice(-10)
       }
     } catch (e) {
       syncLogs = [{ action: '读取同步日志失败', error: String(e), timestamp: new Date().toISOString() }]
