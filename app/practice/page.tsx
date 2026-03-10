@@ -3095,6 +3095,7 @@ function StatsTab({
   hasNewXhsMessage,
   user,
   setReadInviteVersion,
+  setShowPWAInstallTutorial,
 }: {
   practiceHistory: PracticeRecord[]
   profile: UserProfile
@@ -3105,6 +3106,7 @@ function StatsTab({
   hasNewXhsMessage: boolean
   user?: any
   setReadInviteVersion: (version: string) => void
+  setShowPWAInstallTutorial: (value: boolean) => void
 }) {
   // 隐藏邮箱的辅助函数
   const maskEmail = (email: string): string => {
@@ -4964,6 +4966,7 @@ export default function AshtangaTracker() {
           hasNewXhsMessage={hasNewXhsMessage}
           user={user}
           setReadInviteVersion={setReadInviteVersion}
+          setShowPWAInstallTutorial={setShowPWAInstallTutorial}
         />
       )}
 
