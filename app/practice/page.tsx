@@ -47,11 +47,11 @@ const getMoonPhaseMap = () => {
 }
 
 // Helper functions
-function getLocalDateStr() {
-  const now = new Date()
-  const year = now.getFullYear()
-  const month = String(now.getMonth() + 1).padStart(2, '0')
-  const day = String(now.getDate()).padStart(2, '0')
+function getLocalDateStr(dateInput?: Date): string {
+  const date = dateInput || new Date()
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
   return `${year}-${month}-${day}`
 }
 
@@ -802,7 +802,7 @@ function EditRecordModal({
               }
               handleDatePickerToggle(false)
             }}
-            maxDate={new Date().toISOString().split('T')[0]}
+            maxDate={getLocalDateStr()}
             practiceHistory={practiceHistory}
           />
 
@@ -1493,7 +1493,7 @@ function AddPracticeModal({
   onOpenVoiceFakeDoor?: () => void
   onOpenPhotoFakeDoor?: () => void
 }) {
-  const [date, setDate] = useState(() => new Date().toISOString().split('T')[0])
+  const [date, setDate] = useState(() => getLocalDateStr())
   const [type, setType] = useState("")
   const [duration, setDuration] = useState(60)
   const [notes, setNotes] = useState("")
@@ -1567,7 +1567,7 @@ function AddPracticeModal({
         breakthrough: breakthroughEnabled ? breakthroughText : undefined,
       })
       // Reset form
-      setDate(new Date().toISOString().split('T')[0])
+      setDate(getLocalDateStr())
       setType("")
       setDuration(60)
       setNotes("")
@@ -1734,7 +1734,7 @@ function AddPracticeModal({
       }
       handleDatePickerToggle(false)
     }}
-    maxDate={new Date().toISOString().split('T')[0]}
+    maxDate={getLocalDateStr()}
     practiceHistory={practiceHistory}
   />
 
@@ -3267,7 +3267,7 @@ function StatsTab({
     for (let i = 0; i < daysCount; i++) {
       const d = new Date(today)
       d.setDate(d.getDate() - i - daysOffset)
-      result.push(d.toISOString().split('T')[0])
+      result.push(getLocalDateStr(d))
     }
     return result
   }, [viewMode, dateOffset, today])
@@ -4484,7 +4484,7 @@ export default function AshtangaTracker() {
 
       // Create new practice record
       const record = addRecord({
-        date: new Date().toISOString().split('T')[0],
+        date: getLocalDateStr(),
         type: selectedLabel,
         duration: elapsedTime,
         notes: notes || "今日练习完成",
