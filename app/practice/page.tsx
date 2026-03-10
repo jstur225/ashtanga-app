@@ -7,7 +7,7 @@ import { usePracticeData, type PracticeRecord, type PracticeOption, type UserPro
 import { usePWAInstall } from "@/hooks/usePWAInstall"
 import { useAuth } from "@/hooks/useAuth"
 import { useSync } from "@/hooks/useSync"
-import { BookOpen, BarChart3, Calendar, X, Camera, Pause, Play, Trash2, User, Settings, ChevronLeft, ChevronRight, ChevronUp, Cloud, Download, Upload, Plus, Minus, Share2, Sparkles, Check, Copy, ClipboardPaste, MessageCircle, Bug, AlertCircle, SkipBack, SkipForward } from "lucide-react"
+import { BookOpen, BarChart3, Calendar, X, Camera, Pause, Play, Trash2, User, Settings, ChevronLeft, ChevronRight, ChevronUp, Cloud, Download, Upload, Plus, Minus, Share2, Sparkles, Check, Copy, ClipboardPaste, MessageCircle, Bug, AlertCircle, SkipBack, SkipForward, Volume } from "lucide-react"
 import { FakeDoorModal } from "@/components/FakeDoorModal"
 import { VoiceButton } from "@/components/VoiceButton"
 import { PhotoUploadButton } from "@/components/PhotoUploadButton"
@@ -1444,8 +1444,8 @@ function TypeSelectorModal({
                       `}
                     >
                       <span className="text-[14px] leading-snug break-words w-full line-clamp-2 flex items-center justify-center gap-1">
-                        {(option as PracticeOption & { icon?: string }).icon}
                         {displayName}
+                        {option.is_preset && <Volume className="w-4 h-4" style={{ color: isSelected ? 'white' : 'rgba(74, 122, 68)' }} />}
                       </span>
                       {displayNotes && (
                         <span className={`
@@ -4870,8 +4870,8 @@ export default function AshtangaTracker() {
                   <span className="text-[14px] leading-snug break-words w-full line-clamp-2 flex items-center justify-center gap-1">
                     {isCustomButton ? "+ 自定义" : (
                       <>
-                        {(option as PracticeOption & { icon?: string }).icon}
                         {option.label}
+                        {option.is_preset && <Volume className="w-4 h-4" style={{ color: isSelected ? 'white' : 'rgba(74, 122, 68)' }} />}
                       </>
                     )}
                   </span>
