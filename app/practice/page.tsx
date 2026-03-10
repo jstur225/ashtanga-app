@@ -1443,7 +1443,8 @@ function TypeSelectorModal({
                         }
                       `}
                     >
-                      <span className="text-[14px] leading-snug break-words w-full">
+                      <span className="text-[14px] leading-snug break-words w-full line-clamp-2 flex items-center justify-center gap-1">
+                        {(option as PracticeOption & { icon?: string }).icon}
                         {displayName}
                       </span>
                       {displayNotes && (
