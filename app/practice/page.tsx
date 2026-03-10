@@ -3126,6 +3126,13 @@ function StatsTab({
 
   const { isInstallable, promptInstall } = usePWAInstall()
 
+  const [viewMode, setViewMode] = useState<'quarter' | 'half' | 'year'>('quarter')
+  const [dateOffset, setDateOffset] = useState(0)
+  const [hasVotedPro] = useLocalStorage('has_voted_pro', false)
+
+  const today = new Date()
+  const todayStr = getLocalDateStr()
+
   const handleInstallClick = async () => {
     // 检查是否已经安装到主屏幕
     const isInstalled = window.matchMedia('(display-mode: standalone)').matches
@@ -3146,13 +3153,6 @@ function StatsTab({
       setShowPWAInstallTutorial(true)
     }
   }
-  const [viewMode, setViewMode] = useState<'quarter' | 'half' | 'year'>('quarter)
-  const [dateOffset, setDateOffset] = useState(0)
-  const [hasVotedPro] = useLocalStorage('has_voted_pro', false)
-
-  const today = new Date()
-  const todayStr = getLocalDateStr()
-
   const heatmapData = useMemo(() => {
     const data: Record<string, boolean> = {}
     practiceHistory.forEach((p) => {
