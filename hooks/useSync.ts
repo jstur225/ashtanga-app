@@ -859,9 +859,11 @@ export function useSync(
         }
       }
 
-      // 3. 批量上传练习选项（包括默认和自定义，全部同步）
-      if (options.length > 0) {
-        const optionsToUpload = options.map(o => ({
+      // 3. 批量上传练习选项（排除预设选项，只同步自定义选项）
+      // 预设选项由本地代码管理，不同步到云端
+      const customOptions = options.filter(o => !o.is_preset)
+      if (customOptions.length > 0) {
+        const optionsToUpload = customOptions.map(o => ({
           id: o.id,
           user_id: userId,
           label: o.label || '',
@@ -881,7 +883,7 @@ export function useSync(
           console.error('   上传的数据:', JSON.stringify(optionsToUpload, null, 2))
           addLog('批量上传选项', 'error', undefined, optionsError.message)
         } else {
-          addLog(`批量上传${options.length}个选项`, 'success')
+          addLog(`批量上传${customOptions.length}个选项（预设选项已过滤）`, 'success')
         }
       }
 
