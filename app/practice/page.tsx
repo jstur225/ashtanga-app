@@ -3640,7 +3640,8 @@ export default function AshtangaTracker() {
         notes: GUIDED_AUDIO_OPTION.notes,
         isCustom: false,
         is_preset: true,
-        can_edit: false
+        can_edit: false,
+        icon: GUIDED_AUDIO_OPTION.icon
       }]),
       ...regularOptions.map(o => ({
         id: o.id,
