@@ -859,9 +859,9 @@ export function useSync(
         }
       }
 
-      // 3. 批量上传练习选项（包括默认和自定义，全部同步）
+      // 3. 批量上传练习选项（只同步自定义选项）
       if (options.length > 0) {
-        const optionsToUpload = options.map(o => ({
+        const optionsToUpload = options.filter(o => o.is_custom).map(o => ({
           id: o.id,
           user_id: userId,
           label: o.label || '',
