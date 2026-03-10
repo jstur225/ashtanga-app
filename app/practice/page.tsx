@@ -3146,6 +3146,13 @@ function StatsTab({
       setShowPWAInstallTutorial(true)
     }
   }
+  const [viewMode, setViewMode] = useState<'quarter' | 'half' | 'year'>('quarter)
+  const [dateOffset, setDateOffset] = useState(0)
+  const [hasVotedPro] = useLocalStorage('has_voted_pro', false)
+
+  const today = new Date()
+  const todayStr = getLocalDateStr()
+
   const heatmapData = useMemo(() => {
     const data: Record<string, boolean> = {}
     practiceHistory.forEach((p) => {
