@@ -1,5 +1,235 @@
 # 阿斯汤加打卡app - 项目记录
 
+## 2026-03-11: 分支架构优化 - master2同步到master ✅
+
+**阶段**: 架构优化（分支管理）
+
+**背景**:
+- 项目存在两个主要分支：master（生产分支）和 master2（开发分支）
+- master2包含大量新功能和修复，但未同步到master
+- 需要建立清晰的分支工作流
+
+**工作内容**:
+
+### 1. 同步master2到master
+
+**合并提交**: `55f0c65` - merge: 合并master2到master（2026-03-11）
+
+**同步的提交数**: 22个
+
+**冲突解决**: 2个文件（使用master2版本）
+- `app/practice/page.tsx` - 包含getLocalDateStr函数、图标显示等冲突
+- `hooks/usePracticeData.ts` - 包含口令跟练选项配置冲突
+
+### 2. 推送到远程
+
+**推送结果**: ✅ 成功
+```
+To https://github.com/jstur225/ashtanga-app.git
+   7f10fb6..55f0c65  master -> master
+```
+
+**分支状态**:
+- ✅ master已更新到最新
+- ✅ origin/master已更新
+- ✅ origin/HEAD已更新为master
+- ✅ master和master2现在同步
+
+### 3. 建立分支工作流
+
+**新的分支架构**:
+```
+master2 (开发分支)
+    ↓ 开发新功能
+    ↓ 测试通过
+    ↓ 合并
+master (生产分支) ✅
+    ↓ 自动部署
+Vercel (生产环境)
+```
+
+**分支职责**:
+- **master**: 生产分支，只接受从master2的合并，稳定代码
+- **master2**: 开发分支，日常开发新功能
+- **dev**: 实验性分支（可选）
+
+**工作流程**:
+1. 在master2开发新功能
+2. 本地测试通过
+3. 合并到master: `git checkout master && git merge master2`
+4. 推送到GitHub: `git push origin master`
+5. Vercel自动部署master分支
+
+### 4. 同步的内容
+
+**核心修复**（2个）:
+- ✅ **时区修复** (f8b1014)
+  - 问题：凌晨练习（00:30）保存后显示为昨天
+  - 原因：`toISOString().split('T')[0]` 返回UTC日期
+  - 解决：使用 `getLocalDateStr()` 返回本地日期
+  - 位置：6处替换
+
+- ✅ **自定义选项同步修复** (b5c67ed)
+  - 问题：20个绑定用户，但practice_options表只有10条记录
+  - 原因：默认选项ID固定，用户上传时相互覆盖
+  - 解决：只同步自定义选项（`is_custom: true`）
+  - 修改：从 `!o.is_preset` 改为 `o.is_custom`
+
+**功能改进**（20个）:
+- ✅ 口令跟练功能优化（5个提交）
+  - 选项备注改为"老掌门人口令"
+  - 选项名称从"一序列口令"改为"一序列"
+  - 添加喇叭图标显示
+  - 优化首次下载提示
+  - 双击预设选项显示提示
+
+- ✅ PWA安装教程改进（4个提交）
+  - 从文案弹窗改为图片弹窗
+  - 简化界面，删除提示信息
+  - 调整大小和样式
+  - 修复props传递问题
+
+- ✅ 音频播放状态恢复
+  - 页面刷新后恢复音频播放状态
+
+- ✅ 小红书群邀请弹窗
+  - 更新为图片展示
+
+- ✅ start_time改进
+  - 改为存储完整ISO 8601时间戳
+
+- ✅ 其他14个改进和修复
+
+### 5. 部署状态
+
+- ✅ master已推送到GitHub
+- ✅ Vercel自动部署中（1-2分钟完成）
+- 🌐 生产环境：https://ashtanga-app.vercel.app
+
+### 6. 重要说明
+
+**未来工作流**:
+1. 在master2开发新功能
+2. 本地测试通过
+3. 合并到master
+4. 推送到GitHub
+5. Vercel自动部署master分支到生产环境
+
+**分支管理原则**:
+- master：只接受从master2的合并，不直接修改
+- master2：日常开发分支
+- 不要在master上直接修改代码
+
+**Git常用命令**:
+```bash
+# 查看分支状态
+git status
+git branch -vv
+
+# 合并master2到master
+git checkout master
+git merge master2
+git push origin master
+
+# 查看提交历史
+git log --oneline --graph --all --decorate
+```
+
+---
+
+## 2026-03-10: 修复时区Bug导致日期显示错误 ✅
+
+**阶段**: Bug修复（日期显示）
+
+**问题描述**（用户反馈）:
+- **早上练习**（6-8点）：完成后显示**昨天**的日期 ❌
+- **下午练习**：显示**当天**的日期 ✓
+- 需要手动编辑修改日期，影响用户体验
+
+**根本原因**:
+使用 `new Date().toISOString().split('T')[0]` 获取日期时，`toISOString()` 返回的是**UTC时间**，不是本地时间。
+
+**时区问题示例**:
+- 北京时间：2026-03-10 06:00 (UTC+8)
+- UTC时间：2026-03-09 22:00 (前一天晚上10点)
+- `.split('T')[0]` 返回：`"2026-03-09"` ❌ 错误！
+
+**解决方案**:
+1. 增强 `getLocalDateStr` 函数，支持传入可选的日期参数
+2. 替换所有 `toISOString().split('T')[0]` 为 `getLocalDateStr()`
+3. 替换 `d.toISOString().split('T')[0]` 为 `getLocalDateStr(d)`
+
+**修改位置**（7处）:
+1. 完成练习弹窗默认日期（第1496行）
+2. 点击"今天"按钮（第1570行）
+3. 保存练习记录（第4487行）
+4. 日历视图日期生成（第3270行）
+5. 日期选择器maxDate（第805、1737行）
+6. todayStr变量（第2514、3196行）
+
+**Git提交**:
+- `4029a7a` (master) - fix: 修复早上练习显示昨天日期的时区bug
+- `f8b1014` (master2) - fix: 将master分支的时区修复同步到master2
+
+**测试验证**:
+- ✓ 早上6-8点练习：显示当天日期
+- ✓ 下午练习：显示当天日期
+- ✓ 晚上11点后练习：显示当天日期
+- ✓ 日历视图打卡小圆点：显示正确日期
+
+**技术要点**:
+```typescript
+// ❌ 错误：返回UTC日期
+new Date().toISOString().split('T')[0]
+
+// ✓ 正确：返回本地日期
+function getLocalDateStr(dateInput?: Date): string {
+  const date = dateInput || new Date()
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+```
+
+---
+
+## 2026-03-10: 优化调试日志隐私保护 ✅
+
+**阶段**: 优化（用户体验）
+
+**问题背景**:
+- 调试日志包含用户敏感打卡内容（觉察文字、突破时刻）
+- 日志文件过大（约12,000字），超出小红书评论限制（1,000-2,000字）
+- 用户无法在小红书上把调试日志发送给开发者
+
+**完成工作**:
+
+1. **移除敏感信息**
+   - 删除 `notesPreview` 字段（觉察文字预览）
+   - 删除 `breakthroughPreview` 字段（突破时刻预览）
+   - 只保留元数据（是否存在、数量等）
+
+2. **限制日志数量**
+   - 错误历史：从全部改为最近10条
+   - 同步日志：从全部改为最近10条
+   - 练习记录：保持最近10条
+   - 导出日志：保持最近10条
+
+**Git提交**:
+- `2231ac3` (master) - fix: 优化调试日志隐私保护和数据量控制
+
+**修改位置**:
+- app/practice/page.tsx: 第4112、4116、4133-4134、4202-4203行
+
+**效果**:
+- ✓ 保护用户隐私（不包含觉察文字）
+- ✓ 减少日志大小（但仍较大，约10k+字）
+- ⚠️ 仍不适合直接在小红书发布
+
+---
+
+
 ## 2026-03-05: 修复 Vercel 构建错误 ✅
 
 **阶段**: Bug修复（部署问题）
