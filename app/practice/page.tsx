@@ -7,13 +7,14 @@ import { usePracticeData, type PracticeRecord, type PracticeOption, type UserPro
 import { usePWAInstall } from "@/hooks/usePWAInstall"
 import { useAuth } from "@/hooks/useAuth"
 import { useSync } from "@/hooks/useSync"
-import { BookOpen, BarChart3, Calendar, X, Camera, Pause, Play, Trash2, User, Settings, ChevronLeft, ChevronRight, ChevronUp, Cloud, Download, Upload, Plus, Minus, Share2, Sparkles, Check, Copy, ClipboardPaste, MessageCircle, Bug, AlertCircle, SkipBack, SkipForward } from "lucide-react"
+import { BookOpen, BarChart3, Calendar, X, Camera, Pause, Play, Trash2, User, Settings, ChevronLeft, ChevronRight, ChevronUp, Cloud, Download, Upload, Plus, Minus, Share2, Sparkles, Check, Copy, ClipboardPaste, MessageCircle, Bug, AlertCircle, SkipBack, SkipForward, Volume } from "lucide-react"
 import { FakeDoorModal } from "@/components/FakeDoorModal"
 import { VoiceButton } from "@/components/VoiceButton"
 import { PhotoUploadButton } from "@/components/PhotoUploadButton"
 import { ImportModal } from "@/components/ImportModal"
 import { ExportModal } from "@/components/ExportModal"
 import { XiaohongshuInviteModal, INVITE_VERSION } from "@/components/XiaohongshuInviteModal"
+import { PWAInstallTutorialModal } from "@/components/PWAInstallTutorialModal"
 import { PWAInstallBanner } from "@/components/PWAInstallBanner"
 import { AccountBindingSection } from "@/components/AccountBindingSection"
 import { AuthModal } from "@/components/AuthModal"
@@ -47,11 +48,11 @@ const getMoonPhaseMap = () => {
 }
 
 // Helper functions
-function getLocalDateStr(dateInput?: Date): string {
-  const date = dateInput || new Date()
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
+function getLocalDateStr(dateInput?: Date | string): string {
+  const now = dateInput ? new Date(dateInput) : new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
   return `${year}-${month}-${day}`
 }
 
@@ -1442,8 +1443,9 @@ function TypeSelectorModal({
                         }
                       `}
                     >
-                      <span className="text-[14px] leading-snug break-words w-full">
+                      <span className="text-[14px] leading-snug break-words w-full line-clamp-2 flex items-center justify-center gap-1">
                         {displayName}
+                        {option.is_preset && <Volume className="w-4 h-4" style={{ color: isSelected ? 'white' : 'rgba(74, 122, 68)' }} />}
                       </span>
                       {displayNotes && (
                         <span className={`
@@ -3094,6 +3096,7 @@ function StatsTab({
   hasNewXhsMessage,
   user,
   setReadInviteVersion,
+  setShowPWAInstallTutorial,
 }: {
   practiceHistory: PracticeRecord[]
   profile: UserProfile
@@ -3104,6 +3107,7 @@ function StatsTab({
   hasNewXhsMessage: boolean
   user?: any
   setReadInviteVersion: (version: string) => void
+  setShowPWAInstallTutorial: (value: boolean) => void
 }) {
   // 隐藏邮箱的辅助函数
   const maskEmail = (email: string): string => {
@@ -3125,6 +3129,13 @@ function StatsTab({
 
   const { isInstallable, promptInstall } = usePWAInstall()
 
+  const [viewMode, setViewMode] = useState<'quarter' | 'half' | 'year'>('quarter')
+  const [dateOffset, setDateOffset] = useState(0)
+  const [hasVotedPro] = useLocalStorage('has_voted_pro', false)
+
+  const today = new Date()
+  const todayStr = getLocalDateStr()
+
   const handleInstallClick = async () => {
     // 检查是否已经安装到主屏幕
     const isInstalled = window.matchMedia('(display-mode: standalone)').matches
@@ -3141,61 +3152,10 @@ function StatsTab({
     if (installed) {
       toast.success('✅ 已安装到主屏幕！现在可以从主屏幕打开了')
     } else {
-      // 无法自动弹出安装提示，显示手动指引
-      const userAgent = navigator.userAgent
-      const isIOS = /iPad|iPhone|iPod/.test(userAgent)
-      const isAndroid = /Android/.test(userAgent)
-
-      // 检测浏览器
-      const isChrome = /Chrome/.test(userAgent) && /Google Inc/.test(navigator.vendor)
-      const isSafari = /Safari/.test(userAgent) && /Apple Computer/.test(navigator.vendor)
-      const isEdge = /Edg/.test(userAgent)
-      const isSamsung = /SamsungBrowser/.test(userAgent)
-      const isSupportedBrowser = isChrome || isSafari || isEdge || isSamsung
-
-      if (isIOS) {
-        toast.custom(
-          (t) => (
-            <div className="bg-white border border-green-200 rounded-lg shadow-lg p-4 max-w-sm mx-auto">
-              <div className="flex flex-col gap-1">
-                <div className="text-sm font-semibold text-green-900">💡 安装到主屏幕方法</div>
-                <div className="text-xs text-green-700">使用Safari浏览器：点击右上角分享按钮⎋↑ → 选择"添加到主屏幕"</div>
-                <div className="text-xs text-green-600 mt-1">之后可像App一样使用，获得最佳体验。</div>
-              </div>
-            </div>
-          ),
-          { duration: 10000 }
-        )
-      } else if (isAndroid) {
-        toast.custom(
-          (t) => (
-            <div className="bg-white border border-green-200 rounded-lg shadow-lg p-4 max-w-sm mx-auto">
-              <div className="flex flex-col gap-1">
-                <div className="text-sm font-semibold text-green-900">💡 安装到主屏幕方法</div>
-                <div className="text-xs text-green-700">Chrome浏览器：点击右上角→ 选择添加到主屏幕</div>
-                <div className="text-xs text-green-700">Edge浏览器：点击右下角→ 选择添加到手机</div>
-                <div className="text-xs text-green-600 mt-1">安装后可像App一样使用，获得最佳体验。</div>
-              </div>
-            </div>
-          ),
-          { duration: 10000 }
-        )
-      } else {
-        toast('💡 电脑用户：请用手机浏览器安装', {
-          duration: 4000,
-        })
-      }
+      // 显示图片教程弹窗
+      setShowPWAInstallTutorial(true)
     }
   }
-
-  const [viewMode, setViewMode] = useState<'quarter' | 'half' | 'year'>('quarter')
-  const [dateOffset, setDateOffset] = useState(0)
-  const [hasVotedPro] = useLocalStorage('has_voted_pro', false)
-
-  const today = new Date()
-  const todayStr = getLocalDateStr()
-
-  // Generate heatmap data for the year
   const heatmapData = useMemo(() => {
     const data: Record<string, boolean> = {}
     practiceHistory.forEach((p) => {
@@ -3314,7 +3274,7 @@ function StatsTab({
       </div>
 
       {/* PWA Install Banner */}
-      <PWAInstallBanner />
+      <PWAInstallBanner onShowTutorial={() => setShowPWAInstallTutorial(true)} />
 
       <div className="px-6 pb-48">
         {/* Profile Section with PRO Badge - NOW FIRST */}
@@ -3524,12 +3484,12 @@ export default function AshtangaTracker() {
   // 音频播放器状态
   const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null)
   const [audioProgress, setAudioProgress] = useState(0)  // 0-100
-  const [audioDuration, setAudioDuration] = useState(0)  // 总时长（秒）
-  const [audioCurrentTime, setAudioCurrentTime] = useState(0)  // 当前时间（秒）
-  const [isAudioLoaded, setIsAudioLoaded] = useState(false)
-  const [isAudioLoading, setIsAudioLoading] = useState(false)  // 加载中状态
+  const [audioDuration, setAudioDuration] = useLocalStorage<number>('ashtanga_audio_duration', 0)  // 总时长（秒）- 持久化
+  const [audioCurrentTime, setAudioCurrentTime] = useLocalStorage<number>('ashtanga_audio_time', 0)  // 当前时间（秒）- 持久化
+  const [isAudioLoaded, setIsAudioLoaded] = useLocalStorage<boolean>('ashtanga_audio_loaded', false)  // 是否已加载 - 持久化
+  const [isAudioLoading, setIsAudioLoading] = useState(false)  // 加载中状态（不持久化，刷新后重新加载）
   const [audioError, setAudioError] = useState<string | null>(null)  // 加载错误
-  const [seekStep, setSeekStep] = useState<number>(15)  // 快进/后退步长（默认15秒）
+  const [seekStep, setSeekStep] = useLocalStorage<number>('ashtanga_audio_seek_step', 15)  // 快进/后退步长 - 持久化
   const [audioDownloadProgress, setAudioDownloadProgress] = useState<number>(0)  // 下载进度（0-100）
   const [isUsingCache, setIsUsingCache] = useState<boolean>(false)  // 是否使用缓存
 
@@ -3548,6 +3508,9 @@ export default function AshtangaTracker() {
 
   // 小红书群邀请弹窗状态
   const [showXiaohongshuModal, setShowXiaohongshuModal] = useState(false)
+
+  // PWA 安装教程弹窗状态
+  const [showPWAInstallTutorial, setShowPWAInstallTutorial] = useState(false)
 
   // 已读版本号（localStorage持久化）
   const [readInviteVersion, setReadInviteVersion] = useLocalStorage('xhs_invite_version', '')
@@ -3677,7 +3640,8 @@ export default function AshtangaTracker() {
         notes: GUIDED_AUDIO_OPTION.notes,
         isCustom: false,
         is_preset: true,
-        can_edit: false
+        can_edit: false,
+        icon: GUIDED_AUDIO_OPTION.icon
       }]),
       ...regularOptions.map(o => ({
         id: o.id,
@@ -3741,6 +3705,12 @@ export default function AshtangaTracker() {
       const currentTotalPaused = (totalPausedTime || 0) + (isPaused ? (now - (pauseStartTime || now)) : 0)
       const diff = Math.floor((pausedAt - startTime - (totalPausedTime || 0)) / 1000)
       setElapsedTime(Math.max(0, diff))
+
+      // ⭐ 恢复音频状态：如果正在口令跟练且音频之前已加载，重新初始化音频
+      if (selectedOption === 'guided_audio' && isAudioLoaded) {
+        console.log('[Page Reload] 检测到口令跟练模式，正在恢复音频...')
+        reinitializeAudio(audioCurrentTime)
+      }
     }
   }, [])
 
@@ -3756,6 +3726,8 @@ export default function AshtangaTracker() {
       if (option.id !== "custom" && !option.is_preset && option.can_edit !== false) {
         setEditingOption(option)
         setShowEditModal(true)
+      } else if (option.is_preset || option.can_edit === false) {
+        toast('预设选项暂不可以修改')
       }
       return
     }
@@ -4109,8 +4081,11 @@ export default function AshtangaTracker() {
       type: r.type?.substring(0, 30),
       duration: r.duration,
       hasNotes: !!r.notes,
+      notesPreview: r.notes?.substring(0, 50) || null,
       hasPhotos: !!r.photos?.length,
       photosCount: r.photos?.length || 0,
+      hasBreakthrough: !!r.breakthrough,
+      breakthroughPreview: r.breakthrough?.substring(0, 50) || null,
       createdAt: r.created_at
     }))
 
@@ -4129,8 +4104,7 @@ export default function AshtangaTracker() {
     try {
       const storedErrors = localStorage.getItem('__errorHistory')
       if (storedErrors) {
-        const allErrors = JSON.parse(storedErrors)
-        errorHistory = allErrors.slice(-10)
+        errorHistory = JSON.parse(storedErrors)
       }
     } catch (e) {
       errorHistory = [{ error: '读取错误历史失败', details: String(e) }]
@@ -4199,8 +4173,7 @@ export default function AshtangaTracker() {
     try {
       const storedLogs = localStorage.getItem('sync_logs')
       if (storedLogs) {
-        const allLogs = JSON.parse(storedLogs)
-        syncLogs = allLogs.slice(-10)
+        syncLogs = JSON.parse(storedLogs)
       }
     } catch (e) {
       syncLogs = [{ action: '读取同步日志失败', error: String(e), timestamp: new Date().toISOString() }]
@@ -4377,6 +4350,80 @@ export default function AshtangaTracker() {
     }
   }
 
+  // ⭐ 页面刷新后重新初始化音频（恢复播放状态）
+  const reinitializeAudio = async (restoreTime: number = 0) => {
+    if (!GUIDED_AUDIO_OPTION.audio_src) return
+
+    setIsAudioLoading(true)
+    setAudioError(null)
+
+    try {
+      // 检查是否有缓存
+      const hasCache = await audioCache.isCacheValid()
+
+      if (hasCache) {
+        console.log('[音频恢复] 使用本地缓存')
+        setIsUsingCache(true)
+        const audioBuffer = await audioCache.getAudioBuffer()
+
+        if (audioBuffer) {
+          const blob = new Blob([audioBuffer], { type: 'audio/mp4' })
+          const url = URL.createObjectURL(blob)
+
+          const audio = new Audio()
+          audio.src = url
+
+          // 恢复到之前的时间点
+          if (restoreTime > 0) {
+            audio.currentTime = restoreTime
+          }
+
+          audio.addEventListener('loadedmetadata', () => {
+            setAudioDuration(audio.duration)
+            setIsAudioLoaded(true)
+            setIsAudioLoading(false)
+            // 如果之前是暂停状态，保持暂停；否则自动播放
+            if (!isPaused) {
+              audio.play()
+            }
+          })
+
+          audio.addEventListener('timeupdate', () => {
+            setAudioCurrentTime(audio.currentTime)
+            setAudioProgress((audio.currentTime / audio.duration) * 100)
+          })
+
+          audio.addEventListener('ended', () => {
+            handleEndRequest()
+          })
+
+          audio.addEventListener('error', (e) => {
+            console.error('[音频恢复] 播放失败:', e)
+            audioCache.clearCache()
+            setAudioError('音频恢复失败，请刷新页面重试')
+            setIsAudioLoading(false)
+          })
+
+          setAudioElement(audio)
+        } else {
+          throw new Error('缓存数据无效')
+        }
+      } else {
+        // 没有缓存，显示错误（刷新后应该已经有缓存）
+        console.error('[音频恢复] 没有本地缓存')
+        setAudioError('音频缓存已失效，请重新开始练习')
+        setIsAudioLoading(false)
+        // 重置音频状态
+        setIsAudioLoaded(false)
+        setAudioCurrentTime(0)
+      }
+    } catch (err) {
+      console.error('[音频恢复] 失败:', err)
+      setAudioError('音频恢复失败')
+      setIsAudioLoading(false)
+    }
+  }
+
   const handlePauseResume = () => {
     const now = Date.now()
     if (!isPaused) {
@@ -4456,11 +4503,12 @@ export default function AshtangaTracker() {
       audioElement.pause()
       audioElement.src = ''
       setAudioElement(null)
-      setIsAudioLoaded(false)
-      setAudioProgress(0)
-      setAudioCurrentTime(0)
-      setAudioDuration(0)
     }
+    // ⭐ 清理音频持久化状态
+    setIsAudioLoaded(false)
+    setAudioProgress(0)
+    setAudioCurrentTime(0)
+    setAudioDuration(0)
   }
 
   const handleSavePractice = useCallback((notes: string, photos: string[], breakthrough?: string) => {
@@ -4705,6 +4753,12 @@ export default function AshtangaTracker() {
                     />
                   </div>
                 )}
+                {/* 第一次下载提示 */}
+                {!isUsingCache && audioDownloadProgress > 0 && (
+                  <p className="text-xs text-muted-foreground/70 mt-3 font-serif text-center">
+                    💡 首次下载需要一点时间，之后就能快速打开啦
+                  </p>
+                )}
               </div>
             )}
 
@@ -4818,8 +4872,8 @@ export default function AshtangaTracker() {
                   <span className="text-[14px] leading-snug break-words w-full line-clamp-2 flex items-center justify-center gap-1">
                     {isCustomButton ? "+ 自定义" : (
                       <>
-                        {(option as PracticeOption & { icon?: string }).icon}
                         {option.label}
+                        {option.is_preset && <Volume className="w-4 h-4" style={{ color: isSelected ? 'white' : 'rgba(74, 122, 68)' }} />}
                       </>
                     )}
                   </span>
@@ -4916,6 +4970,7 @@ export default function AshtangaTracker() {
           hasNewXhsMessage={hasNewXhsMessage}
           user={user}
           setReadInviteVersion={setReadInviteVersion}
+          setShowPWAInstallTutorial={setShowPWAInstallTutorial}
         />
       )}
 
@@ -5274,6 +5329,12 @@ export default function AshtangaTracker() {
           // 关闭时再次确保标记为已读（双重保险）
           setReadInviteVersion(INVITE_VERSION)
         }}
+      />
+
+      {/* PWA 安装教程弹窗 */}
+      <PWAInstallTutorialModal
+        isOpen={showPWAInstallTutorial}
+        onClose={() => setShowPWAInstallTutorial(false)}
       />
 
       {/* Auth Modal - 登录/注册/忘记密码 */}

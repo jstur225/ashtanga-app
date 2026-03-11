@@ -47,8 +47,8 @@ export interface UserProfile {
 export const GUIDED_AUDIO_OPTION: PracticeOption & { icon?: string } = {
   id: 'guided_audio',
   created_at: '2026-01-01T00:00:00.000Z',
-  label: '一序列口令',
-  notes: '老掌门人',
+  label: '一序列',
+  notes: '老掌门人口令',
   is_custom: false,
   is_preset: true,
   audio_src: '/audio/guruji-led-primary.m4a',

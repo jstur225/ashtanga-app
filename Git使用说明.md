@@ -4,7 +4,7 @@
 
 ## 仓库信息
 
-- **路径**: `D:\BaiduSyncdisk\work\ashtang-app`
+- **路径**: `D:\BaiduSyncdisk\work\cursor app\ashtang-app`
 - **初始化时间**: 2026-01-26
 - **用户**: orange
 - **当前分支**: master
@@ -226,7 +226,7 @@ git check-ignore -v filename
 
 除了 Git 备份，建议定期将整个项目目录复制到百度网盘：
 ```
-D:\BaiduSyncdisk\work\ashtang-app\
+D:\BaiduSyncdisk\work\cursor app\ashtang-app\
 ```
 
 这样有三重保障：
