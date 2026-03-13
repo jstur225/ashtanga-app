@@ -17,7 +17,7 @@ interface SettingsModalProps {
   initialSection?: 'profile' | 'account' | 'data'
 }
 
-export function SettingsModal({
+function SettingsModal({
   isOpen,
   onClose,
   profile,
@@ -139,3 +139,6 @@ export function SettingsModal({
     </AnimatePresence>
   )
 }
+
+
+export default SettingsModal;
