@@ -1,235 +1,5 @@
 # 阿斯汤加打卡app - 项目记录
 
-## 2026-03-11: 分支架构优化 - master2同步到master ✅
-
-**阶段**: 架构优化（分支管理）
-
-**背景**:
-- 项目存在两个主要分支：master（生产分支）和 master2（开发分支）
-- master2包含大量新功能和修复，但未同步到master
-- 需要建立清晰的分支工作流
-
-**工作内容**:
-
-### 1. 同步master2到master
-
-**合并提交**: `55f0c65` - merge: 合并master2到master（2026-03-11）
-
-**同步的提交数**: 22个
-
-**冲突解决**: 2个文件（使用master2版本）
-- `app/practice/page.tsx` - 包含getLocalDateStr函数、图标显示等冲突
-- `hooks/usePracticeData.ts` - 包含口令跟练选项配置冲突
-
-### 2. 推送到远程
-
-**推送结果**: ✅ 成功
-```
-To https://github.com/jstur225/ashtanga-app.git
-   7f10fb6..55f0c65  master -> master
-```
-
-**分支状态**:
-- ✅ master已更新到最新
-- ✅ origin/master已更新
-- ✅ origin/HEAD已更新为master
-- ✅ master和master2现在同步
-
-### 3. 建立分支工作流
-
-**新的分支架构**:
-```
-master2 (开发分支)
-    ↓ 开发新功能
-    ↓ 测试通过
-    ↓ 合并
-master (生产分支) ✅
-    ↓ 自动部署
-Vercel (生产环境)
-```
-
-**分支职责**:
-- **master**: 生产分支，只接受从master2的合并，稳定代码
-- **master2**: 开发分支，日常开发新功能
-- **dev**: 实验性分支（可选）
-
-**工作流程**:
-1. 在master2开发新功能
-2. 本地测试通过
-3. 合并到master: `git checkout master && git merge master2`
-4. 推送到GitHub: `git push origin master`
-5. Vercel自动部署master分支
-
-### 4. 同步的内容
-
-**核心修复**（2个）:
-- ✅ **时区修复** (f8b1014)
-  - 问题：凌晨练习（00:30）保存后显示为昨天
-  - 原因：`toISOString().split('T')[0]` 返回UTC日期
-  - 解决：使用 `getLocalDateStr()` 返回本地日期
-  - 位置：6处替换
-
-- ✅ **自定义选项同步修复** (b5c67ed)
-  - 问题：20个绑定用户，但practice_options表只有10条记录
-  - 原因：默认选项ID固定，用户上传时相互覆盖
-  - 解决：只同步自定义选项（`is_custom: true`）
-  - 修改：从 `!o.is_preset` 改为 `o.is_custom`
-
-**功能改进**（20个）:
-- ✅ 口令跟练功能优化（5个提交）
-  - 选项备注改为"老掌门人口令"
-  - 选项名称从"一序列口令"改为"一序列"
-  - 添加喇叭图标显示
-  - 优化首次下载提示
-  - 双击预设选项显示提示
-
-- ✅ PWA安装教程改进（4个提交）
-  - 从文案弹窗改为图片弹窗
-  - 简化界面，删除提示信息
-  - 调整大小和样式
-  - 修复props传递问题
-
-- ✅ 音频播放状态恢复
-  - 页面刷新后恢复音频播放状态
-
-- ✅ 小红书群邀请弹窗
-  - 更新为图片展示
-
-- ✅ start_time改进
-  - 改为存储完整ISO 8601时间戳
-
-- ✅ 其他14个改进和修复
-
-### 5. 部署状态
-
-- ✅ master已推送到GitHub
-- ✅ Vercel自动部署中（1-2分钟完成）
-- 🌐 生产环境：https://ashtanga-app.vercel.app
-
-### 6. 重要说明
-
-**未来工作流**:
-1. 在master2开发新功能
-2. 本地测试通过
-3. 合并到master
-4. 推送到GitHub
-5. Vercel自动部署master分支到生产环境
-
-**分支管理原则**:
-- master：只接受从master2的合并，不直接修改
-- master2：日常开发分支
-- 不要在master上直接修改代码
-
-**Git常用命令**:
-```bash
-# 查看分支状态
-git status
-git branch -vv
-
-# 合并master2到master
-git checkout master
-git merge master2
-git push origin master
-
-# 查看提交历史
-git log --oneline --graph --all --decorate
-```
-
----
-
-## 2026-03-10: 修复时区Bug导致日期显示错误 ✅
-
-**阶段**: Bug修复（日期显示）
-
-**问题描述**（用户反馈）:
-- **早上练习**（6-8点）：完成后显示**昨天**的日期 ❌
-- **下午练习**：显示**当天**的日期 ✓
-- 需要手动编辑修改日期，影响用户体验
-
-**根本原因**:
-使用 `new Date().toISOString().split('T')[0]` 获取日期时，`toISOString()` 返回的是**UTC时间**，不是本地时间。
-
-**时区问题示例**:
-- 北京时间：2026-03-10 06:00 (UTC+8)
-- UTC时间：2026-03-09 22:00 (前一天晚上10点)
-- `.split('T')[0]` 返回：`"2026-03-09"` ❌ 错误！
-
-**解决方案**:
-1. 增强 `getLocalDateStr` 函数，支持传入可选的日期参数
-2. 替换所有 `toISOString().split('T')[0]` 为 `getLocalDateStr()`
-3. 替换 `d.toISOString().split('T')[0]` 为 `getLocalDateStr(d)`
-
-**修改位置**（7处）:
-1. 完成练习弹窗默认日期（第1496行）
-2. 点击"今天"按钮（第1570行）
-3. 保存练习记录（第4487行）
-4. 日历视图日期生成（第3270行）
-5. 日期选择器maxDate（第805、1737行）
-6. todayStr变量（第2514、3196行）
-
-**Git提交**:
-- `4029a7a` (master) - fix: 修复早上练习显示昨天日期的时区bug
-- `f8b1014` (master2) - fix: 将master分支的时区修复同步到master2
-
-**测试验证**:
-- ✓ 早上6-8点练习：显示当天日期
-- ✓ 下午练习：显示当天日期
-- ✓ 晚上11点后练习：显示当天日期
-- ✓ 日历视图打卡小圆点：显示正确日期
-
-**技术要点**:
-```typescript
-// ❌ 错误：返回UTC日期
-new Date().toISOString().split('T')[0]
-
-// ✓ 正确：返回本地日期
-function getLocalDateStr(dateInput?: Date): string {
-  const date = dateInput || new Date()
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
-```
-
----
-
-## 2026-03-10: 优化调试日志隐私保护 ✅
-
-**阶段**: 优化（用户体验）
-
-**问题背景**:
-- 调试日志包含用户敏感打卡内容（觉察文字、突破时刻）
-- 日志文件过大（约12,000字），超出小红书评论限制（1,000-2,000字）
-- 用户无法在小红书上把调试日志发送给开发者
-
-**完成工作**:
-
-1. **移除敏感信息**
-   - 删除 `notesPreview` 字段（觉察文字预览）
-   - 删除 `breakthroughPreview` 字段（突破时刻预览）
-   - 只保留元数据（是否存在、数量等）
-
-2. **限制日志数量**
-   - 错误历史：从全部改为最近10条
-   - 同步日志：从全部改为最近10条
-   - 练习记录：保持最近10条
-   - 导出日志：保持最近10条
-
-**Git提交**:
-- `2231ac3` (master) - fix: 优化调试日志隐私保护和数据量控制
-
-**修改位置**:
-- app/practice/page.tsx: 第4112、4116、4133-4134、4202-4203行
-
-**效果**:
-- ✓ 保护用户隐私（不包含觉察文字）
-- ✓ 减少日志大小（但仍较大，约10k+字）
-- ⚠️ 仍不适合直接在小红书发布
-
----
-
-
 ## 2026-03-05: 修复 Vercel 构建错误 ✅
 
 **阶段**: Bug修复（部署问题）
@@ -1910,102 +1680,189 @@ export const INVITE_VERSION = 'v2'  // 从 v1 更新到 v2
 
 ---
 
+### 2026-03-06: 修复页面刷新后音频播放状态丢失 ✅
+
+**阶段**: Bug修复
+
+**问题反馈**：
+- 用户在使用口令跟练功能时，如果页面刷新或意外退出
+- 重新进入后发现：音频进度条消失、前进/后退按钮消失
+- 体验问题：用户无法继续控制音频播放
+
+**问题分析**：
+- 音频状态（`isAudioLoaded`, `audioCurrentTime` 等）使用 `useState` 定义
+- 页面刷新后这些状态重置为初始值（`false`, `0`）
+- UI 显示条件：
+  ```tsx
+  {selectedOption === 'guided_audio' && isAudioLoaded && !isAudioLoading && !audioError && (
+    // 进度条和前进后退按钮
+  )}
+  ```
+- 由于 `isAudioLoaded = false`，条件不满足，UI不显示
+- 而练习状态（`isPracticing`, `startTime` 等）通过 `useLocalStorage` 持久化，刷新后会恢复
+- 造成状态不一致：练习在继续，但音频控制UI消失了
+
+**修复方案**：
+
+#### 1. 状态持久化
+**文件**: `app/practice/page.tsx` 第 3524-3534 行
+
+将关键音频状态改为 `useLocalStorage`：
+```typescript
+// 修改前：使用 useState
+const [isAudioLoaded, setIsAudioLoaded] = useState(false)
+const [audioCurrentTime, setAudioCurrentTime] = useState(0)
+const [audioDuration, setAudioDuration] = useState(0)
+const [seekStep, setSeekStep] = useState(15)
+
+// 修改后：使用 useLocalStorage 持久化
+const [isAudioLoaded, setIsAudioLoaded] = useLocalStorage('ashtanga_audio_loaded', false)
+const [audioCurrentTime, setAudioCurrentTime] = useLocalStorage('ashtanga_audio_time', 0)
+const [audioDuration, setAudioDuration] = useLocalStorage('ashtanga_audio_duration', 0)
+const [seekStep, setSeekStep] = useLocalStorage('ashtanga_audio_seek_step', 15)
+```
+
+#### 2. 添加音频恢复函数
+**文件**: `app/practice/page.tsx` 第 4386-4450 行
+
+新增 `reinitializeAudio()` 函数：
+```typescript
+const reinitializeAudio = async (restoreTime: number = 0) => {
+  // 使用 IndexedDB 缓存重新加载音频
+  // 恢复到之前的时间点
+  // 保持暂停/播放状态
+}
+```
+
+#### 3. 页面加载时自动恢复
+**文件**: `app/practice/page.tsx` 第 3737-3747 行
+
+在现有的页面加载 `useEffect` 中添加音频恢复逻辑：
+```typescript
+useEffect(() => {
+  if (isPracticing && startTime) {
+    // ... 现有的时间同步代码 ...
+    
+    // 如果是口令跟练模式且音频之前已加载，重新初始化
+    if (selectedOption === 'guided_audio' && isAudioLoaded) {
+      console.log('[Page Reload] 检测到口令跟练模式，正在恢复音频...')
+      reinitializeAudio(audioCurrentTime)
+    }
+  }
+}, [])
+```
+
+#### 4. 练习结束时清理
+**文件**: `app/practice/page.tsx` 第 4524-4545 行
+
+在 `handleConfirmEnd` 函数中清理持久化状态：
+```typescript
+setIsAudioLoaded(false)  // 清理 localStorage
+setAudioCurrentTime(0)
+setAudioDuration(0)
+```
+
+**用户体验改进**：
+- ✅ 页面刷新后音频进度条正常显示
+- ✅ 前进/后退按钮正常显示
+- ✅ 音频从之前的时间点继续播放
+- ✅ 保持之前的暂停/播放状态
+- ✅ 练习结束后自动清理状态
+
+**Git提交**:
+- `b271f87` (master2) - fix: 页面刷新后恢复音频播放状态
+
+**文件变更**:
+| 文件 | 变更类型 | 说明 |
+|------|----------|------|
+| `app/practice/page.tsx` | 修改 | 音频状态持久化、添加恢复函数 |
+
+**验证步骤**:
+1. 选择"一序列 🔊"口令跟练选项
+2. 点击"开始练习"，等待音频加载完成
+3. 确认进度条和前进/后退按钮显示正常
+4. 播放一段时间（例如到 5:30 位置）
+5. 刷新页面（F5 或 Ctrl+R）
+6. 确认：
+   - ✅ 进度条重新显示
+   - ✅ 前进/后退按钮重新显示
+   - ✅ 音频从 5:30 位置继续播放
+   - ✅ 时间显示正确
+
+**下一步**:
+- 用户明天测试验证
+- 根据反馈进一步优化
+
 ---
 
-## 2026-03-13: 性能优化 - 图片压缩 ✅
 
-**阶段**: 性能优化
+---
 
-**背景**:
-- 发现项目中存在多个大图片文件（总计超过11MB）
-- 影响首屏加载速度和用户体验
-- 需要优化图片大小以提升性能
+## 2026-03-10 更新
 
-**工作内容**:
+### 🐛 修复：时区Bug导致早上练习显示昨天日期
 
-### 1. 性能优化探索（已放弃）
+**问题描述**：
+- 早上练习（6-8点）完成后显示昨天日期 ❌
+- 下午练习显示当天日期 ✓
+- 用户需手动修改日期，影响体验
 
-**尝试方向**: Modal组件动态导入优化
-- 提取SettingsModal为动态导入组件
-- 遇到技术问题：导入路径错误、导出方式错误、样式丢失
-- 评估后发现收益不明显（仅减少10-20KB Bundle）
-- 决策：放弃此优化方向
+**根本原因**：
+```typescript
+// 使用 toISOString() 返回UTC时间，不是本地时间
+new Date().toISOString().split('T')[0]
 
-**问题总结**:
-- 3次构建失败，3次修复
-- 开发时间：1-2小时
-- 用户感知收益：几乎为零
-- **教训**: 优先优化高性价比项目（图片 > 代码结构）
+// 示例：
+// 北京时间 2026-03-10 06:00 (UTC+8)
+// UTC时间 2026-03-09 22:00
+// 返回 "2026-03-09" ❌
+```
 
-### 2. 图片压缩优化 ✅
+**解决方案**：
+1. 增强 `getLocalDateStr` 函数，支持传入日期参数
+2. 替换所有 `toISOString().split('T')[0]` 为 `getLocalDateStr()`
+3. 替换 `d.toISOString().split('T')[0]` 为 `getLocalDateStr(d)`
 
-**发现的大文件**:
-| 文件名 | 大小 |
-|--------|------|
-| Gemini_Generated_Image_g8eq8eg8eq8eg8eq.png | 7.2MB |
-| 进群方法.png | 2.2MB |
-| pwa-install.png | 1.2MB |
-| Sri K. Pattabhi Jois.png | 475KB |
-| Sri K.jpeg | 251KB |
-| **总计** | **11.1MB** |
+**修改位置**（7处）：
+- 第1496行：完成练习弹窗默认日期
+- 第1570行：点击"今天"按钮
+- 第4487行：保存练习记录
+- 第3270行：日历视图日期生成
+- 第805、1737行：日期选择器maxDate
+- 第2514、3196行：todayStr变量
 
-**实施步骤**:
+**提交记录**：
+```
+commit 4029a7a
+fix: 修复早上练习显示昨天日期的时区bug
+```
 
-1. **创建压缩脚本** (`compress-images.js`)
-   - 使用 sharp 库（Next.js自带）
-   - 根据文件大小自动调整压缩质量
-   - 大于5MB用60%质量，大于1MB用70%，其他用80%
+**测试验证**：
+- ✓ 早上6-8点练习：显示当天日期
+- ✓ 下午练习：显示当天日期
+- ✓ 晚上11点后练习：显示当天日期
+- ✓ 日历视图打卡小圆点：显示正确日期
 
-2. **执行压缩**
-   ```bash
-   node compress-images.js
-   ```
+---
 
-3. **压缩结果**:
-   - Gemini_Generated_Image.png: 7.1MB → 238KB (减少96.7%)
-   - 进群方法.png: 2.1MB → 337KB (减少84.4%)
-   - pwa-install.png: 1.1MB → 200KB (减少83.0%)
-   - Sri K. Pattabhi Jois.png: 475KB → 78KB (减少83.6%)
-   - Sri K.jpeg: 250KB → 104KB (减少58.3%)
+### 🔧 优化：调试日志隐私保护
 
-**最终效果**:
-- 压缩前: 11.1 MB
-- 压缩后: 958 KB
-- **节省空间: 10.1 MB (91.6%)**
+**问题背景**：
+- 调试日志包含用户敏感内容（觉察文字、突破时刻）
+- 日志文件过大（约12,000字），超出小红书评论限制
 
-### 3. 分支同步
+**完成工作**：
+1. 移除敏感字段（notesPreview、breakthroughPreview）
+2. 限制日志数量（错误历史、同步日志各10条）
 
-**Master分支**: 
-- Commit: `448bb29`
-- 状态: ✅ 已推送到远程
+**提交记录**：
+```
+commit 2231ac3
+fix: 优化调试日志隐私保护和数据量控制
+```
 
-**Master2分支**:
-- Commit: `4fcacce`
-- 状态: ✅ 已推送到远程
-
-**Dev分支**: 
-- 状态: ❌ 已删除（性能优化尝试失败）
-
-### 4. 技术总结
-
-**成功经验**:
-- ✅ 图片优化性价比极高（5分钟完成，节省10MB）
-- ✅ 使用sharp库自动压缩，保持视觉质量
-- ✅ 大幅减少首屏加载时间
-
-**失败教训**:
-- ❌ Modal动态导入收益低、风险高
-- ❌ 技术正确不等于业务价值
-- ❌ 性能优化需要数据支撑（Lighthouse分数）
-
-**决策框架**:
-| 情况 | 建议 |
-|------|------|
-| 用户抱怨慢 | 优化性能 |
-| 没人抱怨但想完美 | 只做高性价比优化 |
-| 有更重要功能要做 | 停止优化，做功能 |
-| 想学技术 | 可以继续，但承认是学习 |
-
-**时间投入**: 约2小时（包括失败的尝试）
-**最终收益**: 两个分支共节省20.2MB空间
+**效果**：
+- ✓ 保护用户隐私
+- ✓ 减少日志大小
+- ⚠️ 仍不适合直接在小红书发布（需进一步优化）
 
