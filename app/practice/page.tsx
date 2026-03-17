@@ -947,14 +947,14 @@ function ShareCardModal({
             onClick={onClose}
           >
             <div
-              className="flex flex-col gap-3 w-full max-w-lg max-h-[90vh] overflow-y-auto"
+              className="w-full max-w-lg max-h-[90vh] overflow-y-auto py-4"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Share Card Content (for screenshot) */}
               <div
                 ref={cardRef}
                 id="share-card-content"
-                className="bg-background rounded-3xl overflow-hidden w-full ring-1 ring-white/10"
+                className="bg-background rounded-3xl overflow-hidden w-full ring-1 ring-white/10 mb-3"
                 
               >
                 {/* Header: Hero Duration Design */}
