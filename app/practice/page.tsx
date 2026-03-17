@@ -947,14 +947,14 @@ function ShareCardModal({
             onClick={onClose}
           >
             <div
-              className="w-full max-w-lg max-h-[90vh] overflow-y-auto py-4"
+              className="flex flex-col w-full max-w-lg max-h-[90vh] p-4"
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Share Card Content (for screenshot) */}
+              {/* Share Card Content (for screenshot) - 可滚动区域 */}
               <div
                 ref={cardRef}
                 id="share-card-content"
-                className="bg-background rounded-3xl overflow-hidden w-full ring-1 ring-white/10 mb-3"
+                className="bg-background rounded-3xl overflow-hidden w-full ring-1 ring-white/10 flex-1 overflow-y-auto min-h-0"
                 
               >
                 {/* Header: Hero Duration Design */}
@@ -1031,11 +1031,9 @@ function ShareCardModal({
                 </div>
               </div>
 
-              {/* 悬浮按钮组 - 始终可见 */}
+              {/* 悬浮按钮组 - 始终固定在底部 */}
               <div
-                className="flex flex-col gap-2 transition-all duration-300"
-                onClick={(e) => e.stopPropagation()}
-              >
+                className="flex flex-col gap-2 mt-3 shrink-0"
                 <div className="flex gap-3">
                 <button
                   type="button"
