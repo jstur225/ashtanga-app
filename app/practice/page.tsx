@@ -30,6 +30,9 @@ import { useRouter } from 'next/navigation'
 import { getVersionInfo } from '@/lib/version'
 import { audioCache } from '@/lib/audioCache'
 
+// 应用版本号
+const APP_VERSION = '1.0.2'
+
 // 月相图标路径
 const NEW_MOON_ICON = '/moon-phase/new-moon.png'
 const FULL_MOON_ICON = '/moon-phase/full-moon.png'
@@ -826,6 +829,7 @@ function EditRecordModal({
 }
 
 // Share Card Modal - v3 "The Aotang Poster" with Magazine Layout
+// 简化版：只读显示 + 动态缩放 + 悬浮按钮
 function ShareCardModal({
   isOpen,
   onClose,
@@ -853,22 +857,36 @@ function ShareCardModal({
   onOpenPhotoFakeDoor?: () => void
   syncStatus?: 'idle' | 'syncing' | 'success' | 'error'
 }) {
-  const [editableNotes, setEditableNotes] = useState("")
-  const [isEditingNotes, setIsEditingNotes] = useState(false)
-  const [originalNotes, setOriginalNotes] = useState("")
   const [isCapturing, setIsCapturing] = useState(false)  // 截图状态
+  const [scale, setScale] = useState(1)  // 动态缩放
+  const cardRef = useRef<HTMLDivElement>(null)
 
-  // 计算是否修改
-  const isNotesModified = editableNotes !== originalNotes
-
-  // 当 record 变化时，更新 editableNotes 和 originalNotes
+  // 计算动态缩放比例
   useEffect(() => {
-    if (record) {
-      const notes = record.notes || "今日练习完成"
-      setEditableNotes(notes)
-      setOriginalNotes(notes)
+    const calculateScale = () => {
+      if (!cardRef.current || !isOpen) return
+      const card = cardRef.current
+      const cardHeight = card.scrollHeight
+      const viewportHeight = window.innerHeight * 0.75  // 留出75%视口高度
+
+      if (cardHeight > viewportHeight) {
+        const newScale = Math.max(0.7, viewportHeight / cardHeight)
+        setScale(newScale)
+      } else {
+        setScale(1)
+      }
     }
-  }, [record, record?.notes])
+
+    if (isOpen) {
+      // 延迟计算，确保DOM已渲染
+      setTimeout(calculateScale, 50)
+      window.addEventListener('resize', calculateScale)
+    }
+
+    return () => {
+      window.removeEventListener('resize', calculateScale)
+    }
+  }, [isOpen, record])
 
   // 早期返回必须在所有 Hooks 之后
   if (!record) return null
@@ -943,6 +961,7 @@ function ShareCardModal({
 
   const formattedDate = new Date(record.date).toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '.')
   const durationMinutes = Math.floor(record.duration / 60)
+  const displayNotes = record.notes || "今日练习完成"
 
   return (
     <AnimatePresence>
@@ -960,14 +979,20 @@ function ShareCardModal({
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-6"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
             onClick={onClose}
           >
             <div className="flex flex-col gap-3 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
-              {/* Share Card Content (for screenshot) */}
+              {/* Share Card Content (for screenshot) - 动态缩放 */}
               <div
+                ref={cardRef}
                 id="share-card-content"
-                className="bg-background rounded-3xl shadow-2xl overflow-hidden"
+                className="bg-background rounded-3xl shadow-2xl overflow-hidden transition-transform duration-200"
+                style={{
+                  transform: `scale(${scale})`,
+                  transformOrigin: 'center top',
+                  marginBottom: scale < 1 ? `${(1 - scale) * 100}%` : 0
+                }}
               >
                 {/* Header: Hero Duration Design */}
                 <div className="px-5 pt-5 pb-4 border-b border-border">
@@ -988,48 +1013,13 @@ function ShareCardModal({
                   )}
                 </div>
 
-                {/* Reflection Text - Editable Notes with elegant serif font */}
+                {/* Reflection Text - 只读显示 */}
                 <div className="px-5 py-6">
-                  {isEditingNotes ? (
-                    <div className="relative">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs text-muted-foreground/60">{editableNotes.length}字</span>
-                      </div>
-                      <textarea
-                        value={editableNotes}
-                        onChange={(e) => setEditableNotes(e.target.value)}
-                        onBlur={() => setIsEditingNotes(false)}
-                        autoFocus
-                        rows={Math.max(4, editableNotes.split('\n').length)}
-                        placeholder="今天练习感受如何？有什么觉察？可以尝试右下方的语音输入，轻松地说出你的当下想法，留下更多真实的痕迹。"
-                        className={`w-full px-3 py-2 pr-12 text-sm text-foreground font-serif leading-relaxed bg-secondary rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 resize-y ${
-                          isCapturing
-                            ? 'max-h-none'  // 截图时：无高度限制
-                            : 'max-h-[60vh] overflow-y-auto'  // 编辑时：最大60vh，超出滚动
-                        }`}
-                      />
-                      {/* Voice Input + Photo Upload - 浮动在右下角（假门测试） */}
-                      <div className="absolute bottom-3 right-3 flex items-center gap-2">
-                        <PhotoUploadButton
-                          onClick={() => onOpenPhotoFakeDoor?.()}
-                        />
-                        <VoiceButton
-                          onClick={() => onOpenVoiceFakeDoor?.()}
-                        />
-                      </div>
-                    </div>
-                  ) : (
-                    <p
-                      onClick={() => setIsEditingNotes(true)}
-                      className={`text-sm text-foreground font-serif leading-relaxed cursor-text hover:bg-secondary/30 rounded-lg p-1 -m-1 transition-colors whitespace-pre-wrap break-words ${
-                        isCapturing
-                          ? 'max-h-none'
-                          : 'max-h-[60vh] overflow-y-auto'
-                      }`}
-                    >
-                      {editableNotes || "点击编辑笔记，或尝试右下方的语音输入，轻松说出你的想法..."}
-                    </p>
-                  )}
+                  <p className={`text-sm text-foreground font-serif leading-relaxed whitespace-pre-wrap break-words ${
+                    isCapturing ? 'max-h-none' : 'max-h-[50vh] overflow-y-auto'
+                  }`}>
+                    {displayNotes}
+                  </p>
                 </div>
 
                 {/* Footer: Stats & Identity Zone */}
@@ -1072,7 +1062,7 @@ function ShareCardModal({
                         <span className="text-sm font-serif text-[#e67e22]">{profile.name}</span>
                         <div className="flex justify-between items-center w-full">
                           <span className="text-[10px] text-muted-foreground italic font-serif">{profile.signature}</span>
-                          <span className="text-[10px] text-muted-foreground italic font-serif">熬汤日记</span>
+                          <span className="text-[10px] text-muted-foreground italic font-serif">熬汤日记 v{APP_VERSION}</span>
                         </div>
                       </div>
                     </div>
@@ -1080,40 +1070,22 @@ function ShareCardModal({
                 </div>
               </div>
 
-              {/* Actions (outside screenshot area, but inside stopPropagation div) */}
+              {/* 悬浮按钮组 */}
               <div className="flex gap-3" onClick={(e) => e.stopPropagation()}>
                 <button
                   type="button"
-                  onMouseDown={(e) => {
-                    e.stopPropagation()
-                    e.preventDefault()
-                    onClose()
-                  }}
+                  onClick={onClose}
                   className="flex-1 py-3 rounded-full bg-secondary text-foreground font-serif transition-all hover:bg-secondary/80 active:scale-[0.98]"
                 >
                   返回
                 </button>
                 <button
                   type="button"
-                  onMouseDown={(e) => {
-                    console.log('💾 保存按钮')
-                    e.stopPropagation()
-                    e.preventDefault()
-                    if (isNotesModified) {
-                      // 保存文案，但不关闭模态框
-                      if (record) {
-                        onEditRecord(record.id, editableNotes, [], record.breakthrough)
-                        setOriginalNotes(editableNotes)
-                      }
-                    } else {
-                      // 导出图片
-                      handleExportImage()
-                    }
-                  }}
+                  onClick={handleExportImage}
                   className="flex-1 py-3 rounded-full green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white font-serif transition-all hover:opacity-90 active:scale-[0.98] flex items-center justify-center gap-2"
                 >
                   <Share2 className="w-4 h-4" />
-                  {isNotesModified ? '保存' : '保存图片'}
+                  保存图片
                 </button>
               </div>
             </div>
