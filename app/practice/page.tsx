@@ -856,7 +856,7 @@ function ShareCardModal({
 }) {
   const [isCapturing, setIsCapturing] = useState(false)  // 截图状态
   const [scale, setScale] = useState(1)  // 动态缩放
-  const [isZoomed, setIsZoomed] = useState(false)  // 点击放大状态
+  const [isZoomed, setIsZoomed] = useState(true)  // 默认放大状态（毛玻璃效果）
   const cardRef = useRef<HTMLDivElement>(null)
 
   // 计算动态缩放比例
