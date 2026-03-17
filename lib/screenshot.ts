@@ -37,6 +37,40 @@ export interface ExportLogEntry {
   }
 }
 
+// 缓存上次成功的截图方法
+const STORAGE_KEY = 'screenshot_last_successful_method'
+let lastSuccessfulMethod: 'modern-screenshot' | 'html2canvas' | null = null
+
+// 从localStorage读取缓存的方法
+function getCachedMethod(): 'modern-screenshot' | 'html2canvas' | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const cached = localStorage.getItem(STORAGE_KEY)
+    if (cached === 'modern-screenshot' || cached === 'html2canvas') {
+      return cached
+    }
+  } catch (error) {
+    console.warn('读取缓存方法失败:', error)
+  }
+  return null
+}
+
+// 保存成功的方法到localStorage
+function saveSuccessfulMethod(method: 'modern-screenshot' | 'html2canvas') {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.setItem(STORAGE_KEY, method)
+    lastSuccessfulMethod = method
+  } catch (error) {
+    console.warn('保存缓存方法失败:', error)
+  }
+}
+
+// 初始化时读取缓存
+if (typeof window !== 'undefined') {
+  lastSuccessfulMethod = getCachedMethod()
+}
+
 // 浏览器检测
 function detectBrowserCapabilities() {
   const userAgent = navigator.userAgent
@@ -96,7 +130,7 @@ async function captureWithModernScreenshot(
 
   try {
     const dataUrl = await domToPng(element, {
-      scale: 2,
+      scale: 1,
       backgroundColor: '#ffffff',
       fetch: {
         bypassingCache: true
@@ -127,7 +161,7 @@ async function captureWithHtml2Canvas(
   try {
     const canvas = await html2canvas(element, {
       backgroundColor: '#ffffff',
-      scale: 2,
+      scale: 1,
       useCORS: true,
       logging: false,
       allowTaint: true
@@ -150,7 +184,7 @@ async function captureWithHtml2Canvas(
   }
 }
 
-// 主函数：带降级的截图功能
+// 主函数：带降级的截图功能（优化版：缓存成功方法）
 export async function captureWithFallback(
   element: HTMLElement,
   options?: CaptureOptions
@@ -159,7 +193,88 @@ export async function captureWithFallback(
   const browserInfo = detectBrowserCapabilities()
   const attempts: ExportLogEntry['attempts'] = []
 
-  // 第一层：尝试 modern-screenshot
+  // 优化1: 如果有缓存的成功方法，直接使用
+  if (lastSuccessfulMethod === 'modern-screenshot') {
+    console.log('🚀 使用缓存方法: modern-screenshot')
+    const result = await captureWithModernScreenshot(element)
+
+    if (result.success && result.dataUrl) {
+      downloadImage(result.dataUrl, options?.filename || 'ashtanga-practice.png')
+
+      const logEntry: ExportLogEntry = {
+        timestamp: new Date().toISOString(),
+        success: true,
+        userAgent: browserInfo.userAgent,
+        recordDate: options?.filename?.match(/ashtanga-(.+)\.png/)?.[1],
+        duration: Date.now() - startTime,
+        attempts: [{
+          method: 'modern-screenshot',
+          success: true,
+          duration: result.duration
+        }],
+        browserInfo
+      }
+
+      options?.onLog?.(logEntry)
+
+      return {
+        success: true,
+        dataUrl: result.dataUrl,
+        method: 'modern-screenshot',
+        duration: Date.now() - startTime
+      }
+    } else {
+      // 缓存方法失败，清除缓存
+      console.warn('缓存方法失败，清除缓存')
+      lastSuccessfulMethod = null
+      try {
+        localStorage.removeItem(STORAGE_KEY)
+      } catch (error) {
+        console.warn('清除缓存失败:', error)
+      }
+    }
+  } else if (lastSuccessfulMethod === 'html2canvas') {
+    console.log('🚀 使用缓存方法: html2canvas')
+    const result = await captureWithHtml2Canvas(element)
+
+    if (result.success && result.dataUrl) {
+      downloadImage(result.dataUrl, options?.filename || 'ashtanga-practice.png')
+
+      const logEntry: ExportLogEntry = {
+        timestamp: new Date().toISOString(),
+        success: true,
+        userAgent: browserInfo.userAgent,
+        recordDate: options?.filename?.match(/ashtanga-(.+)\.png/)?.[1],
+        duration: Date.now() - startTime,
+        attempts: [{
+          method: 'html2canvas',
+          success: true,
+          duration: result.duration
+        }],
+        browserInfo
+      }
+
+      options?.onLog?.(logEntry)
+
+      return {
+        success: true,
+        dataUrl: result.dataUrl,
+        method: 'html2canvas',
+        duration: Date.now() - startTime
+      }
+    } else {
+      // 缓存方法失败，清除缓存
+      console.warn('缓存方法失败，清除缓存')
+      lastSuccessfulMethod = null
+      try {
+        localStorage.removeItem(STORAGE_KEY)
+      } catch (error) {
+        console.warn('清除缓存失败:', error)
+      }
+    }
+  }
+
+  // 优化2: 无缓存时，按原策略尝试两种方法
   console.log('尝试方法1: modern-screenshot')
   const result1 = await captureWithModernScreenshot(element)
 
@@ -171,10 +286,12 @@ export async function captureWithFallback(
   })
 
   if (result1.success && result1.dataUrl) {
-    // 下载图片
+    // 保存成功的方法到缓存
+    saveSuccessfulMethod('modern-screenshot')
+    console.log('✅ modern-screenshot 成功，已缓存')
+
     downloadImage(result1.dataUrl, options?.filename || 'ashtanga-practice.png')
 
-    // 记录日志
     const logEntry: ExportLogEntry = {
       timestamp: new Date().toISOString(),
       success: true,
@@ -207,10 +324,12 @@ export async function captureWithFallback(
   })
 
   if (result2.success && result2.dataUrl) {
-    // 下载图片
+    // 保存成功的方法到缓存
+    saveSuccessfulMethod('html2canvas')
+    console.log('✅ html2canvas 成功，已缓存')
+
     downloadImage(result2.dataUrl, options?.filename || 'ashtanga-practice.png')
 
-    // 记录日志
     const logEntry: ExportLogEntry = {
       timestamp: new Date().toISOString(),
       success: true,

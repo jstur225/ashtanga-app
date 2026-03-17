@@ -2009,3 +2009,169 @@ export const INVITE_VERSION = 'v2'  // 从 v1 更新到 v2
 **时间投入**: 约2小时（包括失败的尝试）
 **最终收益**: 两个分支共节省20.2MB空间
 
+
+---
+
+## 2026-03-17: 性能优化 - 保存图片速度优化 ⚡
+
+**阶段**: 性能优化
+
+**背景**:
+- 用户反馈保存图片功能太慢，需要5秒或更久
+- 其他APP都是1-2秒（秒级体验）
+- 需要优化保存时间，提升用户体验
+
+**工作内容**:
+
+### 1. 问题分析
+
+**核心瓶颈识别**:
+1. ❌ 双重降级策略导致时间翻倍（先试modern-screenshot失败，再试html2canvas）
+2. ❌ scale: 2 导致渲染4倍像素量
+3. ❌ 100ms硬编码等待浪费时间
+
+**性能分析**:
+```
+用户点击保存
+  ↓
+尝试 modern-screenshot (2秒) → ❌ 失败
+  ↓
+尝试 html2canvas (3秒) → ✅ 成功
+  ↓
+总共：5秒！！！
+```
+
+### 2. 优化实施 ✅
+
+**优化1: 方法缓存机制（最关键！）**
+- 使用localStorage记录上次成功的截图方法
+- 下次直接使用缓存的方法，避免双重尝试
+- **代码位置**: `lib/screenshot.ts:40-62`
+
+```typescript
+// 缓存上次成功的截图方法
+const STORAGE_KEY = 'screenshot_last_successful_method'
+let lastSuccessfulMethod: 'modern-screenshot' | 'html2canvas' | null = null
+
+// 从localStorage读取缓存
+function getCachedMethod() {
+  const cached = localStorage.getItem(STORAGE_KEY)
+  return cached === 'modern-screenshot' || cached === 'html2canvas' ? cached : null
+}
+
+// 保存成功的方法
+function saveSuccessfulMethod(method) {
+  localStorage.setItem(STORAGE_KEY, method)
+  lastSuccessfulMethod = method
+}
+
+// 优化逻辑
+if (lastSuccessfulMethod === 'modern-screenshot') {
+  console.log('🚀 使用缓存方法: modern-screenshot')
+  return await captureWithModernScreenshot(element)
+}
+```
+
+**优化2: 降低scale参数**
+- scale: 2 → scale: 1（减少75%渲染像素量）
+- **代码位置**: `lib/screenshot.ts:99, 130`
+
+```typescript
+// modern-screenshot
+const dataUrl = await domToPng(element, {
+  scale: 1,  // 从2改为1
+  backgroundColor: '#ffffff'
+})
+
+// html2canvas
+const canvas = await html2canvas(element, {
+  scale: 1,  // 从2改为1
+  backgroundColor: '#ffffff'
+})
+```
+
+**优化3: 优化DOM更新时机**
+- 使用requestAnimationFrame替代setTimeout
+- **代码位置**: `app/practice/page.tsx:890-892`
+
+```typescript
+// 优化前
+await new Promise(resolve => setTimeout(resolve, 100))
+
+// 优化后
+await new Promise(resolve => {
+  requestAnimationFrame(() => requestAnimationFrame(resolve))
+})
+```
+
+**优化4: 移除冗余scale参数**
+- 移除page.tsx中的scale参数
+- **代码位置**: `app/practice/page.tsx:893`
+
+### 3. 性能提升预期
+
+| 优化项 | 效果 |
+|--------|------|
+| 方法缓存 | 减少50%时间 |
+| scale: 2→1 | 减少75%像素量 |
+| RAF替代setTimeout | 更准确的时机 |
+| 移除冗余参数 | 代码更简洁 |
+
+**综合效果**:
+- 优化前: ~5秒
+- 优化后: 1-2秒
+- **提升: 减少60-75%时间 ⚡**
+
+### 4. 代码修改统计
+
+**lib/screenshot.ts**:
+- 新增: 130行（方法缓存机制）
+- 修改: 10行（scale参数、降级逻辑）
+
+**app/practice/page.tsx**:
+- 修改: 5行（RAF替代setTimeout、移除scale参数）
+
+### 5. 待测试验证
+
+**浏览器兼容性**:
+- [ ] Chrome浏览器
+- [ ] Safari浏览器
+- [ ] 微信浏览器
+
+**验收标准**:
+- [ ] 保存时间 < 2秒
+- [ ] 图片清晰度足够
+- [ ] 兼容性不降低
+- [ ] 缓存机制正常工作
+
+### 6. 技术亮点
+
+**用户体验优化**:
+```
+第一次使用：
+点击保存 → 尝试modern-screenshot → 失败 → 尝试html2canvas → 成功 → 保存方法到缓存
+总时间：2-3秒
+
+后续使用：
+点击保存 → 直接使用html2canvas（缓存）→ 成功
+总时间：1-2秒 ⚡
+```
+
+**缓存失效机制**:
+- 缓存方法失败时自动清除
+- 用户清除浏览器数据时清除
+- localStorage错误时降级到默认策略
+
+### 7. 文档更新
+
+**已创建文档**:
+- ✅ `memory.md` - 更新本次优化记录
+- ✅ `优化总结_保存图片性能.md` - 详细技术文档
+
+**分支状态**:
+- 当前分支: master2
+- 待推送: 本地已修改，准备推送
+
+**时间投入**: 约1小时
+**预期收益**: 用户体验大幅提升，达到其他APP的"秒级"体验
+

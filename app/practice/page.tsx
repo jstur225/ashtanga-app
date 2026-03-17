@@ -888,11 +888,12 @@ function ShareCardModal({
       setIsCapturing(true)
 
       // 2. 等待DOM更新（确保高度扩展完成）
-      await new Promise(resolve => setTimeout(resolve, 100))
+      await new Promise(resolve => {
+        requestAnimationFrame(() => requestAnimationFrame(resolve))
+      })
 
       // 3. 执行截图
       const result = await captureWithFallback(element, {
-        scale: 2,
         backgroundColor: '#ffffff',
         filename: `ashtanga-${record?.date || 'practice'}.png`,
         onLog: (log) => {
