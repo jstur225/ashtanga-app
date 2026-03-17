@@ -30,9 +30,6 @@ import { useRouter } from 'next/navigation'
 import { getVersionInfo } from '@/lib/version'
 import { audioCache } from '@/lib/audioCache'
 
-// 应用版本号
-const APP_VERSION = '1.0.2'
-
 // 月相图标路径
 const NEW_MOON_ICON = '/moon-phase/new-moon.png'
 const FULL_MOON_ICON = '/moon-phase/full-moon.png'
@@ -1062,7 +1059,7 @@ function ShareCardModal({
                         <span className="text-sm font-serif text-[#e67e22]">{profile.name}</span>
                         <div className="flex justify-between items-center w-full">
                           <span className="text-[10px] text-muted-foreground italic font-serif">{profile.signature}</span>
-                          <span className="text-[10px] text-muted-foreground italic font-serif">熬汤日记 v{APP_VERSION}</span>
+                          <span className="text-[10px] text-muted-foreground italic font-serif">熬汤日记</span>
                         </div>
                       </div>
                     </div>
