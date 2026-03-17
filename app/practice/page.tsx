@@ -1001,8 +1001,8 @@ function ShareCardModal({
               <div
                 ref={cardRef}
                 id="share-card-content"
-                className={`bg-background rounded-3xl shadow-2xl overflow-hidden transition-all duration-500 cursor-pointer ${
-                  isZoomed ? 'w-full flex-1 overflow-y-auto shadow-[0_32px_64px_-12px_rgba(0,0,0,0.4)] ring-1 ring-white/10' : ''
+                className={`bg-background rounded-3xl overflow-hidden transition-all duration-500 cursor-pointer ${
+                  isZoomed ? 'w-full flex-1 overflow-y-auto ring-1 ring-white/10' : ''
                 }`}
                 style={{
                   transform: isZoomed ? 'scale(1)' : `scale(${scale})`,
