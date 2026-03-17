@@ -855,41 +855,9 @@ function ShareCardModal({
   syncStatus?: 'idle' | 'syncing' | 'success' | 'error'
 }) {
   const [isCapturing, setIsCapturing] = useState(false)  // 截图状态
-  const [scale, setScale] = useState(1)  // 动态缩放
-  const [isZoomed, setIsZoomed] = useState(true)  // 默认放大状态（毛玻璃效果）
   const cardRef = useRef<HTMLDivElement>(null)
 
-  // 计算动态缩放比例
-  useEffect(() => {
-    const calculateScale = () => {
-      if (!cardRef.current || !isOpen) return
-      const card = cardRef.current
-      const cardHeight = card.scrollHeight
-      const viewportHeight = window.innerHeight * 0.75  // 留出75%视口高度
 
-      if (cardHeight > viewportHeight) {
-        const newScale = Math.max(0.7, viewportHeight / cardHeight)
-        setScale(newScale)
-      } else {
-        setScale(1)
-      }
-    }
-
-    if (isOpen) {
-      // 延迟计算，确保DOM已渲染
-      setTimeout(calculateScale, 50)
-      window.addEventListener('resize', calculateScale)
-    }
-
-    return () => {
-      window.removeEventListener('resize', calculateScale)
-    }
-  }, [isOpen, record])
-
-  // 点击卡片切换放大/缩小
-  const handleCardClick = () => {
-    setIsZoomed(!isZoomed)
-  }
 
   // 早期返回必须在所有 Hooks 之后
   if (!record) return null
@@ -976,36 +944,18 @@ function ShareCardModal({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
             className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 backdrop-blur-sm bg-black/15"
-            onClick={() => {
-              if (isZoomed) {
-                setIsZoomed(false)
-              } else {
-                onClose()
-              }
-            }}
+            onClick={onClose}
           >
             <div
-              className={`flex flex-col gap-3 w-full transition-all duration-300 ${
-                isZoomed ? 'max-w-lg max-h-[85vh]' : 'max-w-sm'
-              }`}
+              className="flex flex-col gap-3 w-full max-w-lg max-h-[85vh]"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Share Card Content (for screenshot) - 动态缩放 + 点击放大 */}
               <div
                 ref={cardRef}
                 id="share-card-content"
-                className={`bg-background rounded-3xl overflow-hidden transition-all duration-500 cursor-pointer ${
-                  isZoomed ? 'w-full flex-1 overflow-y-auto ring-1 ring-white/10' : ''
-                }`}
-                style={{
-                  transform: isZoomed ? 'scale(1)' : `scale(${scale})`,
-                  transformOrigin: 'center center',
-                  marginBottom: isZoomed ? 0 : (scale < 1 ? `${(1 - scale) * 100}%` : 0)
-                }}
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleCardClick()
-                }}
+                className="bg-background rounded-3xl overflow-hidden w-full flex-1 overflow-y-auto ring-1 ring-white/10"
+                
               >
                 {/* Header: Hero Duration Design */}
                 <div className="px-5 pt-5 pb-4 border-b border-border">
