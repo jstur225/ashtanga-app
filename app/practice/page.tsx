@@ -978,13 +978,11 @@ function ShareCardModal({
             onClick={onClose}
           />
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className={`fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 transition-all duration-500 ${
-              isZoomed ? 'backdrop-blur-xl bg-white/30' : ''
-            }`}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 backdrop-blur-xl bg-white/30"
             onClick={() => {
               if (isZoomed) {
                 setIsZoomed(false)
