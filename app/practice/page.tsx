@@ -983,7 +983,7 @@ function ShareCardModal({
             exit={{ opacity: 0, scale: 0.9 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
             className={`fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 transition-all duration-500 ${
-              isZoomed ? 'backdrop-blur-xl bg-black/20' : ''
+              isZoomed ? 'backdrop-blur-xl bg-white/30' : ''
             }`}
             onClick={() => {
               if (isZoomed) {
@@ -994,7 +994,9 @@ function ShareCardModal({
             }}
           >
             <div
-              className="flex flex-col gap-3 w-full max-w-sm transition-all duration-300"
+              className={`flex flex-col gap-3 w-full transition-all duration-300 ${
+                isZoomed ? 'max-w-lg max-h-[85vh]' : 'max-w-sm'
+              }`}
               onClick={(e) => e.stopPropagation()}
             >
               {/* Share Card Content (for screenshot) - 动态缩放 + 点击放大 */}
@@ -1002,10 +1004,10 @@ function ShareCardModal({
                 ref={cardRef}
                 id="share-card-content"
                 className={`bg-background rounded-3xl shadow-2xl overflow-hidden transition-all duration-500 cursor-pointer ${
-                  isZoomed ? 'w-full max-w-lg max-h-[80vh] overflow-y-auto shadow-[0_32px_64px_-12px_rgba(0,0,0,0.4)] ring-1 ring-white/10' : ''
+                  isZoomed ? 'w-full flex-1 overflow-y-auto shadow-[0_32px_64px_-12px_rgba(0,0,0,0.4)] ring-1 ring-white/10' : ''
                 }`}
                 style={{
-                  transform: isZoomed ? 'scale(1.02)' : `scale(${scale})`,
+                  transform: isZoomed ? 'scale(1)' : `scale(${scale})`,
                   transformOrigin: 'center center',
                   marginBottom: isZoomed ? 0 : (scale < 1 ? `${(1 - scale) * 100}%` : 0)
                 }}
@@ -1088,16 +1090,14 @@ function ShareCardModal({
                 </div>
               </div>
 
-              {/* 悬浮按钮组 - 放大时隐藏 */}
+              {/* 悬浮按钮组 - 始终可见 */}
               <div
-                className={`flex flex-col gap-2 transition-all duration-500 ${
-                  isZoomed ? 'opacity-0 pointer-events-none scale-95' : 'opacity-100 scale-100'
-                }`}
+                className="flex flex-col gap-2 transition-all duration-300"
                 onClick={(e) => e.stopPropagation()}
               >
-                {/* 点击提示 - 毛玻璃背景 */}
-                <div className="text-center backdrop-blur-md bg-white/5 rounded-full py-1.5 px-4">
-                  <span className="text-xs text-white/80 font-serif">点击卡片放大查看</span>
+                {/* 点击提示 - 深色毛玻璃背景确保可见 */}
+                <div className="text-center backdrop-blur-md bg-black/40 rounded-full py-1.5 px-4">
+                  <span className="text-xs text-white/90 font-serif">{isZoomed ? '点击卡片或背景缩小' : '点击卡片放大查看'}</span>
                 </div>
                 <div className="flex gap-3">
                 <button
