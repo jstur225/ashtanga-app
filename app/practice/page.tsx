@@ -1095,10 +1095,6 @@ function ShareCardModal({
                 className="flex flex-col gap-2 transition-all duration-300"
                 onClick={(e) => e.stopPropagation()}
               >
-                {/* 点击提示 - 深色毛玻璃背景确保可见 */}
-                <div className="text-center backdrop-blur-md bg-black/40 rounded-full py-1.5 px-4">
-                  <span className="text-xs text-white/90 font-serif">{isZoomed ? '点击卡片或背景缩小' : '点击卡片放大查看'}</span>
-                </div>
                 <div className="flex gap-3">
                 <button
                   type="button"
