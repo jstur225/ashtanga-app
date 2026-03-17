@@ -856,6 +856,7 @@ function ShareCardModal({
 }) {
   const [isCapturing, setIsCapturing] = useState(false)  // 截图状态
   const [scale, setScale] = useState(1)  // 动态缩放
+  const [isZoomed, setIsZoomed] = useState(false)  // 点击放大状态
   const cardRef = useRef<HTMLDivElement>(null)
 
   // 计算动态缩放比例
@@ -884,6 +885,11 @@ function ShareCardModal({
       window.removeEventListener('resize', calculateScale)
     }
   }, [isOpen, record])
+
+  // 点击卡片切换放大/缩小
+  const handleCardClick = () => {
+    setIsZoomed(!isZoomed)
+  }
 
   // 早期返回必须在所有 Hooks 之后
   if (!record) return null
@@ -976,19 +982,36 @@ function ShareCardModal({
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
-            onClick={onClose}
+            className={`fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 transition-all duration-300 ${
+              isZoomed ? 'bg-black/90' : ''
+            }`}
+            onClick={() => {
+              if (isZoomed) {
+                setIsZoomed(false)
+              } else {
+                onClose()
+              }
+            }}
           >
-            <div className="flex flex-col gap-3 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
-              {/* Share Card Content (for screenshot) - 动态缩放 */}
+            <div
+              className="flex flex-col gap-3 w-full max-w-sm transition-all duration-300"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Share Card Content (for screenshot) - 动态缩放 + 点击放大 */}
               <div
                 ref={cardRef}
                 id="share-card-content"
-                className="bg-background rounded-3xl shadow-2xl overflow-hidden transition-transform duration-200"
+                className={`bg-background rounded-3xl shadow-2xl overflow-hidden transition-all duration-300 cursor-pointer ${
+                  isZoomed ? 'w-full max-w-lg max-h-[80vh] overflow-y-auto' : ''
+                }`}
                 style={{
-                  transform: `scale(${scale})`,
-                  transformOrigin: 'center top',
-                  marginBottom: scale < 1 ? `${(1 - scale) * 100}%` : 0
+                  transform: isZoomed ? 'scale(1)' : `scale(${scale})`,
+                  transformOrigin: 'center center',
+                  marginBottom: isZoomed ? 0 : (scale < 1 ? `${(1 - scale) * 100}%` : 0)
+                }}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleCardClick()
                 }}
               >
                 {/* Header: Hero Duration Design */}
@@ -1010,11 +1033,9 @@ function ShareCardModal({
                   )}
                 </div>
 
-                {/* Reflection Text - 只读显示 */}
+                {/* Reflection Text - 只读显示，无高度限制 */}
                 <div className="px-5 py-6">
-                  <p className={`text-sm text-foreground font-serif leading-relaxed whitespace-pre-wrap break-words ${
-                    isCapturing ? 'max-h-none' : 'max-h-[50vh] overflow-y-auto'
-                  }`}>
+                  <p className="text-sm text-foreground font-serif leading-relaxed whitespace-pre-wrap break-words">
                     {displayNotes}
                   </p>
                 </div>
@@ -1067,8 +1088,18 @@ function ShareCardModal({
                 </div>
               </div>
 
-              {/* 悬浮按钮组 */}
-              <div className="flex gap-3" onClick={(e) => e.stopPropagation()}>
+              {/* 悬浮按钮组 - 放大时隐藏 */}
+              <div
+                className={`flex flex-col gap-2 transition-opacity duration-300 ${
+                  isZoomed ? 'opacity-0 pointer-events-none' : 'opacity-100'
+                }`}
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* 点击提示 */}
+                <div className="text-center">
+                  <span className="text-xs text-white/60">点击卡片放大查看</span>
+                </div>
+                <div className="flex gap-3">
                 <button
                   type="button"
                   onClick={onClose}
@@ -1084,6 +1115,7 @@ function ShareCardModal({
                   <Share2 className="w-4 h-4" />
                   保存图片
                 </button>
+                </div>
               </div>
             </div>
           </motion.div>
