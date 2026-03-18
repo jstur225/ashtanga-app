@@ -1,0 +1,414 @@
+// Canvas 绘制分享卡片 - 高性能方案
+// 目标：将截图时间从 800ms-1500ms 降至 300ms 以内
+
+interface ShareCardData {
+  date: string
+  type: string
+  duration: number
+  notes: string
+  breakthrough?: string
+  thisMonthDays: number
+  totalCount: number
+  totalHours: number
+  profile: {
+    name: string
+    signature: string
+    avatar?: string
+  }
+}
+
+interface DrawOptions {
+  scale?: number
+}
+
+// 颜色配置
+const COLORS = {
+  background: '#f5f5f5',
+  cardBackground: '#ffffff',
+  textPrimary: '#1a1a1a',
+  textSecondary: '#666666',
+  textMuted: '#999999',
+  accentOrange: '#e67e22',
+  border: '#e5e5e5',
+}
+
+// 字体配置（使用系统字体，确保加载速度）
+const FONTS = {
+  serif: "'Noto Serif SC', 'Songti SC', 'STSong', 'SimSun', serif",
+  sans: "'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif",
+}
+
+/**
+ * 加载图片
+ */
+function loadImage(url: string): Promise<HTMLImageElement | null> {
+  return new Promise((resolve) => {
+    if (!url) {
+      resolve(null)
+      return
+    }
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+    img.onload = () => resolve(img)
+    img.onerror = () => resolve(null)
+    img.src = url
+  })
+}
+
+/**
+ * 文字自动换行
+ */
+function wrapText(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  maxWidth: number,
+): string[] {
+  const lines: string[] = []
+  let currentLine = ''
+
+  for (const char of text) {
+    const testLine = currentLine + char
+    const metrics = ctx.measureText(testLine)
+    if (metrics.width > maxWidth && currentLine.length > 0) {
+      lines.push(currentLine)
+      currentLine = char
+    } else {
+      currentLine = testLine
+    }
+  }
+
+  if (currentLine) {
+    lines.push(currentLine)
+  }
+
+  return lines
+}
+
+/**
+ * 绘制圆角矩形
+ */
+function drawRoundRect(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius: number,
+): void {
+  ctx.beginPath()
+  ctx.moveTo(x + radius, y)
+  ctx.lineTo(x + width - radius, y)
+  ctx.quadraticCurveTo(x + width, y, x + width, y + radius)
+  ctx.lineTo(x + width, y + height - radius)
+  ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height)
+  ctx.lineTo(x + radius, y + height)
+  ctx.quadraticCurveTo(x, y + height, x, y + height - radius)
+  ctx.lineTo(x, y + radius)
+  ctx.quadraticCurveTo(x, y, x + radius, y)
+  ctx.closePath()
+}
+
+/**
+ * 绘制圆形头像
+ */
+function drawCircularAvatar(
+  ctx: CanvasRenderingContext2D,
+  img: HTMLImageElement,
+  x: number,
+  y: number,
+  size: number,
+): void {
+  ctx.save()
+  ctx.beginPath()
+  ctx.arc(x + size / 2, y + size / 2, size / 2, 0, Math.PI * 2)
+  ctx.clip()
+  ctx.drawImage(img, x, y, size, size)
+  ctx.restore()
+}
+
+/**
+ * 主要绘制函数
+ */
+export async function drawShareCard(
+  canvas: HTMLCanvasElement,
+  data: ShareCardData,
+  options?: DrawOptions,
+): Promise<void> {
+  const startTime = performance.now()
+  const scale = options?.scale || 2
+
+  // 基础尺寸配置
+  const BASE_WIDTH = 360
+  const PADDING = 20
+  const HEADER_HEIGHT = 100
+  const FOOTER_HEIGHT = 120
+  const LINE_HEIGHT = 24
+  const MAX_NOTES_HEIGHT = 280 // 笔记最大高度限制
+
+  // 计算笔记实际高度
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new Error('无法获取 Canvas 上下文')
+
+  ctx.font = `16px ${FONTS.serif}`
+  const notesLines = wrapText(ctx, data.notes || '今日练习完成', BASE_WIDTH - PADDING * 2)
+  const notesHeight = Math.min(notesLines.length * LINE_HEIGHT, MAX_NOTES_HEIGHT)
+
+  // 动态计算总高度
+  const contentHeight = HEADER_HEIGHT + notesHeight + 40 + FOOTER_HEIGHT
+  const BASE_HEIGHT = Math.max(480, contentHeight)
+
+  // 设置 Canvas 尺寸（考虑缩放）
+  canvas.width = BASE_WIDTH * scale
+  canvas.height = BASE_HEIGHT * scale
+
+  // 缩放上下文
+  ctx.scale(scale, scale)
+
+  // 清除画布
+  ctx.fillStyle = COLORS.background
+  ctx.fillRect(0, 0, BASE_WIDTH, BASE_HEIGHT)
+
+  // 绘制卡片背景（圆角矩形）
+  const cardX = PADDING / 2
+  const cardY = PADDING / 2
+  const cardWidth = BASE_WIDTH - PADDING
+  const cardHeight = BASE_HEIGHT - PADDING
+  const cornerRadius = 24
+
+  ctx.fillStyle = COLORS.cardBackground
+  drawRoundRect(ctx, cardX, cardY, cardWidth, cardHeight, cornerRadius)
+  ctx.fill()
+
+  // 添加轻微阴影
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.08)'
+  ctx.shadowBlur = 16
+  ctx.shadowOffsetY = 4
+  ctx.fill()
+  ctx.shadowColor = 'transparent'
+  ctx.shadowBlur = 0
+  ctx.shadowOffsetY = 0
+
+  // 当前绘制位置
+  let currentY = cardY + 20
+
+  // === Header 区域 ===
+  // 日期 · 类型
+  ctx.fillStyle = COLORS.textSecondary
+  ctx.font = `12px ${FONTS.serif}`
+  ctx.textAlign = 'left'
+  ctx.fillText(`${data.date} · ${data.type}`, cardX + 20, currentY + 16)
+  currentY += 30
+
+  // 时长（大号）
+  ctx.fillStyle = COLORS.textPrimary
+  ctx.font = `bold 36px ${FONTS.serif}`
+  ctx.fillText(`${data.duration}`, cardX + 20, currentY + 32)
+
+  // "分钟" 小字
+  const durationWidth = ctx.measureText(String(data.duration)).width
+  ctx.font = `16px ${FONTS.serif}`
+  ctx.fillStyle = COLORS.textSecondary
+  ctx.fillText('分钟', cardX + 20 + durationWidth + 6, currentY + 28)
+  currentY += 50
+
+  // 突破徽章（如果有）
+  if (data.breakthrough) {
+    ctx.fillStyle = 'rgba(230, 126, 34, 0.1)'
+    drawRoundRect(ctx, cardX + 20, currentY, 100, 28, 14)
+    ctx.fill()
+
+    ctx.fillStyle = COLORS.accentOrange
+    ctx.font = `bold 13px ${FONTS.serif}`
+    ctx.textAlign = 'center'
+    ctx.fillText(data.breakthrough, cardX + 70, currentY + 19)
+    ctx.textAlign = 'left'
+    currentY += 40
+  } else {
+    currentY += 20
+  }
+
+  // 绘制分隔线
+  ctx.strokeStyle = COLORS.border
+  ctx.lineWidth = 1
+  ctx.beginPath()
+  ctx.moveTo(cardX + 20, currentY)
+  ctx.lineTo(cardX + cardWidth - 20, currentY)
+  ctx.stroke()
+  currentY += 24
+
+  // === Notes 区域 ===
+  ctx.fillStyle = COLORS.textPrimary
+  ctx.font = `16px ${FONTS.serif}`
+
+  // 重新计算换行（因为字体可能不同）
+  const displayNotes = data.notes || '今日练习完成'
+  const wrappedLines = wrapText(ctx, displayNotes, cardWidth - 40)
+
+  // 只显示能容纳的行数
+  const maxLines = Math.floor(MAX_NOTES_HEIGHT / LINE_HEIGHT)
+  const displayLines = wrappedLines.slice(0, maxLines)
+
+  displayLines.forEach((line, index) => {
+    ctx.fillText(line, cardX + 20, currentY + index * LINE_HEIGHT)
+  })
+
+  currentY += displayLines.length * LINE_HEIGHT + 30
+
+  // 绘制分隔线
+  ctx.strokeStyle = COLORS.border
+  ctx.beginPath()
+  ctx.moveTo(cardX + 20, currentY)
+  ctx.lineTo(cardX + cardWidth - 20, currentY)
+  ctx.stroke()
+  currentY += 20
+
+  // === Footer Stats 区域 ===
+  const statsY = currentY
+  const colWidth = (cardWidth - 40) / 3
+
+  // 统计数据
+  const stats = [
+    { value: data.thisMonthDays, unit: '天', label: '本月熬汤' },
+    { value: data.totalCount, unit: '次', label: '累计熬汤' },
+    { value: data.totalHours, unit: '小时', label: '累计熬汤时长' },
+  ]
+
+  stats.forEach((stat, index) => {
+    const centerX = cardX + 20 + colWidth * index + colWidth / 2
+
+    // 数值（大号）
+    ctx.fillStyle = COLORS.textPrimary
+    ctx.font = `bold 24px ${FONTS.serif}`
+    ctx.textAlign = 'center'
+    ctx.fillText(String(stat.value), centerX, statsY + 22)
+
+    // 单位（小号）
+    const valueWidth = ctx.measureText(String(stat.value)).width / 2
+    ctx.font = `13px ${FONTS.serif}`
+    ctx.fillStyle = COLORS.textSecondary
+    ctx.fillText(stat.unit, centerX + valueWidth + 4, statsY + 20)
+
+    // 标签（最小号）
+    ctx.fillStyle = COLORS.textMuted
+    ctx.font = `10px ${FONTS.sans}`
+    ctx.fillText(stat.label, centerX, statsY + 40)
+  })
+
+  ctx.textAlign = 'left'
+  currentY = statsY + 60
+
+  // === Footer Identity 区域 ===
+  const identityY = currentY
+
+  // 加载并绘制头像
+  let avatarX = cardX + 20
+  const avatarSize = 28
+
+  if (data.profile.avatar) {
+    const avatarImg = await loadImage(data.profile.avatar)
+    if (avatarImg) {
+      // 绘制圆形头像
+      drawCircularAvatar(ctx, avatarImg, avatarX, identityY, avatarSize)
+    } else {
+      // 绘制占位符
+      ctx.fillStyle = COLORS.accentOrange
+      ctx.beginPath()
+      ctx.arc(avatarX + avatarSize / 2, identityY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2)
+      ctx.fill()
+
+      ctx.fillStyle = '#fff'
+      ctx.font = `bold 12px ${FONTS.sans}`
+      ctx.textAlign = 'center'
+      ctx.fillText(data.profile.name.charAt(0), avatarX + avatarSize / 2, identityY + avatarSize / 2 + 4)
+      ctx.textAlign = 'left'
+    }
+  } else {
+    // 绘制默认头像背景
+    ctx.fillStyle = COLORS.accentOrange
+    ctx.beginPath()
+    ctx.arc(avatarX + avatarSize / 2, identityY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2)
+    ctx.fill()
+
+    ctx.fillStyle = '#fff'
+    ctx.font = `bold 12px ${FONTS.sans}`
+    ctx.textAlign = 'center'
+    ctx.fillText(data.profile.name.charAt(0), avatarX + avatarSize / 2, identityY + avatarSize / 2 + 4)
+    ctx.textAlign = 'left'
+  }
+
+  // 用户名
+  ctx.fillStyle = COLORS.accentOrange
+  ctx.font = `bold 14px ${FONTS.serif}`
+  ctx.fillText(data.profile.name, avatarX + avatarSize + 8, identityY + 16)
+
+  // 签名（如果有）
+  if (data.profile.signature) {
+    ctx.fillStyle = COLORS.textMuted
+    ctx.font = `11px ${FONTS.serif}`
+    ctx.fillText(data.profile.signature, avatarX + avatarSize + 8, identityY + 30)
+  }
+
+  // 品牌名（右侧）
+  ctx.fillStyle = COLORS.textMuted
+  ctx.font = `italic 11px ${FONTS.serif}`
+  ctx.textAlign = 'right'
+  ctx.fillText('熬汤日记', cardX + cardWidth - 20, identityY + 16)
+  ctx.textAlign = 'left'
+
+  const endTime = performance.now()
+  console.log(`🎨 Canvas 绘制完成，耗时: ${Math.round(endTime - startTime)}ms`)
+}
+
+/**
+ * 导出图片为 DataURL
+ */
+export function exportToDataURL(canvas: HTMLCanvasElement): string {
+  return canvas.toDataURL('image/png', 1.0)
+}
+
+/**
+ * 触发图片下载
+ */
+export function downloadImage(dataUrl: string, filename: string): void {
+  const link = document.createElement('a')
+  link.download = filename
+  link.href = dataUrl
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+}
+
+/**
+ * 创建并绘制分享卡片（完整流程）
+ */
+export async function createShareCard(
+  data: ShareCardData,
+  options?: DrawOptions,
+): Promise<{ success: boolean; dataUrl?: string; duration: number; error?: string }> {
+  const startTime = performance.now()
+
+  try {
+    // 创建离屏 canvas
+    const canvas = document.createElement('canvas')
+
+    // 绘制卡片
+    await drawShareCard(canvas, data, options)
+
+    // 导出图片
+    const dataUrl = exportToDataURL(canvas)
+    const duration = Math.round(performance.now() - startTime)
+
+    return {
+      success: true,
+      dataUrl,
+      duration,
+    }
+  } catch (error) {
+    const duration = Math.round(performance.now() - startTime)
+    return {
+      success: false,
+      duration,
+      error: error instanceof Error ? error.message : String(error),
+    }
+  }
+}

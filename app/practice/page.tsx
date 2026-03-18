@@ -23,6 +23,7 @@ import { DebugLogModal } from "@/components/DebugLogModal"
 import { toast } from 'sonner'
 import { trackEvent } from '@/lib/analytics'
 import { captureWithFallback, formatErrorForUser } from '@/lib/screenshot'
+import { createShareCard } from '@/lib/share-card-canvas'
 import { MOON_DAYS_2026 } from '@/lib/moon-phase-data'
 import { supabase } from '@/lib/supabase'
 import { deletePracticeRecord } from '@/lib/database'
@@ -862,67 +863,134 @@ function ShareCardModal({
   // 早期返回必须在所有 Hooks 之后
   if (!record) return null
 
-  // 图片导出功能
+  // 图片导出功能 - Canvas 优先，DOM 截图降级
   const handleExportImage = async () => {
-    const element = document.getElementById('share-card-content')
-    if (!element) {
-      toast.error('未找到分享卡片内容')
+    const startTime = performance.now()
+
+    if (!record) {
+      toast.error('未找到练习记录')
       return
     }
 
     try {
       toast.loading('正在生成图片...', { id: 'export' })
 
-      // 1. 设置截图状态（展开全部内容）
-      setIsCapturing(true)
+      // === 方案1: Canvas 绘制（高性能）===
+      const formattedDate = new Date(record.date).toLocaleDateString('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      }).replace(/\//g, '.')
 
-      // 2. 等待DOM更新（确保高度扩展完成）
+      const canvasResult = await createShareCard({
+        date: formattedDate,
+        type: record.type,
+        duration: Math.floor(record.duration / 60),
+        notes: record.notes || '今日练习完成',
+        breakthrough: record.breakthrough,
+        thisMonthDays,
+        totalCount: totalPracticeCount,
+        totalHours,
+        profile: {
+          name: profile.name,
+          signature: profile.signature,
+          avatar: profile.avatar
+        }
+      }, { scale: 2 })
+
+      if (canvasResult.success && canvasResult.dataUrl) {
+        // Canvas 成功，直接下载
+        const link = document.createElement('a')
+        link.download = `ashtanga-${record.date || 'practice'}.png`
+        link.href = canvasResult.dataUrl
+        link.click()
+
+        // 记录日志
+        onLogExport({
+          timestamp: new Date().toISOString(),
+          success: true,
+          userAgent: navigator.userAgent,
+          recordDate: record.date,
+          duration: canvasResult.duration,
+          attempts: [{
+            method: 'canvas-draw',
+            success: true,
+            duration: canvasResult.duration
+          }],
+          browserInfo: {
+            name: 'unknown',
+            isWeChat: /MicroMessenger/i.test(navigator.userAgent),
+            isMobile: /Mobile|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+          }
+        })
+
+        trackEvent('share_card_export', {
+          export_method: 'canvas-draw',
+          export_success: true,
+          duration: canvasResult.duration
+        })
+
+        toast.dismiss('export')
+        toast.success('图片已保存')
+        onClose()
+
+        console.log(`✅ Canvas 绘制成功，耗时 ${canvasResult.duration}ms`)
+        return
+      }
+
+      // === 方案2: DOM 截图降级（兼容性更好）===
+      console.log('Canvas 绘制失败，降级到 DOM 截图:', canvasResult.error)
+
+      const element = document.getElementById('share-card-content')
+      if (!element) {
+        throw new Error('未找到分享卡片元素')
+      }
+
+      // 设置截图状态（展开全部内容）
+      setIsCapturing(true)
       await new Promise(resolve => setTimeout(resolve, 100))
 
-      // 3. 执行截图
-      const result = await captureWithFallback(element, {
+      const fallbackResult = await captureWithFallback(element, {
         backgroundColor: '#ffffff',
-        filename: `ashtanga-${record?.date || 'practice'}.png`,
+        filename: `ashtanga-${record.date || 'practice'}.png`,
         onLog: (log) => {
-          const logEntry = {
+          onLogExport({
             ...log,
             timestamp: log.timestamp,
             success: log.success,
             userAgent: log.userAgent,
             recordDate: log.recordDate
-          }
-          onLogExport(logEntry)
+          })
         }
       })
 
-      // 4. 恢复预览状态（恢复高度限制）
+      // 恢复预览状态
       setIsCapturing(false)
 
-      // 记录分享卡片导出事件
       trackEvent('share_card_export', {
-        export_method: result.method,
-        export_success: result.success
+        export_method: fallbackResult.method,
+        export_success: fallbackResult.success
       })
 
       toast.dismiss('export')
 
-      if (result.success) {
+      if (fallbackResult.success) {
         toast.success('图片已保存')
         onClose()
       } else {
-        const errorMessage = formatErrorForUser(result, navigator.userAgent)
+        const errorMessage = formatErrorForUser(fallbackResult, navigator.userAgent)
         toast.error(errorMessage)
       }
+
     } catch (error) {
-      // 5. 出错时也要恢复状态
       setIsCapturing(false)
-      // 记录失败
       trackEvent('share_card_export', {
         export_method: 'error',
         export_success: false
       })
       toast.dismiss('export')
       toast.error('导出失败，请重试')
+      console.error('导出失败:', error)
     }
   }
 
