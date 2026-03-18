@@ -161,8 +161,10 @@ export async function drawShareCard(
   const notesHeight = notesLines.length * LINE_HEIGHT
 
   // 动态计算总高度
-  const contentHeight = HEADER_HEIGHT + notesHeight + 40 + FOOTER_HEIGHT
-  const BASE_HEIGHT = Math.max(400, contentHeight)  // 降低最小高度
+  // HEADER(100) + 突破徽章(40/20) + 分隔线(24) + notes + 30 + 分隔线(20) + stats(60) + identity(43) + 底部间距(10)
+  const breakthroughHeight = data.breakthrough ? 40 : 20
+  const contentHeight = HEADER_HEIGHT + breakthroughHeight + 24 + notesHeight + 30 + 20 + 60 + 43 + 10
+  const BASE_HEIGHT = contentHeight
 
   // 重新设置 Canvas 尺寸（考虑缩放）
   canvas.width = BASE_WIDTH * scale
