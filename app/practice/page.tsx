@@ -954,7 +954,9 @@ function ShareCardModal({
               <div
                 ref={cardRef}
                 id="share-card-content"
-                className="bg-background rounded-3xl overflow-hidden w-full ring-1 ring-white/10 flex-1 overflow-y-auto min-h-0 max-h-[calc(90vh-8rem)]"
+                className={`bg-background rounded-3xl overflow-hidden w-full ring-1 ring-white/10 flex-1 min-h-0 ${
+                  isCapturing ? '' : 'overflow-y-auto max-h-[calc(90vh-8rem)]'
+                }`}
                 
               >
                 {/* Header: Hero Duration Design */}
