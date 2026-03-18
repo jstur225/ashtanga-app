@@ -141,7 +141,7 @@ export async function drawShareCard(
   const BASE_WIDTH = 360
   const PADDING = 0
   const HEADER_HEIGHT = 100
-  const FOOTER_HEIGHT = 70  // 减小底部高度
+  const FOOTER_HEIGHT = 15  // 减小底部高度
   const LINE_HEIGHT = 24
   // 长文案完整显示，不限制高度
 
@@ -308,7 +308,7 @@ export async function drawShareCard(
   })
 
   ctx.textAlign = 'left'
-  currentY = statsY + 45  // 减小间距
+  currentY = statsY + 60
 
   // === Footer Identity 区域 ===
   const identityY = currentY
