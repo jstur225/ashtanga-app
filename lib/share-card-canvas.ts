@@ -139,16 +139,22 @@ export async function drawShareCard(
 
   // 基础尺寸配置
   const BASE_WIDTH = 360
-  const PADDING = 0  // 去掉 padding，卡片填满 Canvas
+  const PADDING = 0
   const HEADER_HEIGHT = 100
-  const FOOTER_HEIGHT = 100
+  const FOOTER_HEIGHT = 85  // 进一步减小底部高度
   const LINE_HEIGHT = 24
   // 长文案完整显示，不限制高度
 
-  // 计算笔记实际高度
   const ctx = canvas.getContext('2d')
   if (!ctx) throw new Error('无法获取 Canvas 上下文')
 
+  // 先设置 Canvas 尺寸和缩放
+  // 估算最小高度（用于第一次字体测量）
+  canvas.width = BASE_WIDTH * scale
+  canvas.height = 800 * scale  // 临时高度
+  ctx.scale(scale, scale)
+
+  // 设置字体并计算换行（在 scale 之后，使用实际尺寸）
   ctx.font = `16px ${FONTS.serif}`
   const notesLines = wrapText(ctx, data.notes || '今日练习完成', BASE_WIDTH - 40)
   // 完整显示所有笔记，不限制高度
@@ -156,13 +162,13 @@ export async function drawShareCard(
 
   // 动态计算总高度
   const contentHeight = HEADER_HEIGHT + notesHeight + 40 + FOOTER_HEIGHT
-  const BASE_HEIGHT = Math.max(480, contentHeight)
+  const BASE_HEIGHT = Math.max(400, contentHeight)  // 降低最小高度
 
-  // 设置 Canvas 尺寸（考虑缩放）
+  // 重新设置 Canvas 尺寸（考虑缩放）
   canvas.width = BASE_WIDTH * scale
   canvas.height = BASE_HEIGHT * scale
 
-  // 缩放上下文
+  // 重新应用缩放（因为修改了 canvas 尺寸会重置上下文）
   ctx.scale(scale, scale)
 
   // 清除画布（透明背景）
@@ -248,16 +254,13 @@ export async function drawShareCard(
   ctx.fillStyle = COLORS.textPrimary
   ctx.font = `16px ${FONTS.serif}`
 
-  // 重新计算换行（因为字体可能不同）
-  const displayNotes = data.notes || '今日练习完成'
-  const wrappedLines = wrapText(ctx, displayNotes, cardWidth - 40)
-
+  // 使用之前计算好的换行结果，确保一致
   // 显示所有行（完整内容）
-  wrappedLines.forEach((line, index) => {
+  notesLines.forEach((line, index) => {
     ctx.fillText(line, 20, currentY + index * LINE_HEIGHT)
   })
 
-  currentY += wrappedLines.length * LINE_HEIGHT + 30
+  currentY += notesLines.length * LINE_HEIGHT + 30
 
   // 绘制分隔线
   ctx.strokeStyle = COLORS.border
