@@ -141,9 +141,9 @@ export async function drawShareCard(
   const BASE_WIDTH = 360
   const PADDING = 0  // 去掉 padding，卡片填满 Canvas
   const HEADER_HEIGHT = 100
-  const FOOTER_HEIGHT = 120
+  const FOOTER_HEIGHT = 100
   const LINE_HEIGHT = 24
-  const MAX_NOTES_HEIGHT = 280 // 笔记最大高度限制
+  // 长文案完整显示，不限制高度
 
   // 计算笔记实际高度
   const ctx = canvas.getContext('2d')
@@ -151,7 +151,8 @@ export async function drawShareCard(
 
   ctx.font = `16px ${FONTS.serif}`
   const notesLines = wrapText(ctx, data.notes || '今日练习完成', BASE_WIDTH - 40)
-  const notesHeight = Math.min(notesLines.length * LINE_HEIGHT, MAX_NOTES_HEIGHT)
+  // 完整显示所有笔记，不限制高度
+  const notesHeight = notesLines.length * LINE_HEIGHT
 
   // 动态计算总高度
   const contentHeight = HEADER_HEIGHT + notesHeight + 40 + FOOTER_HEIGHT
@@ -251,15 +252,12 @@ export async function drawShareCard(
   const displayNotes = data.notes || '今日练习完成'
   const wrappedLines = wrapText(ctx, displayNotes, cardWidth - 40)
 
-  // 只显示能容纳的行数
-  const maxLines = Math.floor(MAX_NOTES_HEIGHT / LINE_HEIGHT)
-  const displayLines = wrappedLines.slice(0, maxLines)
-
-  displayLines.forEach((line, index) => {
+  // 显示所有行（完整内容）
+  wrappedLines.forEach((line, index) => {
     ctx.fillText(line, 20, currentY + index * LINE_HEIGHT)
   })
 
-  currentY += displayLines.length * LINE_HEIGHT + 30
+  currentY += wrappedLines.length * LINE_HEIGHT + 30
 
   // 绘制分隔线
   ctx.strokeStyle = COLORS.border
@@ -283,21 +281,26 @@ export async function drawShareCard(
   stats.forEach((stat, index) => {
     const centerX = 20 + colWidth * index + colWidth / 2
 
-    // 数值（大号）
+    // 数值（大号）- 先计算宽度
     ctx.fillStyle = COLORS.textPrimary
     ctx.font = `bold 24px ${FONTS.serif}`
-    ctx.textAlign = 'center'
-    ctx.fillText(String(stat.value), centerX, statsY + 22)
+    const valueText = String(stat.value)
+    const valueWidth = ctx.measureText(valueText).width
 
-    // 单位（小号）
-    const valueWidth = ctx.measureText(String(stat.value)).width / 2
+    // 数值右对齐到中心偏左
+    ctx.textAlign = 'right'
+    ctx.fillText(valueText, centerX - 2, statsY + 22)
+
+    // 单位左对齐到中心偏右
     ctx.font = `13px ${FONTS.serif}`
     ctx.fillStyle = COLORS.textSecondary
-    ctx.fillText(stat.unit, centerX + valueWidth + 4, statsY + 20)
+    ctx.textAlign = 'left'
+    ctx.fillText(stat.unit, centerX + 2, statsY + 20)
 
     // 标签（最小号）
     ctx.fillStyle = COLORS.textMuted
     ctx.font = `10px ${FONTS.sans}`
+    ctx.textAlign = 'center'
     ctx.fillText(stat.label, centerX, statsY + 40)
   })
 
