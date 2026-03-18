@@ -141,7 +141,7 @@ export async function drawShareCard(
   const BASE_WIDTH = 360
   const PADDING = 0
   const HEADER_HEIGHT = 100
-  const FOOTER_HEIGHT = 85  // 进一步减小底部高度
+  const FOOTER_HEIGHT = 70  // 减小底部高度
   const LINE_HEIGHT = 24
   // 长文案完整显示，不限制高度
 
@@ -308,7 +308,7 @@ export async function drawShareCard(
   })
 
   ctx.textAlign = 'left'
-  currentY = statsY + 60
+  currentY = statsY + 45  // 减小间距
 
   // === Footer Identity 区域 ===
   const identityY = currentY
@@ -354,18 +354,18 @@ export async function drawShareCard(
   ctx.font = `bold 14px ${FONTS.serif}`
   ctx.fillText(data.profile.name, avatarX + avatarSize + 8, identityY + 16)
 
-  // 签名（如果有）
+  // 签名（如果有）- 放在用户名下
   if (data.profile.signature) {
     ctx.fillStyle = COLORS.textMuted
     ctx.font = `11px ${FONTS.serif}`
-    ctx.fillText(data.profile.signature, avatarX + avatarSize + 8, identityY + 30)
+    ctx.fillText(data.profile.signature, avatarX + avatarSize + 8, identityY + 32)
   }
 
-  // 品牌名（右侧）
+  // 品牌名（右侧，与签名同一行）
   ctx.fillStyle = COLORS.textMuted
   ctx.font = `italic 11px ${FONTS.serif}`
   ctx.textAlign = 'right'
-  ctx.fillText('熬汤日记', cardWidth - 20, identityY + 16)
+  ctx.fillText('熬汤日记', cardWidth - 20, identityY + 32)
   ctx.textAlign = 'left'
 
   // 恢复裁剪前的状态
