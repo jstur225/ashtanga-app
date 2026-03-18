@@ -29,6 +29,7 @@ const COLORS = {
   textSecondary: '#666666',
   textMuted: '#999999',
   accentOrange: '#e67e22',
+  accentGreen: '#2d5a27',  // 绿色，用于默认头像
   border: '#e5e5e5',
 }
 
@@ -158,7 +159,7 @@ export async function drawShareCard(
   // 基础尺寸配置
   const BASE_WIDTH = 360
   const PADDING = 0
-  const HEADER_HEIGHT = 100
+  const HEADER_HEIGHT = 88  // 减小，因为时长区域间距减少了12px
   const FOOTER_HEIGHT = 0  // 签名到底部无额外空白
   const LINE_HEIGHT = 24
   // 长文案完整显示，不限制高度
@@ -243,7 +244,7 @@ export async function drawShareCard(
   ctx.font = `16px ${FONTS.serif}`
   ctx.fillStyle = COLORS.textSecondary
   ctx.fillText('分钟', 20 + durationWidth + 6, currentY + 28)
-  currentY += 50
+  currentY += 38  // 减小到上线条的间距
 
   // 突破徽章（如果有）
   if (data.breakthrough) {
@@ -361,30 +362,18 @@ export async function drawShareCard(
       // 绘制圆形头像
       drawCircularAvatar(ctx, avatarImg, avatarX, identityY, avatarSize)
     } else {
-      // 绘制占位符
-      ctx.fillStyle = COLORS.accentOrange
+      // 绘制默认绿色头像
+      ctx.fillStyle = COLORS.accentGreen
       ctx.beginPath()
       ctx.arc(avatarX + avatarSize / 2, identityY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2)
       ctx.fill()
-
-      ctx.fillStyle = '#fff'
-      ctx.font = `bold 12px ${FONTS.sans}`
-      ctx.textAlign = 'center'
-      ctx.fillText(data.profile.name.charAt(0), avatarX + avatarSize / 2, identityY + avatarSize / 2 + 4)
-      ctx.textAlign = 'left'
     }
   } else {
-    // 绘制默认头像背景
-    ctx.fillStyle = COLORS.accentOrange
+    // 绘制默认绿色头像
+    ctx.fillStyle = COLORS.accentGreen
     ctx.beginPath()
     ctx.arc(avatarX + avatarSize / 2, identityY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2)
     ctx.fill()
-
-    ctx.fillStyle = '#fff'
-    ctx.font = `bold 12px ${FONTS.sans}`
-    ctx.textAlign = 'center'
-    ctx.fillText(data.profile.name.charAt(0), avatarX + avatarSize / 2, identityY + avatarSize / 2 + 4)
-    ctx.textAlign = 'left'
   }
 
   // 用户名
