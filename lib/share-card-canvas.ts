@@ -23,7 +23,7 @@ interface DrawOptions {
 
 // 颜色配置
 const COLORS = {
-  background: '#f5f5f5',
+  background: '#ffffff',  // 改为白色，去掉灰色外围
   cardBackground: '#ffffff',
   textPrimary: '#1a1a1a',
   textSecondary: '#666666',
@@ -139,7 +139,7 @@ export async function drawShareCard(
 
   // 基础尺寸配置
   const BASE_WIDTH = 360
-  const PADDING = 20
+  const PADDING = 0  // 去掉 padding，卡片填满 Canvas
   const HEADER_HEIGHT = 100
   const FOOTER_HEIGHT = 120
   const LINE_HEIGHT = 24
@@ -150,7 +150,7 @@ export async function drawShareCard(
   if (!ctx) throw new Error('无法获取 Canvas 上下文')
 
   ctx.font = `16px ${FONTS.serif}`
-  const notesLines = wrapText(ctx, data.notes || '今日练习完成', BASE_WIDTH - PADDING * 2)
+  const notesLines = wrapText(ctx, data.notes || '今日练习完成', BASE_WIDTH - 40)
   const notesHeight = Math.min(notesLines.length * LINE_HEIGHT, MAX_NOTES_HEIGHT)
 
   // 动态计算总高度
@@ -164,63 +164,70 @@ export async function drawShareCard(
   // 缩放上下文
   ctx.scale(scale, scale)
 
-  // 清除画布
-  ctx.fillStyle = COLORS.background
-  ctx.fillRect(0, 0, BASE_WIDTH, BASE_HEIGHT)
+  // 清除画布（透明背景）
+  ctx.clearRect(0, 0, BASE_WIDTH, BASE_HEIGHT)
 
-  // 绘制卡片背景（圆角矩形）
-  const cardX = PADDING / 2
-  const cardY = PADDING / 2
-  const cardWidth = BASE_WIDTH - PADDING
-  const cardHeight = BASE_HEIGHT - PADDING
+  // 绘制卡片背景（圆角矩形）- 填满整个 Canvas
+  const cardX = 0
+  const cardY = 0
+  const cardWidth = BASE_WIDTH
+  const cardHeight = BASE_HEIGHT
   const cornerRadius = 24
 
+  // 先绘制圆角路径并裁剪，确保内容不超出圆角
+  ctx.beginPath()
+  ctx.moveTo(cornerRadius, 0)
+  ctx.lineTo(cardWidth - cornerRadius, 0)
+  ctx.quadraticCurveTo(cardWidth, 0, cardWidth, cornerRadius)
+  ctx.lineTo(cardWidth, cardHeight - cornerRadius)
+  ctx.quadraticCurveTo(cardWidth, cardHeight, cardWidth - cornerRadius, cardHeight)
+  ctx.lineTo(cornerRadius, cardHeight)
+  ctx.quadraticCurveTo(0, cardHeight, 0, cardHeight - cornerRadius)
+  ctx.lineTo(0, cornerRadius)
+  ctx.quadraticCurveTo(0, 0, cornerRadius, 0)
+  ctx.closePath()
+
+  // 保存路径用于裁剪
+  ctx.save()
+  ctx.clip()
+
+  // 填充白色背景
   ctx.fillStyle = COLORS.cardBackground
-  drawRoundRect(ctx, cardX, cardY, cardWidth, cardHeight, cornerRadius)
   ctx.fill()
 
-  // 添加轻微阴影
-  ctx.shadowColor = 'rgba(0, 0, 0, 0.08)'
-  ctx.shadowBlur = 16
-  ctx.shadowOffsetY = 4
-  ctx.fill()
-  ctx.shadowColor = 'transparent'
-  ctx.shadowBlur = 0
-  ctx.shadowOffsetY = 0
-
-  // 当前绘制位置
-  let currentY = cardY + 20
+  // 当前绘制位置（从顶部开始，留出边距）
+  let currentY = 20
 
   // === Header 区域 ===
   // 日期 · 类型
   ctx.fillStyle = COLORS.textSecondary
   ctx.font = `12px ${FONTS.serif}`
   ctx.textAlign = 'left'
-  ctx.fillText(`${data.date} · ${data.type}`, cardX + 20, currentY + 16)
+  ctx.fillText(`${data.date} · ${data.type}`, 20, currentY + 16)
   currentY += 30
 
   // 时长（大号）
   ctx.fillStyle = COLORS.textPrimary
   ctx.font = `bold 36px ${FONTS.serif}`
-  ctx.fillText(`${data.duration}`, cardX + 20, currentY + 32)
+  ctx.fillText(`${data.duration}`, 20, currentY + 32)
 
   // "分钟" 小字
   const durationWidth = ctx.measureText(String(data.duration)).width
   ctx.font = `16px ${FONTS.serif}`
   ctx.fillStyle = COLORS.textSecondary
-  ctx.fillText('分钟', cardX + 20 + durationWidth + 6, currentY + 28)
+  ctx.fillText('分钟', 20 + durationWidth + 6, currentY + 28)
   currentY += 50
 
   // 突破徽章（如果有）
   if (data.breakthrough) {
     ctx.fillStyle = 'rgba(230, 126, 34, 0.1)'
-    drawRoundRect(ctx, cardX + 20, currentY, 100, 28, 14)
+    drawRoundRect(ctx, 20, currentY, 100, 28, 14)
     ctx.fill()
 
     ctx.fillStyle = COLORS.accentOrange
     ctx.font = `bold 13px ${FONTS.serif}`
     ctx.textAlign = 'center'
-    ctx.fillText(data.breakthrough, cardX + 70, currentY + 19)
+    ctx.fillText(data.breakthrough, 70, currentY + 19)
     ctx.textAlign = 'left'
     currentY += 40
   } else {
@@ -231,8 +238,8 @@ export async function drawShareCard(
   ctx.strokeStyle = COLORS.border
   ctx.lineWidth = 1
   ctx.beginPath()
-  ctx.moveTo(cardX + 20, currentY)
-  ctx.lineTo(cardX + cardWidth - 20, currentY)
+  ctx.moveTo(20, currentY)
+  ctx.lineTo(cardWidth - 20, currentY)
   ctx.stroke()
   currentY += 24
 
@@ -249,7 +256,7 @@ export async function drawShareCard(
   const displayLines = wrappedLines.slice(0, maxLines)
 
   displayLines.forEach((line, index) => {
-    ctx.fillText(line, cardX + 20, currentY + index * LINE_HEIGHT)
+    ctx.fillText(line, 20, currentY + index * LINE_HEIGHT)
   })
 
   currentY += displayLines.length * LINE_HEIGHT + 30
@@ -257,8 +264,8 @@ export async function drawShareCard(
   // 绘制分隔线
   ctx.strokeStyle = COLORS.border
   ctx.beginPath()
-  ctx.moveTo(cardX + 20, currentY)
-  ctx.lineTo(cardX + cardWidth - 20, currentY)
+  ctx.moveTo(20, currentY)
+  ctx.lineTo(cardWidth - 20, currentY)
   ctx.stroke()
   currentY += 20
 
@@ -274,7 +281,7 @@ export async function drawShareCard(
   ]
 
   stats.forEach((stat, index) => {
-    const centerX = cardX + 20 + colWidth * index + colWidth / 2
+    const centerX = 20 + colWidth * index + colWidth / 2
 
     // 数值（大号）
     ctx.fillStyle = COLORS.textPrimary
@@ -301,7 +308,7 @@ export async function drawShareCard(
   const identityY = currentY
 
   // 加载并绘制头像
-  let avatarX = cardX + 20
+  let avatarX = 20
   const avatarSize = 28
 
   if (data.profile.avatar) {
@@ -352,8 +359,11 @@ export async function drawShareCard(
   ctx.fillStyle = COLORS.textMuted
   ctx.font = `italic 11px ${FONTS.serif}`
   ctx.textAlign = 'right'
-  ctx.fillText('熬汤日记', cardX + cardWidth - 20, identityY + 16)
+  ctx.fillText('熬汤日记', cardWidth - 20, identityY + 16)
   ctx.textAlign = 'left'
+
+  // 恢复裁剪前的状态
+  ctx.restore()
 
   const endTime = performance.now()
   console.log(`🎨 Canvas 绘制完成，耗时: ${Math.round(endTime - startTime)}ms`)
