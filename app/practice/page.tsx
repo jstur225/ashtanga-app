@@ -957,6 +957,7 @@ function ShareCardModal({
                 className={`bg-background rounded-3xl overflow-hidden w-full ring-1 ring-white/10 ${
                   isCapturing ? '' : 'flex-1 overflow-y-auto min-h-0 max-h-[calc(90vh-8rem)]'
                 }`}
+                style={isCapturing ? { borderRadius: '24px' } : undefined}
                 
               >
                 {/* Header: Hero Duration Design */}
