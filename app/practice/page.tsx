@@ -1034,6 +1034,8 @@ function ShareCardModal({
               {/* 悬浮按钮组 - 始终固定在底部 */}
               <div
                 className="flex flex-col gap-2 mt-3 shrink-0"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <div className="flex gap-3">
                 <button
                   type="button"
