@@ -56,32 +56,42 @@ function loadImage(url: string): Promise<HTMLImageElement | null> {
 }
 
 /**
- * 文字自动换行
+ * 文字自动换行（保留用户手动换行）
  */
 function wrapText(
   ctx: CanvasRenderingContext2D,
   text: string,
   maxWidth: number,
 ): string[] {
-  const lines: string[] = []
-  let currentLine = ''
+  // 先按用户手动换行分割
+  const paragraphs = text.split('\n')
+  const allLines: string[] = []
 
-  for (const char of text) {
-    const testLine = currentLine + char
-    const metrics = ctx.measureText(testLine)
-    if (metrics.width > maxWidth && currentLine.length > 0) {
-      lines.push(currentLine)
-      currentLine = char
-    } else {
-      currentLine = testLine
+  for (const paragraph of paragraphs) {
+    // 对每一段进行自动换行
+    const lines: string[] = []
+    let currentLine = ''
+
+    for (const char of paragraph) {
+      const testLine = currentLine + char
+      const metrics = ctx.measureText(testLine)
+      if (metrics.width > maxWidth && currentLine.length > 0) {
+        lines.push(currentLine)
+        currentLine = char
+      } else {
+        currentLine = testLine
+      }
     }
+
+    if (currentLine) {
+      lines.push(currentLine)
+    }
+
+    // 将这段的行添加到总结果
+    allLines.push(...lines)
   }
 
-  if (currentLine) {
-    lines.push(currentLine)
-  }
-
-  return lines
+  return allLines
 }
 
 /**
