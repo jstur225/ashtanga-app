@@ -141,7 +141,7 @@ export async function drawShareCard(
   const BASE_WIDTH = 360
   const PADDING = 0
   const HEADER_HEIGHT = 100
-  const FOOTER_HEIGHT = 15  // 减小底部高度
+  const FOOTER_HEIGHT = 0  // 签名到底部无额外空白
   const LINE_HEIGHT = 24
   // 长文案完整显示，不限制高度
 
