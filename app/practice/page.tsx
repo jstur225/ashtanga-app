@@ -947,7 +947,7 @@ function ShareCardModal({
             onClick={onClose}
           >
             <div
-              className="flex flex-col w-full max-w-lg max-h-[90vh] p-4"
+              className="flex flex-col w-full max-w-lg max-h-[90vh] p-4 overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Share Card Content (for screenshot) - 可滚动区域 */}
