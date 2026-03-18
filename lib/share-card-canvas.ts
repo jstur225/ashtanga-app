@@ -56,19 +56,27 @@ function loadImage(url: string): Promise<HTMLImageElement | null> {
 }
 
 /**
- * 文字自动换行（保留用户手动换行）
+ * 文字自动换行（保留用户手动换行和空行）
  */
 function wrapText(
   ctx: CanvasRenderingContext2D,
   text: string,
   maxWidth: number,
 ): string[] {
-  // 先按用户手动换行分割
+  // 先按用户手动换行分割（保留空行）
   const paragraphs = text.split('\n')
   const allLines: string[] = []
 
-  for (const paragraph of paragraphs) {
-    // 对每一段进行自动换行
+  for (let i = 0; i < paragraphs.length; i++) {
+    const paragraph = paragraphs[i]
+
+    // 空段落（空行）直接添加一个空字符串
+    if (paragraph === '') {
+      allLines.push('')
+      continue
+    }
+
+    // 对非空段落进行自动换行
     const lines: string[] = []
     let currentLine = ''
 
@@ -279,9 +287,13 @@ export async function drawShareCard(
   ctx.font = `16px ${FONTS.serif}`
 
   // 使用之前计算好的换行结果，确保一致
-  // 显示所有行（完整内容）
+  // 显示所有行（完整内容），空行也保留位置
   notesLines.forEach((line, index) => {
-    ctx.fillText(line, 20, currentY + index * LINE_HEIGHT)
+    // 只有非空行才绘制文字，空行只占用高度
+    if (line) {
+      // fillText 的 y 是基线位置，需要偏移使文字垂直居中于行高
+      ctx.fillText(line, 20, currentY + index * LINE_HEIGHT + 18)
+    }
   })
 
   // 文案结束位置 + 下边距 = 下分隔线位置
