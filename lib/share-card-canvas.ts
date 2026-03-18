@@ -42,7 +42,7 @@ const FONTS = {
 /**
  * 加载图片（带超时）
  */
-function loadImage(url: string, timeout = 500): Promise<HTMLImageElement | null> {
+function loadImage(url: string, timeout = 3000): Promise<HTMLImageElement | null> {
   return new Promise((resolve) => {
     if (!url) {
       resolve(null)
