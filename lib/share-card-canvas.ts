@@ -40,18 +40,30 @@ const FONTS = {
 }
 
 /**
- * 加载图片
+ * 加载图片（带超时）
  */
-function loadImage(url: string): Promise<HTMLImageElement | null> {
+function loadImage(url: string, timeout = 500): Promise<HTMLImageElement | null> {
   return new Promise((resolve) => {
     if (!url) {
       resolve(null)
       return
     }
+
+    // 设置超时
+    const timer = setTimeout(() => {
+      resolve(null)
+    }, timeout)
+
     const img = new Image()
     img.crossOrigin = 'anonymous'
-    img.onload = () => resolve(img)
-    img.onerror = () => resolve(null)
+    img.onload = () => {
+      clearTimeout(timer)
+      resolve(img)
+    }
+    img.onerror = () => {
+      clearTimeout(timer)
+      resolve(null)
+    }
     img.src = url
   })
 }
