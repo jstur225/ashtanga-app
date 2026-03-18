@@ -159,7 +159,7 @@ export async function drawShareCard(
   // 基础尺寸配置
   const BASE_WIDTH = 360
   const PADDING = 0
-  const HEADER_HEIGHT = 88  // 减小，因为时长区域间距减少了12px
+  const HEADER_HEIGHT = 75  // 减小，因为时长区域间距减少了
   const FOOTER_HEIGHT = 0  // 签名到底部无额外空白
   const LINE_HEIGHT = 24
   // 长文案完整显示，不限制高度
@@ -244,7 +244,7 @@ export async function drawShareCard(
   ctx.font = `16px ${FONTS.serif}`
   ctx.fillStyle = COLORS.textSecondary
   ctx.fillText('分钟', 20 + durationWidth + 6, currentY + 28)
-  currentY += 38  // 减小到上线条的间距
+  currentY += 25  // 减小到上线条的间距
 
   // 突破徽章（如果有）
   if (data.breakthrough) {
