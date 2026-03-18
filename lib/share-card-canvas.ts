@@ -161,9 +161,9 @@ export async function drawShareCard(
   const notesHeight = notesLines.length * LINE_HEIGHT
 
   // 动态计算总高度
-  // HEADER(100) + 突破徽章(40/20) + 上分隔线(12) + notes + 下间距(12) + 20 + stats(60) + identity(43) + 底部间距(10)
+  // HEADER(100) + 突破徽章(40/20) + 上间距(16) + notes + 下间距(16) + 下线后(20) + stats(60) + identity(43) + 底部间距(10)
   const breakthroughHeight = data.breakthrough ? 40 : 20
-  const contentHeight = HEADER_HEIGHT + breakthroughHeight + 12 + notesHeight + 12 + 20 + 60 + 43 + 10
+  const contentHeight = HEADER_HEIGHT + breakthroughHeight + 16 + notesHeight + 16 + 20 + 60 + 43 + 10
   const BASE_HEIGHT = contentHeight
 
   // 重新设置 Canvas 尺寸（考虑缩放）
@@ -253,8 +253,16 @@ export async function drawShareCard(
 
   // 记录上分隔线位置
   const topLineY = currentY
-  // 跳过上线条，准备绘制文案
-  currentY += 12
+  // 计算文案区域总高度
+  const notesAreaHeight = notesLines.length * LINE_HEIGHT
+  // 两条线之间的总空间 = 区域高度 + 上下间距
+  // 让文案垂直居中：上间距 = 下间距 = (总空间 - 文案高度) / 2
+  // 总空间设为 notesAreaHeight + 32 (上下各16px)
+  const totalSpace = notesAreaHeight + 32
+  const topPadding = 16
+
+  // 跳过上线条和上边距，准备绘制文案
+  currentY += topPadding
 
   // === Notes 区域 ===
   ctx.fillStyle = COLORS.textPrimary
@@ -266,10 +274,12 @@ export async function drawShareCard(
     ctx.fillText(line, 20, currentY + index * LINE_HEIGHT)
   })
 
-  currentY += notesLines.length * LINE_HEIGHT + 12
+  // 文案结束位置 + 下边距 = 下分隔线位置
+  currentY = topLineY + totalSpace
 
   // 绘制下分隔线（与上线条对称，上下间距相同）
   ctx.strokeStyle = COLORS.border
+  ctx.lineWidth = 1
   ctx.beginPath()
   ctx.moveTo(20, currentY)
   ctx.lineTo(cardWidth - 20, currentY)
