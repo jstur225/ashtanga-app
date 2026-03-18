@@ -877,9 +877,7 @@ function ShareCardModal({
       setIsCapturing(true)
 
       // 2. 等待DOM更新（确保高度扩展完成）
-      await new Promise(resolve => {
-        requestAnimationFrame(() => requestAnimationFrame(resolve))
-      })
+      await new Promise(resolve => setTimeout(resolve, 100))
 
       // 3. 执行截图
       const result = await captureWithFallback(element, {
@@ -947,15 +945,17 @@ function ShareCardModal({
             onClick={onClose}
           >
             <div
-              className="flex flex-col w-full max-w-lg max-h-[90vh] p-4"
+              className={`flex flex-col w-full max-w-lg p-4 ${
+                isCapturing ? '' : 'max-h-[90vh]'
+              }`}
               onClick={(e) => e.stopPropagation()}
             >
               {/* Share Card Content (for screenshot) - 可滚动区域 */}
               <div
                 ref={cardRef}
                 id="share-card-content"
-                className={`bg-background rounded-3xl overflow-hidden w-full ring-1 ring-white/10 flex-1 min-h-0 ${
-                  isCapturing ? '' : 'overflow-y-auto max-h-[calc(90vh-8rem)]'
+                className={`bg-background rounded-3xl overflow-hidden w-full ring-1 ring-white/10 ${
+                  isCapturing ? '' : 'flex-1 overflow-y-auto min-h-0 max-h-[calc(90vh-8rem)]'
                 }`}
                 
               >
