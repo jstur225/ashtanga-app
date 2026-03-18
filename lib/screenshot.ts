@@ -125,7 +125,7 @@ function detectBrowserCapabilities() {
 // 使用 modern-screenshot 截图
 async function captureWithModernScreenshot(
   element: HTMLElement,
-  scale: number = 1.5
+  scale: number = 2
 ): Promise<{ success: boolean; dataUrl?: string; error?: string; duration: number }> {
   const startTime = Date.now()
 
@@ -156,7 +156,7 @@ async function captureWithModernScreenshot(
 // 使用 html2canvas 截图
 async function captureWithHtml2Canvas(
   element: HTMLElement,
-  scale: number = 1.5
+  scale: number = 2
 ): Promise<{ success: boolean; dataUrl?: string; error?: string; duration: number }> {
   const startTime = Date.now()
 
@@ -198,7 +198,7 @@ export async function captureWithFallback(
   // 优化1: 如果有缓存的成功方法，直接使用
   if (lastSuccessfulMethod === 'modern-screenshot') {
     console.log('🚀 使用缓存方法: modern-screenshot')
-    const result = await captureWithModernScreenshot(element, options?.scale || 1.5)
+    const result = await captureWithModernScreenshot(element, options?.scale || 2)
 
     if (result.success && result.dataUrl) {
       downloadImage(result.dataUrl, options?.filename || 'ashtanga-practice.png')
@@ -237,7 +237,7 @@ export async function captureWithFallback(
     }
   } else if (lastSuccessfulMethod === 'html2canvas') {
     console.log('🚀 使用缓存方法: html2canvas')
-    const result = await captureWithHtml2Canvas(element, options?.scale || 1.5)
+    const result = await captureWithHtml2Canvas(element, options?.scale || 2)
 
     if (result.success && result.dataUrl) {
       downloadImage(result.dataUrl, options?.filename || 'ashtanga-practice.png')
@@ -278,7 +278,7 @@ export async function captureWithFallback(
 
   // 优化2: 无缓存时，按原策略尝试两种方法
   console.log('尝试方法1: modern-screenshot')
-  const result1 = await captureWithModernScreenshot(element, options?.scale || 1.5)
+  const result1 = await captureWithModernScreenshot(element, options?.scale || 2)
 
   attempts.push({
     method: 'modern-screenshot',
@@ -316,7 +316,7 @@ export async function captureWithFallback(
 
   // 第二层：尝试 html2canvas
   console.log('modern-screenshot 失败，尝试方法2: html2canvas')
-  const result2 = await captureWithHtml2Canvas(element, options?.scale || 1.5)
+  const result2 = await captureWithHtml2Canvas(element, options?.scale || 2)
 
   attempts.push({
     method: 'html2canvas',
