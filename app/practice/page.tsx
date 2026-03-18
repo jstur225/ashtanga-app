@@ -943,11 +943,11 @@ function ShareCardModal({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
-            className="fixed inset-0 z-50 flex items-start justify-center p-4 sm:p-6 backdrop-blur-sm bg-black/15"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 backdrop-blur-sm bg-black/15"
             onClick={onClose}
           >
             <div
-              className="flex flex-col w-full max-w-lg max-h-[90vh] p-4 overflow-hidden"
+              className="flex flex-col w-full max-w-lg h-[calc(90vh-3rem)] p-4 overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Share Card Content (for screenshot) - 可滚动区域 */}
