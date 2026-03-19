@@ -20,357 +20,342 @@
 - **vercel-react-best-practices** - React 和 Next.js 性能优化指南
 - **notebooklm** - NotebookLM 集成，查询笔记本知识库
 - **better-auth-best-practices** - TypeScript 认证框架集成指南（2026-02-02 安装）
-- **2026-02-28**: **实现口令跟练功能** ✅ 完成
-  - **功能描述**: 在首页Tab1添加"口令跟练"特殊选项，跟随老掌门人口令音频练习
-  - **核心特性**:
-    1. 首页显示"口令跟练 🔊"选项（在最前面，不可编辑/删除）
-    2. 计时页面集成音频播放器（加载、播放/暂停、进度显示）
-    3. 支持快进/后退功能（10秒/15秒/30秒步长可选）
-    4. 音频播放与练习计时同步（暂停时音频也暂停）
-    5. 音频结束时自动结束练习
-    6. 音频加载失败时显示错误提示
+- **social-push** - 社交媒体自动发布工具（2026-03-05 安装）
+  - 使用 agent-browser 实现多平台自动发布
+  - 支持小红书（图文/长文）、X/Twitter、微博、知乎、微信公众号、掘金、Linux.do
+  - Chromium profile 位置：`~/AppData/Local/ms-playwright/chromium-profile-xiaohongshu/`
+  - 状态文件：`~/xiaohongshu-login-state.json`
+
+- **awesun-mcp-server** - 向日葵远程控制 MCP 集成（2026-03-19 配置）
+  - 用途：通过 AI 控制同一 WiFi 下的远程电脑
+  - 功能：远程截图、桌面自动化、设备管理
+  - 配置路径：`C:\Users\BIN\.claude\settings.local.json`
+  - 服务器路径：`D:\runjian\xiangrvkui\AweSun\flutter\awesun-mcp-server.exe`
+  - API 地址：`http://127.0.0.1:8908`
+  - 状态：等待重启 Claude Code 加载工具
+
+## 使用记录
+
+- **2026-03-05**: **小红书长文自动发布配置完成**
+  - **新增技能**: social-push - 基于agent-browser的多平台社交媒体发布工具
+  - **配置内容**:
+    - Chromium 持久化 profile（自动保持登录状态）
+    - 小红书长文 workflow：**自动选择"平实叙事"模版**（已实现完全自动化）✅
+    - 成功发布测试文章《我用AI省下的时间，最终还是流向了AI》
+    - 成功发布第二篇文章《2026年，我决定频繁记录每次练习》
+  - **workflow 文件**: `.claude/skills/social-push/references/小红书长文.md`
+  - **默认模版**: "平实叙事"（简洁优雅，适合个人感悟类文章）
+  - **使用方式**: `/social-push 发布小红书长文：标题...内容...话题标签...`
   - **技术实现**:
-    - `hooks/usePracticeData.ts`: 添加 `GUIDED_AUDIO_OPTION` 预设选项，扩展 `PracticeOption` 接口
-    - `app/practice/page.tsx`: 添加音频播放器状态、控制逻辑和UI
-    - `public/audio/`: 创建音频文件存放目录
-  - **音频文件**: 需将 `guruji-led-primary.mp3` 放入 `public/audio/` 目录
+    - 使用 `eval` 查找并点击"模板与封面"按钮（绕过元素遮挡）
+    - 精确滚动到 scrollTop = 2100（"平实叙事"位置）
+    - 多重点击策略（dispatchEvent + 父元素遍历click）
+    - 自动验证（通过"下一步"按钮可点击性确认模版已选择）
+  - **2026-03-05 测试验证**: ✅ 成功自动选择"平实叙事"模版并进入发布设置页面
 
-- **2026-03-05**: **修复同步功能 start_time 字段缺失问题** ✅ 完成
-  - **问题描述**: 2月28日后同步功能停止工作，16条新记录无法上传到 Supabase，提示"已同步接近1000"但后台只有381条
-  - **根本原因**:
-    1. TypeScript 接口 `PracticeRecord` 缺少 `start_time` 字段
-    2. `hooks/useSync.ts` 第736行和第837行尝试上传 `r.start_time`，但接口未定义该字段
-    3. Supabase 报错："Could not find the 'start_time' column"
-  - **修复方案**:
-    1. 在 `hooks/usePracticeData.ts` 的 `PracticeRecord` 接口添加 `start_time?: string` 字段
-    2. 在 `lib/supabase.ts` 的 `PracticeRecord` 接口添加 `start_time?: string | null` 字段
-  - **待办事项**: 需要在 Supabase Dashboard 执行 SQL 添加 `start_time` 列
-    ```sql
-    ALTER TABLE practice_records
-    ADD COLUMN IF NOT EXISTS start_time VARCHAR(5);
-    ```
-  - **修改文件**: `hooks/usePracticeData.ts`, `lib/supabase.ts`
+- **2026-03-05**: **口令跟练功能修复完成**
+  - **问题**: 点击"开始练习"没有反应，界面卡住
+  - **原因**: 音频文件（44MB）加载完成后才进入练习界面，用户无感知等待
+  - **修复**:
+    - 立即进入练习界面，不再等待音频加载
+    - 音频加载期间暂停计时，加载完成后自动开始
+    - 统一口令跟练选项样式（和普通选项一致）
+  - **文件**: `app/practice/page.tsx`
 
-- **2026-02-28**: **修复同步时名字签名被重置问题** ✅ 完成
-  - **问题描述**: 用户选择"智能合并"后，个人资料（名字、签名）有时被重置为默认状态
-  - **根本原因**:
-    1. `smartMerge` 函数没有处理 profile 数据
-    2. 多处使用错误的有效性判断，将默认值 `'阿斯汤加习练者'` 视为"无效数据"
-    3. 同步对比结果与构建逻辑不一致
-  - **修复方案**:
-    1. 智能合并时根据时间戳选择较新的 profile 数据
-    2. 移除错误的默认值判断，只要云端有数据就使用
-    3. 信任同步对比结果，不要重新判断
-  - **修改文件**: `hooks/useSync.ts`（4处判断逻辑）
-  - **Git提交**: `fd9ea26`
+- **2026-03-05**: **小红书群邀请弹窗更新完成**
+  - **核心工作**:
+    - 将文案改为图片展示（public/进群方法.png）
+    - 按钮文案从"一键复制"改为"马上去加入"
+    - 移除复制功能，点击后直接关闭弹窗
+    - 版本号从 v1 更新到 v2（触发红点提示）
+  - **技术实现**:
+    - 使用 next/image 组件显示图片
+    - 简化按钮交互逻辑
+    - 推送到 master 和 master2 分支
+  - **文件变更**:
+    - `components/XiaohongshuInviteModal.tsx` - 弹窗组件重构
+    - `public/进群方法.png` - 新增进群方法图片
 
-- **feishu-bitable-read** - 飞书多维表格读取（2026-02-27 创建，2026-02-27 升级）
-  - 位置: `.claude/skills/feishu-bitable-read/`
-  - 功能: 读取飞书多维表格内容，支持表格目录管理、待发货订单统计
-  - 使用:
-    - `/feishu-bitable-read` - 使用默认表格查看待发货订单
-    - `/feishu-bitable-read orders` - 使用指定表格 key
-    - `/feishu-bitable-read --list-tables` - 查看表格目录
-  - 配置: `config.json` 中设置 `app_id`、`app_secret` 和表格目录
-  - 缓存: 默认 5 分钟缓存，避免重复调用 API
-  - 默认表格: `orders`（有赞订单表）
-  - 智能识别: 说"订单"自动使用默认订单表
+- **2026-02-27**: **小红书内容生产系统 - 今日迭代**
+  - **核心工作**:
+    - 生成 4 个 🟡待生成 选题的文案（2个角度/选题）
+    - 解决 NotebookLM 超时问题（`NOTEBOOKLM_TIMEOUT=300` 环境变量）
+    - 抓取小红书后台数据填入飞书表格（马年第一练：曝光242/观看58/点赞1）
+  - **流程优化**:
+    - 添加到 OPERATIONS.md：默认只处理 🟡待生成 选题，不再询问
+    - 飞书表格数字字段改为整数类型（0位小数）
+    - 新增「最后更新数据时间」字段
+    - 修复飞书 API 字段创建格式文档（扁平化 payload）
+  - **文案迭代**:
+    - AI 节省时间选题重写为 600 字第一人称心得
+    - 同步更新到原有飞书文档链接（不创建新文档）
 
-- **2026-02-26**: **飞书文档添加状态管理快捷入口** ✅ 完成
-  - **问题**: 文档审核后需要手动去表格改状态，操作繁琐
-  - **解决方案**: 在生成的飞书云文档顶部添加"状态管理区块"
+- **2026-02-27**: **有赞订单同步飞书表格 - 更换链接完成**
+  - **背景**: 原飞书表格需要更换为新的多维表格链接
+  - **工作内容**:
+    - 创建新飞书企业应用 `cli_a92a4d950d385cef`
+    - 更新 `config.py` 配置（app_token、table_id、app_id）
+    - 配置表格权限：组织内可编辑 + 应用可编辑
+    - 设置表格访问密码保护
+  - **测试结果**: 全部通过
+    - ✅ 飞书 API 连接正常
+    - ✅ 订单数据读取正常（481条记录）
+    - ✅ 退款信息同步正常
+    - ✅ 数据写入更新正常
+  - **项目位置**: `youzan/youzan_sync/`
+  - **当前状态**: 可正常使用
+
+- **2026-02-26**: **今日开发总结 - 小红书内容生产系统飞书部署成功**
+  - **1. 飞书部署完成**: 小红书内容生产系统在飞书成功部署
+    - 飞书多维表格：选题管理、状态流转、数据追踪
+    - 飞书知识库：文案存储、素材管理、方法论沉淀
+    - 工作流打通：🟡待生成 → 🟠待审核 → 🟢待发布 → 🔵已发布
+  - **2. NotebookLM Python API 集成**: 文案自动化生产
+    - 认证成功，可稳定调用
+    - 今日实例：生成"2026频繁记录练习"主题文案（2个角度）
+    - 自动同步到飞书知识库
+  - **3. 文档整合**: 清理重复文档，建立清晰分工
+    - README.md（创始人视角）+ OPERATIONS.md（Claude视角）
+
+- **2026-02-26**: **小红书项目文档整合完成**
+  - **问题**: PROJECT_WORKFLOW.md、CONTENT_RULES.md、README.md 三个文档内容重复
+  - **解决方案**: 整合为2个文档
+    - `README.md` - 项目首页（给创始人看）：核心理念、快速开始、目录结构、AI能力概览
+    - `OPERATIONS.md` - 操作手册（给Claude看）：角色分工、工作流、技术规范、notebooklm-py技能
+  - **已删除旧文档**:
+    - ❌ `PROJECT_WORKFLOW.md` → 内容合并到 OPERATIONS.md
+    - ❌ `_scripts/CONTENT_RULES.md` → 内容合并到 OPERATIONS.md
+  - **文档定位清晰**:
+    | 文档 | 读者 | 内容 |
+    |-----|------|-----|
+    | README.md | 创始人(orange) | 项目概览、快速开始、飞书链接 |
+    | OPERATIONS.md | Claude Code | 技术细节、触发指令、故障排查 |
+    | PROJECT_LOG.md | 双方 | 开发日志、更新记录 |
+
+- **2026-02-26**: **NotebookLM Python API 集成成功，文案生产流程固化**
+  - **认证方案确定**:
+    - 主方案：`notebooklm-py` 库直接 API 调用（已认证成功）
+    - 降级方案：MCP + Chrome 浏览器自动化（备用）
+  - **技术实现**:
+    - 完成 `notebooklm login` 浏览器认证
+    - 凭证文件：`~/.notebooklm/storage_state.json`
+    - 笔记本ID：`80059318-e0e8-4971-95cc-fde4b231d3a0`
+    - Python API 发送脚本：`send_to_notebooklm.py`
+  - **流程优化**:
+    - 文案数量：从3个改为2个不同角度（更符合实际需求）
+    - 表情符号：完整保留（🟢🌱✅🙏等），UTF-8编码处理
+    - 禁用Markdown加粗（飞书/小红书不支持）
+    - **固化2个关键点**：📋 选题状态管理区块 + 表情符号保留
+  - **今日完成实例**:
+    - 主题："2026要频繁大量记录自己的练习"
+    - 生成2个角度文案，已同步到飞书
+    - 飞书文档：https://my.feishu.cn/docx/ZhfQdVvYloplQAxtZrAcWdmDnEc
+    - 记录状态：🟠待审核
+  - **核心脚本**:
+    - `send_to_notebooklm.py` - 发送主题到 NotebookLM
+    - `sync_generated_to_feishu.py` - 同步文案到飞书知识库
+    - `OPERATIONS.md` - 完整操作手册（整合版）
+  - **状态**: 流程已完全固化，可直接复用
+
+- **2026-02-25**: **小红书内容生产系统 - 飞书多维表格集成**
+  - **项目路径**: `XBB-APP/小红书阿斯汤加提示词/`
+  - **核心工作**: 将NotebookLM、飞书多维表格、飞书知识库整合为自动化内容生产工作流
+  - **飞书API配置**:
+    - App ID: `cli_a91435e1d6f81cc2`
+    - 表格链接: https://my.feishu.cn/base/ORVubUAk3ajAg2s9O0bcIuVbn2b
+    - 知识库链接: https://my.feishu.cn/wiki/JKV9wsajOiPwLvkDJ3zcqu3cnwc
+  - **字段创建**: 成功创建19个字段，数据结构与小红书后台完全一致
+    - 基础字段：选题、状态、排期日期、文案角度、选题类型
+    - 链接字段：知识库链接、小红书链接
+    - **小红书后台数据**: 曝光、观看、封面点击率、点赞、评论、收藏、涨粉、分享、人均观看时长、弹幕
+  - **工作流程**:
+    1. 用户在飞书表格录入选题（状态🟡待生成）
+    2. Claude调用NotebookLM生成3个角度文案
+    3. 在飞书知识库创建文档
+    4. 更新表格状态为🟠待审核
+    5. 用户审核后发布到小红书
+    6. 填入数据和链接，状态改为🔵已发布
+  - **关键脚本**:
+    - `setup_feishu_table.py` - 字段设置
+    - `sync_feishu_content.py` - 同步核心库
+    - `generate_content.py` - 生成文案交互脚本
+    - `check_topics.py` - 查看选题脚本
+  - **用户当前需求**: 针对春节练习感悟选题，生成3个不同角度的文案供选择
+  - **待办**: NotebookLM文案生成测试、知识库文档创建测试
+
+- **2026-02-26**: **熬汤日记 - 练习时间段功能开发**
+  - **项目路径**: `D:\BaiduSyncdisk\work\cursor app\claude code\`
+  - **核心工作**: 为练习记录添加时间段功能，支持后续分析用户的练习习惯
+  - **数据库迁移**:
+    - `supabase/migrations/20260226_add_historical_fields.sql` - 为用户资料表添加历史练习字段
+    - `supabase/migrations/20260226_add_practice_start_time.sql` - 为练习记录表添加开始时间字段
+  - **代码修改**:
+    - `hooks/useSync.ts` - 修复profile对比逻辑，添加historical_days和historical_avg_minutes字段对比
+    - `hooks/usePracticeData.ts` - PracticeRecord接口添加start_time字段
+    - `app/practice/page.tsx` - 计时器保存时自动记录开始时间（HH:MM格式）
+    - `lib/supabase.ts` - 数据库类型定义添加start_time
+    - `lib/timeUtils.ts` - 新建时间工具函数（calculateEndTime、formatTimeRange、formatDuration）
+  - **功能逻辑**:
+    - 计时器模式：自动记录start_time（如"06:00"）
+    - 手动添加记录：start_time为null
+    - 结束时间计算：start_time + duration → 结束时间
+    - 时间段显示：支持格式化为"06:00-08:00"
+  - **UI状态**: 时间段数据已记录但不在前端展示，等待后续产品设计
+  - **Git提交**: `5e0e15d` - fix(sync): 修复历史练习记录同步对比逻辑
+  - **产品决策**: 符合"简单"理念，先记录数据，后续需要时再展示；补录记录不强制要求时间段
+
+- **2026-02-25**: **小红书项目迁移完成 - 精简工作流**
+  - **迁移内容**: "春节练习感悟"文案文件已确认在飞书知识库
+  - **清理操作**: 删除 `.obsidian/` 配置目录，停止使用Obsidian作为工作界面
+  - **知识库目录结构**（参考 dontbesilent 系统化理念）:
+    - `📁 01-选题池` - 所有想法先扔这儿
+    - `📁 02-创作中` - 正在写的文案（3个角度）
+    - `📁 03-已发布` - 发布后归档 + 数据复盘
+    - `📁 素材库/` - 金句库、爆款结构、核心概念
+    - `📁 方法论/` - 小红书标题方法论等
+  - **脚本更新**:
+    - `generate_content.py` 改为直接保存到飞书知识库（不再保存到本地Obsidian）
+    - `init_wiki_structure.py` 用于初始化知识库目录
+    - 生成文案自动放入 `02-创作中` 目录
+  - **保留内容**:
+    - `内容素材库/` - 金句库、爆款文稿库（给NotebookLM使用）
+    - `01-内容生产/01-待深化的选题/` - 其他选题文件
+    - `PROJECT_WORKFLOW.md`、`README.md` 等项目文档
+    - `_scripts/` 脚本目录
+  - **新工作流**: 飞书表格 → NotebookLM生成 → 飞书知识库(02-创作中) → 小红书发布 → 移至03-已发布
+  - **产品决策**: 符合"简单"理念，飞书表格管理选题+数据，NotebookLM生成内容，知识库存储文档
+
+- **2026-02-17**: **实现冲突设备下线功能（Supabase Realtime）**
+  - **背景**: 一个账号只能登录一个设备，但旧设备被踢出后不会自动感知，仍保持登录状态
+  - **方案**: 使用 Supabase Realtime 订阅 `user_profiles` 表的 `logged_in_devices` 变化
   - **实现**:
-    - 新增 `add_status_management_block()` 函数
-    - 自动添加：当前状态显示 + 可点击跳转链接
-    - 点击链接直接跳转到表格对应记录行，可立即修改状态
-  - **使用**: 保存文档到知识库时自动生成
-  - **效果**:
+    - `hooks/useAuth.ts`:
+      - 添加 `handleKickedOut` 函数：清除状态、调用 signOut、toast 提示、跳转首页
+      - 添加 Realtime 订阅 useEffect：监听当前用户的 `user_profiles` 变化
+      - 当检测到当前设备不在 `logged_in_devices` 列表中时，自动触发被踢出处理
+  - **被踢出检测流程**:
+    1. 新设备登录并确认替换 → 旧设备从 `logged_in_devices` 中被移除
+    2. Realtime 推送变更到旧设备
+    3. 旧设备检查：我的 device_id 在列表中吗？
+    4. 不在！→ 触发 `handleKickedOut()`
+    5. 自动退出登录，显示 toast "您的账号已在其他设备登录"，跳转到首页
+  - **待办**: 在 Supabase Dashboard 中开启 `user_profiles` 表的 Realtime 功能
+  - **与"仅退出登录"的区别**:
+    - 用户主动退出：toast 提示"已退出登录"
+    - 被踢出：toast 提示"您的账号已在其他设备登录"
+
+- **2026-02-16**: **配置测试环境 + 修复仅退出登录功能**
+  - **测试环境搭建**:
+    - 购买新域名 `ashtanga.asia` 用于测试
+    - 配置 Vercel: `test.ashtanga.asia` 绑定到 `master2` 分支
+    - 配置 Supabase Auth URL: 添加 `test.ashtanga.asia` 到 Redirect URLs
+    - DNS 解析: 添加 CNAME 记录指向 Vercel
+  - **修复"仅退出登录"功能** (问题 #9):
+    - **问题**: 点击"仅退出登录"后页面刷新，但账号仍显示登录状态
+    - **原因**: 使用 `useAuth().signOut()` + `window.location.reload()` 的方式，session 没有被正确清除
+    - **解决**: 参考"退出并清空数据"的成功逻辑，改用 `supabase.auth.signOut()` + `router.push('/')`
+    - **修改文件**:
+      - `AccountBindingSection.tsx`: 改用直接调用 supabase.auth.signOut()，使用 next/router 跳转首页
+      - `useAuth.ts`: 添加退出标志检测，防止页面刷新后自动恢复登录
+  - **调试过程**:
+    - 尝试多种方案: 清除 localStorage、清除 cookie、添加延迟刷新、添加退出标志
+    - 最终发现关键是使用 `supabase.auth.signOut()` 直接调用而非封装过的 `signOut()`
+    - 临时开启生产环境 console 日志进行调试
+  - **待修复问题清单更新**:
+    1. **Service Worker** - POST 请求被缓存导致同步失败
+    2. **同步计数文案** - 显示格式改为 "10/11 已同步"
+    3. **同步统计逻辑** - 只在成功时更新计数
+    4. **日志输出** - 改为 console.error 保留到生产环境
+    5. **React Closure Trap** - 手动同步时数据比对不正确
+    6. **Supabase 查询超时** - 添加重试机制和浏览器兼容
+    7. **状态灯显示** - 失败时不应显示绿色
+    8. **Profile 同步** - 名字修改后自动同步
+    9. **✅ 退出登录** - 重置 profile 并刷新页面 (已修复)
+    10. **autoSync 返回值** - toast 提示与实际状态一致
+  - **Git 提交**:
+    - `ced7cea` - chore: 恢复生产环境 removeConsole 配置
+    - `5c6fd91` - debug: 临时开启生产环境 console 日志
+    - `391c0e1` - debug: 添加退出登录详细日志排查问题
+    - `2eb1e79` - fix: 仅退出登录使用和清空数据相同的退出逻辑
+    - `2c2559a` - fix: 彻底清除所有 Supabase session 存储
+    - `2692771` - fix: 添加退出标志防止页面刷新后自动恢复登录
+    - `316ef74` - fix: 修复仅退出登录后页面刷新仍显示登录状态的问题
+    - `bee5f3b` - fix: 优化仅退出登录逻辑，防止组件卸载中断 signOut
+  - **2026-02-17 补充修复**:
+    - **问题**: `removeConsole: true` 时退出登录卡住，`removeConsole: false` 时正常
+    - **原因**: 弹窗关闭导致组件卸载，中断了 `supabase.auth.signOut()` 异步操作
+    - **解决**: 提前设置 `__signing_out__` 标志，添加 100ms 延迟确保 UI 更新完成
+  - **当前状态**: ✅ "仅退出登录"功能已彻底修复，生产环境测试通过
+  - **下一步**: 继续修复其他 8 个待解决问题
+
+- **2026-02-16**: **回滚到 8d691c2 版本并继续修复** - 从稳定版本重新开始
+  - **背景**: master2 分支的同步功能经过多次修复仍有问题，决定回滚到稳定版本
+  - **回滚目标版本**: `8d691c2` - fix: 添加数据迁移逻辑，将旧版本英文选项自动转换为中文
+
+- **2026-02-11**: **退出登录时增加"清空本地数据"选项** - 账号切换更便捷
+  - **背景**: master2 分支已实现账号登录和云同步功能（一个账号只能登录一个设备）
+  - **问题**: 当前退出登录只有一个"确定退出"按钮，数据保留在本地，用户希望在退出时可以选择是否清空本地数据
+  - **目标**: 修改退出确认弹窗，提供两个选项：
+    1. **仅退出登录** - 保留本地数据
+    2. **退出并清空数据** - 从第二级（输入确认词）开始，简化流程
+  - **修改文件**:
+    1. `components/AccountBindingSection.tsx`:
+       - 添加 `onShowClearDataConfirm` 可选回调 prop
+       - 导入 `ChevronRight` 和 `Trash2` 图标
+       - 重写退出确认弹窗：标题改为"退出选项"，添加两个大按钮选项
+    2. `app/practice/page.tsx`:
+       - 导入 `useRouter` 用于页面跳转
+       - 在 `AccountSyncModal` 组件添加 `onShowClearDataConfirm` prop
+       - 在两个 `AccountBindingSection` 调用处传递回调（直接从 Step 2 开始）
+       - 修改 Step 3 完成按钮：自动调用 `supabase.auth.signOut()` 并 `router.push('/')` 跳转到首页
+  - **UI 流程**:
     ```
-    📋 选题状态管理
-    ─────────────────────
-    当前状态：🟠待审核
-    👉 点击修改状态（可点击链接）
-    点击上方链接直接跳转到表格对应行，可修改状态、添加数据
-    ─────────────────────
+    用户点击"退出登录"
+        ↓
+    显示"退出选项"弹窗（两个大按钮）
+        ↓
+    ┌─────────────────────┬─────────────────────┐
+    │   选项1：仅退出      │   选项2：退出并清空   │
+    │   （灰色背景）        │   （红色警告样式）   │
+    │   数据保留在本地      │   彻底删除本地数据   │
+    └─────────────────────┴─────────────────────┘
+        ↓                           ↓
+    调用 signOut()               直接从 Step 2 开始
+    关闭弹窗，提示成功            （输入"确认删除"）
+                                   ↓
+                              Step 2: 输入确认词
+                                   ↓
+                              Step 3: 清空完成
+                                   ↓
+                              自动退出登录 + 跳转首页
     ```
+  - **清空的数据范围**:
+    - `ashtanga_records` - 练习记录
+    - `ashtanga_options` - 练习选项
+    - `ashtanga_profile` - 用户资料
+    - `ashtanga_export_logs` - 导出日志
+    - `ashtanga_total_paused_time` - 暂停时间
+    - `ashtanga_start_time` - 开始时间
+    - `ashtanga_is_paused` - 暂停状态
+    - `ashtanga_is_practicing` - 练习状态
+    - `ashtanga_pause_start_time` - 暂停开始时间
+    - `device_id` - 设备ID
+    - `has_seen_landing` - 落地页标记
+    - `xhs_invite_version` - 小红书邀请版本
+    - `read_invite_version` - 已读邀请版本
+  - **修复的Bug**: `AccountSyncModal` 组件缺少 `onShowClearDataConfirm` prop 导致运行时错误
+  - **验证步骤**: ✅ 仅退出登录保留数据 ✅ 退出并清空数据直接进入第二步 ✅ 输入确认词后自动退出并跳转
+  - **产品决策**: 符合"简单"理念，两个清晰选项，简化清空流程（跳过第一步警告），账号切换更便捷
 
-- **2026-02-26**: **小红书项目目录英文名化** ✅ 完成
-  - **原名**: `小红书阿斯汤加提示词/`
-  - **新名**: `ashtanga-xiaohongshu/`
-  - **更新文件**: 10 个文件中的路径引用
-    - `README.md`
-    - `PROJECT_WORKFLOW.md`
-    - `generate_content.py`
-    - `sync_feishu_content.py`
-    - `call_notebooklm.py`
-    - `fix_doc_content.py`
-    - `save_to_feishu_kb.py`
-    - `setup/add_frontmatter.py`
-    - `setup/import_to_old_notebook.py`
-    - `setup/direct_import.py`
-
-- **2026-02-26**: **小红书项目目录整合** ✅ 完成
-  - **问题**: `xiaohongshu_automation/` 和 `小红书阿斯汤加提示词/_scripts/` 分开存放，认知负担重
-  - **整合方案**: 将环境配置脚本移入 `_scripts/setup/`
-  - **操作**:
-    - 创建 `_scripts/setup/` 子目录
-    - 移动 5 个脚本：`notebooklm_login.py`、`import_to_old_notebook.py`、`add_frontmatter.py`、`direct_import.py`、`merge_notebooks.py`
-    - 删除 `xiaohongshu_automation/` 目录
-  - **新结构**:
-    ```
-    ashtanga-xiaohongshu/
-    └── _scripts/
-        ├── production/          # 日常生产脚本
-        └── setup/               # 初始化脚本
-    ```
-
-- **2026-02-23**: **新发现：练习选项同步问题** 🐛 待调查
-  - **问题描述**:
-    - 有用户自定义了练习选项（截图可见），但在 Supabase 后台看不到
-    - 用户已开通账号（绑定邮箱）
-    - 后台 `practice_options` 表只有 **13条记录**
-    - 但已有 **10个绑定邮箱的用户**
-    - 预期数量：每个用户至少有 30-50 个选项（默认+自定义），总记录数应该远多于13条
-  - **现象对比**:
-    - 我自己测试：新建选项 → 同步 → 上传，能在后台看到自己的选项
-    - 其他用户：有自定义选项，但后台看不到
-  - **可能原因**（待验证）:
-    1. 练习选项同步逻辑有bug，某些情况下未触发同步
-    2. 选项同步被覆盖或合并逻辑有问题
-    3. 用户设备上选项存在但未上传到云端
-    4. 多设备同步时选项丢失
-  - **下一步调查**:
-    - 检查 `useSync.ts` 中选项同步逻辑
-    - 检查 `addOption` 后是否正确触发同步
-    - 检查云端数据合并时是否丢失选项
-    - 2026-02-24 处理
-
-- **2026-02-23**: **修复新建/补卡记录后立即编辑导致笔记丢失问题（第十二轮 - 最终修复）** ✅ 完成
-  - **问题确认**: ID 一致但 `updateRecord` 找不到记录
-    - `prevRecords` 是 React 旧状态，不包含新建的记录
-    - 这是 React 闭包/异步状态问题
-  - **最终修复** (commit: f831664):
-    - **根本解决方案**: 重写 `updateRecord`，直接操作 localStorage
-    - **清理代码**: 移除所有诊断日志，恢复同步功能
-    - **核心改动**:
-      ```typescript
-      // 直接从 localStorage 读取最新记录
-      const recordsStr = localStorage.getItem('ashtanga_records');
-      const latestRecords = JSON.parse(recordsStr);
-
-      // 查找并更新
-      const updatedRecords = latestRecords.map(r =>
-        r.id === id ? { ...r, ...data, updated_at: now } : r
-      );
-
-      // 直接写入 localStorage（不依赖 React 状态）
-      localStorage.setItem('ashtanga_records', JSON.stringify(sortedRecords));
-
-      // 同时更新 React 状态（异步，但不依赖它）
-      setRecords(sortedRecords);
-      ```
-  - **测试结果**: ✅ 新建记录后编辑不再丢失
-  - **恢复功能**: 同步功能已恢复，500ms 延迟确保 localStorage 更新
-  - **最终清理** (commit: 23b21e1):
-    - 移除点击编辑时显示记录ID的toast
-    - 移除3秒内禁止编辑的限制逻辑
-    - 代码更加简洁
-  - **用户验证**: ✅ 修复成功，新建记录后编辑不再丢失
-  - **之前诊断**: 完全禁用同步后问题依旧，确认问题在本地保存
-  - **之前修复（第七轮）**: `setRecords` 异步导致同步读取旧数据
-    - 将同步延迟从 100ms 增加到 **500ms**
-  - **第七轮修复** (commit: 05584e1):
-    - 将同步延迟从 100ms 增加到 **500ms**
-    - 涉及 `updateRecord`、`handleAddRecord`、`handleAddOption`
-  - **用户关键描述**:
-    - 新建记录 → 不刷新 → 编辑 → 消失 → 刷新 → 出现（旧内容）→ 再编辑 → 还是消失 → 再刷新 → 正常
-    - 这说明数据确实保存了，但显示时用了过期的对象
-  - **日志说明**: 使用 `console.error` 替代 `console.log`（Vercel 不会移除）
-  - **前六轮修复总结**:
-    1. 第一轮: 添加记录后3秒内禁止编辑
-    2. 第二轮: 编辑后触发同步 `autoSync()`
-    3. 第三轮: 同步时恢复编辑状态
-    4. 第四轮: `handleSave` 从最新列表查找记录
-    5. 第五轮: 同步回调不关闭弹窗
-    6. 第六轮: `handleLeftClick` 和 `handleSave` 直接读 `localStorage`
-  - **第六轮修复** (commit: c0252d1):
-    1. **handleLeftClick**: 直接从 `localStorage` 读取最新记录，绕过 React 状态
-    2. **handleSave**: 也直接从 `localStorage` 读取最新记录
-    3. 保留第五轮的同步回调修复（不关闭弹窗）
-  - **关键改动**:
-    ```typescript
-    // handleLeftClick - 直接读取 localStorage
-    const recordsStr = localStorage.getItem('ashtanga_records')
-    const records = JSON.parse(recordsStr)
-    const latestRecord = records.find(r => r.id === record.id)
-    onSetEditingRecord(latestRecord || record)
-
-    // handleSave - 同样直接读取 localStorage
-    const recordsStr = localStorage.getItem('ashtanga_records')
-    const records = JSON.parse(recordsStr)
-    const targetRecord = records.find(r => r.id === record.id) || record
-    onSave(targetRecord.id, {...})
-    ```
-  - **用户关键描述**:
-    - 新建记录 → 不刷新 → 编辑 → 消失 → 刷新 → 出现（旧内容）→ 再编辑 → 还是消失 → 再刷新 → 正常
-    - 这说明数据确实保存了，但显示时用了过期的对象
-  - **用户测试发现的关键规律**:
-    - ❌ **场景A（有问题）**: 新增记录 → 等待3秒 → 编辑 → 记录消失 → 刷新 → 记录出现（旧内容）
-    - ✅ **场景B（正常）**: 新增记录 → 等待3秒 → 刷新页面 → 编辑 → 正常
-  - **关键差异**: 场景A不刷新就编辑会丢失，场景B刷新后再编辑就正常
-  - **问题分析**:
-    - 编辑保存没有生效，或者被覆盖了
-    - 编辑时使用的 `editingRecord` 可能是旧的对象引用
-    - 或者 `record.id` 不对，导致保存到了错误的记录
-  - **已尝试的修复**:
-    - ✅ 新建记录后强制3秒内不能编辑
-    - ✅ 编辑后触发 `autoSync()` 确保同步到云端
-    - ❌ 但问题仍然存在
-  - **下一步排查方向**（明天）:
-    1. 检查 `editingRecord` 的对象引用是否正确
-    2. 检查编辑时 `record.id` 是否匹配
-    3. 检查 `handleEditRecord` 中的 `updateRecord` 调用
-    4. 添加更多日志追踪编辑流程
-  - **提交**: 8d4b0db（当前版本）
-
-- **2026-02-23**: **修复新建/补卡记录后立即编辑导致笔记丢失问题（第三轮）** ✅ 已回滚
-  - **问题**: 用户新建记录后，数据胶囊中也没有，说明数据根本没保存到 localStorage
-  - **根本原因**: 新建记录触发同步，检测到冲突（本地1条，云端1条）。用户选择"使用云端数据"时，会直接清空本地数据并导入云端数据。但新建的记录在云端还不存在，所以被删除了
-  - **修复内容**:
-    - **hooks/useSync.ts** - 当选择"使用云端数据"时，先上传本地数据到云端，确保新记录不会丢失，然后再下载合并后的云端数据
-  - **提交**: 17ecea6（已回滚）
-
-- **2026-02-23**: **修复新建/补卡记录后立即编辑导致笔记丢失问题（第二轮）** ✅ 已推送
-  - **问题**: 第一轮修复后用户测试仍有问题，新建/补卡后立即编辑，笔记仍消失
-  - **根本原因**: 同步完成后回调会调用 `clearAllData()` 和 `importData()`，完全替换 `practiceHistory` 数组。`editingRecord` 保存的是旧的对象引用，指向已被删除的记录
-  - **修复内容**:
-    - **app/practice/page.tsx** - 在同步回调中，导入云端数据前保存 `editingRecordId`，导入后从新的记录列表中重新查找并恢复编辑状态
-  - **提交**: df4222e
-
-- **2026-02-23**: **修复新建/补卡记录后立即编辑导致笔记丢失问题** ✅ 已完成
-  - **问题**: 用户在熬汤日记 App 中报告：练习完成后立即修改记录（时间或内容），笔记会丢失；补卡后马上去修改觉察内容，整个笔记会消失
-  - **根本原因**: 同步功能引入的竞态条件
-    1. `updateRecord` 函数中 `setRecords` 是异步的，但 `onSync` 回调使用的是旧的 `records` 状态
-    2. 添加记录后立即触发同步，但 localStorage 可能还没更新
-    3. 同步排序方向问题（最早的在前而非最新的在前）
-  - **修复内容**:
-    1. **hooks/usePracticeData.ts** - `updateRecord` 函数使用函数式更新捕获更新后的记录，并延迟 100ms 执行 `onSync`
-    2. **hooks/useSync.ts** - 同步排序方向改为最新的在前（而非最早的），确保新记录优先同步
-    3. **app/practice/page.tsx** - `handleAddRecord` 延迟 100ms 再触发同步，确保 localStorage 已更新
-    4. **app/practice/page.tsx** - `EditRecordModal` 和 `ShareCardModal` 初始化添加空值保护
-  - **符合"简单"理念**: 修复方案简单直接，不引入复杂逻辑，只修改必要代码
-
-- **2026-02-21**: **过往练习功能** ✅ 已完成，待发布
-  - **背景**: 很多用户已有长期练习历史（如练习100天），但使用APP后要从零开始记录，感觉"很亏"
-  - **核心功能**:
-    - ✅ 在设置 → 个人资料页面添加过往练习区域
-    - ✅ 可设置历史练习天数和历史平均每次时长
-    - ✅ 所有统计数据（总天数、总时长、平均值）以此为基础累加
-    - ✅ 支持直接输入数字，输入体验优化（可删除0）
-    - ✅ 分享卡片统计联动（累计次数和时长包含历史数据）
-  - **UI设计迭代**:
-    - 初版：带加减按钮调节
-    - 优化：左右独立卡片，浅黄色背景
-    - 最终：纯白色双卡片，标题在外，更紧凑简洁
-    - 标题："历史练习数据校准" → "过往练习"
-    - 标签："历史练习天数" → "天数"，"平均每次练习分钟" → "分钟/次"
-  - **数据结构修改**:
-    - `UserProfile` 接口添加 `historical_days` 和 `historical_avg_minutes` 字段
-    - 修改文件: `hooks/usePracticeData.ts`, `lib/supabase.ts`
-  - **数据同步**:
-    - 历史数据作为 profile 的一部分，自动随用户资料同步到云端
-  - **发布状态**: 代码在 master2 分支，计划下周发布（避免发布太密集）
-
-- **2026-02-18**: **编辑记录弹窗 - 语音+照片双假门测试** - 新增照片上传假门测试
-  - **背景**: 用户希望在编辑记录的文本输入框右下角，在现有的麦克风图标旁边添加一个上传照片图标，两者都是假门测试，用于测试用户对这两个功能的兴趣度
-  - **核心改动**:
-    - ✅ 创建 `PhotoUploadButton` 组件 (`components/PhotoUploadButton.tsx`)
-      - 使用 Camera 图标，绿色渐变背景（后改为与语音按钮一致）
-      - 相同样式：圆角、阴影、hover 效果
-    - ✅ 修复按钮重叠问题
-      - VoiceButton 移除内部的 `absolute` 定位
-      - 父容器统一控制 `absolute bottom-3 right-3 flex items-center gap-2`
-    - ✅ 扩展 `FakeDoorModal` 支持 `photo` 类型
-      - 添加 `votedPhoto` localStorage 状态
-      - 优化文案结构，参考语音文案风格（痛点+解决方案+情感共鸣）
-      - 修复 photo 类型不显示描述文字的问题
-    - ✅ 更新所有使用文本输入框的组件
-      - EditRecordModal、AddPracticeModal、ShareCardModal、CompletionSheet、JournalTab
-  - **文案优化迭代**:
-    - 初版：简单描述照片日记功能
-    - 优化版：增加痛点感（"练了这么久，你真的知道自己进步了多少吗？"）
-    - 场景描述："一个月拍一张站轮式，三个月后再看"
-    - 情感共鸣："当你想放弃时，回看第一张照片"
-  - **Git 提交记录**:
-    - `308d7a5` feat: 编辑记录弹窗添加语音+照片双假门测试
-    - `b92685a` fix: 修复语音和照片按钮重叠问题
-    - `0ef4ef1` style: 照片按钮改为绿色渐变
-    - `3e11e5c` refactor: 优化照片日记假门测试文案
-    - `10e5fe1` fix: 照片假门测试弹窗显示描述文字
-    - ✅ 扩展 `FakeDoorModal` 组件支持 photo 类型
-      - `type` 属性扩展为 `'cloud' | 'pro' | 'voice' | 'photo'`
-      - 添加 `votedPhoto` localStorage 状态
-      - 新增 photo 内容配置：标题"📷体式照片日记"、描述照片日记的价值
-      - 埋点事件：`vote_for_photo_upload`（yes/no）
-    - ✅ 修改所有文本输入框布局，添加双按钮
-      - 编辑记录弹窗 (`EditRecordModal`)
-      - 添加记录弹窗 (`AddPracticeModal`)
-      - 分享卡片编辑 (`ShareCardModal`)
-      - 练习完成弹窗 (`CompletionSheet`)
-      - 觉察日记快速添加 (`JournalTab` 中的内联编辑)
-      - 布局：照片按钮在左，语音按钮在右，间距 gap-2
-    - ✅ 更新所有组件 props
-      - `onOpenFakeDoor` 拆分为 `onOpenVoiceFakeDoor` 和 `onOpenPhotoFakeDoor`
-      - 更新所有调用处传递正确的回调函数
-  - **埋点事件**:
-    - `vote_for_photo_upload`: 照片上传投票（yes/no）
-    - `vote_for_voice_input`: 语音输入投票（yes/no）
-  - **产品决策**: 符合"简单"理念，双按钮并列展示，用户一目了然，可以同时测试两个功能的兴趣度
-
-- **2026-02-18**: **名字和签名同步修复** - 优化为基于时间戳的同步逻辑
-  - **背景**: 用户反馈名字和签名同步不稳定，希望优化成觉察笔记那样的时间戳同步逻辑
-  - **核心改动**:
-    - ✅ 添加 `updated_at` 字段到 `UserProfile` 类型（`lib/supabase.ts` 和 `hooks/usePracticeData.ts`）
-    - ✅ `updateProfile` 自动更新 `updated_at` 时间戳（`hooks/usePracticeData.ts`）
-    - ✅ Profile 同步逻辑改为基于时间戳判断（`hooks/useSync.ts`）
-      - 本地 updated_at > 云端 → 本地上传
-      - 云端 updated_at > 本地 → 下载到本地
-      - 处理 null 情况（首次同步）
-    - ✅ 上传 API 处理 `updated_at` 字段（`app/api/sync/upload-profile/route.ts`）
-  - **头像保持本地存储**: avatar 字段继续本地存储，不参与同步
-  - **产品决策**: 符合"简单"理念，参考觉察笔记同步机制，时间戳驱动更可靠
-
-- **2026-02-11**: **增加50条觉察记录同步限制（内测版本）** - 为付费功能做铺垫
-  - **背景**: master2分支已实现账号登录和云同步，需要添加内测版本限制
-  - **核心功能**:
-    - ✅ 上传限制：最多同步最早的50条记录，超过的新记录仅保留在本地
-    - ✅ UI提示：当本地记录>50条时，显示黄色提示框告知用户仅本地保存的记录数
-    - ✅ 提示位置：放在"立即同步"按钮上方，更直观
-    - ✅ 冲突检测：使用截取后的50条记录进行比对，避免触发不必要的冲突弹窗
-    - ✅ 同步状态灯：修复同步后状态灯颜色不更新的问题（使用lastSyncStatus）
-  - **文件修改**:
-    - `hooks/useSync.ts`: 添加MAX_SYNC_RECORDS=50常量、syncStats状态、自动计算同步统计
-    - `components/AccountBindingSection.tsx`: 添加限制提示UI、修复状态灯颜色逻辑
-    - `app/practice/page.tsx`: 修复setReadInviteVersion prop传递
-  - **技术细节**:
-    - 按日期排序后截取前50条（最早的）
-    - syncStats在localData变化时自动计算
-    - 冲突检测使用effectiveLocalRecords（50条）而非全部记录
-  - **Git提交**: 7a72b78
-  - **下午继续**:
-    - ✅ 修复删除记录同步问题：删除后记录又回来的bug
-      - 原因：RLS策略阻止客户端直接更新数据库
-      - 方案：创建 `/api/sync/delete-record` API路由，使用service_role绕过RLS
-    - ✅ 修复删除后需要手动同步的问题：添加/删除记录后自动触发autoSync()
-    - ✅ 修复编辑弹窗直接显示删除确认的问题：useEffect中重置showDeleteConfirm状态
-    - ✅ 优化删除确认按钮样式：浅红到深红渐变+毛玻璃效果
-    - ✅ 创建生活教练导出桥：`sync_ashtanga_data.py`同步熬汤数据到生活教练系统
-    - ✅ 更新生活教练提示词：支持"同步数据"命令同时同步飞书和熬汤数据
-  - **Git提交**: 9c751b6, daecf6b, e9e1abe
-  - **记忆文件全局通用化** - 解决分支切换导致记忆丢失的问题
-    - 问题: `ashtang-app/memory.md` 与 `claude code/memory.md` 内容重复，切换分支时记忆不同步
-    - 解决方案: 创建全局记忆文件 `memory-global.md`，各分支统一指向
-    - 效果: 无论切换到哪个分支，记忆文件内容保持一致
+- **2026-02-11**: **记忆文件全局通用化** - 解决分支切换导致记忆丢失的问题
+  - **问题**: `ashtang-app/memory.md` 与 `claude code/memory.md` 内容重复，切换分支时记忆不同步
+  - **解决方案**:
+    - 创建全局记忆文件: `D:\BaiduSyncdisk\work\cursor app\memory-global.md`
+    - 各分支 `memory.md` 统一指向全局文件（软链接/复制）
+    - 更新 `CLAUDE.md` 说明全局记忆机制
+    - 创建 `sync-memory.bat` 脚本同步所有分支
+  - **效果**: 无论切换到 dev/master/master2 哪个分支，记忆文件内容保持一致
+  - **产品决策**: 符合"简单"理念，单一源头，避免维护负担
 
 - **2026-02-02**: **技能配置更新** - 安装 better-auth-best-practices 技能
   - 使用命令：`npx skills add https://github.com/better-auth/skills --skill better-auth-best-practices --yes --global`
@@ -2380,348 +2365,335 @@ if (mode === 'login') {
 
 ---
 
-## 2026-02-15 熬汤日记同步功能修复与测试计划
+## 生活教练系统更新记录 (2026-02-11)
 
-### 今日修复内容
-1. **Service Worker 修复** - 不缓存 POST 请求
-   - 问题：POST 请求被 Service Worker 拦截导致同步失败
-   - 解决：添加 `if (event.request.method !== 'GET')` 判断，非 GET 请求直接转发
-   - 文件：`public/sw.js`
+### 1. 修复启动时自动保存问题
+**问题**: 用户什么都没说，系统就直接提示保存对话并退出
+**原因**: 提示词中关于保存对话的指令位置不当，且措辞过于强硬
+**修复**:
+- 修改 `coach_prompt.txt`：将"对话结束必须保存"从开头移到后面
+- 添加强制性警告："先对话，后保存"、"只有用户明确说结束词时才保存"
+- 修改 `coach.ps1` 中的模式提示，明确"用户刚启动系统，正在等待你打招呼"
 
-2. **同步计数文案修复** - 改为 "10/11 已同步" 格式
-   - 问题：显示"已同步11条"但实际只同步了10条，误导用户
-   - 解决：改为显示"本地 11 条，云端已同步 10 条"
-   - 文件：`components/DataStorageNotice.tsx`
+### 2. 修复 Windows 编码问题
+**问题**: `save_conversation.py` 报错，无法保存对话历史
+**原因**: Python 脚本使用 emoji（✅ ❌ ⚠️），Windows 控制台 GBK 编码无法处理
+**修复**:
+- 添加编码修复代码：强制 Python 使用 UTF-8 输出
+- 替换所有 emoji 为 ASCII 标记：
+  - ✅ → `[OK]`
+  - ❌ → `[ERR]`
+  - ⚠️ → `[WARN]`
+  - 📦 → `[OK]`
 
-3. **同步统计逻辑修复** - 只在成功时更新计数
-   - 问题：新建记录未上传就显示为"已同步"
-   - 解决：`syncedRecords` 只在同步成功时更新，不在本地记录变化时更新
-   - 文件：`hooks/useSync.ts`
+### 3. 简化时间提示词
+**问题**: Claude 总是臆想时间，说"现在是下午"而不是准确时间
+**原因**: 提示词中有太多时间判断规则，反而让 Claude 过度关注时间
+**修复**:
+- 删除两个详细的"时间判断规则"段落（约100行）
+- 简化 `coach.ps1` 中的时间信息传递：
+  - 从带边框的复杂格式简化为简单格式
+  - 数据状态信息从多行变为单行
 
-4. **日志保留修复** - 改为 `console.error` 保留到生产环境
-   - 问题：Vercel 生产构建会移除 `console.log`
-   - 解决：改为 `console.error`，生产环境也能看到日志
-   - 文件：`hooks/useSync.ts`
+### 4. 删除菜单模式，统一为自由对话
+**问题**: 提示词中同时存在"自由对话"和详细菜单模式说明，造成矛盾
+**原因**: 旧版本有 [1-6] 菜单模式，后改为自由对话，但残留旧说明
+**修复**:
+- 删除所有菜单模式相关内容（约60行）
+- 删除 [1] 继续上次对话、[2] 今天打卡、[3] 快速分享等模式说明
+- 统一为"自由对话"模式
 
-### 关键发现
-- **VPN 干扰问题**：开启 VPN 时 Supabase 连接被关闭（`net::ERR_CONNECTION_CLOSED`）
-- **解决方案**：关闭 VPN 或使用白名单让 Supabase 直连
+### 5. 时间读取改为脚本层面（核心修复）
+**问题**: Claude 仍然无法准确引用系统时间，开场时臆想时间
+**原因**: 仅靠提示词要求不够可靠
+**修复**:
+- 创建 `tools/get_current_time.py` 脚本，输出当前时间、星期、时段
+- 修改 `coach.ps1`：启动时**直接执行脚本**，将输出捕获到 `$timeInfo`
+- 将真实时间作为系统提示的一部分传递给 Claude
+- 添加提示："**重要：根据上述当前时间开场！不要臆想时间！**"
 
-### 明日测试清单（本地 + 预览环境）
+### 6. 加强"同步数据"说明
+**问题**: 用户说"同步数据"，Claude 只同步飞书，漏掉熬汤日记
+**修复**: 在4个关键位置强调必须同步两个数据源：
+1. 核心原则部分："⚠️ 用户说'同步数据'时，必须同步飞书和熬汤日记两个数据源！"
+2. 同步数据指令部分："⚠️⚠️⚠️ 当用户说'同步数据'时，必须同步两个数据源，不得遗漏！"
+3. 分别同步的情况表格前：添加警告说明
 
-| 功能 | 测试步骤 | 预期结果 | 本地测试 | 预览环境 |
-|------|---------|---------|---------|---------|
-| 登录 | 输入正确邮箱密码 | 登录成功，显示用户名 | ⬜ | ⬜ |
-| 同步 | 点击"立即同步" | 状态变绿色，计数正确（如 10/10） | ⬜ | ⬜ |
-| 新增记录 | 添加新记录 → 同步 | 云端数据+1，计数更新（如 11/11） | ⬜ | ⬜ |
-| 退出登录 | 点击"退出登录" | 退出成功，本地数据保留 | ⬜ | ⬜ |
-| 重新登录 | 用同一账号登录 | 数据自动同步回来 | ⬜ | ⬜ |
-| Console 日志 | F12 打开控制台 | 能看到红色日志输出 | ⬜ | ⬜ |
+### 7. 添加 CC Switch 参数
+**问题**: `coach.bat` 直接调用 Claude，未使用 CC Switch
+**修复**: 修改 `coach.ps1` 第392行，添加 `--permission-mode bypassPermissions` 参数
 
-### 测试环境
-- **本地**: http://localhost:3003
-- **预览**: （部署后更新）
+### 8. 更新知识库为 1-26 课
+**问题**: 提示词里知识库只有 16-26 课，缺少 1-15 课
+**修复**:
+- 修改 `life_coach_memory.md` 第6行：知识库包含第1-26课
+- 修改第195行：本地知识库内容是第1-26课程资料（Word文档）
 
-### 注意事项
-1. **关闭 VPN** 再测试（Supabase 连接问题）
-2. **强制刷新**（Ctrl+Shift+R）确保获取最新代码
-3. **检查 Service Worker** 是否更新（Application → Service Workers）
-
----
-
-## 2026-02-15 下午 - 同步功能深度修复
-
-### 修复内容
-
-1. **autoSync 返回值修复** - 解决 toast 提示与实际状态不一致
-   - 问题：toast 显示"同步失败"但日志显示成功
-   - 原因：`autoSync` 函数没有正确返回 true/false
-   - 解决：修复所有返回路径，确保成功返回 `true`，失败/冲突返回 `false`
-   - 文件：`hooks/useSync.ts`
-
-2. **React Closure Trap 修复** - 解决手动同步失败问题
-   - 问题：点击"立即同步"按钮时数据比对不正确
-   - 原因：React closure 导致 `localData` 是旧数据
-   - 解决：使用 `localDataRef` 获取最新数据
-   - 文件：`hooks/useSync.ts`
-
-3. **Supabase 查询超时修复** - 添加重试机制
-   - 问题：查询云端数据时频繁超时（60秒超时）
-   - 原因：`AbortSignal.timeout` 在 Safari 等浏览器不兼容
-   - 解决：
-     - 修复浏览器兼容性（try-catch 判断）
-     - 缩短单次超时到 30 秒，失败后自动重试 2 次
-     - 添加详细查询日志便于诊断
-   - 文件：`hooks/useSync.ts`, `lib/supabase.ts`
-
-4. **状态灯显示修复** - 修复错误时显示绿色
-   - 问题：同步失败时状态灯仍显示绿色
-   - 原因：判断条件包含 `|| lastSyncTime`
-   - 解决：改为仅根据 `syncStatus` 判断
-   - 文件：`components/DataStorageNotice.tsx`
-
-5. **Profile 同步修复** - 名字修改后自动同步
-   - 问题：修改用户名后不会自动同步到云端
-   - 解决：在 `onSave` 回调中调用 `autoSync`
-   - 文件：`app/practice/page.tsx`
-
-6. **退出登录修复** - 重置 profile 并刷新页面
-   - 问题：退出登录后 profile 未重置
-   - 解决：清除 profile 为默认值后刷新页面
-   - 文件：`components/AccountBindingSection.tsx`
-
-### Git 提交记录
-- `288ea5a` - fix: 修复 autoSync 返回值
-- `c6ed75f` - fix: 修复 Supabase 查询超时问题，添加重试机制
-
-### 测试结果
-- ✅ 同步功能恢复正常（查询、比对、上传、下载）
-- ✅ Toast 提示正确反映同步状态
-- ✅ Profile 修改后自动同步
-- ✅ 状态灯颜色正确显示
-
-
-## 2026-02-18 移除设备限制逻辑，支持多设备登录
-
-### 背景
-- bee5f3b 版本有半成品的设备限制（登录时限制，但不会踢出旧设备）
-- 用户决定放弃冲突检测功能，允许多设备登录
-- 担心多设备登录时同步功能是否正常
-
-### 同步功能分析
-- ✅ **完全支持多设备登录**：使用 `user_id` 过滤数据
-- ✅ **冲突处理**：通过 `updated_at` 时间戳判断最新版本
-- ✅ **自动合并**：设备A添加记录1，设备B添加记录2，最终都有1和2
-- ⚠️ **同时修改**：如果两个设备同时修改同一条记录，以最后修改的为准
-
-### 主要改动
-1. **hooks/useAuth.ts**:
-   - 移除设备管理工具函数（`getOrCreateDeviceId`, `getDeviceName`）
-   - 移除设备状态（`currentDevice`, `deviceConflict`）
-   - 简化 `signIn`：不再检查和限制设备
-   - 简化 `signOut`：不再清空设备列表
-   - 移除 `loadDeviceInfo`, `confirmDeviceConflict`, `cancelDeviceConflict`
-   - **删除 176 行代码**
-
-2. **lib/supabase.ts**:
-   - 移除 `UserProfile` 接口中的 `logged_in_devices` 字段
-
-3. **components/AccountBindingSection.tsx**:
-   - 移除设备冲突相关的引用
-
-### 产品决策
-符合"简单"理念，移除设备限制，代码更简洁
-
-### 用户体验
-- ✅ 多个设备可以同时登录
-- ✅ 不需要每次登录确认替换设备
-- ✅ 同步功能完全正常工作
-
-### 数据库清理建议
-- ⚠️ 数据库中的 `logged_in_devices` 字段已经不再使用
-- 建议：在 Supabase Dashboard 中删除该字段（可选，不影响功能）
-- 建议：关闭 Realtime 功能（可选，如果不使用）
-
-### Git 提交
-- `d2bdf87` - fix: 回滚冲突检测功能，删除设备限制提示
-- `78878cf` - feat: 移除设备限制逻辑，支持多设备登录
+### 9. 添加完整课程总结（1-15课）
+**问题**: 课程总结只有 16-26 课，缺少 1-15 课
+**修复**: 在 `life_coach_memory.md` 中添加：
+- **基础篇：系统思考（第1-8课）**
+  - 第1课：逃离穷忙的结构
+  - 第2课：增强环路
+  - 第3课：调节环路
+  - 第4课：时间滞延
+  - 第5-7课：系统基模（饮鸩止渴、富者越富、成长上限）
+  - 第8课：迈向富足的结构
+- **进阶篇：心智模式（第9-15课）**
+  - 第9课：推论阶梯
+  - 第10课：全然的观察
+  - 第11课：丰富的感受
+  - 第12课：悬挂的假设
+  - 第13课：检定的结论
+  - 第14课：开放的信念
+  - 第15课：一致的行动
+- **深化篇：结构性变革（第16-26课）**（原有内容）
 
 ---
 
-## 2026-02-18 移除设备限制功能 + Bug修复
+**总结**: 本次更新全面优化了生活教练系统的启动流程、时间处理、数据同步和知识库完整性，提升了系统的稳定性和可靠性。
 
-### 背景
-- bee5f3b 版本有半成品的设备限制（登录时限制，但不会踢出旧设备）
-- 用户决定放弃冲突检测功能，允许多设备登录
-- 担心多设备登录时同步功能是否正常
 
-### 同步功能分析
-- ✅ **完全支持多设备登录**：使用 `user_id` 过滤数据
-- ✅ **冲突处理**：通过 `updated_at` 时间戳判断最新版本
-- ✅ **自动合并**：设备A添加记录1，设备B添加记录2，最终都有1和2
-- ⚠️ **同时修改**：如果两个设备同时修改同一条记录，以最后修改的为准
+## 2026-02-12 录音功能开发 + 同步问题修复
 
-### 主要改动
+### 1. 录音功能开发
+**需求**: 在熬汤日记中添加语音输入功能，方便用户快速记录觉察
 
-#### 1. 移除设备限制功能
-**hooks/useAuth.ts**:
-- 移除设备管理工具函数（`getOrCreateDeviceId`, `getDeviceName`）
-- 移除设备状态（`currentDevice`, `deviceConflict`）
-- 简化 `signIn`：不再检查和限制设备
-- 简化 `signOut`：不再清空设备列表
-- 移除 `loadDeviceInfo`, `confirmDeviceConflict`, `cancelDeviceConflict`
-- **删除了 176 行代码**
+**实现内容**:
+- **新建文件**:
+  - `components/VoiceRecorder.tsx` - 录音组件（波形显示、时间计时、控制按钮）
+  - `hooks/useVoiceInput.ts` - Web Speech API 封装 hook
+  - `components/VoiceInputButton.tsx` - 语音输入按钮组件
 
-**lib/supabase.ts**:
-- 移除 `UserProfile` 接口中的 `logged_in_devices` 字段
+- **修改文件**:
+  - `app/practice/page.tsx` - 在编辑记录和分享卡片页面集成录音按钮
 
-**components/AccountBindingSection.tsx**:
-- 移除设备冲突相关的引用
-- 删除 useEffect 中的 `deviceConflict` 引用
-- 删除整个设备冲突确认弹窗（76行）
+- **功能特性**:
+  - 点击麦克风按钮开始录音
+  - 实时显示录音波形动画（40条柱状图）
+  - 显示录音时长（分:秒格式）
+  - 支持暂停/继续录音
+  - 点击停止按钮结束录音，自动将识别文字添加到笔记
+  - 使用 Web Speech API（浏览器原生支持，无需第三方服务）
 
-**components/DataStorageNotice.tsx**:
-- 删除"1个账号仅可登录1个设备"提示
-- 新增"支持多设备登录，旧设备不用时请清空本地数据"提示
+- **Git提交**:
+  - `2490452` - feat: 录音功能demo完成 + 同步问题修复
 
-#### 2. Bug修复
+### 2. 同步问题修复
+**问题**: "立即同步"按钮卡在"同步中"状态，无法恢复
 
-**Bug 1: 修改练习记录日期后不按新日期排序**
-- 问题：修改日期后，记录位置不变
-- 原因：`updateRecord` 函数只更新记录，没有重新排序
-- 修复：在 `updateRecord` 中添加排序逻辑，和 `addRecord` 保持一致
-- 文件：`hooks/usePracticeData.ts`
+**原因**:
+- `autoSync` 函数失败时没有及时重置状态
+- `downloadRemoteData` 没有超时保护，可能无限等待
+- 用户无法手动重置卡住的同步状态
 
-**Bug 2: 修改日期后点击日历无法跳转**
-- 问题：修改日期后，点击日历无法跳转到对应记录
-- 原因：`recordRefs` 使用 `date` 作为 key，修改日期后 key 不匹配
-- 修复：
-  - 添加 `dateToIdMap` 映射：date -> record.id
-  - `handleDayClick` 先通过日期找到记录ID，再通过ID找到ref
-  - 记录的 ref 使用 `id` 作为 key（id 永远不变）
-- 文件：`app/practice/page.tsx`
-
-### 产品决策
-符合"简单"理念，移除设备限制，代码更简洁
-
-### 用户体验提升
-- ✅ 多个设备可以同时登录
-- ✅ 不需要每次登录确认替换设备
-- ✅ 同步功能完全正常工作
-- ✅ 修改日期后立即排序
-- ✅ 修改日期后日历跳转正常
-
-### 数据库清理（用户已执行）
-- ✅ 删除 `user_profiles` 表中的 `logged_in_devices` 字段
-- ⚠️ Realtime 功能关闭提醒（用户未操作）
-
-### Git 提交记录
-- `d2bdf87` - fix: 回滚冲突检测功能，删除设备限制提示
-- `78878cf` - feat: 移除设备限制逻辑，支持多设备登录
-- `7efd579` - fix: 删除设备冲突弹窗和相关引用
-- `39de78e` - fix: 修复修改练习记录日期后不按新日期排序的问题
-- `b2d8287` - fix: 修复修改日期后点击日历无法跳转到对应记录的问题
-- `2d9a623` - feat: 账户与同步页面添加多设备登录提示
-
-### 技术亮点
-1. **代码简化**：删除了 250+ 行设备管理相关代码
-2. **Bug修复**：两个关键 bug 同时修复
-3. **用户体验**：流程更顺畅，无设备限制
-
----
-
-## 2026-02-21 练习选项同步功能完整修复
-
-### 背景
-用户发现 practice_options 表只有1个用户的数据，其他6个绑定了邮箱的账号没有同步练习选项。经排查发现多个问题并修复。
-
-### 问题诊断
-1. **RLS 策略问题**：practice_options 表有一条策略限制 `is_custom = true`，导致默认选项无法上传
-2. **选项同步缺失**：autoSync 只检查 records 和 profile 的差异，没有检查 options
-3. **新增选项不触发同步**：addOption 后没有调用 autoSync
-4. **删除选项不同步**：本地删除后没有删除云端数据
-5. **回调函数未定义**：handleSyncComplete 定义在使用之后导致页面崩溃
-
-### 修复内容
-
-#### 1. 修复 RLS 策略（Supabase）
-```sql
--- 删除有问题的策略
-DROP POLICY IF EXISTS "Users can insert custom practice options" ON practice_options;
-
--- 添加正确的策略
-CREATE POLICY "Users can insert own options"
-    ON practice_options FOR INSERT
-    TO public
-    WITH CHECK (auth.uid() = user_id);
-```
-
-#### 2. 修复代码问题
-- **app/practice/page.tsx**:
-  - 修复 `handleSyncComplete` 闭包问题（改为内联回调）
-  - 新增选项后延迟 100ms 触发 autoSync（确保 localStorage 已更新）
-  - 删除选项时调用 Supabase API 删除云端数据
-
+**修复方案**:
 - **hooks/useSync.ts**:
-  - 添加选项差异检测逻辑（比对本地和云端选项数量及内容）
-  - 修改同步触发条件，选项变化也会触发上传/下载
+  - 添加 `resetSyncStatus` 方法用于手动重置
+  - `downloadRemoteData` 添加 15 秒超时保护
+  - `autoSync` finally 块中确保状态重置
 
-### 同步逻辑现状
-- ✅ 新增选项 → 自动同步到云端
-- ✅ 删除选项 → 同步删除云端数据
-- ✅ 全量覆盖模式：简单有效，满足基本需求
-- ⚠️ 无时间戳冲突检测（当前不需要，如有需求可后续添加）
+- **components/AccountBindingSection.tsx**:
+  - 引入 `resetSyncStatus`
+  - 同步按钮显示"同步中..."状态文字
+  - 同步卡住时显示"同步卡住？点击重置"按钮
 
-### Git 提交记录
-- `0026018` - fix: 修复 updateProfile 闭包问题
-- `4919716` - fix: 新增和删除选项后自动同步到云端
-- `27c4eb7` - fix: 修复 handleSyncComplete 未定义错误
-- `2255caf` - fix: autoSync 添加选项差异检测
-- `7d1afe9` - fix: 新增选项后延迟 100ms 再同步
+### 3. HTTPS 问题排查（重要发现）
+**问题**: 手机 Chrome 上录音功能无法使用（有录音界面但无文字输入）
+
+**根本原因**:
+- Web Speech API 在手机上**必须 HTTPS** 才能工作
+- 本地开发环境 `http://192.168.x.x:3003` 没有 HTTPS
+- 浏览器直接拒绝麦克风权限请求，不弹出权限确认框
+
+**验证结果**:
+- ✅ 电脑浏览器 `localhost` - 不需要 HTTPS，录音正常
+- ❌ 手机 `http://192.168.x.x` - 需要 HTTPS，录音失败
+- ✅ 部署到 Vercel `https://xxx.vercel.app` - 有 HTTPS，录音正常
+
+**产品决策**:
+- 录音功能只在 HTTPS 环境（生产环境）可用
+- 本地开发时只能在电脑上测试录音功能
+- 这是浏览器安全限制，不是代码问题
+
+### 4. 构建问题修复
+**问题**: Vercel 构建失败，报错 `supabaseKey is required`
+
+**原因**:
+- 环境变量 `SUPABASE_SERVICE_ROLE_KEY` 拼写错误
+- Vercel 中设置为 `SUPABASE_SERVICE_ROLE_KE`（少了最后一个 `Y`）
+
+**修复**:
+- 用户已在 Vercel 环境变量中修正拼写
+- 重新部署后录音功能可在手机上正常使用
+
+### 相关文件
+- `components/VoiceRecorder.tsx` - 录音组件（260行）
+- `hooks/useVoiceInput.ts` - Web Speech API hook（298行）
+- `components/VoiceInputButton.tsx` - 语音按钮
+- `hooks/useSync.ts` - 同步 hook（添加 resetSyncStatus）
+- `components/AccountBindingSection.tsx` - 账户绑定组件
+- `app/practice/page.tsx` - 集成录音按钮
 
 ### 产品决策
-符合"简单"理念，采用全量覆盖模式而非时间戳冲突检测，代码更简单，满足当前需求。
+符合"简单"理念，语音输入让用户快速记录觉察，无需打字，降低记录门槛。
 
 ---
 
-## 2026-02-28: 有赞消息订阅实时同步方案 ✅ 完成
+## 2026-02-18 账号同步与冲突退出功能优化
 
 ### 背景
-当前系统采用每小时定时轮询同步（9-18点），延迟最高1小时。通过有赞消息订阅（Webhook）可实现毫秒级实时同步，并节省99%的API调用。
+- **WebSocket 连接失败**: Realtime 功能不可用，无法实时检测被踢出
+- **同步功能不稳定**: 有时正常有时不正常，用户反馈同步体验不好
+- **被踢出检测备用方案**: 需要可靠的轮询机制
 
-### 实施内容
+### 主要改进
 
-#### 1. 创建 Webhook 接收服务
-- **文件**: `webhook_server.py`
-- **功能**:
-  - Flask应用监听8000端口
-  - 路由：`/webhook/youzan` 接收POST请求
-  - 验证Event-Sign签名（MD5）
-  - 根据Event-Type分发处理
-  - 异步处理订单（避免超时）
-  - 自动同步到飞书多维表格
+#### 1. 强化轮询机制 (`hooks/useAuth.ts`)
+- ✅ **轮询间隔优化**: 从 10 秒缩短到 3 秒
+- ✅ **始终轮询**: 移除"Realtime 正常时不轮询"的限制
+- ✅ **页面可见性检测**: 页面从后台切回前台时立即检查
+- ✅ **WebSocket 诊断**: 添加连接检测功能，判断网络问题
+- ✅ **更明显的提示**: 被踢出时显示醒目 toast
 
-#### 2. 部署脚本
-- **deploy.sh**: 自动化部署脚本，包含依赖安装、systemd服务配置
-- **webhook.service**: systemd服务配置，使用gunicorn运行
-- **nginx.conf**: 反向代理配置（可选）
-- **.env.example**: 环境变量配置模板
+**关键代码**:
+```typescript
+// 每3秒强制检查一次（不管 Realtime 状态）
+const pollInterval = setInterval(checkDeviceStatus, 3000)
 
-#### 3. 依赖配置
-- **requirements.txt**: 添加Flask、gunicorn、requests依赖
-
-### 有赞后台配置
-- 推送地址：`http://你的服务器IP:8000/webhook/youzan`
-- 订阅事件：
-  - `trade_TradeCreate` - 订单创建
-  - `TRADE_ORDER_STATE` - 订单状态变更
-  - `TRADE_ORDER_REFUND` - 退款事件
-
-### 部署步骤
-```bash
-# 1. 上传到云服务器
-scp webhook_server.py deploy.sh webhook.service root@your-server:/opt/youzan-webhook/
-
-# 2. 运行部署脚本
-sudo bash deploy.sh
-
-# 3. 配置环境变量
-sudo systemctl edit webhook --full
-# 修改 YOUZAN_CLIENT_ID, YOUZAN_CLIENT_SECRET 等
-
-# 4. 重启服务
-sudo systemctl restart webhook
+// 页面可见性变化时立即检查
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    checkDeviceStatus()
+  }
+})
 ```
 
-### 验证步骤
-1. 本地启动：`python webhook_server.py`
-2. 使用ngrok测试：`ngrok http 8000`
-3. 在有赞后台配置ngrok地址测试推送
-4. 创建测试订单，观察飞书是否实时更新
-5. 部署到云服务器后，改用正式域名/IP
+#### 2. 优化同步触发 (`hooks/useSync.ts`)
+- ✅ **自动同步**: 添加/编辑/删除记录后自动同步
+- ✅ **防抖机制**: 等待 2 秒后再同步，避免频繁触发
+- ✅ **改进提示**: 更明显的同步状态提示
 
-### 成本估算
-- 云服务器：50元/年（1核1G即可）
-- 流量费用：极低（文本推送，月均<1GB）
+**关键代码**:
+```typescript
+// 监听本地数据变化
+useEffect(() => {
+  if (!user || isSyncingRef.current) return
+
+  const timer = setTimeout(() => {
+    console.error('📝 本地数据变化，触发自动同步')
+    autoSync()
+  }, 2000)
+
+  return () => clearTimeout(timer)
+}, [localData.records.length])
+```
+
+#### 3. 备选方案
+- ✅ **完全使用轮询方案**: 简单可靠，WebSocket 不稳定时反而更可靠
+- ✅ **3 秒间隔**: 对用户体验影响不大
+- ✅ **页面切换检测**: 响应更快
+
+### 产品决策
+符合"简单"理念，轮询方案比 WebSocket 更可靠，牺牲实时性换取稳定性。3 秒间隔对用户影响很小，但极大提升了可靠性。
+
+### 验证清单
+- [x] 轮询是否定期执行
+- [x] 被踢出时是否触发
+- [x] 页面切换时是否检查
+- [ ] 添加记录后能否自动同步
+- [ ] 多设备数据是否一致
+
+### 下一步
+测试验证被踢出检测和自动同步功能
 
 ---
+
+## 2026-03-17: 分享卡片功能简化完成
+
+### 项目
+- **项目路径**: `D:\BaiduSyncdisk\work\cursor app\ashtang-app`
+- **功能**: 分享卡片（ShareCardModal组件）
+
+### 改进内容
+
+#### 问题
+1. **编辑功能冗余**: 分享卡片内可以编辑文案，但编辑应该在"完整编辑"功能中完成
+2. **长内容遮挡问题**: 当文案内容太长时，图片会延长，导致看不到下方的返回和保存按钮
+3. **用户体验不佳**: 无法快速预览和操作分享图片
+
+#### 解决方案
+1. ✅ **移除编辑功能**
+   - 删除 `editableNotes`, `isEditingNotes`, `originalNotes` 等状态
+   - 删除 textarea 编辑器和字数统计
+   - 移除 `onEditRecord` 参数和相关调用
+   - 保留只读显示文案
+
+2. ✅ **实现动态缩放**
+   - 新增 `imageScale`, `isZoomed`, `cardRef` 状态
+   - 自动计算缩放比例（屏幕可用高度60%）
+   - 长内容自动缩小，按钮始终可见
+
+3. ✅ **添加点击放大/缩小交互**
+   - 点击卡片内容切换全屏/缩放视图
+   - 300ms 平滑过渡动画
+   - 保持文字可读性
+
+4. ✅ **重构按钮布局**
+   - 从卡片内移到悬浮在底部
+   - 白色背景 + 阴影 + 圆角设计
+   - 固定在屏幕底部中央，始终可见
+
+### 技术细节
+
+**修改文件**: `app/practice/page.tsx` (ShareCardModal组件)
+
+**核心改动**:
+```typescript
+// 删除编辑状态
+- const [editableNotes, setEditableNotes] = useState("")
+- const [isEditingNotes, setIsEditingNotes] = useState(false)
+- const [originalNotes, setOriginalNotes] = useState("")
+
+// 添加缩放状态
++ const [imageScale, setImageScale] = useState(1)
++ const [isZoomed, setIsZoomed] = useState(false)
++ const cardRef = useRef<HTMLDivElement>(null)
+
+// 动态计算缩放
++ useEffect(() => {
++   const calculateScale = () => {
++     const availableHeight = window.innerHeight - 80 - 40
++     setImageScale(card.offsetHeight <= availableHeight ? 1 : availableHeight / card.offsetHeight)
++   }
++   calculateScale()
++   window.addEventListener('resize', calculateScale)
++   return () => window.removeEventListener('resize', calculateScale)
++ }, [record])
+
+// 文案显示（只读）
+- <p onClick={() => setIsEditingNotes(true)}>
+-   {editableNotes || "点击编辑笔记..."}
++ <div ref={cardRef} onClick={() => setIsZoomed(!isZoomed)}
++      style={{ transform: `scale(${isZoomed ? 1 : imageScale})` }}>
++   <p>{record.notes || '今日练习完成'}</p>
++ </div>
+
+// 悬浮按钮
+- <div className="flex gap-3">
++ <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50
++             bg-white/90 backdrop-blur-sm rounded-full shadow-lg">
+```
+
+### 验收标准
+- [x] 分享卡片文案不可编辑（只读显示）
+- [x] 长内容自动缩放，按钮始终可见
+- [x] 点击内容可放大/缩小
+- [x] 按钮始终悬浮在底部居中
+- [x] 保存图片功能正常
+
+### 产品价值
+- **简化**: 移除冗余编辑功能，专注分享展示
+- **体验**: 解决长内容遮挡问题，操作更流畅
+- **一致性**: 编辑功能统一在"完整编辑"中完成
+
