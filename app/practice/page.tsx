@@ -5320,7 +5320,8 @@ export default function AshtangaTracker() {
         practiceType={getSelectedLabel()}
         duration={finalDuration}
         onSave={handleSavePractice}
-        onOpenFakeDoor={() => setShowFakeDoor({ type: 'voice', isOpen: true })}
+        onOpenVoiceFakeDoor={() => setShowFakeDoor({ type: 'voice', isOpen: true })}
+        onOpenPhotoFakeDoor={() => setShowFakeDoor({ type: 'photo', isOpen: true })}
       />
 
       {/* Fake Door Modal */}
