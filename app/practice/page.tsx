@@ -559,11 +559,6 @@ function EditRecordModal({
 
   // 新增：照片列表状态
   const [recordPhotos, setRecordPhotos] = useState<Photo[]>([])
-  const [photoLoadError, setPhotoLoadError] = useState<string>('')
-  const [rawApiResponse, setRawApiResponse] = useState<any>(null)
-
-  // 获取当前用户
-  const { user: currentUser } = useAuth()
 
   // 加载记录的照片
   useEffect(() => {
@@ -573,24 +568,16 @@ function EditRecordModal({
   }, [record, isOpen])
 
   const loadRecordPhotos = async (recordId: string) => {
-    setPhotoLoadError('')
-    setRawApiResponse(null)
     try {
       const { getRecordPhotos } = await import('@/lib/oss')
       const result = await getRecordPhotos(recordId)
-      setRawApiResponse(result)
       if (result.success) {
         setRecordPhotos(result.photos || [])
-        if (!result.photos || result.photos.length === 0) {
-          setPhotoLoadError('API返回空数组')
-        }
       } else {
         setRecordPhotos([])
-        setPhotoLoadError(result.error || '未知错误')
       }
     } catch (error) {
       setRecordPhotos([])
-      setPhotoLoadError(String(error))
     }
   }
 
@@ -818,20 +805,15 @@ function EditRecordModal({
                   </div>
                 </div>
 
-                {/* Photo Upload - 照片上传区域（替换假门测试） */}
+                {/* Photo Upload - 照片上传区域 */}
                 {record && (
                   <div className="pt-2">
-                    {/* DEBUG: 显示 recordPhotos 状态 */}
-                    <div className="text-xs text-blue-500 font-mono mb-1">
-                      EditRecordModal: recordPhotos={recordPhotos.length}
-                    </div>
                     <PhotoUploader
                       recordId={record.id}
                       initialPhotos={recordPhotos}
                       maxPhotos={1}
                       onPhotosChange={(photos) => {
                         setRecordPhotos(photos)
-                        console.log('[EditRecordModal] Photos changed:', photos)
                       }}
                     />
                   </div>

@@ -33,8 +33,6 @@ export function PhotoUploader({
 
   // 当 initialPhotos 变化时同步状态
   React.useEffect(() => {
-    console.log('[PhotoUploader] initialPhotos 变化:', initialPhotos.length, '当前photos:', photos.length)
-    console.log('[PhotoUploader] initialPhotos 内容:', initialPhotos.map(p => ({ id: p.id, url: p.oss_url?.slice(0, 30) })))
     setPhotos(initialPhotos)
   }, [initialPhotos])
 
@@ -142,15 +140,8 @@ export function PhotoUploader({
   // 是否显示上传按钮
   const showUploadButton = photos.length < maxPhotos && !disabled
 
-  console.log('[PhotoUploader] 渲染 - photos数量:', photos.length, 'showUploadButton:', showUploadButton)
-
   return (
     <div className="space-y-3">
-      {/* DEBUG: 显示状态 */}
-      <div className="text-xs text-gray-400 font-mono bg-gray-100 p-1 rounded">
-        调试: photos={photos.length}, initial={initialPhotos.length}, max={maxPhotos}
-      </div>
-
       {/* 隐藏的文件输入框 */}
       <input
         ref={fileInputRef}
@@ -161,11 +152,12 @@ export function PhotoUploader({
         aria-label="选择照片"
       />
 
-      {/* 照片预览 */}
+      {/* 照片预览 - 编辑页面使用三等分网格 */}
       {photos.length > 0 && (
         <PhotoPreviewList
           photos={photos}
           onDelete={handleDelete}
+          layout="grid"
         />
       )}
 

@@ -10,17 +10,18 @@ interface PhotoPreviewProps {
   photo: Photo
   onDelete?: (photoId: string) => void
   className?: string
+  aspectRatio?: '1/1' | '16/9'
 }
 
 /**
  * 照片预览组件
  * 显示单张照片，支持删除
- * 设计规范：与觉察文字同宽，圆角 20px
  */
 export function PhotoPreview({
   photo,
   onDelete,
   className,
+  aspectRatio = '16/9',
 }: PhotoPreviewProps) {
   const handleDelete = () => {
     if (onDelete) {
@@ -29,22 +30,23 @@ export function PhotoPreview({
   }
 
   const handleImageClick = () => {
-    // 打开大图预览（Lightbox）
-    // TODO: 实现 Lightbox 功能
     window.open(photo.oss_url, '_blank')
   }
+
+  const isSquare = aspectRatio === '1/1'
 
   return (
     <div
       className={cn(
         'relative group',
         'w-full',
-        'rounded-[20px]',
+        'rounded-[12px]',
         'overflow-hidden',
         'shadow-[0_4px_30px_rgba(0,0,0,0.1)]',
         'border border-white/20',
         className
       )}
+      style={{ aspectRatio }}
     >
       {/* 删除按钮 */}
       {onDelete && (
@@ -70,17 +72,15 @@ export function PhotoPreview({
 
       {/* 照片 */}
       <div
-        className="relative w-full cursor-pointer"
-        style={{ maxHeight: '400px' }}
+        className="relative w-full h-full cursor-pointer"
         onClick={handleImageClick}
       >
         <Image
           src={photo.oss_url}
           alt="练习照片"
-          width={800}
-          height={400}
-          className="w-full h-auto object-cover"
-          style={{ maxHeight: '400px' }}
+          fill
+          className="object-cover"
+          sizes={isSquare ? '33vw' : '100vw'}
           loading="lazy"
         />
       </div>
@@ -89,24 +89,67 @@ export function PhotoPreview({
 }
 
 /**
- * 照片预览容器（用于编辑弹窗）
- * 显示照片列表（MVP 阶段只显示 1 张）
+ * 照片预览容器
+ * 支持不同布局模式：
+ * - 'single': 单张照片全宽（用于时光轴单张照片）
+ * - 'grid': 网格布局（用于编辑页面多照片，三等分）
+ * - 'timeline': 时光轴布局（1张全宽，2张以上三等分）
  */
 interface PhotoPreviewListProps {
   photos: Photo[]
   onDelete?: (photoId: string) => void
   className?: string
+  layout?: 'single' | 'grid' | 'timeline'
 }
 
 export function PhotoPreviewList({
   photos,
   onDelete,
   className,
+  layout = 'single',
 }: PhotoPreviewListProps) {
   if (!photos || photos.length === 0) {
     return null
   }
 
+  // 时光轴布局：1张全宽，多张网格三等分
+  if (layout === 'timeline') {
+    const isSingle = photos.length === 1
+    return (
+      <div className={cn(
+        'grid gap-2',
+        isSingle ? 'grid-cols-1' : 'grid-cols-3',
+        className
+      )}>
+        {photos.map((photo) => (
+          <PhotoPreview
+            key={photo.id}
+            photo={photo}
+            onDelete={onDelete}
+            aspectRatio={isSingle ? '16/9' : '1/1'}
+          />
+        ))}
+      </div>
+    )
+  }
+
+  // 网格布局（编辑页面三等分）
+  if (layout === 'grid') {
+    return (
+      <div className={cn('grid grid-cols-3 gap-2', className)}>
+        {photos.map((photo) => (
+          <PhotoPreview
+            key={photo.id}
+            photo={photo}
+            onDelete={onDelete}
+            aspectRatio="1/1"
+          />
+        ))}
+      </div>
+    )
+  }
+
+  // 单张照片全宽布局
   return (
     <div className={cn('space-y-3', className)}>
       {photos.map((photo) => (
@@ -114,6 +157,7 @@ export function PhotoPreviewList({
           key={photo.id}
           photo={photo}
           onDelete={onDelete}
+          aspectRatio="16/9"
         />
       ))}
     </div>
