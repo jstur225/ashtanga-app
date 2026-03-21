@@ -77,12 +77,19 @@ export async function POST(request: NextRequest) {
     }
 
     // 5. 检查记录是否已有照片
+    console.log('[Photos API] 检查现有照片:', { practice_record_id, user_id: user.id })
+
     const { data: existingPhotos, error: countError } = await supabase
       .from('photos')
-      .select('id')
+      .select('id, user_id, practice_record_id, deleted_at')
       .eq('practice_record_id', practice_record_id)
-      .eq('user_id', user.id)
       .is('deleted_at', null)
+
+    console.log('[Photos API] 现有照片查询结果:', {
+      count: existingPhotos?.length || 0,
+      photos: existingPhotos,
+      error: countError?.message
+    })
 
     if (countError) {
       console.error('[Photos API] 查询现有照片失败:', countError)
@@ -93,6 +100,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (existingPhotos && existingPhotos.length >= 1) {
+      console.log('[Photos API] 记录已有照片，拒绝上传:', existingPhotos[0])
       return NextResponse.json(
         { success: false, error: 'RECORD_PHOTO_LIMIT_EXCEEDED' },
         { status: 429 }
