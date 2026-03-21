@@ -560,8 +560,6 @@ function EditRecordModal({
 
   // 新增：照片列表状态
   const [recordPhotos, setRecordPhotos] = useState<Photo[]>([])
-  const [uploadError, setUploadError] = useState<string>('')
-  const [photoDebug, setPhotoDebug] = useState<string>('')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // 处理文件选择
@@ -570,7 +568,6 @@ function EditRecordModal({
     if (!files || files.length === 0 || !record) return
 
     const file = files[0]
-    setUploadError('')
 
     try {
       const { uploadPhoto } = await import('@/lib/oss')
@@ -580,8 +577,6 @@ function EditRecordModal({
         setRecordPhotos([result.photo])
         toast.success('记录了你的练习瞬间 ✓')
       } else {
-        const errorMsg = result.error || '未知错误'
-        setUploadError(`上传失败: ${errorMsg}`)
         const errorMessages: Record<string, string> = {
           'DAILY_LIMIT_EXCEEDED': '内测版本每天能上传1张照片',
           'RECORD_PHOTO_LIMIT_EXCEEDED': '该记录已有照片',
@@ -590,11 +585,9 @@ function EditRecordModal({
           'NETWORK_ERROR': '网络错误，请重试',
           'NOT_AUTHENTICATED': '请先登录',
         }
-        toast.error(errorMessages[result.error || ''] || `上传失败: ${errorMsg}`)
+        toast.error(errorMessages[result.error || ''] || '上传失败，请重试')
       }
     } catch (error) {
-      const errMsg = String(error)
-      setUploadError(`上传异常: ${errMsg}`)
       toast.error('上传出错，请重试')
     }
 
@@ -613,19 +606,15 @@ function EditRecordModal({
 
   const loadRecordPhotos = async (recordId: string) => {
     try {
-      setPhotoDebug('加载中...')
       const { getRecordPhotos } = await import('@/lib/oss')
       const result = await getRecordPhotos(recordId)
       if (result.success) {
         setRecordPhotos(result.photos || [])
-        setPhotoDebug(`API: ${JSON.stringify(result.data?.debug || {})}`)
       } else {
         setRecordPhotos([])
-        setPhotoDebug(`失败: ${result.error}`)
       }
     } catch (error) {
       setRecordPhotos([])
-      setPhotoDebug(`异常: ${String(error)}`)
     }
   }
 
@@ -856,20 +845,6 @@ function EditRecordModal({
                     </div>
                   </div>
                 </div>
-
-                {/* Debug Info */}
-                <div className="text-xs text-gray-400 mb-2 p-2 bg-gray-100 rounded">
-                  <div>照片数量: {recordPhotos.length}</div>
-                  <div>记录ID: {record?.id?.slice(0,8)}...</div>
-                  <div className="text-blue-500">{photoDebug}</div>
-                </div>
-
-                {/* 上传错误显示 */}
-                {uploadError && (
-                  <div className="text-xs text-red-500 mb-2 p-2 bg-red-50 rounded border border-red-200">
-                    错误: {uploadError}
-                  </div>
-                )}
 
                 {/* Photo Preview - 照片预览区域 */}
                 {record && recordPhotos.length > 0 && (
