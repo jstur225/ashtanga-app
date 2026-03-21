@@ -576,7 +576,7 @@ function EditRecordModal({
       toast.success('记录了你的练习瞬间 ✓')
     } else {
       const errorMessages: Record<string, string> = {
-        'DAILY_LIMIT_EXCEEDED': '内测版本，每天限1张',
+        'DAILY_LIMIT_EXCEEDED': '内测版本每天能上传1张照片',
         'RECORD_PHOTO_LIMIT_EXCEEDED': '该记录已有照片',
         'UPLOAD_FAILED_403': '上传失败，请重试',
         'NETWORK_ERROR': '网络错误，请重试',

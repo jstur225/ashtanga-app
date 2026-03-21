@@ -87,7 +87,7 @@ export function PhotoUploader({
       } else {
         // 处理错误
         const errorMessages: Record<string, string> = {
-          'DAILY_LIMIT_EXCEEDED': '内测版本，每天限1张',
+          'DAILY_LIMIT_EXCEEDED': '内测版本每天能上传1张照片',
           'RECORD_PHOTO_LIMIT_EXCEEDED': '该记录已有照片',
           'UPLOAD_FAILED_403': '上传失败，请重试',
           'UPLOAD_FAILED_400': '上传失败，请检查文件',
@@ -112,7 +112,7 @@ export function PhotoUploader({
   const handleUploadClick = useCallback(() => {
     // 检查是否还可以上传
     if (photos.length >= maxPhotos) {
-      toast.info('内测版本，每天限1张')
+      toast.info('内测版本每天能上传1张照片')
       return
     }
 
