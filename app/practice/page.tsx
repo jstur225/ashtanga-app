@@ -610,14 +610,19 @@ function EditRecordModal({
 
   const loadRecordPhotos = async (recordId: string) => {
     try {
+      console.log('[Debug] 开始加载照片:', recordId)
       const { getRecordPhotos } = await import('@/lib/oss')
       const result = await getRecordPhotos(recordId)
+      console.log('[Debug] 照片查询结果:', result)
       if (result.success) {
         setRecordPhotos(result.photos || [])
+        console.log('[Debug] 设置照片数量:', result.photos?.length || 0)
       } else {
+        console.error('[Debug] 查询失败:', result.error)
         setRecordPhotos([])
       }
     } catch (error) {
+      console.error('[Debug] 加载照片异常:', error)
       setRecordPhotos([])
     }
   }
@@ -848,6 +853,17 @@ function EditRecordModal({
                       />
                     </div>
                   </div>
+                </div>
+
+                {/* Debug Info */}
+                <div className="text-xs text-gray-400 mb-2 p-2 bg-gray-100 rounded">
+                  <div>照片数量: {recordPhotos.length}</div>
+                  <div>记录ID: {record?.id?.slice(0,8)}</div>
+                  {recordPhotos.length > 0 && (
+                    <div className="mt-1 text-green-600">
+                      照片ID: {recordPhotos[0].id.slice(0,8)}...
+                    </div>
+                  )}
                 </div>
 
                 {/* Photo Preview - 照片预览区域 */}
