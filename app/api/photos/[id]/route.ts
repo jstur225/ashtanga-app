@@ -66,12 +66,19 @@ export async function PATCH(
       )
     }
 
-    // 4. 执行软删除
-    const { error: updateError } = await supabase
-      .from('photos')
-      .update({ deleted_at: deleted_at || new Date().toISOString() })
-      .eq('id', id)
-      .eq('user_id', user.id)
+    // 4. 执行软删除（使用 SECURITY DEFINER 绕过 RLS）
+    const { data: deleteResult, error: updateError } = await supabase.rpc(
+      'delete_photo_debug',
+      { p_photo_id: id, p_user_id: user.id }
+    )
+
+    if (updateError) {
+      console.error('[Photos API] 删除照片失败:', updateError)
+      return NextResponse.json(
+        { success: false, error: 'DATABASE_ERROR' },
+        { status: 500 }
+      )
+    }
 
     if (updateError) {
       console.error('[Photos API] 删除照片失败:', updateError)
