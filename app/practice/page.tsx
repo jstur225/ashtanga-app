@@ -806,6 +806,10 @@ function EditRecordModal({
                 {/* Photo Upload - 照片上传区域（替换假门测试） */}
                 {record && (
                   <div className="pt-2">
+                    {/* DEBUG: 显示 recordPhotos 状态 */}
+                    <div className="text-xs text-blue-500 font-mono mb-1">
+                      EditRecordModal: recordPhotos={recordPhotos.length}
+                    </div>
                     <PhotoUploader
                       recordId={record.id}
                       initialPhotos={recordPhotos}
