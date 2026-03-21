@@ -560,6 +560,7 @@ function EditRecordModal({
   // 新增：照片列表状态
   const [recordPhotos, setRecordPhotos] = useState<Photo[]>([])
   const [photoLoadError, setPhotoLoadError] = useState<string>('')
+  const [rawApiResponse, setRawApiResponse] = useState<any>(null)
 
   // 获取当前用户
   const { user: currentUser } = useAuth()
@@ -573,9 +574,11 @@ function EditRecordModal({
 
   const loadRecordPhotos = async (recordId: string) => {
     setPhotoLoadError('')
+    setRawApiResponse(null)
     try {
       const { getRecordPhotos } = await import('@/lib/oss')
       const result = await getRecordPhotos(recordId)
+      setRawApiResponse(result)
       if (result.success) {
         setRecordPhotos(result.photos || [])
         if (!result.photos || result.photos.length === 0) {
@@ -678,6 +681,8 @@ function EditRecordModal({
             {/* DEBUG: 弹窗状态 */}
             <div className="text-xs text-red-500 font-mono mb-2 bg-red-50 p-1 rounded break-all">
               DEBUG: user={currentUser?.id?.slice(0,8)}, record={record?.id?.slice(0,8)}, photos={recordPhotos.length}, error={photoLoadError || 'none'}
+              <br/>
+              API: {JSON.stringify(rawApiResponse)?.slice(0, 100)}
             </div>
 
             <div className="flex items-center justify-between mb-6">
