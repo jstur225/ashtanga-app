@@ -858,13 +858,8 @@ function EditRecordModal({
                 {/* Debug Info */}
                 <div className="text-xs text-gray-400 mb-2 p-2 bg-gray-100 rounded">
                   <div>照片数量: {recordPhotos.length}</div>
-                  <div>记录ID: {record?.id?.slice(0,8)}</div>
-                  <div>当前用户ID: {user?.id?.slice(0,8) || '未登录'}</div>
-                  {recordPhotos.length > 0 && (
-                    <div className="mt-1 text-green-600">
-                      照片用户ID: {recordPhotos[0]?.user_id?.slice(0,8)}...
-                    </div>
-                  )}
+                  <div>记录ID: {record?.id?.slice(0,8)}...</div>
+                  <div>照片详情: {JSON.stringify(recordPhotos.map(p => ({id: p.id.slice(0,8), uid: p.user_id?.slice(0,8)})))}</div>
                 </div>
 
                 {/* Photo Preview - 照片预览区域 */}
