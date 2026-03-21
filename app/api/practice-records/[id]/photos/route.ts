@@ -59,13 +59,26 @@ export async function GET(
     // 3. 查询照片列表（绕过 RLS）
     console.log('[Photos API] 查询照片:', { recordId: id, userId: user.id })
 
+    // 先直接查询看看数据
+    const { data: directPhotos, error: directError } = await supabase
+      .from('photos')
+      .select('*')
+      .eq('practice_record_id', id)
+      .is('deleted_at', null)
+
+    console.log('[Photos API] 直接查询结果:', {
+      count: directPhotos?.length || 0,
+      error: directError?.message,
+      firstRecord: directPhotos?.[0]
+    })
+
     // 使用 SECURITY DEFINER 函数绕过 RLS
     const { data: photos, error: photosError } = await supabase.rpc(
       'get_record_photos_debug',
       { p_record_id: id, p_user_id: user.id }
     )
 
-    console.log('[Photos API] 查询结果:', { photosCount: photos?.length || 0, error: photosError?.message })
+    console.log('[Photos API] RPC 查询结果:', { photosCount: photos?.length || 0, error: photosError?.message })
 
     if (photosError) {
       console.error('[Photos API] 查询照片失败:', photosError)
