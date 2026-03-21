@@ -1,10 +1,11 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import Image from 'next/image'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Photo } from '@/lib/supabase'
+import { PhotoLightbox } from './PhotoLightbox'
 
 interface PhotoPreviewProps {
   photo: Photo
@@ -23,6 +24,8 @@ export function PhotoPreview({
   className,
   aspectRatio = '16/9',
 }: PhotoPreviewProps) {
+  const [lightboxOpen, setLightboxOpen] = useState(false)
+
   const handleDelete = () => {
     if (onDelete) {
       onDelete(photo.id)
@@ -30,61 +33,71 @@ export function PhotoPreview({
   }
 
   const handleImageClick = () => {
-    window.open(photo.oss_url, '_blank')
+    setLightboxOpen(true)
   }
 
   const isSquare = aspectRatio === '1/1'
 
   return (
-    <div
-      className={cn(
-        'relative group',
-        'w-full',
-        'rounded-[12px]',
-        'overflow-hidden',
-        'shadow-[0_4px_30px_rgba(0,0,0,0.1)]',
-        'border border-white/20',
-        className
-      )}
-      style={{ aspectRatio }}
-    >
-      {/* 删除按钮 */}
-      {onDelete && (
-        <button
-          type="button"
-          onClick={handleDelete}
-          className={cn(
-            'absolute top-2 right-2 z-10',
-            'w-8 h-8 rounded-full',
-            'flex items-center justify-center',
-            'bg-black/50 hover:bg-black/70',
-            'text-white',
-            'transition-opacity duration-200',
-            'opacity-0 group-hover:opacity-100',
-            'focus:opacity-100'
-          )}
-          aria-label="删除照片"
-          title="删除照片"
-        >
-          <X className="w-4 h-4" aria-hidden="true" />
-        </button>
-      )}
-
-      {/* 照片 */}
+    <>
       <div
-        className="relative w-full h-full cursor-pointer"
-        onClick={handleImageClick}
+        className={cn(
+          'relative group',
+          'w-full',
+          'rounded-[12px]',
+          'overflow-hidden',
+          'shadow-[0_4px_30px_rgba(0,0,0,0.1)]',
+          'border border-white/20',
+          className
+        )}
+        style={{ aspectRatio }}
       >
-        <Image
-          src={photo.oss_url}
-          alt="练习照片"
-          fill
-          className="object-cover"
-          sizes={isSquare ? '33vw' : '100vw'}
-          loading="lazy"
-        />
+        {/* 删除按钮 */}
+        {onDelete && (
+          <button
+            type="button"
+            onClick={handleDelete}
+            className={cn(
+              'absolute top-2 right-2 z-10',
+              'w-8 h-8 rounded-full',
+              'flex items-center justify-center',
+              'bg-black/50 hover:bg-black/70',
+              'text-white',
+              'transition-opacity duration-200',
+              'opacity-0 group-hover:opacity-100',
+              'focus:opacity-100'
+            )}
+            aria-label="删除照片"
+            title="删除照片"
+          >
+            <X className="w-4 h-4" aria-hidden="true" />
+          </button>
+        )}
+
+        {/* 照片 */}
+        <div
+          className="relative w-full h-full cursor-pointer"
+          onClick={handleImageClick}
+        >
+          <Image
+            src={photo.oss_url}
+            alt="练习照片"
+            fill
+            className="object-cover"
+            sizes={isSquare ? '33vw' : '100vw'}
+            loading="lazy"
+          />
+        </div>
       </div>
-    </div>
+
+      {/* Lightbox */}
+      <PhotoLightbox
+        src={photo.oss_url}
+        alt="练习照片"
+        isOpen={lightboxOpen}
+        onClose={() => setLightboxOpen(false)}
+      />
+    </>
   )
 }
 

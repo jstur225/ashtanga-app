@@ -12,6 +12,7 @@ import { FakeDoorModal } from "@/components/FakeDoorModal"
 import { VoiceButton } from "@/components/VoiceButton"
 import { PhotoUploadButton } from "@/components/PhotoUploadButton"
 import { PhotoUploader } from "@/components/PhotoUpload"
+import { PhotoPreviewList } from "@/components/PhotoUpload/PhotoPreview"
 import type { Photo } from "@/lib/supabase"
 import { ImportModal } from "@/components/ImportModal"
 import { ExportModal } from "@/components/ExportModal"
@@ -559,6 +560,35 @@ function EditRecordModal({
 
   // 新增：照片列表状态
   const [recordPhotos, setRecordPhotos] = useState<Photo[]>([])
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // 处理文件选择
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files
+    if (!files || files.length === 0 || !record) return
+
+    const file = files[0]
+    const { uploadPhoto } = await import('@/lib/oss')
+    const result = await uploadPhoto(file, record.id)
+
+    if (result.success && result.photo) {
+      setRecordPhotos([result.photo])
+      toast.success('记录了你的练习瞬间 ✓')
+    } else {
+      const errorMessages: Record<string, string> = {
+        'DAILY_LIMIT_EXCEEDED': '内测版本，每天限1张',
+        'RECORD_PHOTO_LIMIT_EXCEEDED': '该记录已有照片',
+        'UPLOAD_FAILED_403': '上传失败，请重试',
+        'NETWORK_ERROR': '网络错误，请重试',
+      }
+      toast.error(errorMessages[result.error || ''] || '上传失败，请重试')
+    }
+
+    // 清空 input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
 
   // 加载记录的照片
   useEffect(() => {
@@ -789,8 +819,19 @@ function EditRecordModal({
                       rows={7}
                       className="w-full px-4 py-3 pr-12 rounded-2xl bg-secondary text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-none font-serif text-sm"
                     />
-                    {/* Voice Input - 浮动在输入框右下角 */}
+                    {/* Voice & Photo Input - 浮动在输入框右下角 */}
                     <div className="absolute bottom-3 right-3 flex items-center gap-2">
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleFileSelect}
+                        className="hidden"
+                      />
+                      <PhotoUploadButton
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={recordPhotos.length >= 1}
+                      />
                       <VoiceButton
                         onClick={() => onOpenVoiceFakeDoor?.()}
                       />
@@ -798,15 +839,21 @@ function EditRecordModal({
                   </div>
                 </div>
 
-                {/* Photo Upload - 照片上传区域 */}
-                {record && (
+                {/* Photo Preview - 照片预览区域 */}
+                {record && recordPhotos.length > 0 && (
                   <div className="pt-2">
-                    <PhotoUploader
-                      recordId={record.id}
-                      initialPhotos={recordPhotos}
-                      maxPhotos={1}
-                      onPhotosChange={(photos) => {
-                        setRecordPhotos(photos)
+                    <PhotoPreviewList
+                      photos={recordPhotos}
+                      layout="grid"
+                      onDelete={async (photoId) => {
+                        const { deletePhoto } = await import('@/lib/oss')
+                        const result = await deletePhoto(photoId)
+                        if (result.success) {
+                          setRecordPhotos([])
+                          toast.success('照片已删除 ✓')
+                        } else {
+                          toast.error('删除失败，请重试')
+                        }
                       }}
                     />
                   </div>
