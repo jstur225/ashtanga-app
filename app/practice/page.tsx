@@ -559,6 +559,7 @@ function EditRecordModal({
 
   // 新增：照片列表状态
   const [recordPhotos, setRecordPhotos] = useState<Photo[]>([])
+  const [photoLoadError, setPhotoLoadError] = useState<string>('')
 
   // 加载记录的照片
   useEffect(() => {
@@ -568,21 +569,19 @@ function EditRecordModal({
   }, [record, isOpen])
 
   const loadRecordPhotos = async (recordId: string) => {
-    console.log('[EditRecordModal] 开始加载照片:', recordId)
+    setPhotoLoadError('')
     try {
       const { getRecordPhotos } = await import('@/lib/oss')
       const result = await getRecordPhotos(recordId)
-      console.log('[EditRecordModal] 照片加载结果:', result)
       if (result.success && result.photos) {
-        console.log('[EditRecordModal] 加载到照片数量:', result.photos.length)
         setRecordPhotos(result.photos)
       } else {
-        console.log('[EditRecordModal] 没有加载到照片')
         setRecordPhotos([])
+        setPhotoLoadError(result.error || '未知错误')
       }
     } catch (error) {
-      console.error('[EditRecordModal] 加载照片失败:', error)
       setRecordPhotos([])
+      setPhotoLoadError(String(error))
     }
   }
 
@@ -672,7 +671,7 @@ function EditRecordModal({
           >
             {/* DEBUG: 弹窗状态 */}
             <div className="text-xs text-red-500 font-mono mb-2 bg-red-50 p-1 rounded">
-              DEBUG: isOpen={String(isOpen)}, record={record?.id?.slice(0,8)}, photos={recordPhotos.length}
+              DEBUG: isOpen={String(isOpen)}, record={record?.id?.slice(0,8)}, photos={recordPhotos.length}, error={photoLoadError || 'none'}
             </div>
 
             <div className="flex items-center justify-between mb-6">
