@@ -56,22 +56,18 @@ export async function GET(
       )
     }
 
-    // 3. 查询照片列表（绕过 RLS）
+    // 3. 查询照片列表（使用 RPC 绕过 RLS）
     console.log('[Photos API] 查询照片:', { recordId: id, userId: user.id })
 
-    // 直接使用 service role 查询，不用 RPC
-    const { data: photos, error: photosError } = await supabase
-      .from('photos')
-      .select('id, practice_record_id, oss_url, oss_key, file_size, mime_type, display_order, uploaded_at')
-      .eq('practice_record_id', id)
-      .eq('user_id', user.id)
-      .is('deleted_at', null)
-      .order('display_order')
+    // 使用 SECURITY DEFINER RPC 函数绕过 RLS
+    const { data: photos, error: photosError } = await supabase.rpc(
+      'get_record_photos_debug',
+      { p_record_id: id, p_user_id: user.id }
+    )
 
     console.log('[Photos API] 查询结果:', {
       photosCount: photos?.length || 0,
-      error: photosError?.message,
-      photos: photos
+      error: photosError?.message
     })
 
     if (photosError) {
