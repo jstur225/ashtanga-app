@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useEffect, useCallback } from 'react'
-import Image from 'next/image'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -15,6 +14,10 @@ interface PhotoLightboxProps {
 /**
  * 照片 Lightbox 组件
  * 点击照片放大查看
+ * - 宽度固定 90%，最大 900px
+ * - 高度自适应原图比例
+ * - 超长图支持上下滚动
+ * - 圆角直接加在照片上
  */
 export function PhotoLightbox({
   src,
@@ -73,18 +76,30 @@ export function PhotoLightbox({
         <X className="w-6 h-6" />
       </button>
 
-      {/* 照片容器 - 左右留边距，圆角 */}
-      <div className="relative w-[90%] max-w-4xl mx-auto flex items-center justify-center">
-        <div className="relative w-full aspect-[4/3] max-h-[80vh] rounded-2xl overflow-hidden bg-black/20">
-          <Image
-            src={src}
-            alt={alt}
-            fill
-            className="object-contain"
-            sizes="(max-width: 896px) 90vw, 896px"
-            priority
-          />
-        </div>
+      {/* 照片容器 - 固定宽度，高度自适应，超长可滚动 */}
+      <div
+        className={cn(
+          'relative w-[90%] max-w-[900px] mx-auto',
+          'max-h-[85vh]',
+          'overflow-y-auto overflow-x-hidden',
+          'flex items-start justify-center'
+        )}
+        onClick={(e) => e.stopPropagation()} // 防止点击照片时关闭
+      >
+        {/* 使用原生 img 保持原图比例，避免 Next.js Image 的约束 */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={src}
+          alt={alt}
+          className={cn(
+            'w-full h-auto max-w-full',
+            'rounded-2xl',
+            'block'
+          )}
+          style={{
+            objectFit: 'contain',
+          }}
+        />
       </div>
     </div>
   )
