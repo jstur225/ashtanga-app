@@ -57,6 +57,7 @@ export async function GET(
     }
 
     // 3. 查询照片列表
+    console.log('[Photos API] 查询照片:', { recordId: id, userId: user.id })
     const { data: photos, error: photosError } = await supabase
       .from('photos')
       .select('id, practice_record_id, oss_url, oss_key, file_size, mime_type, display_order, uploaded_at')
@@ -64,6 +65,8 @@ export async function GET(
       .eq('user_id', user.id)
       .is('deleted_at', null)
       .order('display_order', { ascending: true })
+
+    console.log('[Photos API] 查询结果:', { photosCount: photos?.length || 0, error: photosError?.message })
 
     if (photosError) {
       console.error('[Photos API] 查询照片失败:', photosError)

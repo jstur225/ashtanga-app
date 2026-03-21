@@ -561,6 +561,9 @@ function EditRecordModal({
   const [recordPhotos, setRecordPhotos] = useState<Photo[]>([])
   const [photoLoadError, setPhotoLoadError] = useState<string>('')
 
+  // 获取当前用户
+  const { user: currentUser } = useAuth()
+
   // 加载记录的照片
   useEffect(() => {
     if (record && isOpen) {
@@ -673,8 +676,8 @@ function EditRecordModal({
             className="fixed bottom-0 left-0 right-0 bg-card rounded-t-[24px] z-50 p-6 pb-10 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] max-h-[calc(100vh-2rem)] overflow-y-auto"
           >
             {/* DEBUG: 弹窗状态 */}
-            <div className="text-xs text-red-500 font-mono mb-2 bg-red-50 p-1 rounded">
-              DEBUG: isOpen={String(isOpen)}, record={record?.id?.slice(0,8)}, photos={recordPhotos.length}, error={photoLoadError || 'none'}
+            <div className="text-xs text-red-500 font-mono mb-2 bg-red-50 p-1 rounded break-all">
+              DEBUG: user={currentUser?.id?.slice(0,8)}, record={record?.id?.slice(0,8)}, photos={recordPhotos.length}, error={photoLoadError || 'none'}
             </div>
 
             <div className="flex items-center justify-between mb-6">
