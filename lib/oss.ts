@@ -73,9 +73,8 @@ export async function uploadToOSS(
     const response = await fetch(presignedUrl, {
       method: 'PUT',
       body: file,
-      headers: {
-        'Content-Type': file.type,
-      },
+      // 不设置 Content-Type，让浏览器自动处理
+      // 预签名 URL 已经包含了 Content-Type 签名
     })
 
     if (!response.ok) {
