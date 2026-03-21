@@ -62,11 +62,13 @@ export function PhotoLightbox({
           'absolute top-4 right-4 z-10',
           'w-10 h-10 rounded-full',
           'flex items-center justify-center',
-          'bg-white/20 hover:bg-white/30 backdrop-blur-md',
+          'bg-black/60 hover:bg-black/80',
           'text-white',
-          'transition-colors'
+          'transition-colors',
+          'shadow-lg'
         )}
         aria-label="关闭"
+        title="关闭"
       >
         <X className="w-6 h-6" />
       </button>
