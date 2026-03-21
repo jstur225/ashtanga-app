@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 4. 解析请求体
-    const { fileName } = await request.json()
+    const { fileName, mimeType } = await request.json()
     if (!fileName) {
       return NextResponse.json(
         { success: false, error: 'FILENAME_REQUIRED' },
@@ -92,8 +92,8 @@ export async function POST(request: NextRequest) {
     const randomName = uuidv4()
     const ossKey = `${user.id}/${dateStr}/${randomName}.${fileExt}`
 
-    // 6. 生成预签名 URL（有效期 1 小时）
-    const presignedUrl = generatePresignedUrl(ossKey)
+    // 6. 生成预签名 URL（有效期 1 小时），使用实际的 MIME 类型
+    const presignedUrl = generatePresignedUrl(ossKey, mimeType || 'application/octet-stream')
     const ossUrl = `https://${OSS_BUCKET}.${OSS_ENDPOINT}/${ossKey}`
 
     // 7. 返回预签名 URL
@@ -118,27 +118,25 @@ export async function POST(request: NextRequest) {
 /**
  * 生成 OSS 预签名 URL（阿里云官方签名算法）
  * 文档: https://help.aliyun.com/document_detail/31952.html
- *
- * 签名格式: Signature = base64(hmac-sha1(AccessKeySecret,
- *   VERB + "\n" +
- *   CONTENT-MD5 + "\n" +
- *   CONTENT-TYPE + "\n" +
- *   EXPIRES + "\n" +
- *   CanonicalizedOSSHeaders +
- *   CanonicalizedResource))
  */
-function generatePresignedUrl(ossKey: string): string {
+function generatePresignedUrl(ossKey: string, contentType: string): string {
   // 过期时间：Unix 时间戳（秒）
   const expires = Math.floor(Date.now() / 1000) + 3600 // 1小时后过期
 
   // 构建签名字符串（5个部分，用换行符分隔）
   const verb = 'PUT'
   const contentMd5 = ''
-  const contentType = ''  // 留空，不限制 Content-Type
   const canonicalizedOSSHeaders = ''
   const canonicalizedResource = `/${OSS_BUCKET}/${ossKey}`
 
   const signString = `${verb}\n${contentMd5}\n${contentType}\n${expires}\n${canonicalizedOSSHeaders}${canonicalizedResource}`
+
+  // 打印调试信息
+  console.log('[OSS Signature] Sign string:', JSON.stringify(signString))
+  console.log('[OSS Signature] Content-Type:', contentType)
+  console.log('[OSS Signature] AccessKey ID:', OSS_ACCESS_KEY_ID.slice(0, 8) + '...')
+  console.log('[OSS Signature] Bucket:', OSS_BUCKET)
+  console.log('[OSS Signature] Endpoint:', OSS_ENDPOINT)
 
   // HMAC-SHA1 签名
   const crypto = require('crypto')
@@ -152,6 +150,8 @@ function generatePresignedUrl(ossKey: string): string {
 
   // 构建 URL（注意 OSSAccessKeyId 的拼写）
   const url = `https://${OSS_BUCKET}.${OSS_ENDPOINT}/${ossKey}?OSSAccessKeyId=${encodeURIComponent(OSS_ACCESS_KEY_ID)}&Expires=${expires}&Signature=${encodedSignature}`
+
+  console.log('[OSS Signature] Generated URL:', url.slice(0, 100) + '...')
 
   return url
 }

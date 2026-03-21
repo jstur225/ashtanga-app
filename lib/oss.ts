@@ -42,13 +42,13 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
 /**
  * 获取预签名 URL（用于上传）
  */
-export async function getPresignedUrl(fileName: string): Promise<PresignedUrlResponse> {
+export async function getPresignedUrl(fileName: string, mimeType: string): Promise<PresignedUrlResponse> {
   try {
     const headers = await getAuthHeaders()
     const response = await fetch('/api/oss-signature', {
       method: 'POST',
       headers,
-      body: JSON.stringify({ fileName }),
+      body: JSON.stringify({ fileName, mimeType }),
     })
 
     const result = await response.json()
@@ -67,14 +67,16 @@ export async function getPresignedUrl(fileName: string): Promise<PresignedUrlRes
  */
 export async function uploadToOSS(
   file: File,
-  presignedUrl: string
+  presignedUrl: string,
+  mimeType: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const response = await fetch(presignedUrl, {
       method: 'PUT',
       body: file,
-      // 不设置 Content-Type，让浏览器自动处理
-      // 预签名 URL 已经包含了 Content-Type 签名
+      headers: {
+        'Content-Type': mimeType,
+      },
     })
 
     if (!response.ok) {
@@ -115,15 +117,15 @@ export async function uploadPhoto(
     const random = Math.random().toString(36).substring(2, 8)
     const fileName = `${timestamp}-${random}.${fileExt}`
 
-    const presignedResult = await getPresignedUrl(fileName)
+    const presignedResult = await getPresignedUrl(fileName, file.type)
     if (!presignedResult.success) {
       return { success: false, error: presignedResult.error }
     }
 
     const { presignedUrl, ossKey, ossUrl } = presignedResult.data!
 
-    // 3. 上传到 OSS
-    const uploadResult = await uploadToOSS(file, presignedUrl)
+    // 3. 上传到 OSS（传递 MIME 类型确保签名匹配）
+    const uploadResult = await uploadToOSS(file, presignedUrl, file.type)
     if (!uploadResult.success) {
       return { success: false, error: uploadResult.error }
     }
