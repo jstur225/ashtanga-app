@@ -60,18 +60,19 @@
 - ✅ **月相日历系统**（新月/满月日期标记/Moon Day休息日提醒，已练习日期黄色小亮点）
 - ✅ 分享功能（生成打卡卡片，保存图片）
 - ✅ 口令跟练（一序列梵文口令音频，支持缓存和进度控制）
+- ✅ **照片上传**（支持练习照片记录，OSS存储，Lightbox放大查看）
 
 ### 技术实现
 - ✅ Next.js 16 + React 19 + TypeScript
 - ✅ Supabase PostgreSQL数据库
 - ✅ Radix UI组件库 + Tailwind CSS
 - ✅ 响应式设计（移动端优先）
+- ✅ **阿里云OSS**（预签名URL上传，安全高效）
 
 ---
 
 ## 🚧 开发中功能
 
-- ⏳ 照片上传和存储（压缩+Supabase Storage）
 - ⏳ 加载状态提示优化
 - ⏳ 错误提示美化（toast替代alert）
 
