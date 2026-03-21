@@ -12,6 +12,7 @@ import { FakeDoorModal } from "@/components/FakeDoorModal"
 import { VoiceButton } from "@/components/VoiceButton"
 import { PhotoUploadButton } from "@/components/PhotoUploadButton"
 import { PhotoUploader } from "@/components/PhotoUpload"
+import type { Photo } from "@/lib/supabase"
 import { ImportModal } from "@/components/ImportModal"
 import { ExportModal } from "@/components/ExportModal"
 import { XiaohongshuInviteModal, INVITE_VERSION } from "@/components/XiaohongshuInviteModal"
@@ -556,6 +557,31 @@ function EditRecordModal({
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [showTypeSelector, setShowTypeSelector] = useState(false)
 
+  // 新增：照片列表状态
+  const [recordPhotos, setRecordPhotos] = useState<Photo[]>([])
+
+  // 加载记录的照片
+  useEffect(() => {
+    if (record && isOpen) {
+      loadRecordPhotos(record.id)
+    }
+  }, [record, isOpen])
+
+  const loadRecordPhotos = async (recordId: string) => {
+    try {
+      const { getRecordPhotos } = await import('@/lib/oss')
+      const result = await getRecordPhotos(recordId)
+      if (result.success && result.photos) {
+        setRecordPhotos(result.photos)
+      } else {
+        setRecordPhotos([])
+      }
+    } catch (error) {
+      console.error('[EditRecordModal] 加载照片失败:', error)
+      setRecordPhotos([])
+    }
+  }
+
   // 日期显示格式化
   const formatDateDisplay = (dateStr: string) => {
     if (!dateStr) return "选择日期"
@@ -778,9 +804,10 @@ function EditRecordModal({
                   <div className="pt-2">
                     <PhotoUploader
                       recordId={record.id}
+                      initialPhotos={recordPhotos}
                       maxPhotos={1}
                       onPhotosChange={(photos) => {
-                        // 照片变化时的回调（可选：可以在这里触发刷新）
+                        setRecordPhotos(photos)
                         console.log('[EditRecordModal] Photos changed:', photos)
                       }}
                     />
