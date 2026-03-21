@@ -18,6 +18,7 @@ export interface PresignedUrlResponse {
     presignedUrl: string
     ossKey: string
     ossUrl: string
+    mimeType: string
     expiresAt: number
   }
   error?: string
@@ -69,8 +70,11 @@ export async function uploadToOSS(
   file: File,
   presignedUrl: string,
   mimeType: string
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; error?: string; details?: string }> {
   try {
+    console.log('[OSS Upload] 开始上传:', { fileName: file.name, mimeType, size: file.size })
+    console.log('[OSS Upload] Presigned URL:', presignedUrl.slice(0, 80) + '...')
+
     const response = await fetch(presignedUrl, {
       method: 'PUT',
       body: file,
@@ -79,20 +83,27 @@ export async function uploadToOSS(
       },
     })
 
+    console.log('[OSS Upload] 响应状态:', response.status, response.statusText)
+    console.log('[OSS Upload] 响应头:', Object.fromEntries(response.headers.entries()))
+
     if (!response.ok) {
-      console.error('[OSS] 上传失败:', response.status, response.statusText)
+      // 尝试读取 OSS 返回的错误详情
+      const errorText = await response.text()
+      console.error('[OSS Upload] 错误响应体:', errorText)
       return {
         success: false,
         error: `UPLOAD_FAILED_${response.status}`,
+        details: errorText,
       }
     }
 
     return { success: true }
   } catch (error) {
-    console.error('[OSS] 上传请求失败:', error)
+    console.error('[OSS Upload] 请求异常:', error)
     return {
       success: false,
       error: 'NETWORK_ERROR',
+      details: String(error),
     }
   }
 }
@@ -122,11 +133,14 @@ export async function uploadPhoto(
       return { success: false, error: presignedResult.error }
     }
 
-    const { presignedUrl, ossKey, ossUrl } = presignedResult.data!
+    const { presignedUrl, ossKey, ossUrl, mimeType } = presignedResult.data!
+    console.log('[uploadPhoto] 后端返回的 MIME 类型:', mimeType)
+    console.log('[uploadPhoto] 前端文件的 MIME 类型:', file.type)
 
-    // 3. 上传到 OSS（传递 MIME 类型确保签名匹配）
-    const uploadResult = await uploadToOSS(file, presignedUrl, file.type)
+    // 3. 上传到 OSS（使用后端返回的 MIME 类型确保签名匹配）
+    const uploadResult = await uploadToOSS(file, presignedUrl, mimeType)
     if (!uploadResult.success) {
+      console.error('[uploadPhoto] 上传失败:', uploadResult.error, uploadResult.details)
       return { success: false, error: uploadResult.error }
     }
 

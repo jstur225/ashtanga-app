@@ -93,7 +93,8 @@ export async function POST(request: NextRequest) {
     const ossKey = `${user.id}/${dateStr}/${randomName}.${fileExt}`
 
     // 6. 生成预签名 URL（有效期 1 小时），使用实际的 MIME 类型
-    const presignedUrl = generatePresignedUrl(ossKey, mimeType || 'application/octet-stream')
+    const actualMimeType = mimeType || 'application/octet-stream'
+    const presignedUrl = generatePresignedUrl(ossKey, actualMimeType)
     const ossUrl = `https://${OSS_BUCKET}.${OSS_ENDPOINT}/${ossKey}`
 
     // 7. 返回预签名 URL
@@ -103,6 +104,7 @@ export async function POST(request: NextRequest) {
         presignedUrl,
         ossKey,
         ossUrl,
+        mimeType: actualMimeType,
         expiresAt: Date.now() + 3600 * 1000, // 1小时后过期
       },
     })
