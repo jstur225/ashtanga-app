@@ -33,7 +33,8 @@ export function PhotoUploader({
 
   // 当 initialPhotos 变化时同步状态
   React.useEffect(() => {
-    console.log('[PhotoUploader] initialPhotos 变化:', initialPhotos.length)
+    console.log('[PhotoUploader] initialPhotos 变化:', initialPhotos.length, '当前photos:', photos.length)
+    console.log('[PhotoUploader] initialPhotos 内容:', initialPhotos.map(p => ({ id: p.id, url: p.oss_url?.slice(0, 30) })))
     setPhotos(initialPhotos)
   }, [initialPhotos])
 
@@ -140,6 +141,8 @@ export function PhotoUploader({
 
   // 是否显示上传按钮
   const showUploadButton = photos.length < maxPhotos && !disabled
+
+  console.log('[PhotoUploader] 渲染 - photos数量:', photos.length, 'showUploadButton:', showUploadButton)
 
   return (
     <div className="space-y-3">
