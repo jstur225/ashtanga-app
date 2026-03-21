@@ -568,20 +568,31 @@ function EditRecordModal({
     if (!files || files.length === 0 || !record) return
 
     const file = files[0]
-    const { uploadPhoto } = await import('@/lib/oss')
-    const result = await uploadPhoto(file, record.id)
+    console.log('[handleFileSelect] 开始上传:', file.name, file.size)
 
-    if (result.success && result.photo) {
-      setRecordPhotos([result.photo])
-      toast.success('记录了你的练习瞬间 ✓')
-    } else {
-      const errorMessages: Record<string, string> = {
-        'DAILY_LIMIT_EXCEEDED': '内测版本每天能上传1张照片',
-        'RECORD_PHOTO_LIMIT_EXCEEDED': '该记录已有照片',
-        'UPLOAD_FAILED_403': '上传失败，请重试',
-        'NETWORK_ERROR': '网络错误，请重试',
+    try {
+      const { uploadPhoto } = await import('@/lib/oss')
+      const result = await uploadPhoto(file, record.id)
+      console.log('[handleFileSelect] 上传结果:', result)
+
+      if (result.success && result.photo) {
+        setRecordPhotos([result.photo])
+        toast.success('记录了你的练习瞬间 ✓')
+      } else {
+        console.error('[handleFileSelect] 上传失败:', result.error)
+        const errorMessages: Record<string, string> = {
+          'DAILY_LIMIT_EXCEEDED': '内测版本每天能上传1张照片',
+          'RECORD_PHOTO_LIMIT_EXCEEDED': '该记录已有照片',
+          'UPLOAD_FAILED_403': '上传失败，请重试',
+          'UPLOAD_FAILED_400': '上传失败，请检查文件',
+          'NETWORK_ERROR': '网络错误，请重试',
+          'NOT_AUTHENTICATED': '请先登录',
+        }
+        toast.error(errorMessages[result.error || ''] || `上传失败: ${result.error || '未知错误'}`)
       }
-      toast.error(errorMessages[result.error || ''] || '上传失败，请重试')
+    } catch (error) {
+      console.error('[handleFileSelect] 上传异常:', error)
+      toast.error('上传出错，请重试')
     }
 
     // 清空 input
