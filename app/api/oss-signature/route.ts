@@ -116,43 +116,42 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * 生成 OSS 预签名 URL
- * 使用阿里云 OSS 签名算法
+ * 生成 OSS 预签名 URL（阿里云官方签名算法）
  * 文档: https://help.aliyun.com/document_detail/31952.html
+ *
+ * 签名格式: Signature = base64(hmac-sha1(AccessKeySecret,
+ *   VERB + "\n" +
+ *   CONTENT-MD5 + "\n" +
+ *   CONTENT-TYPE + "\n" +
+ *   EXPIRES + "\n" +
+ *   CanonicalizedOSSHeaders +
+ *   CanonicalizedResource))
  */
 function generatePresignedUrl(ossKey: string): string {
-  // 使用 UTC 时间，确保时间同步
-  const now = new Date()
-  const expiration = Math.floor(now.getTime() / 1000) + 3600 // 1小时后过期
+  // 过期时间：Unix 时间戳（秒）
+  const expires = Math.floor(Date.now() / 1000) + 3600 // 1小时后过期
 
-  // 构建签名
-  const method = 'PUT'
+  // 构建签名字符串（5个部分，用换行符分隔）
+  const verb = 'PUT'
   const contentMd5 = ''
-  const contentType = 'application/octet-stream'
+  const contentType = ''  // 留空，不限制 Content-Type
   const canonicalizedOSSHeaders = ''
   const canonicalizedResource = `/${OSS_BUCKET}/${ossKey}`
 
-  // 签名字符串格式（注意换行符）
-  const signString = [
-    method,
-    contentMd5,
-    contentType,
-    expiration.toString(),
-    canonicalizedOSSHeaders,
-    canonicalizedResource,
-  ].join('\n')
+  const signString = `${verb}\n${contentMd5}\n${contentType}\n${expires}\n${canonicalizedOSSHeaders}${canonicalizedResource}`
 
   // HMAC-SHA1 签名
   const crypto = require('crypto')
-  const hmac = crypto.createHmac('sha1', OSS_ACCESS_KEY_SECRET)
-  hmac.update(signString)
-  const signature = hmac.digest('base64')
+  const signature = crypto
+    .createHmac('sha1', OSS_ACCESS_KEY_SECRET)
+    .update(signString)
+    .digest('base64')
 
-  // URL 编码签名（RFC 3986）
-  const urlSafeSignature = encodeURIComponent(signature)
+  // URL 编码签名
+  const encodedSignature = encodeURIComponent(signature)
 
-  // 构建 URL
-  const url = `https://${OSS_BUCKET}.${OSS_ENDPOINT}/${ossKey}?OSSAccessKeyId=${encodeURIComponent(OSS_ACCESS_KEY_ID)}&Expires=${expiration}&Signature=${urlSafeSignature}`
+  // 构建 URL（注意 OSSAccessKeyId 的拼写）
+  const url = `https://${OSS_BUCKET}.${OSS_ENDPOINT}/${ossKey}?OSSAccessKeyId=${encodeURIComponent(OSS_ACCESS_KEY_ID)}&Expires=${expires}&Signature=${encodedSignature}`
 
   return url
 }
