@@ -34,20 +34,12 @@ export function FakeDoorModal({ type, isOpen, onClose, onVote }: FakeDoorModalPr
     } else if (type === 'voice') {
       setVotedVoice(true)
       toast.success('收到你的心意啦~')
-      // 语音输入假门测试埋点
-      trackEvent('vote_for_voice_input', {
-        vote: 'yes',
-        choice: choice || 'voice'
-      })
+      // 语音输入假门测试埋点已移除
       onVote?.()
     } else if (type === 'photo') {
       setVotedPhoto(true)
       toast.success('收到你的心意啦~')
-      // 照片上传假门测试埋点
-      trackEvent('vote_for_photo_upload', {
-        vote: 'yes',
-        choice: choice || 'photo'
-      })
+      // 照片上传假门测试埋点已移除
       onVote?.()
     } else {
       setVotedPro(true)
@@ -60,17 +52,9 @@ export function FakeDoorModal({ type, isOpen, onClose, onVote }: FakeDoorModalPr
 
   const handleSecondary = () => {
     if (type === 'voice') {
-      // 语音输入假门测试 - 用户拒绝
-      trackEvent('vote_for_voice_input', {
-        vote: 'no',
-        choice: 'none'
-      })
+      // 语音输入假门测试 - 用户拒绝（埋点已移除）
     } else if (type === 'photo') {
-      // 照片上传假门测试 - 用户拒绝
-      trackEvent('vote_for_photo_upload', {
-        vote: 'no',
-        choice: 'none'
-      })
+      // 照片上传假门测试 - 用户拒绝（埋点已移除）
     }
     toast.success('收到你的心意啦~')
     onClose()

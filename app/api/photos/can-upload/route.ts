@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // 2. 检查今日上传限额（测试期间临时调整为10张）
+    // 2. 检查今日上传限额（临时调整为 10 张）
     const { data: canUpload, error: limitError } = await supabase.rpc(
       'can_user_upload_today',
       { user_uuid: user.id, max_photos: 10 }
