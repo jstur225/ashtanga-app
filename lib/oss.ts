@@ -215,7 +215,13 @@ export async function getRecordPhotos(recordId: string): Promise<{
     })
 
     const result = await response.json()
-    return result
+    // API 返回 { success: true, data: { photos: [...] } }
+    // 转换为 { success: true, photos: [...] }
+    return {
+      success: result.success,
+      photos: result.data?.photos,
+      error: result.error,
+    }
   } catch (error) {
     console.error('[OSS] 获取照片失败:', error)
     return {
