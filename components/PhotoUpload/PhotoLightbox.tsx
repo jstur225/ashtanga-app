@@ -52,7 +52,7 @@ export function PhotoLightbox({
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm"
       onClick={handleBackdropClick}
     >
       {/* 关闭按钮 */}
@@ -62,7 +62,7 @@ export function PhotoLightbox({
           'absolute top-4 right-4 z-10',
           'w-10 h-10 rounded-full',
           'flex items-center justify-center',
-          'bg-white/20 hover:bg-white/30',
+          'bg-white/20 hover:bg-white/30 backdrop-blur-md',
           'text-white',
           'transition-colors'
         )}
@@ -71,16 +71,18 @@ export function PhotoLightbox({
         <X className="w-6 h-6" />
       </button>
 
-      {/* 照片 */}
-      <div className="relative w-full h-full flex items-center justify-center p-4">
-        <Image
-          src={src}
-          alt={alt}
-          fill
-          className="object-contain"
-          sizes="100vw"
-          priority
-        />
+      {/* 照片容器 - 带边框和圆角 */}
+      <div className="relative w-[90vw] h-[80vh] max-w-4xl">
+        <div className="relative w-full h-full rounded-2xl overflow-hidden bg-black/20 shadow-2xl">
+          <Image
+            src={src}
+            alt={alt}
+            fill
+            className="object-contain"
+            sizes="90vw"
+            priority
+          />
+        </div>
       </div>
     </div>
   )

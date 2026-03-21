@@ -52,25 +52,24 @@ export function PhotoPreview({
         )}
         style={{ aspectRatio }}
       >
-        {/* 删除按钮 */}
+        {/* 删除按钮 - 始终显示 */}
         {onDelete && (
           <button
             type="button"
             onClick={handleDelete}
             className={cn(
               'absolute top-2 right-2 z-10',
-              'w-8 h-8 rounded-full',
+              'w-7 h-7 rounded-full',
               'flex items-center justify-center',
-              'bg-black/50 hover:bg-black/70',
+              'bg-black/60 hover:bg-black/80',
               'text-white',
-              'transition-opacity duration-200',
-              'opacity-0 group-hover:opacity-100',
-              'focus:opacity-100'
+              'transition-colors',
+              'shadow-lg'
             )}
             aria-label="删除照片"
             title="删除照片"
           >
-            <X className="w-4 h-4" aria-hidden="true" />
+            <X className="w-3.5 h-3.5" aria-hidden="true" />
           </button>
         )}
 
