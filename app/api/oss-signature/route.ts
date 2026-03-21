@@ -118,11 +118,12 @@ export async function POST(request: NextRequest) {
 /**
  * 生成 OSS 预签名 URL
  * 使用阿里云 OSS 签名算法
+ * 文档: https://help.aliyun.com/document_detail/31952.html
  */
 function generatePresignedUrl(ossKey: string): string {
-  const date = new Date()
-  date.setHours(date.getHours() + 1) // 1小时后过期
-  const expiration = Math.floor(date.getTime() / 1000)
+  // 使用 UTC 时间，确保时间同步
+  const now = new Date()
+  const expiration = Math.floor(now.getTime() / 1000) + 3600 // 1小时后过期
 
   // 构建签名
   const method = 'PUT'
@@ -131,36 +132,27 @@ function generatePresignedUrl(ossKey: string): string {
   const canonicalizedOSSHeaders = ''
   const canonicalizedResource = `/${OSS_BUCKET}/${ossKey}`
 
+  // 签名字符串格式（注意换行符）
   const signString = [
     method,
     contentMd5,
     contentType,
-    expiration,
+    expiration.toString(),
     canonicalizedOSSHeaders,
     canonicalizedResource,
   ].join('\n')
 
   // HMAC-SHA1 签名
   const crypto = require('crypto')
-  const signature = crypto
-    .createHmac('sha1', OSS_ACCESS_KEY_SECRET)
-    .update(signString)
-    .digest('base64')
+  const hmac = crypto.createHmac('sha1', OSS_ACCESS_KEY_SECRET)
+  hmac.update(signString)
+  const signature = hmac.digest('base64')
 
-  // URL 编码签名（处理特殊字符）
-  const encodedSignature = signature
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=/g, '')
-
-  // 构建 URL（使用安全的 URL 编码）
+  // URL 编码签名（RFC 3986）
   const urlSafeSignature = encodeURIComponent(signature)
-    .replace(/%2F/g, '/')
-    .replace(/%2B/g, '+')
-    .replace(/%3D/g, '=')
 
   // 构建 URL
-  const url = `https://${OSS_BUCKET}.${OSS_ENDPOINT}/${ossKey}?OSSAccessKeyId=${OSS_ACCESS_KEY_ID}&Expires=${expiration}&Signature=${urlSafeSignature}`
+  const url = `https://${OSS_BUCKET}.${OSS_ENDPOINT}/${ossKey}?OSSAccessKeyId=${encodeURIComponent(OSS_ACCESS_KEY_ID)}&Expires=${expiration}&Signature=${urlSafeSignature}`
 
   return url
 }
