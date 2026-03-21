@@ -568,12 +568,16 @@ function EditRecordModal({
   }, [record, isOpen])
 
   const loadRecordPhotos = async (recordId: string) => {
+    console.log('[EditRecordModal] 开始加载照片:', recordId)
     try {
       const { getRecordPhotos } = await import('@/lib/oss')
       const result = await getRecordPhotos(recordId)
+      console.log('[EditRecordModal] 照片加载结果:', result)
       if (result.success && result.photos) {
+        console.log('[EditRecordModal] 加载到照片数量:', result.photos.length)
         setRecordPhotos(result.photos)
       } else {
+        console.log('[EditRecordModal] 没有加载到照片')
         setRecordPhotos([])
       }
     } catch (error) {

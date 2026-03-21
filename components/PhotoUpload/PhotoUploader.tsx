@@ -31,6 +31,12 @@ export function PhotoUploader({
   const [canUpload, setCanUpload] = useState<boolean | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // 当 initialPhotos 变化时同步状态
+  React.useEffect(() => {
+    console.log('[PhotoUploader] initialPhotos 变化:', initialPhotos.length)
+    setPhotos(initialPhotos)
+  }, [initialPhotos])
+
   // 检查是否可以上传
   const checkCanUpload = useCallback(async () => {
     const result = await canUploadToday()
