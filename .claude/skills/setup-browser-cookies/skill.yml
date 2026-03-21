@@ -1,0 +1,6 @@
+name: setup-browser-cookies
+description: |
+  gstack skill: setup-browser-cookies
+
+command: |
+  Read "{{skill_dir}}/SKILL.md"

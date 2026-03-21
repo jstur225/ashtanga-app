@@ -1,0 +1,6 @@
+name: design-consultation
+description: |
+  gstack skill: design-consultation
+
+command: |
+  Read "{{skill_dir}}/SKILL.md"

@@ -11,6 +11,7 @@ import { BookOpen, BarChart3, Calendar, X, Camera, Pause, Play, Trash2, User, Se
 import { FakeDoorModal } from "@/components/FakeDoorModal"
 import { VoiceButton } from "@/components/VoiceButton"
 import { PhotoUploadButton } from "@/components/PhotoUploadButton"
+import { PhotoUploader } from "@/components/PhotoUpload"
 import { ImportModal } from "@/components/ImportModal"
 import { ExportModal } from "@/components/ExportModal"
 import { XiaohongshuInviteModal, INVITE_VERSION } from "@/components/XiaohongshuInviteModal"
@@ -763,17 +764,28 @@ function EditRecordModal({
                       rows={7}
                       className="w-full px-4 py-3 pr-12 rounded-2xl bg-secondary text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-none font-serif text-sm"
                     />
-                    {/* Voice Input + Photo Upload - 浮动在输入框右下角（假门测试） */}
+                    {/* Voice Input - 浮动在输入框右下角 */}
                     <div className="absolute bottom-3 right-3 flex items-center gap-2">
-                      <PhotoUploadButton
-                        onClick={() => onOpenPhotoFakeDoor?.()}
-                      />
                       <VoiceButton
                         onClick={() => onOpenVoiceFakeDoor?.()}
                       />
                     </div>
                   </div>
                 </div>
+
+                {/* Photo Upload - 照片上传区域（替换假门测试） */}
+                {record && (
+                  <div className="pt-2">
+                    <PhotoUploader
+                      recordId={record.id}
+                      maxPhotos={1}
+                      onPhotosChange={(photos) => {
+                        // 照片变化时的回调（可选：可以在这里触发刷新）
+                        console.log('[EditRecordModal] Photos changed:', photos)
+                      }}
+                    />
+                  </div>
+                )}
 
                 <button
                   onClick={handleSave}

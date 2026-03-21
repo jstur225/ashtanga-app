@@ -1,0 +1,6 @@
+name: retro
+description: |
+  gstack skill: retro
+
+command: |
+  Read "{{skill_dir}}/SKILL.md"

@@ -126,9 +126,25 @@ export interface UserProfile {
   historical_avg_minutes?: number // 历史平均每次时长（分钟）
 }
 
+// ⭐ 新增：照片元数据类型
+export interface Photo {
+  id: string // UUID
+  user_id: string // 用户ID
+  practice_record_id: string // 关联的练习记录ID
+  oss_url: string // OSS 访问 URL
+  oss_key: string // OSS 对象键（用于删除）
+  file_size: number // 文件大小（字节）
+  mime_type: string // 图片类型（如 image/jpeg）
+  display_order: number // 显示顺序（支持多照片拖拽排序）
+  uploaded_at: string // 上传时间
+  deleted_at?: string | null // 软删除时间戳
+  created_at: string // 创建时间
+}
+
 // Tables
 export const TABLES = {
   PRACTICE_RECORDS: 'practice_records',
   PRACTICE_OPTIONS: 'practice_options',
   USER_PROFILES: 'user_profiles',
+  PHOTOS: 'photos', // ⭐ 新增：照片表
 } as const

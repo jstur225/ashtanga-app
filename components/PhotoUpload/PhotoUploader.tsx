@@ -1,0 +1,173 @@
+'use client'
+
+import React, { useState, useRef, useCallback } from 'react'
+import { toast } from 'sonner'
+import { PhotoUploadButton } from './PhotoUploadButton'
+import { PhotoPreviewList } from './PhotoPreview'
+import { uploadPhoto, deletePhoto, canUploadToday, validatePhotoFile } from '@/lib/oss'
+import type { Photo } from '@/lib/supabase'
+
+interface PhotoUploaderProps {
+  recordId: string
+  initialPhotos?: Photo[]
+  maxPhotos?: number
+  disabled?: boolean
+  onPhotosChange?: (photos: Photo[]) => void
+}
+
+/**
+ * 照片上传容器组件
+ * 包含上传逻辑、限额检查、预览显示
+ */
+export function PhotoUploader({
+  recordId,
+  initialPhotos = [],
+  maxPhotos = 1,
+  disabled = false,
+  onPhotosChange,
+}: PhotoUploaderProps) {
+  const [photos, setPhotos] = useState<Photo[]>(initialPhotos)
+  const [isUploading, setIsUploading] = useState(false)
+  const [canUpload, setCanUpload] = useState<boolean | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // 检查是否可以上传
+  const checkCanUpload = useCallback(async () => {
+    const result = await canUploadToday()
+    if (result.success) {
+      setCanUpload(result.canUpload)
+    }
+  }, [])
+
+  // 组件挂载时检查上传权限
+  React.useEffect(() => {
+    if (photos.length < maxPhotos) {
+      checkCanUpload()
+    }
+  }, [checkCanUpload, photos.length, maxPhotos])
+
+  // 处理文件选择
+  const handleFileSelect = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files
+    if (!files || files.length === 0) return
+
+    const file = files[0]
+
+    // 验证文件
+    const validation = validatePhotoFile(file)
+    if (!validation.valid) {
+      toast.error(validation.error)
+      return
+    }
+
+    // 开始上传
+    setIsUploading(true)
+    toast.loading('上传中...', { id: 'photo-upload' })
+
+    try {
+      const result = await uploadPhoto(file, recordId)
+
+      if (result.success && result.photo) {
+        const newPhotos = [...photos, result.photo]
+        setPhotos(newPhotos)
+        onPhotosChange?.(newPhotos)
+        toast.success('记录了你的练习瞬间 ✓', { id: 'photo-upload' })
+
+        // 更新上传权限状态
+        if (newPhotos.length >= maxPhotos) {
+          setCanUpload(false)
+        } else {
+          checkCanUpload()
+        }
+      } else {
+        // 处理错误
+        const errorMessages: Record<string, string> = {
+          'DAILY_LIMIT_EXCEEDED': '内测版本，每天限1张',
+          'RECORD_PHOTO_LIMIT_EXCEEDED': '该记录已有照片',
+          'UPLOAD_FAILED_403': '上传失败，请重试',
+          'UPLOAD_FAILED_400': '上传失败，请检查文件',
+          'NETWORK_ERROR': '网络错误，请重试',
+          'UNKNOWN_ERROR': '上传失败，请重试',
+        }
+        toast.error(errorMessages[result.error || ''] || '上传失败，请重试', { id: 'photo-upload' })
+      }
+    } catch (error) {
+      console.error('[PhotoUploader] 上传失败:', error)
+      toast.error('上传失败，请重试', { id: 'photo-upload' })
+    } finally {
+      setIsUploading(false)
+      // 清空 input，允许重复选择同一文件
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+    }
+  }, [recordId, photos, maxPhotos, onPhotosChange, checkCanUpload])
+
+  // 处理上传按钮点击
+  const handleUploadClick = useCallback(() => {
+    // 检查是否还可以上传
+    if (photos.length >= maxPhotos) {
+      toast.info('内测版本，每天限1张')
+      return
+    }
+
+    // 打开文件选择器
+    fileInputRef.current?.click()
+  }, [photos.length, maxPhotos])
+
+  // 处理删除照片
+  const handleDelete = useCallback(async (photoId: string) => {
+    const result = await deletePhoto(photoId)
+
+    if (result.success) {
+      const newPhotos = photos.filter(p => p.id !== photoId)
+      setPhotos(newPhotos)
+      onPhotosChange?.(newPhotos)
+      toast.success('照片已删除 ✓')
+
+      // 删除后可以重新上传，更新权限状态
+      checkCanUpload()
+    } else {
+      toast.error('删除失败，请重试')
+    }
+  }, [photos, onPhotosChange, checkCanUpload])
+
+  // 是否显示上传按钮
+  const showUploadButton = photos.length < maxPhotos && !disabled
+
+  return (
+    <div className="space-y-3">
+      {/* 隐藏的文件输入框 */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleFileSelect}
+        className="hidden"
+        aria-label="选择照片"
+      />
+
+      {/* 照片预览 */}
+      {photos.length > 0 && (
+        <PhotoPreviewList
+          photos={photos}
+          onDelete={handleDelete}
+        />
+      )}
+
+      {/* 上传按钮 */}
+      {showUploadButton && (
+        <div className="flex items-center gap-3">
+          <PhotoUploadButton
+            onClick={handleUploadClick}
+            loading={isUploading}
+            disabled={canUpload === false}
+          />
+          <span className="text-sm text-gray-500 font-serif">
+            记录你的练习瞬间
+          </span>
+        </div>
+      )}
+    </div>
+  )
+}

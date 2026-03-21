@@ -1,5 +1,103 @@
 # 阿斯汤加打卡app - 项目记录
 
+## 2026-03-20: Video Diary 视频日记修复 ✅
+
+**类型**: Bug 修复（Tauri 桌面应用）
+
+**项目路径**: `video_diary/video-diary-tauri/`
+
+### 修复1: 全片预览黑屏问题
+**问题描述**: 30 个视频片段连续播放时，片段切换有黑屏闪烁
+
+**根本原因**: 使用 `setInterval` 检测时间精度不够，切换时有延迟
+
+**解决方案**:
+- 使用 `timeupdate` 事件替代 `setInterval`（更精确）
+- 提前 50ms 触发切换，给视频解码留时间
+
+**代码变更**:
+```typescript
+// 之前: setInterval(checkTime, 50)
+// 现在: timeupdate 事件
+video.addEventListener('timeupdate', handleTimeUpdate)
+
+const handleTimeUpdate = () => {
+  if (video.currentTime >= endTime - 0.05) {
+    goToNextClip()  // 提前50ms切换
+  }
+}
+```
+
+### 修复2: FFmpeg 导出视频格式问题
+**问题描述**: 导出视频无法正常播放，报 `Invalid argument` 错误
+
+**根本原因**: FFmpeg concat 协议对视频格式要求严格，要求所有输入编码参数完全一致
+
+**解决方案**:
+- 改用 `filter_complex` 滤镜链进行精确剪辑和拼接
+- 对每个片段使用 `trim`/`atrim` 裁剪时间
+- 统一重新编码为 H.264/AAC，确保兼容性
+
+**代码变更**:
+```rust
+// 构建 filter_complex 字符串
+for (i, clip) in clips.iter().enumerate() {
+  let filter = format!(
+    "[{}:v]trim=start={}:duration={},setpts=PTS-STARTPTS[v{}]; \
+     [{}:a]atrim=start={}:duration={},asetpts=PTS-STARTPTS[a{}]",
+    input_idx, start, duration, i, input_idx, start, duration, i
+  );
+}
+
+// 添加 concat 滤镜
+format!("{}concat=n={}:v=1:a=1[outv][outa]", concat_inputs, clips.len())
+
+// 统一编码
+args(&["-c:v", "libx264", "-c:a", "aac", "-b:a", "192k"])
+```
+
+### 技术亮点
+- **双视频预加载策略**：尝试过双视频元素重叠方案，但过于复杂，最终选择优化单视频切换时机
+- **音量叠加计算**：支持 clip 音量 × 全局音量，灵活调整
+- **filter_complex 多输入处理**：动态构建滤镜链，支持任意数量片段
+
+**Git提交**:
+- `4c99730` - fix: 全片预览黑屏问题 + FFmpeg导出视频格式修复
+
+---
+
+## 2026-03-19: AweSun MCP 远程控制测试
+
+**类型**: 工具探索与评估
+
+**背景**:
+- 配置向日葵 MCP 服务器，探索通过 AI 控制远程电脑的可能性
+- 测试目的是评估是否比直接向日葵远程更方便
+
+**配置内容**:
+- 向日葵 MCP 服务器：`D:\runjian\xiangrvkui\AweSun\flutter\awesun-mcp-server.exe`
+- API Token：`ZThhNzg4NmQtZWQ1MC00OTQ0LWJiMzctODRjNTM4YTdhZjg0`
+- 配置文件：`C:\Users\BIN\.claude\settings.local.json`
+
+**测试过程**:
+1. ✅ 发现并验证 24 个 MCP 工具可用
+2. ✅ 成功搜索设备（发现 2 台：XXBB、广州仓库）
+3. ✅ 成功建立 CMD 远程连接并执行命令（whoami）
+4. ✅ 成功建立桌面远程连接并截图
+5. ✅ 成功打开浏览器、导航到下载页面
+
+**结论与反思**:
+- **用户体验**: 配置复杂，学习成本高，每一步操作都需要写脚本
+- **效率对比**: 对于 2 台设备，直接向日葵远程手动操作更简单高效
+- **适用场景**: MCP 更适合批量操作（5+ 台设备）或定时自动化任务
+- **最终决定**: **停用 MCP**，继续直接使用向日葵远程
+
+**用户原话**: "这个 MCP 就是一个玩具"
+
+**符合'简单'理念**: 最简单的方案就是最好的方案，不为了技术而技术
+
+---
+
 ## 2026-03-05: 修复 Vercel 构建错误 ✅
 
 **阶段**: Bug修复（部署问题）

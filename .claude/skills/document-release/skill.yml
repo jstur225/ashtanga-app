@@ -1,0 +1,6 @@
+name: document-release
+description: |
+  gstack skill: document-release
+
+command: |
+  Read "{{skill_dir}}/SKILL.md"

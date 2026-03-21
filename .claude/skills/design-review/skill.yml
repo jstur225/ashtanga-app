@@ -1,0 +1,6 @@
+name: design-review
+description: |
+  gstack skill: design-review
+
+command: |
+  Read "{{skill_dir}}/SKILL.md"
