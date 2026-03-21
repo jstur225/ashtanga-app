@@ -146,6 +146,11 @@ export function PhotoUploader({
 
   return (
     <div className="space-y-3">
+      {/* DEBUG: 显示状态 */}
+      <div className="text-xs text-gray-400 font-mono bg-gray-100 p-1 rounded">
+        调试: photos={photos.length}, initial={initialPhotos.length}, max={maxPhotos}
+      </div>
+
       {/* 隐藏的文件输入框 */}
       <input
         ref={fileInputRef}
