@@ -573,8 +573,11 @@ function EditRecordModal({
     try {
       const { getRecordPhotos } = await import('@/lib/oss')
       const result = await getRecordPhotos(recordId)
-      if (result.success && result.photos) {
-        setRecordPhotos(result.photos)
+      if (result.success) {
+        setRecordPhotos(result.photos || [])
+        if (!result.photos || result.photos.length === 0) {
+          setPhotoLoadError('API返回空数组')
+        }
       } else {
         setRecordPhotos([])
         setPhotoLoadError(result.error || '未知错误')
