@@ -25,6 +25,7 @@ export function PhotoPreview({
   aspectRatio = '16/9',
 }: PhotoPreviewProps) {
   const [lightboxOpen, setLightboxOpen] = useState(false)
+  const [imgError, setImgError] = useState(false)
 
   const handleDelete = () => {
     if (onDelete) {
@@ -78,14 +79,24 @@ export function PhotoPreview({
           className="relative w-full h-full cursor-pointer"
           onClick={handleImageClick}
         >
-          <Image
-            src={photo.oss_url}
-            alt="练习照片"
-            fill
-            className="object-cover"
-            sizes={isSquare ? '33vw' : '100vw'}
-            loading="lazy"
-          />
+          {imgError ? (
+            <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400 text-xs">
+              图片加载失败
+            </div>
+          ) : (
+            <Image
+              src={photo.oss_url}
+              alt="练习照片"
+              fill
+              className="object-cover"
+              sizes={isSquare ? '33vw' : '100vw'}
+              loading="lazy"
+              onError={() => {
+                console.error('[PhotoPreview] 图片加载失败:', photo.oss_url)
+                setImgError(true)
+              }}
+            />
+          )}
         </div>
       </div>
 
