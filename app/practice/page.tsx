@@ -561,6 +561,7 @@ function EditRecordModal({
   // 新增：照片列表状态
   const [recordPhotos, setRecordPhotos] = useState<Photo[]>([])
   const [uploadError, setUploadError] = useState<string>('')
+  const [photoDebug, setPhotoDebug] = useState<string>('')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // 处理文件选择
@@ -612,20 +613,19 @@ function EditRecordModal({
 
   const loadRecordPhotos = async (recordId: string) => {
     try {
-      console.log('[Debug] 开始加载照片:', recordId)
+      setPhotoDebug('加载中...')
       const { getRecordPhotos } = await import('@/lib/oss')
       const result = await getRecordPhotos(recordId)
-      console.log('[Debug] 照片查询结果:', result)
       if (result.success) {
         setRecordPhotos(result.photos || [])
-        console.log('[Debug] 设置照片数量:', result.photos?.length || 0)
+        setPhotoDebug(`API: ${JSON.stringify(result.data?.debug || {})}`)
       } else {
-        console.error('[Debug] 查询失败:', result.error)
         setRecordPhotos([])
+        setPhotoDebug(`失败: ${result.error}`)
       }
     } catch (error) {
-      console.error('[Debug] 加载照片异常:', error)
       setRecordPhotos([])
+      setPhotoDebug(`异常: ${String(error)}`)
     }
   }
 
@@ -861,7 +861,7 @@ function EditRecordModal({
                 <div className="text-xs text-gray-400 mb-2 p-2 bg-gray-100 rounded">
                   <div>照片数量: {recordPhotos.length}</div>
                   <div>记录ID: {record?.id?.slice(0,8)}...</div>
-                  <div>照片详情: {JSON.stringify(recordPhotos.map(p => ({id: p.id.slice(0,8), uid: p.user_id?.slice(0,8)})))}</div>
+                  <div className="text-blue-500">{photoDebug}</div>
                 </div>
 
                 {/* 上传错误显示 */}

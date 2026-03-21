@@ -82,6 +82,11 @@ export async function GET(
       success: true,
       data: {
         photos: photos || [],
+        debug: {
+          recordId: id,
+          userId: user.id,
+          photosCount: photos?.length || 0
+        }
       },
     })
   } catch (error) {
