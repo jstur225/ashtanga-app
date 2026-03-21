@@ -73,16 +73,18 @@ export function PhotoLightbox({
         <X className="w-6 h-6" />
       </button>
 
-      {/* 照片 */}
-      <div className="relative w-full h-full flex items-center justify-center p-4">
-        <Image
-          src={src}
-          alt={alt}
-          fill
-          className="object-contain"
-          sizes="100vw"
-          priority
-        />
+      {/* 照片容器 - 左右留边距，圆角 */}
+      <div className="relative w-[90%] max-w-4xl mx-auto flex items-center justify-center">
+        <div className="relative w-full aspect-[4/3] max-h-[80vh] rounded-2xl overflow-hidden bg-black/20">
+          <Image
+            src={src}
+            alt={alt}
+            fill
+            className="object-contain"
+            sizes="(max-width: 896px) 90vw, 896px"
+            priority
+          />
+        </div>
       </div>
     </div>
   )
