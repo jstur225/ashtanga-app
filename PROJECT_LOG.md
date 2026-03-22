@@ -1,5 +1,51 @@
 # 阿斯汤加打卡app - 项目记录
 
+## 2026-03-22: PracticeForm 提取与弹窗改造 ✅
+
+**类型**: 代码重构与架构优化
+
+### 背景与目标
+`app/practice/page.tsx` 共 5369 行，包含 3 个表单弹窗（EditRecordModal、AddPracticeModal、CompletionSheet），有大量重复代码。本次重构提取公共组件，减少 ~1400 行代码。
+
+### 已完成改造
+
+#### 1. PracticeForm 公共组件
+- 提取 `components/PracticeForm.tsx` 作为统一表单组件
+- 支持受控/非受控模式（date/type 可外部控制）
+- 支持字段可编辑性配置（dateEditable/typeEditable/durationEditable）
+- 统一照片上传、展示、删除功能
+
+#### 2. 三个弹窗统一使用 PracticeForm
+| 弹窗 | 改造前 | 改造后 |
+|-----|--------|--------|
+| EditRecordModal | ~395 行 | ~100 行 |
+| AddPracticeModal | ~400 行 | ~150 行 |
+| CompletionSheet | ~200 行 | ~80 行 |
+
+#### 3. 草稿记录模式
+- AddPracticeModal 和 CompletionSheet 采用「预创建草稿记录」方案
+- 打开弹窗时自动创建 type='草稿' 的记录，获得 record_id 用于照片上传
+- 保存时更新为正式记录，取消时删除草稿
+- 用户无感知，体验流畅
+
+#### 4. 移除的功能
+- 删除「自定义练习」功能（无实际使用场景）
+- 删除 CustomPracticeModal 组件
+- 清理相关状态管理和逻辑
+
+### 代码优化亮点
+- **消除重复**: notes/breakthrough 状态管理、formatDateDisplay 函数、突破输入 UI 不再重复
+- **统一体验**: 三个弹窗的照片上传体验完全一致
+- **性能优化**: 使用 `hasPhotos` 预判控制加载占位符显示
+
+### 关键提交
+- `7861b4a` - refactor: extract PracticeForm component and simplify modals
+- `7a31ffb` - feat: enable real photo upload in all three modals
+- `6941e9d` - feat: implement draft record pattern - transparent to users
+- `4bcfb4f` - fix: use hasPhotos prop to control loading placeholder
+
+---
+
 ## 2026-03-21: 照片上传功能完整修复 ✅
 
 **类型**: 功能完善与 Bug 修复
