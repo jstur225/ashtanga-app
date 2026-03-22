@@ -443,12 +443,13 @@ export function PracticeForm({
       </div>
 
       {/* 照片展示 */}
-      {showPhotoUpload && recordId && photos.length > 0 && (
+      {showPhotoUpload && recordId && (
         <div>
           <PhotoPreviewList
             photos={photos}
             onDelete={deletePhoto}
             layout="grid"
+            isLoading={loading}
           />
         </div>
       )}
