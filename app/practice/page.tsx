@@ -1228,6 +1228,7 @@ function AddPracticeModal({
   isOpen,
   onClose,
   onSave,
+  addRecord,
   practiceOptions,
   practiceHistory = [],
   onChildModalOpen,
@@ -1237,6 +1238,7 @@ function AddPracticeModal({
   isOpen: boolean
   onClose: () => void
   onSave: (record: Omit<PracticeRecord, 'id' | 'created_at' | 'photos'>) => void
+  addRecord: (record: Omit<PracticeRecord, 'id' | 'created_at' | 'photos'>) => PracticeRecord
   practiceOptions: PracticeOption[]
   practiceHistory?: PracticeRecord[]
   onChildModalOpen?: (open: boolean) => void
@@ -1256,14 +1258,23 @@ function AddPracticeModal({
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [showTypeSelector, setShowTypeSelector] = useState(false)
 
-  // 草稿记录 ID（用于照片上传）
-  const [draftRecordId, setDraftRecordId] = useState<string | undefined>(undefined)
+  // 草稿记录（用于照片上传）
+  const [draftRecord, setDraftRecord] = useState<PracticeRecord | null>(null)
 
-  // 当弹窗打开时，创建草稿记录
+  // 当弹窗打开时，预创建草稿记录
   useEffect(() => {
     if (isOpen) {
-      // 生成临时草稿 ID（实际保存时会创建真实记录）
-      setDraftRecordId(`draft-${Date.now()}`)
+      // 创建草稿记录用于照片上传
+      const draft = addRecord({
+        date: getLocalDateStr(),
+        type: '草稿', // 临时类型
+        duration: 60,
+        notes: '',
+      })
+      setDraftRecord(draft)
+    } else {
+      // 弹窗关闭时清理草稿
+      setDraftRecord(null)
     }
   }, [isOpen])
 
@@ -1323,7 +1334,7 @@ function AddPracticeModal({
 
             <PracticeForm
               initialData={formData}
-              recordId={draftRecordId}
+              recordId={draftRecord?.id}
               date={formData.date}
               type={formData.type}
               onDateChange={(d) => setFormData(prev => ({ ...prev, date: d }))}
@@ -1966,6 +1977,7 @@ function CompletionSheet({
   practiceType,
   duration,
   onSave,
+  addRecord,
   onOpenVoiceFakeDoor,
   onOpenPhotoFakeDoor,
 }: {
@@ -1973,6 +1985,7 @@ function CompletionSheet({
   practiceType: string
   duration: string
   onSave: (notes: string, photos: string[], breakthrough?: string) => void
+  addRecord: (record: Omit<PracticeRecord, 'id' | 'created_at' | 'photos'>) => PracticeRecord
   onOpenVoiceFakeDoor?: () => void
   onOpenPhotoFakeDoor?: () => void
 }) {
@@ -1985,9 +1998,20 @@ function CompletionSheet({
     breakthrough: undefined as string | undefined,
   })
 
-  // 当弹窗打开时，同步外部传入的数据
+  // 草稿记录（用于照片上传）
+  const [draftRecord, setDraftRecord] = useState<PracticeRecord | null>(null)
+
+  // 当弹窗打开时，预创建草稿记录并同步数据
   useEffect(() => {
     if (isOpen) {
+      // 创建草稿记录用于照片上传
+      const draft = addRecord({
+        date: getLocalDateStr(),
+        type: practiceType,
+        duration: parseInt(duration) * 60 || 0,
+        notes: '',
+      })
+      setDraftRecord(draft)
       setFormData({
         date: getLocalDateStr(),
         type: practiceType,
@@ -1995,6 +2019,9 @@ function CompletionSheet({
         notes: '',
         breakthrough: undefined,
       })
+    } else {
+      // 弹窗关闭时清理草稿
+      setDraftRecord(null)
     }
   }, [isOpen, practiceType, duration])
 
@@ -2025,12 +2052,13 @@ function CompletionSheet({
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 bg-card rounded-t-[24px] z-[70] p-6 pb-10 shadow-[0_-4px-20px_rgba(0,0,0,0.08)] max-h-[calc(100vh-2rem)] overflow-y-auto"
+            className="fixed bottom-0 left-0 right-0 bg-card rounded-t-[24px] z-[70] p-6 pb-10 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] max-h-[calc(100vh-2rem)] overflow-y-auto"
           >
             <h2 className="text-xl font-serif text-foreground text-center mb-6">练习完成</h2>
 
             <PracticeForm
               initialData={formData}
+              recordId={draftRecord?.id}
               date={formData.date}
               type={formData.type}
               onDateChange={() => {}} // 只读，不处理
@@ -2039,17 +2067,11 @@ function CompletionSheet({
               typeEditable={false}
               durationEditable={false}
               showDelete={false}
-              showPhotoUpload={false} // 暂时使用假门测试
+              showPhotoUpload={true}
               practiceOptions={[]}
               onSave={handleSave}
               onVoiceInputOpen={() => onOpenVoiceFakeDoor?.()}
             />
-
-            {/* 假门测试按钮（照片上传） */}
-            <div className="mt-4 flex items-center justify-center gap-2">
-              <PhotoUploadButton onClick={() => onOpenPhotoFakeDoor?.()} />
-              <span className="text-xs text-muted-foreground">记录练习瞬间（即将上线）</span>
-            </div>
           </motion.div>
         </>
       )}
@@ -2609,6 +2631,7 @@ function JournalTab({
         isOpen={showAddModal}
         onClose={() => onSetShowAddModal(false)}
         onSave={onAddRecord}
+        addRecord={addRecord}
         practiceOptions={practiceOptions}
         practiceHistory={practiceHistory}
         onChildModalOpen={(open) => setChildModalOpen(open)}
@@ -4273,6 +4296,7 @@ export default function AshtangaTracker() {
           practiceType={getSelectedLabel()}
           duration={finalDuration}
           onSave={handleSavePractice}
+          addRecord={addRecord}
           onOpenVoiceFakeDoor={() => setShowFakeDoor({ type: 'voice', isOpen: true })}
           onOpenPhotoFakeDoor={() => setShowFakeDoor({ type: 'photo', isOpen: true })}
         />
@@ -4757,6 +4781,7 @@ export default function AshtangaTracker() {
         practiceType={getSelectedLabel()}
         duration={finalDuration}
         onSave={handleSavePractice}
+        addRecord={addRecord}
         onOpenVoiceFakeDoor={() => setShowFakeDoor({ type: 'voice', isOpen: true })}
         onOpenPhotoFakeDoor={() => setShowFakeDoor({ type: 'photo', isOpen: true })}
       />
