@@ -2628,7 +2628,7 @@ function JournalTab({
         isOpen={showAddModal}
         onClose={() => onSetShowAddModal(false)}
         onSave={onAddRecord}
-        addRecord={addRecord}
+        addRecord={onAddRecord}
         practiceOptions={practiceOptions}
         practiceHistory={practiceHistory}
         onChildModalOpen={(open) => setChildModalOpen(open)}
