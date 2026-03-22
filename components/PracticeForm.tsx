@@ -50,6 +50,9 @@ export interface PracticeFormProps {
 
   // 子模态框状态控制
   onChildModalOpen?: (open: boolean) => void
+
+  // 照片预判（用于加载占位符）
+  hasPhotos?: boolean
 }
 
 // ==================== 工具函数 ====================
@@ -183,6 +186,7 @@ export function PracticeForm({
   onDatePickerOpen,
   onTypeSelectorOpen,
   onChildModalOpen,
+  hasPhotos: hasPhotosProp,
 }: PracticeFormProps) {
   // 表单状态（优先使用受控值）
   const [internalDate, setInternalDate] = useState(initialData?.date || getLocalDateStr())
@@ -442,14 +446,14 @@ export function PracticeForm({
         </div>
       </div>
 
-      {/* 照片展示 */}
-      {showPhotoUpload && recordId && (
+      {/* 照片展示 - 只有预判有照片或实际有照片时才显示 */}
+      {showPhotoUpload && recordId && (hasPhotosProp || photos.length > 0) && (
         <div>
           <PhotoPreviewList
             photos={photos}
             onDelete={deletePhoto}
             layout="grid"
-            isLoading={loading}
+            isLoading={loading && hasPhotosProp}
           />
         </div>
       )}
