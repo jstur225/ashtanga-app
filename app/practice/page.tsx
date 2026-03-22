@@ -3434,7 +3434,7 @@ export default function AshtangaTracker() {
   }
 
   const handleAddRecord = (record: Omit<PracticeRecord, 'id' | 'created_at' | 'updated_at' | 'photos'>) => {
-    addRecord(record)
+    const newRecord = addRecord(record)
     trackEvent('add_record', {
       type: record.type,
       duration: record.duration,
@@ -3449,6 +3449,7 @@ export default function AshtangaTracker() {
         autoSync()
       }, 500)
     }
+    return newRecord
   }
 
   const handleAddOption = async (name: string, notes: string) => {

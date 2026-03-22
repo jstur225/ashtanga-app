@@ -333,22 +333,22 @@ export function PracticeForm({
             练习时长 (分钟)
           </label>
           {durationEditable ? (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between gap-2">
               <button
                 onClick={() => adjustDuration(-5)}
-                className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center hover:bg-secondary/80 active:scale-[0.98] transition-all"
+                className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center hover:bg-secondary/80 active:scale-[0.98] transition-all shrink-0"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
               <input
                 type="number"
-                value={duration || ""}
-                onChange={(e) => setDuration(e.target.value === "" ? 0 : Number(e.target.value))}
-                className="flex-1 px-3 py-2 rounded-xl bg-secondary text-foreground font-serif text-center focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all text-sm"
+                value={duration}
+                onChange={(e) => setDuration(Math.max(0, Number(e.target.value)))}
+                className="w-16 px-2 py-2 rounded-xl bg-secondary text-foreground font-serif text-center focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all text-sm"
               />
               <button
                 onClick={() => adjustDuration(5)}
-                className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center hover:bg-secondary/80 active:scale-[0.98] transition-all"
+                className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center hover:bg-secondary/80 active:scale-[0.98] transition-all shrink-0"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
