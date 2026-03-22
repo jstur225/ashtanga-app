@@ -5,9 +5,9 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Sparkles, X, ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { supabase, type PracticeRecord, type PracticeOption, type Photo } from '@/lib/supabase'
-import { PhotoUploadButton } from './PhotoUpload/PhotoUploadButton'
 import { PhotoPreviewList } from './PhotoUpload/PhotoPreview'
 import { toast } from 'sonner'
+import { Expand, Camera } from 'lucide-react'
 
 // ==================== 类型定义 ====================
 
@@ -47,7 +47,6 @@ export interface PracticeFormProps {
   onDelete?: () => void
   onDatePickerOpen?: () => void
   onTypeSelectorOpen?: () => void
-  onVoiceInputOpen?: () => void
 
   // 子模态框状态控制
   onChildModalOpen?: (open: boolean) => void
@@ -183,7 +182,6 @@ export function PracticeForm({
   onDelete,
   onDatePickerOpen,
   onTypeSelectorOpen,
-  onVoiceInputOpen,
   onChildModalOpen,
 }: PracticeFormProps) {
   // 表单状态（优先使用受控值）
@@ -425,11 +423,11 @@ export function PracticeForm({
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value.slice(0, 2000))}
-            placeholder="今天练习感受如何？有什么觉察？可以尝试右下方的语音输入，轻松地说出你的当下想法，留下更多真实的痕迹。"
+            placeholder="今天练习感受如何？有什么觉察？"
             rows={5}
             className="w-full px-4 py-3 pr-20 rounded-2xl bg-secondary text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-none font-serif text-sm"
           />
-          {/* 语音 + 照片按钮 */}
+          {/* 照片上传按钮 - 位于输入框右下方 */}
           <div className="absolute bottom-3 right-3 flex items-center gap-2">
             {showPhotoUpload && (
               <>
@@ -440,22 +438,24 @@ export function PracticeForm({
                   onChange={handleFileSelect}
                   className="hidden"
                 />
-                <PhotoUploadButton
+                {/* 照片上传按钮 - 奶油色系 */}
+                <button
                   onClick={() => fileInputRef.current?.click()}
-                  loading={uploading}
-                  disabled={!recordId || photos.length >= 1}
-                />
+                  disabled={!recordId || uploading || photos.length >= 1}
+                  className="w-10 h-10 rounded-full flex items-center justify-center bg-[#FAF7F2] border border-[#E8E4DF] shadow-[0_2px_8px_rgba(0,0,0,0.08)] transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
+                  title="上传照片"
+                >
+                  <Camera className="w-5 h-5 text-[#8B8680]" />
+                </button>
               </>
             )}
+            {/* 扩张/展开按钮 - 奶油色系 */}
             <button
-              onClick={onVoiceInputOpen}
-              className="w-10 h-10 rounded-full flex items-center justify-center bg-gradient-to-br from-[#3d7a35] to-[#2d5a27] border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] transition-all hover:scale-105"
+              onClick={() => {}}
+              className="w-10 h-10 rounded-full flex items-center justify-center bg-[#FAF7F2] border border-[#E8E4DF] shadow-[0_2px_8px_rgba(0,0,0,0.08)] transition-all hover:scale-105 active:scale-95"
+              title="展开更多"
             >
-              <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3Z" />
-                <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-                <path d="M12 19v3" />
-              </svg>
+              <Expand className="w-5 h-5 text-[#8B8680]" />
             </button>
           </div>
         </div>

@@ -547,7 +547,6 @@ function EditRecordModal({
               onDelete={handleDelete}
               onDatePickerOpen={() => handleDatePickerToggle(true)}
               onTypeSelectorOpen={() => handleTypeSelectorToggle(true)}
-              onVoiceInputOpen={() => onOpenVoiceFakeDoor?.()}
               onChildModalOpen={onChildModalOpen}
             />
           </motion.div>
@@ -1348,7 +1347,6 @@ function AddPracticeModal({
               onSave={handleSave}
               onDatePickerOpen={() => handleDatePickerToggle(true)}
               onTypeSelectorOpen={() => handleTypeSelectorToggle(true)}
-              onVoiceInputOpen={() => onOpenVoiceFakeDoor?.()}
               onChildModalOpen={onChildModalOpen}
             />
           </motion.div>
@@ -2070,7 +2068,6 @@ function CompletionSheet({
               showPhotoUpload={true}
               practiceOptions={[]}
               onSave={handleSave}
-              onVoiceInputOpen={() => onOpenVoiceFakeDoor?.()}
             />
           </motion.div>
         </>
