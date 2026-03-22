@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Sparkles, X, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Sparkles, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { supabase, type PracticeRecord, type PracticeOption, type Photo } from '@/lib/supabase'
 import { PhotoPreviewList } from './PhotoUpload/PhotoPreview'
@@ -267,11 +267,6 @@ export function PracticeForm({
     onChildModalOpen?.(false)
   }
 
-  // 时长调节
-  const adjustDuration = (delta: number) => {
-    setDuration(prev => Math.max(1, prev + delta))
-  }
-
   // 过滤掉特殊选项（custom 和 guided_audio）
   const typeOptions = practiceOptions.filter(o =>
     o.id !== 'custom' && o.id !== 'guided_audio'
@@ -333,26 +328,12 @@ export function PracticeForm({
             练习时长 (分钟)
           </label>
           {durationEditable ? (
-            <div className="flex items-center justify-between gap-2">
-              <button
-                onClick={() => adjustDuration(-5)}
-                className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center hover:bg-secondary/80 active:scale-[0.98] transition-all shrink-0"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <input
-                type="number"
-                value={duration}
-                onChange={(e) => setDuration(Math.max(0, Number(e.target.value)))}
-                className="w-16 px-2 py-2 rounded-xl bg-secondary text-foreground font-serif text-center focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all text-sm"
-              />
-              <button
-                onClick={() => adjustDuration(5)}
-                className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center hover:bg-secondary/80 active:scale-[0.98] transition-all shrink-0"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
+            <input
+              type="number"
+              value={duration}
+              onChange={(e) => setDuration(Math.max(0, Number(e.target.value)))}
+              className="w-full px-3 py-2.5 rounded-xl bg-secondary text-foreground font-serif text-center focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all text-sm"
+            />
           ) : (
             <div className="w-full px-3 py-2.5 rounded-xl bg-secondary/50 text-foreground font-serif text-center text-sm">
               {duration} 分钟
