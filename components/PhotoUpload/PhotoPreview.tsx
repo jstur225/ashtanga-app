@@ -158,22 +158,23 @@ export function PhotoPreviewList({
   layout = 'single',
   isLoading = false,
 }: PhotoPreviewListProps) {
-  // 显示占位符：加载中或没有照片
-  const showPlaceholder = isLoading || !photos || photos.length === 0
-
-  if (showPlaceholder) {
+  // 加载中：显示占位符
+  if (isLoading) {
     return (
       <div className={cn(
         'grid grid-cols-3 gap-2',
         className
       )}>
         <div className="aspect-square rounded-[12px] bg-secondary/50 flex items-center justify-center">
-          {isLoading && (
-            <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-          )}
+          <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
         </div>
       </div>
     )
+  }
+
+  // 没有照片：不显示
+  if (!photos || photos.length === 0) {
+    return null
   }
 
   // 时光轴布局：1张全宽，多张网格三等分
