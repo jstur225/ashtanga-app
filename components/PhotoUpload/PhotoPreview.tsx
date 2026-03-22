@@ -26,6 +26,7 @@ export function PhotoPreview({
 }: PhotoPreviewProps) {
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [imgError, setImgError] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
 
   const handleDelete = () => {
     if (onDelete) {
@@ -79,6 +80,13 @@ export function PhotoPreview({
           className="relative w-full h-full cursor-pointer"
           onClick={handleImageClick}
         >
+          {/* Loading 占位图 */}
+          {isLoading && !imgError && (
+            <div className="absolute inset-0 flex items-center justify-center bg-secondary/50">
+              <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+            </div>
+          )}
+
           {imgError ? (
             <div className="w-full h-full flex flex-col items-center justify-center bg-gray-100 text-gray-400 text-xs gap-2">
               <span>图片加载失败</span>
@@ -86,6 +94,7 @@ export function PhotoPreview({
                 onClick={(e) => {
                   e.stopPropagation()
                   setImgError(false)
+                  setIsLoading(true)
                 }}
                 className="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300 transition-colors"
               >
@@ -99,7 +108,8 @@ export function PhotoPreview({
               fill
               className="object-cover"
               sizes={isSquare ? '33vw' : '100vw'}
-              loading="lazy"
+              priority
+              onLoad={() => setIsLoading(false)}
               onError={(e) => {
                 console.error('[PhotoPreview] 图片加载失败:', {
                   url: photo.oss_url,
@@ -107,6 +117,7 @@ export function PhotoPreview({
                   recordId: photo.practice_record_id,
                   error: e
                 })
+                setIsLoading(false)
                 setImgError(true)
               }}
             />
