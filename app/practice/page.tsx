@@ -14,6 +14,7 @@ import { PhotoUploadButton } from "@/components/PhotoUploadButton"
 import { PhotoUploader } from "@/components/PhotoUpload"
 import { PhotoPreviewList } from "@/components/PhotoUpload/PhotoPreview"
 import type { Photo } from "@/lib/supabase"
+import { PracticeForm, type PracticeFormData } from "@/components/PracticeForm"
 import { ImportModal } from "@/components/ImportModal"
 import { ExportModal } from "@/components/ExportModal"
 import { XiaohongshuInviteModal, INVITE_VERSION } from "@/components/XiaohongshuInviteModal"
@@ -277,104 +278,6 @@ function MoonDayButton({
   )
 }
 
-// Custom Practice Modal (for adding new custom option)
-function CustomPracticeModal({
-  isOpen,
-  onClose,
-  onConfirm,
-  isFull,
-}: {
-  isOpen: boolean
-  onClose: () => void
-  onConfirm: (name: string, notes: string) => void
-  isFull: boolean
-}) {
-  const [practiceName, setPracticeName] = useState("")
-  const [notes, setNotes] = useState("")
-
-  const handleConfirm = () => {
-    if (practiceName.trim()) {
-      onConfirm(practiceName.slice(0, 10), notes.slice(0, 14))
-      setPracticeName("")
-      setNotes("")
-    }
-  }
-
-  return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/30 z-[100]"
-            onClick={onClose}
-          />
-          <motion.div
-            initial={{ y: "100%" }}
-            animate={{ y: 0 }}
-            exit={{ y: "100%" }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 bg-card rounded-t-[24px] z-[110] p-6 pb-10 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]"
-          >
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-serif text-foreground">自定义练习</h2>
-              <button onClick={onClose} className="p-2 -mr-2 text-muted-foreground hover:text-foreground transition-colors">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {isFull ? (
-              <div className="text-center py-8">
-                <p className="text-foreground font-serif mb-2">选项已满（最多9个）</p>
-                <p className="text-muted-foreground text-sm font-serif">请双击删除旧选项后再添加</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-serif text-foreground mb-2">
-                    练习名称 <span className="text-muted-foreground text-xs">（最多10字）</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={practiceName}
-                    onChange={(e) => setPracticeName(e.target.value.slice(0, 10))}
-                    placeholder="例如：三序列、恢复性..."
-                    className="w-full px-4 py-3 rounded-2xl bg-secondary text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-serif"
-                  />
-                  <div className="text-right text-xs text-muted-foreground mt-1">{practiceName.length}/10</div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-serif text-foreground mb-2">
-                    备注 <span className="text-muted-foreground text-xs">（最多14字）</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value.slice(0, 14))}
-                    placeholder="简短描述..."
-                    className="w-full px-4 py-3 rounded-2xl bg-secondary text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-serif"
-                  />
-                  <div className="text-right text-xs text-muted-foreground mt-1">{notes.length}/14</div>
-                </div>
-
-                <button
-                  onClick={handleConfirm}
-                  disabled={!practiceName.trim()}
-                  className="w-full py-4 rounded-full green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white font-serif transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.98] backdrop-blur-sm"
-                >
-                  添加选项
-                </button>
-              </div>
-            )}
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
-  )
-}
 
 // Edit Option Modal (for editing/deleting existing options)
 function EditOptionModal({
@@ -520,7 +423,8 @@ function EditOptionModal({
   )
 }
 
-// Edit Record Modal (for editing/deleting practice records)
+
+// Edit Record Modal (for editing/deleting practice records) - 使用 PracticeForm
 function EditRecordModal({
   isOpen,
   onClose,
@@ -544,134 +448,51 @@ function EditRecordModal({
   practiceHistory?: PracticeRecord[]
   onChildModalOpen?: (open: boolean) => void
 }) {
-  const [notes, setNotes] = useState("")
-  const [breakthroughEnabled, setBreakthroughEnabled] = useState(false)
-  const [breakthroughText, setBreakthroughText] = useState("")
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-
-  // 新增：日期、类型、时长的状态
-  const [date, setDate] = useState("")
-  const [type, setType] = useState("")
-  const [duration, setDuration] = useState(60)
-
-  // 新增：子模态框状态
+  // 子模态框状态
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [showTypeSelector, setShowTypeSelector] = useState(false)
 
-  // 新增：照片列表状态
-  const [recordPhotos, setRecordPhotos] = useState<Photo[]>([])
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  // 表单数据状态（用于 PracticeForm）
+  const [formData, setFormData] = useState({
+    date: '',
+    type: '',
+    duration: 60,
+    notes: '',
+    breakthrough: undefined as string | undefined,
+  })
 
-  // 处理文件选择
-  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files
-    if (!files || files.length === 0 || !record) return
-
-    const file = files[0]
-
-    try {
-      const { uploadPhoto } = await import('@/lib/oss')
-      const result = await uploadPhoto(file, record.id)
-
-      if (result.success && result.photo) {
-        setRecordPhotos([result.photo])
-        toast.success('记录了你的练习瞬间 ✓')
-      } else {
-        const errorMessages: Record<string, string> = {
-          'DAILY_LIMIT_EXCEEDED': '内测版本每天能上传1张照片',
-          'RECORD_PHOTO_LIMIT_EXCEEDED': '该记录已有照片',
-          'UPLOAD_FAILED_403': '上传失败，请重试',
-          'UPLOAD_FAILED_400': '上传失败，请检查文件',
-          'NETWORK_ERROR': '网络错误，请重试',
-          'NOT_AUTHENTICATED': '请先登录',
-        }
-        toast.error(errorMessages[result.error || ''] || '上传失败，请重试')
-      }
-    } catch (error) {
-      toast.error('上传出错，请重试')
-    }
-
-    // 清空 input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ''
-    }
-  }
-
-  // 加载记录的照片
-  useEffect(() => {
-    if (record && isOpen) {
-      loadRecordPhotos(record.id)
-    }
-  }, [record, isOpen])
-
-  const loadRecordPhotos = async (recordId: string) => {
-    try {
-      const { getRecordPhotos } = await import('@/lib/oss')
-      const result = await getRecordPhotos(recordId)
-      if (result.success) {
-        setRecordPhotos(result.photos || [])
-      } else {
-        setRecordPhotos([])
-      }
-    } catch (error) {
-      setRecordPhotos([])
-    }
-  }
-
-  // 日期显示格式化
-  const formatDateDisplay = (dateStr: string) => {
-    if (!dateStr) return "选择日期"
-    const date = new Date(dateStr)
-    return `${date.getMonth() + 1}月${date.getDate()}日`
-  }
-
+  // 当记录变化时，同步表单数据
   useEffect(() => {
     if (record) {
-      setNotes(record.notes || "")
-      setBreakthroughEnabled(!!record.breakthrough)
-      setBreakthroughText(record.breakthrough || "")
-      setDate(record.date)
-      setType(record.type)
-      setDuration(Math.floor(record.duration / 60)) // 转换为分钟
-      // ⭐ 重置删除确认状态，避免直接显示删除确认界面
-      setShowDeleteConfirm(false)
+      setFormData({
+        date: record.date,
+        type: record.type,
+        duration: Math.floor(record.duration / 60), // 转换为分钟
+        notes: record.notes || '',
+        breakthrough: record.breakthrough,
+      })
     }
   }, [record])
 
-  const handleSave = () => {
+  const handleSave = (data: PracticeFormData) => {
     if (record) {
       onSave(record.id, {
-        notes,
-        breakthrough: breakthroughEnabled ? breakthroughText : undefined,
-        date,
-        type,
-        duration: duration * 60,
+        date: data.date,
+        type: data.type,
+        duration: data.duration * 60, // 转换为秒
+        notes: data.notes,
+        breakthrough: data.breakthrough,
       })
       toast.success('更新成功')
       onClose()
     }
   }
 
-  const handleDeleteClick = () => {
-    setShowDeleteConfirm(true)
-    onChildModalOpen?.(true)
-  }
-
-  const handleConfirmDelete = async () => {
+  const handleDelete = () => {
     if (record) {
-      // 关闭弹窗
-      setShowDeleteConfirm(false)
-      onChildModalOpen?.(false)
-      onClose()
-
-      // 调用父组件的删除处理（会自动同步）
       onDelete(record.id)
+      onClose()
     }
-  }
-
-  const handleCancelDelete = () => {
-    setShowDeleteConfirm(false)
-    onChildModalOpen?.(false)
   }
 
   const handleDatePickerToggle = (open: boolean) => {
@@ -700,7 +521,7 @@ function EditRecordModal({
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 bg-card rounded-t-[24px] z-50 p-6 pb-10 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] max-h-[calc(100vh-2rem)] overflow-y-auto"
+            className="fixed bottom-0 left-0 right-0 bg-card rounded-t-[24px] z-50 p-6 pb-10 shadow-[0_-4px-20px_rgba(0,0,0,0.08)] max-h-[calc(100vh-2rem)] overflow-y-auto"
           >
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-serif text-foreground">编辑记录</h2>
@@ -709,179 +530,26 @@ function EditRecordModal({
               </button>
             </div>
 
-            {showDeleteConfirm ? (
-              <div className="space-y-4">
-                <p className="text-center font-serif text-foreground">确定要删除这条记录吗？</p>
-                <p className="text-center text-sm text-muted-foreground font-serif">{formatDate(record.date)} · {record.type}</p>
-                <div className="flex gap-3">
-                  <button
-                    onClick={handleCancelDelete}
-                    className="flex-1 py-3 rounded-full bg-secondary text-foreground font-serif transition-all hover:bg-secondary/80 active:scale-[0.98]"
-                  >
-                    取消
-                  </button>
-                  <button
-                    onClick={handleConfirmDelete}
-                    className="flex-1 py-3 rounded-full font-serif transition-all active:scale-[0.98] bg-gradient-to-br from-red-400 to-red-700 text-white backdrop-blur-md shadow-lg hover:shadow-xl border border-red-300/30"
-                  >
-                    删除
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {/* Date & Type - 可编辑 */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-serif text-muted-foreground mb-1.5">日期</label>
-                    <button
-                      onClick={() => handleDatePickerToggle(true)}
-                      className="w-full px-3 py-2.5 rounded-xl bg-secondary text-foreground font-serif text-left transition-all hover:bg-secondary/80 active:scale-[0.98] text-sm"
-                    >
-                      {formatDateDisplay(date)}
-                    </button>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-serif text-muted-foreground mb-1.5">练习类型</label>
-                    <button
-                      onClick={() => handleTypeSelectorToggle(true)}
-                      className={`
-                        w-full px-3 py-2.5 rounded-xl font-serif text-left transition-all active:scale-[0.98] text-sm
-                        ${type
-                          ? 'green-gradient-light text-primary border border-primary/20'
-                          : 'bg-secondary text-muted-foreground hover:bg-secondary/80'
-                        }
-                      `}
-                    >
-                      {type ? type.split(' ')[0] : "选择类型"}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Duration & Breakthrough Toggle */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-serif text-muted-foreground mb-1.5">练习时长 (分钟)</label>
-                    <input
-                      type="number"
-                      value={duration || ''}
-                      onChange={(e) => setDuration(e.target.value === '' ? 0 : Number(e.target.value))}
-                      placeholder="输入时长"
-                      className="w-full px-3 py-2.5 rounded-xl bg-secondary text-foreground font-serif focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-serif text-muted-foreground mb-1.5">突破时刻</label>
-                    <button
-                      type="button"
-                      onClick={() => setBreakthroughEnabled(!breakthroughEnabled)}
-                      className={`w-full flex items-center justify-start gap-1.5 px-3 py-2.5 rounded-xl border transition-all ${
-                        breakthroughEnabled
-                          ? 'bg-orange-50 border-orange-200 text-orange-600 shadow-sm'
-                          : 'bg-secondary border-transparent text-muted-foreground'
-                      }`}
-                    >
-                      <Sparkles className={`w-3.5 h-3.5 ${breakthroughEnabled ? 'text-orange-500' : 'text-muted-foreground'}`} />
-                      <span className="text-sm font-serif">解锁/突破</span>
-                    </button>
-                  </div>
-                </div>
-
-                <AnimatePresence>
-                  {breakthroughEnabled && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      className="overflow-hidden"
-                    >
-                      <div className="pt-1">
-                        <label className="block text-xs font-serif text-muted-foreground mb-1.5">觉察/笔记</label>
-                        <input
-                          type="text"
-                          value={breakthroughText}
-                          onChange={(e) => setBreakthroughText(e.target.value)}
-                          placeholder="记录今天的里程碑..."
-                          maxLength={20}
-                          className="w-full px-3 py-2.5 rounded-xl bg-gradient-to-br from-orange-50/80 to-orange-50/40 text-foreground placeholder:text-orange-300/70 font-serif focus:outline-none focus:ring-2 focus:ring-orange-300/50 focus:border-orange-300 border border-orange-200/60 transition-all duration-200 text-sm shadow-sm shadow-orange-100/50"
-                        />
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                {/* Editable notes */}
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-xs font-serif text-muted-foreground">
-                      觉察/笔记
-                    </label>
-                    <span className="text-xs text-muted-foreground/60">{notes.length}/2000</span>
-                  </div>
-                  <div className="relative">
-                    <textarea
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value.slice(0, 2000))}
-                      placeholder="今天练习感受如何？有什么觉察？可以尝试右下方的语音输入，轻松地说出你的当下想法，留下更多真实的痕迹。"
-                      rows={7}
-                      className="w-full px-4 py-3 pr-12 rounded-2xl bg-secondary text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-none font-serif text-sm"
-                    />
-                    {/* Voice & Photo Input - 浮动在输入框右下角 */}
-                    <div className="absolute bottom-3 right-3 flex items-center gap-2">
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="image/*"
-                        onChange={handleFileSelect}
-                        className="hidden"
-                      />
-                      <PhotoUploadButton
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={recordPhotos.length >= 1}
-                      />
-                      <VoiceButton
-                        onClick={() => onOpenVoiceFakeDoor?.()}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Photo Preview - 照片预览区域 */}
-                {record && recordPhotos.length > 0 && (
-                  <div className="pt-2">
-                    <PhotoPreviewList
-                      photos={recordPhotos}
-                      layout="grid"
-                      onDelete={async (photoId) => {
-                        const { deletePhoto } = await import('@/lib/oss')
-                        const result = await deletePhoto(photoId)
-                        if (result.success) {
-                          setRecordPhotos([])
-                          toast.success('照片已删除 ✓')
-                        } else {
-                          toast.error('删除失败，请重试')
-                        }
-                      }}
-                    />
-                  </div>
-                )}
-
-                <button
-                  onClick={handleSave}
-                  className="w-full py-4 rounded-full green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white font-serif transition-all hover:opacity-90 active:scale-[0.98]"
-                >
-                  保存修改
-                </button>
-
-                <button
-                  onClick={handleDeleteClick}
-                  className="w-full py-3 rounded-full bg-transparent text-destructive font-serif transition-all hover:bg-destructive/10 active:scale-[0.98] flex items-center justify-center gap-2"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  删除记录
-                </button>
-              </div>
-            )}
+            <PracticeForm
+              initialData={formData}
+              recordId={record.id}
+              date={formData.date}
+              type={formData.type}
+              onDateChange={(d) => setFormData(prev => ({ ...prev, date: d }))}
+              onTypeChange={(t) => setFormData(prev => ({ ...prev, type: t }))}
+              dateEditable={true}
+              typeEditable={true}
+              durationEditable={true}
+              showDelete={true}
+              showPhotoUpload={true}
+              practiceOptions={practiceOptions}
+              onSave={handleSave}
+              onDelete={handleDelete}
+              onDatePickerOpen={() => handleDatePickerToggle(true)}
+              onTypeSelectorOpen={() => handleTypeSelectorToggle(true)}
+              onVoiceInputOpen={() => onOpenVoiceFakeDoor?.()}
+              onChildModalOpen={onChildModalOpen}
+            />
           </motion.div>
 
           {/* DatePicker Modal */}
@@ -889,7 +557,7 @@ function EditRecordModal({
             isOpen={showDatePicker}
             onClose={(selectedDate) => {
               if (selectedDate) {
-                setDate(selectedDate)
+                setFormData(prev => ({ ...prev, date: selectedDate }))
               }
               handleDatePickerToggle(false)
             }}
@@ -901,20 +569,19 @@ function EditRecordModal({
           <TypeSelectorModal
             isOpen={showTypeSelector}
             onClose={(selectedType) => {
-              if (selectedType && selectedType !== "__custom__") {
-                setType(selectedType)
+              if (selectedType) {
+                setFormData(prev => ({ ...prev, type: selectedType }))
               }
               handleTypeSelectorToggle(false)
             }}
             practiceOptions={practiceOptions}
-            selectedType={type}
+            selectedType={formData.type}
           />
         </>
       )}
     </AnimatePresence>
   )
 }
-
 // Share Card Modal - v3 "The Aotang Poster" with Magazine Layout
 function ShareCardModal({
   isOpen,
@@ -1457,16 +1124,11 @@ function TypeSelectorModal({
 }) {
   // 处理按钮点击
   const handleOptionTap = (option: PracticeOption) => {
-    if (option.id === "custom") {
-      // 点击自定义按钮，通知父组件
-      onClose("__custom__")
-    } else {
-      // 点击普通按钮，返回 label + notes 组合以区分同名选项
-      const typeValue = option.notes
-        ? `${option.label} ${option.notes}`
-        : option.label
-      onClose(typeValue)
-    }
+    // 返回 label + notes 组合以区分同名选项
+    const typeValue = option.notes
+      ? `${option.label} ${option.notes}`
+      : option.label
+    onClose(typeValue)
   }
 
   return (
@@ -1504,7 +1166,9 @@ function TypeSelectorModal({
             {/* 3列网格 - 可滚动 */}
             <div className="flex-1 overflow-y-auto px-6 py-6">
               <div className="grid grid-cols-3 gap-3">
-                {practiceOptions.map((option) => {
+                {practiceOptions
+                  .filter(option => option.id !== "custom")
+                  .map((option) => {
                   // 显示逻辑：label（名称）+ notes（备注）
                   const displayName = option.label || ''
                   const displayNotes = option.notes || ''
@@ -1514,7 +1178,6 @@ function TypeSelectorModal({
                     ? `${displayName} ${displayNotes}`
                     : displayName
                   const isSelected = selectedType === optionTypeValue
-                  const isCustomButton = option.id === "custom"
 
                   return (
                     <motion.button
@@ -1527,9 +1190,7 @@ function TypeSelectorModal({
                         ${
                           isSelected
                             ? "green-gradient text-primary-foreground backdrop-blur-[16px] border border-white/30 shadow-[0_8px_24px_rgba(45,90,39,0.3)]"
-                            : isCustomButton
-                              ? "bg-background text-muted-foreground border-2 border-dashed border-muted-foreground/30 shadow-[0_2px_12px_rgba(0,0,0,0.03)]"
-                              : "bg-card text-foreground shadow-[0_4px_16px_rgba(0,0,0,0.06)]"
+                            : "bg-card text-foreground shadow-[0_4px_16px_rgba(0,0,0,0.06)]"
                         }
                       `}
                     >
@@ -1562,14 +1223,13 @@ function TypeSelectorModal({
   )
 }
 
-// Add Practice Modal (添加练习) - 使用DatePickerModal和TypeSelectorModal
+// Add Practice Modal (添加练习) - 使用 PracticeForm
 function AddPracticeModal({
   isOpen,
   onClose,
   onSave,
   practiceOptions,
   practiceHistory = [],
-  onAddOption,
   onChildModalOpen,
   onOpenVoiceFakeDoor,
   onOpenPhotoFakeDoor,
@@ -1579,58 +1239,51 @@ function AddPracticeModal({
   onSave: (record: Omit<PracticeRecord, 'id' | 'created_at' | 'photos'>) => void
   practiceOptions: PracticeOption[]
   practiceHistory?: PracticeRecord[]
-  onAddOption?: (name: string, notes: string) => void
   onChildModalOpen?: (open: boolean) => void
   onOpenVoiceFakeDoor?: () => void
   onOpenPhotoFakeDoor?: () => void
 }) {
-  const [date, setDate] = useState(() => getLocalDateStr())
-  const [type, setType] = useState("")
-  const [duration, setDuration] = useState(60)
-  const [notes, setNotes] = useState("")
-  const [breakthroughEnabled, setBreakthroughEnabled] = useState(false)
-  const [breakthroughText, setBreakthroughText] = useState("")
+  // 表单数据状态（用于 PracticeForm）
+  const [formData, setFormData] = useState({
+    date: getLocalDateStr(),
+    type: '',
+    duration: 60,
+    notes: '',
+    breakthrough: undefined as string | undefined,
+  })
 
   // 子模态框状态
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [showTypeSelector, setShowTypeSelector] = useState(false)
-  const [showCustomModal, setShowCustomModal] = useState(false)
 
-  // 日期显示格式化
-  const formatDateDisplay = (dateStr: string) => {
-    if (!dateStr) return "选择日期"
-    const date = new Date(dateStr)
-    return `${date.getMonth() + 1}月${date.getDate()}日`
-  }
+  // 草稿记录 ID（用于照片上传）
+  const [draftRecordId, setDraftRecordId] = useState<string | undefined>(undefined)
 
-  const typeOptions = useMemo(() => {
-    return practiceOptions
-      .filter(o => o.id !== "custom")
-      .map(o => ({ value: o.label, label: o.label }))
-  }, [practiceOptions])
-
-  // 处理自定义练习确认
-  const handleCustomPracticeConfirm = (name: string, notes: string) => {
-    console.log('handleCustomPracticeConfirm called with:', name, notes)
-    console.log('onAddOption function:', onAddOption)
-    // 调用父组件的 addOption 方法保存到 localStorage
-    if (onAddOption) {
-      console.log('calling onAddOption...')
-      onAddOption(name, notes)
-      console.log('onAddOption called')
-      // 设置选中的类型
-      setType(name)
-      // 延迟关闭弹窗，确保用户看到toast提示和选项保存完成
-      setTimeout(() => {
-        setShowCustomModal(false)
-        onChildModalOpen?.(false)
-      }, 800)
-    } else {
-      console.log('onAddOption is undefined!')
-      setType(name)
-      setShowCustomModal(false)
-      onChildModalOpen?.(false)
+  // 当弹窗打开时，创建草稿记录
+  useEffect(() => {
+    if (isOpen) {
+      // 生成临时草稿 ID（实际保存时会创建真实记录）
+      setDraftRecordId(`draft-${Date.now()}`)
     }
+  }, [isOpen])
+
+  const handleSave = (data: PracticeFormData) => {
+    onSave({
+      date: data.date,
+      type: data.type,
+      duration: data.duration * 60, // 转换为秒
+      notes: data.notes || "今日练习完成",
+      breakthrough: data.breakthrough,
+    })
+    // 重置表单
+    setFormData({
+      date: getLocalDateStr(),
+      type: '',
+      duration: 60,
+      notes: '',
+      breakthrough: undefined,
+    })
+    onClose()
   }
 
   const handleDatePickerToggle = (open: boolean) => {
@@ -1643,33 +1296,7 @@ function AddPracticeModal({
     onChildModalOpen?.(open)
   }
 
-  const handleCustomModalToggle = (open: boolean) => {
-    setShowCustomModal(open)
-    onChildModalOpen?.(open)
-  }
-
-  const handleSave = () => {
-    if (date && type) {
-      onSave({
-        date,
-        type,
-        duration: duration * 60, // Convert to seconds
-        notes: notes || "今日练习完成",
-        breakthrough: breakthroughEnabled ? breakthroughText : undefined,
-      })
-      // Reset form
-      setDate(getLocalDateStr())
-      setType("")
-      setDuration(60)
-      setNotes("")
-      setBreakthroughEnabled(false)
-      setBreakthroughText("")
-      onClose()
-    }
-  }
-
   return (
-    <>
     <AnimatePresence>
       {isOpen && (
         <>
@@ -1694,166 +1321,55 @@ function AddPracticeModal({
               </button>
             </div>
 
-            <div className="space-y-5">
-              {/* Date & Type - 使用按钮触发模态框 */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-serif text-muted-foreground mb-1.5">日期</label>
-                  <button
-                    onClick={() => handleDatePickerToggle(true)}
-                    className="w-full px-3 py-2.5 rounded-xl bg-secondary text-foreground font-serif text-left transition-all hover:bg-secondary/80 active:scale-[0.98] text-sm"
-                  >
-                    {formatDateDisplay(date)}
-                  </button>
-                </div>
-                <div>
-                  <label className="block text-xs font-serif text-muted-foreground mb-1.5">练习类型</label>
-                  <button
-                    onClick={() => handleTypeSelectorToggle(true)}
-                    className={`
-                      w-full px-3 py-2.5 rounded-xl font-serif text-left transition-all active:scale-[0.98] text-sm
-                      ${type
-                        ? 'green-gradient-light text-primary border border-primary/20'
-                        : 'bg-secondary text-muted-foreground hover:bg-secondary/80'
-                      }
-                    `}
-                  >
-                    {type ? type.split(' ')[0] : "选择类型"}
-                  </button>
-                </div>
-              </div>
-
-              {/* Duration & Breakthrough Toggle */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-serif text-muted-foreground mb-1.5">练习时长 (分钟)</label>
-                  <input
-                    type="number"
-                    value={duration || ''}
-                    onChange={(e) => setDuration(e.target.value === '' ? 0 : Number(e.target.value))}
-                    placeholder="输入时长"
-                    className="w-full px-3 py-2.5 rounded-xl bg-secondary text-foreground font-serif focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-serif text-muted-foreground mb-1.5 opacity-0">突破时刻</label>
-                  <button
-                    onClick={() => setBreakthroughEnabled(!breakthroughEnabled)}
-                    className={`w-full flex items-center justify-start gap-1.5 px-3 py-2.5 rounded-xl border transition-all ${
-                      breakthroughEnabled
-                        ? 'bg-orange-50 border-orange-200 text-orange-600 shadow-sm'
-                        : 'bg-secondary border-transparent text-muted-foreground'
-                    }`}
-                  >
-                    <Sparkles className={`w-3.5 h-3.5 ${breakthroughEnabled ? 'text-orange-500' : 'text-muted-foreground'}`} />
-                    <span className="text-sm font-serif">解锁/突破</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Breakthrough Input - Expandable */}
-              <AnimatePresence>
-                {breakthroughEnabled && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    className="overflow-hidden"
-                  >
-                    <div className="pt-1">
-                      <label className="block text-xs font-serif text-muted-foreground mb-1.5">突破内容</label>
-                      <input
-                        type="text"
-                        value={breakthroughText}
-                        onChange={(e) => setBreakthroughText(e.target.value)}
-                        placeholder="记录今天的里程碑..."
-                        maxLength={20}
-                        className="w-full px-3 py-2.5 rounded-xl bg-gradient-to-br from-orange-50/80 to-orange-50/40 text-foreground placeholder:text-orange-300/70 font-serif focus:outline-none focus:ring-2 focus:ring-orange-300/50 focus:border-orange-300 border border-orange-200/60 transition-all duration-200 text-sm shadow-sm shadow-orange-100/50"
-                      />
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {/* Notes */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-xs font-serif text-muted-foreground">
-                    觉察/笔记
-                  </label>
-                  <span className="text-xs text-muted-foreground/60">{notes.length}/2000</span>
-                </div>
-                <div className="relative">
-                  <textarea
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value.slice(0, 2000))}
-                    placeholder="今天练习感受如何？有什么觉察？可以尝试右下方的语音输入，轻松地说出你的当下想法，留下更多真实的痕迹。"
-                    rows={5}
-                    className="w-full px-4 py-3 pr-12 rounded-2xl bg-secondary text-foreground placeholder:text-muted-foreground font-serif focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-none text-sm"
-                  />
-                  {/* Voice Input + Photo Upload（假门测试） */}
-                  <div className="absolute bottom-3 right-3 flex items-center gap-2">
-                    <PhotoUploadButton
-                      onClick={() => onOpenPhotoFakeDoor?.()}
-                    />
-                    <VoiceButton
-                      onClick={() => onOpenVoiceFakeDoor?.()}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <button
-                onClick={handleSave}
-                disabled={!date || !type}
-                className="w-full py-4 rounded-full green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white font-serif transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-50"
-              >
-                保存练习
-              </button>
-            </div>
+            <PracticeForm
+              initialData={formData}
+              recordId={draftRecordId}
+              date={formData.date}
+              type={formData.type}
+              onDateChange={(d) => setFormData(prev => ({ ...prev, date: d }))}
+              onTypeChange={(t) => setFormData(prev => ({ ...prev, type: t }))}
+              dateEditable={true}
+              typeEditable={true}
+              durationEditable={true}
+              showDelete={false}
+              showPhotoUpload={true}
+              practiceOptions={practiceOptions}
+              onSave={handleSave}
+              onDatePickerOpen={() => handleDatePickerToggle(true)}
+              onTypeSelectorOpen={() => handleTypeSelectorToggle(true)}
+              onVoiceInputOpen={() => onOpenVoiceFakeDoor?.()}
+              onChildModalOpen={onChildModalOpen}
+            />
           </motion.div>
+
+          {/* DatePicker Modal */}
+          <DatePickerModal
+            isOpen={showDatePicker}
+            onClose={(selectedDate) => {
+              if (selectedDate) {
+                setFormData(prev => ({ ...prev, date: selectedDate }))
+              }
+              handleDatePickerToggle(false)
+            }}
+            maxDate={getLocalDateStr()}
+            practiceHistory={practiceHistory}
+          />
+
+          {/* TypeSelector Modal */}
+          <TypeSelectorModal
+            isOpen={showTypeSelector}
+            onClose={(selectedType) => {
+              if (selectedType) {
+                setFormData(prev => ({ ...prev, type: selectedType }))
+              }
+              handleTypeSelectorToggle(false)
+            }}
+            practiceOptions={practiceOptions}
+            selectedType={formData.type}
+          />
         </>
       )}
     </AnimatePresence>
-
-    {/* 子模态框：日期选择器 - z-[80] */}
-  <DatePickerModal
-    isOpen={showDatePicker}
-    onClose={(selectedDate) => {
-      if (selectedDate) {
-        setDate(selectedDate)
-      }
-      handleDatePickerToggle(false)
-    }}
-    maxDate={getLocalDateStr()}
-    practiceHistory={practiceHistory}
-  />
-
-  {/* 子模态框：类型选择器 - z-[80] */}
-  <TypeSelectorModal
-    isOpen={showTypeSelector}
-    onClose={(selectedType) => {
-      if (selectedType === "__custom__") {
-        // 点击自定义按钮，清空当前选择
-        setType("")
-        handleCustomModalToggle(true)
-      } else if (selectedType) {
-        setType(selectedType)
-      }
-      handleTypeSelectorToggle(false)
-    }}
-    practiceOptions={practiceOptions}
-    selectedType={type}
-  />
-
-  {/* Custom Practice Modal - 自定义练习弹窗 */}
-  <CustomPracticeModal
-    isOpen={showCustomModal}
-    onClose={() => handleCustomModalToggle(false)}
-    onConfirm={handleCustomPracticeConfirm}
-    isFull={false}
-  />
-  </>
   )
 }
 
@@ -2444,7 +1960,7 @@ function ConfirmEndDialog({
   )
 }
 
-// Completion Sheet
+// Completion Sheet - 使用 PracticeForm
 function CompletionSheet({
   isOpen,
   practiceType,
@@ -2460,15 +1976,38 @@ function CompletionSheet({
   onOpenVoiceFakeDoor?: () => void
   onOpenPhotoFakeDoor?: () => void
 }) {
-  const [notes, setNotes] = useState("")
-  const [breakthroughEnabled, setBreakthroughEnabled] = useState(false)
-  const [breakthroughText, setBreakthroughText] = useState("")
+  // 表单数据状态（用于 PracticeForm）
+  const [formData, setFormData] = useState({
+    date: getLocalDateStr(),
+    type: practiceType,
+    duration: parseInt(duration) || 0,
+    notes: '',
+    breakthrough: undefined as string | undefined,
+  })
 
-  const handleSave = () => {
-    onSave(notes, [], breakthroughEnabled ? breakthroughText : undefined)
-    setNotes("")
-    setBreakthroughEnabled(false)
-    setBreakthroughText("")
+  // 当弹窗打开时，同步外部传入的数据
+  useEffect(() => {
+    if (isOpen) {
+      setFormData({
+        date: getLocalDateStr(),
+        type: practiceType,
+        duration: parseInt(duration) || 0,
+        notes: '',
+        breakthrough: undefined,
+      })
+    }
+  }, [isOpen, practiceType, duration])
+
+  const handleSave = (data: PracticeFormData) => {
+    onSave(data.notes, [], data.breakthrough)
+    // 重置表单
+    setFormData({
+      date: getLocalDateStr(),
+      type: practiceType,
+      duration: parseInt(duration) || 0,
+      notes: '',
+      breakthrough: undefined,
+    })
   }
 
   return (
@@ -2486,94 +2025,30 @@ function CompletionSheet({
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 bg-card rounded-t-[24px] z-[70] p-6 pb-10 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] max-h-[calc(100vh-2rem)] overflow-y-auto"
+            className="fixed bottom-0 left-0 right-0 bg-card rounded-t-[24px] z-[70] p-6 pb-10 shadow-[0_-4px-20px_rgba(0,0,0,0.08)] max-h-[calc(100vh-2rem)] overflow-y-auto"
           >
             <h2 className="text-xl font-serif text-foreground text-center mb-6">练习完成</h2>
 
-            <div className="space-y-5">
-              <div className="flex gap-4">
-                <div className="flex-1">
-                  <label className="block text-xs font-serif text-muted-foreground mb-1.5">类型</label>
-                  <div className="px-4 py-3 rounded-2xl bg-secondary text-foreground font-serif">{practiceType}</div>
-                </div>
-                <div className="flex-1">
-                  <label className="block text-xs font-serif text-muted-foreground mb-1.5">时长</label>
-                  <div className="px-4 py-3 rounded-2xl bg-secondary text-foreground font-serif">{duration} 分钟</div>
-                </div>
-              </div>
+            <PracticeForm
+              initialData={formData}
+              date={formData.date}
+              type={formData.type}
+              onDateChange={() => {}} // 只读，不处理
+              onTypeChange={() => {}} // 只读，不处理
+              dateEditable={false}
+              typeEditable={false}
+              durationEditable={false}
+              showDelete={false}
+              showPhotoUpload={false} // 暂时使用假门测试
+              practiceOptions={[]}
+              onSave={handleSave}
+              onVoiceInputOpen={() => onOpenVoiceFakeDoor?.()}
+            />
 
-              {/* Breakthrough Toggle */}
-              <div>
-                <button
-                  onClick={() => setBreakthroughEnabled(!breakthroughEnabled)}
-                  className={`w-full flex items-center justify-start gap-1.5 px-3 py-2.5 rounded-xl border transition-all ${
-                    breakthroughEnabled
-                      ? 'bg-orange-50 border-orange-200 text-orange-600 shadow-sm'
-                      : 'bg-secondary border-transparent text-muted-foreground'
-                  }`}
-                >
-                  <Sparkles className={`w-3.5 h-3.5 ${breakthroughEnabled ? 'text-orange-500' : 'text-muted-foreground'}`} />
-                  <span className="text-sm font-serif">解锁/突破</span>
-                </button>
-
-                {/* Conditional Breakthrough Input */}
-                <AnimatePresence>
-                  {breakthroughEnabled && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      className="overflow-hidden"
-                    >
-                      <div className="pt-1">
-                        <label className="block text-xs font-serif text-muted-foreground mb-1.5">觉察/笔记</label>
-                        <input
-                          type="text"
-                          value={breakthroughText}
-                          onChange={(e) => setBreakthroughText(e.target.value)}
-                          placeholder="记录今天的里程碑..."
-                          maxLength={20}
-                          className="w-full px-3 py-2.5 rounded-xl bg-gradient-to-br from-orange-50/80 to-orange-50/40 text-foreground placeholder:text-orange-300/70 font-serif focus:outline-none focus:ring-2 focus:ring-orange-300/50 focus:border-orange-300 border border-orange-200/60 transition-all duration-200 text-sm shadow-sm shadow-orange-100/50"
-                        />
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-xs font-serif text-muted-foreground">
-                    觉察/笔记
-                  </label>
-                  <span className="text-xs text-muted-foreground/60">{notes.length}/2000</span>
-                </div>
-                <div className="relative">
-                  <textarea
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value.slice(0, 2000))}
-                    placeholder="今天练习感受如何？有什么觉察？可以尝试右下方的语音输入，轻松地说出你的当下想法，留下更多真实的痕迹。"
-                    rows={5}
-                    className="w-full px-4 py-3 pr-12 rounded-2xl bg-secondary text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-none font-serif"
-                  />
-                  {/* Voice Input + Photo Upload - 浮动在输入框右下角（假门测试） */}
-                  <div className="absolute bottom-3 right-3 flex items-center gap-2">
-                    <PhotoUploadButton
-                      onClick={() => onOpenPhotoFakeDoor?.()}
-                    />
-                    <VoiceButton
-                      onClick={() => onOpenVoiceFakeDoor?.()}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <button
-                onClick={handleSave}
-                className="w-full py-4 rounded-full green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white font-serif transition-all hover:opacity-90 active:scale-[0.98]"
-              >
-                保存练习
-              </button>
+            {/* 假门测试按钮（照片上传） */}
+            <div className="mt-4 flex items-center justify-center gap-2">
+              <PhotoUploadButton onClick={() => onOpenPhotoFakeDoor?.()} />
+              <span className="text-xs text-muted-foreground">记录练习瞬间（即将上线）</span>
             </div>
           </motion.div>
         </>
@@ -3136,7 +2611,6 @@ function JournalTab({
         onSave={onAddRecord}
         practiceOptions={practiceOptions}
         practiceHistory={practiceHistory}
-        onAddOption={onAddOption}
         onChildModalOpen={(open) => setChildModalOpen(open)}
         onOpenVoiceFakeDoor={onOpenVoiceFakeDoor}
         onOpenPhotoFakeDoor={onOpenPhotoFakeDoor}
@@ -3577,7 +3051,6 @@ export default function AshtangaTracker() {
   const [pauseStartTime, setPauseStartTime] = useLocalStorage<number | null>('ashtanga_pause_start_time', null)
   const [totalPausedTime, setTotalPausedTime] = useLocalStorage<number>('ashtanga_total_paused_time', 0)
   const [elapsedTime, setElapsedTime] = useState(0)
-  const [showCustomModal, setShowCustomModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [editingOption, setEditingOption] = useState<PracticeOption | null>(null)
   const [editingRecord, setEditingRecord] = useState<PracticeRecord | null>(null)
@@ -3730,7 +3203,6 @@ export default function AshtangaTracker() {
   // 派生状态：判断是否有需要隐藏导航栏的弹窗打开
   const hasAnyModalOpen = useMemo(() => {
     return (
-      showCustomModal ||
       showEditModal ||
       editingOption !== null ||
       showAddModal ||
@@ -3741,7 +3213,7 @@ export default function AshtangaTracker() {
       showCompletion    // 完成练习弹窗
     )
   }, [
-    showCustomModal,
+    showEditModal,
     showEditModal,
     editingOption,
     showAddModal,
@@ -3849,37 +3321,9 @@ export default function AshtangaTracker() {
     // Single tap
     lastTapRef.current = { id: option.id, time: now }
 
-    // Handle custom option
-    if (option.id === "custom") {
-      setShowCustomModal(true)
-      return
-    }
-
     // Select the option
     setSelectedOption(option.id)
     setCustomPracticeName("")
-  }
-
-  const handleCustomConfirm = (name: string, notes: string) => {
-    // Check if we can add more options (max 9, excluding the "custom" button itself)
-    const nonCustomOptions = practiceOptions.filter(o => o.id !== "custom")
-    if (nonCustomOptions.length >= 8) {
-      // Options are full, just start practice without saving
-      setSelectedOption("custom-temp")
-      setCustomPracticeName(name)
-      setShowCustomModal(false)
-      return
-    }
-
-    // Create a new permanent custom option and save to localStorage
-    // 修复：直接使用 addOption(name, name, notes) 避免竞态条件
-    addOption(name, name, notes)
-
-    // Update local state will be handled by useEffect when practiceOptionsData changes
-    setCustomPracticeName(name)
-    setShowCustomModal(false)
-
-    toast.success('已添加自定义选项')
   }
 
   const handleEditSave = (id: string, name: string, notes: string) => {
@@ -4267,7 +3711,6 @@ export default function AshtangaTracker() {
       },
       // 弹窗状态
       modals: {
-        showCustomModal: showCustomModal,
         showImportModal: showImportModal,
         showExportModal: showExportModal,
         showDebugLogModal: showDebugLogModal,
@@ -4326,11 +3769,6 @@ export default function AshtangaTracker() {
   const canDeleteOption = useMemo(() => {
     const nonCustomOptions = practiceOptions.filter(o => o.id !== "custom")
     return nonCustomOptions.length > 2
-  }, [practiceOptions])
-
-  const isOptionsFull = useMemo(() => {
-    const nonCustomOptions = practiceOptions.filter(o => o.id !== "custom")
-    return nonCustomOptions.length >= 8
   }, [practiceOptions])
 
   const handleStartPractice = async () => {
@@ -5027,14 +4465,6 @@ export default function AshtangaTracker() {
         )}
       </AnimatePresence>
 
-      {/* Custom Practice Modal */}
-      <CustomPracticeModal
-        isOpen={showCustomModal}
-        onClose={() => setShowCustomModal(false)}
-        onConfirm={handleCustomConfirm}
-        isFull={isOptionsFull}
-      />
-
       {/* Edit Option Modal */}
       <EditOptionModal
         isOpen={showEditModal}
@@ -5327,7 +4757,8 @@ export default function AshtangaTracker() {
         practiceType={getSelectedLabel()}
         duration={finalDuration}
         onSave={handleSavePractice}
-        onOpenFakeDoor={() => setShowFakeDoor({ type: 'voice', isOpen: true })}
+        onOpenVoiceFakeDoor={() => setShowFakeDoor({ type: 'voice', isOpen: true })}
+        onOpenPhotoFakeDoor={() => setShowFakeDoor({ type: 'photo', isOpen: true })}
       />
 
       {/* Fake Door Modal */}
