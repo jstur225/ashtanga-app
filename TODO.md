@@ -2,7 +2,7 @@
 
 ## 2026-03-22 - PracticeForm 提取与弹窗改造
 
-### 🔄 进行中：提取 PracticeForm 公共组件
+### ✅ 已完成：提取 PracticeForm 公共组件
 
 **背景：**
 工程评审结论要求提取公共表单组件，减少 3 个弹窗（EditRecordModal、AddPracticeModal、CompletionSheet）的重复代码。
@@ -12,11 +12,14 @@
 - 实施顺序：分阶段（3B）
 
 **阶段计划：**
-- [ ] Phase 1: EditRecordModal 改造
-- [ ] Phase 2: 移除自定义练习功能
-- [ ] Phase 3: AddPracticeModal 改造（含预创建草稿）
-- [ ] Phase 4: CompletionSheet 改造（含预创建草稿）
-- [ ] Phase 5: 最终验证
+- [x] Phase 1: EditRecordModal 改造
+- [x] Phase 2: 移除自定义练习功能
+- [x] Phase 3: AddPracticeModal 改造（含预创建草稿）
+- [x] Phase 4: CompletionSheet 改造（含预创建草稿）
+- [x] Phase 5: 最终验证
+
+**完成时间：** 2026-03-22
+**主要提交：** `7861b4a` refactor: extract PracticeForm component and simplify modals
 
 **详细计划：** `.claude/plans/dazzling-knitting-pie.md`
 
