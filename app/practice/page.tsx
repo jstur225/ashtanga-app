@@ -1236,8 +1236,8 @@ function AddPracticeModal({
 }: {
   isOpen: boolean
   onClose: () => void
-  onSave: (record: Omit<PracticeRecord, 'id' | 'created_at' | 'photos'>) => void
-  addRecord: (record: Omit<PracticeRecord, 'id' | 'created_at' | 'photos'>) => PracticeRecord
+  onSave: (record: Omit<PracticeRecord, 'id' | 'created_at' | 'updated_at' | 'photos'>) => void
+  addRecord: (record: Omit<PracticeRecord, 'id' | 'created_at' | 'updated_at' | 'photos'>) => PracticeRecord
   practiceOptions: PracticeOption[]
   practiceHistory?: PracticeRecord[]
   onChildModalOpen?: (open: boolean) => void
@@ -1983,7 +1983,7 @@ function CompletionSheet({
   practiceType: string
   duration: string
   onSave: (notes: string, photos: string[], breakthrough?: string) => void
-  addRecord: (record: Omit<PracticeRecord, 'id' | 'created_at' | 'photos'>) => PracticeRecord
+  addRecord: (record: Omit<PracticeRecord, 'id' | 'created_at' | 'updated_at' | 'photos'>) => PracticeRecord
   onOpenVoiceFakeDoor?: () => void
   onOpenPhotoFakeDoor?: () => void
 }) {
@@ -2381,7 +2381,7 @@ function JournalTab({
   profile: UserProfile
   onEditRecord: (id: string, data: Partial<PracticeRecord>) => void
   onDeleteRecord: (id: string) => void
-  onAddRecord: (record: Omit<PracticeRecord, 'id' | 'created_at' | 'photos'>) => void
+  onAddRecord: (record: Omit<PracticeRecord, 'id' | 'created_at' | 'updated_at' | 'photos'>) => void
   onOpenFakeDoor: () => void
   onOpenVoiceFakeDoor?: () => void
   onOpenPhotoFakeDoor?: () => void
@@ -3433,7 +3433,7 @@ export default function AshtangaTracker() {
     }
   }
 
-  const handleAddRecord = (record: Omit<PracticeRecord, 'id' | 'created_at' | 'photos'>) => {
+  const handleAddRecord = (record: Omit<PracticeRecord, 'id' | 'created_at' | 'updated_at' | 'photos'>) => {
     addRecord(record)
     trackEvent('add_record', {
       type: record.type,
