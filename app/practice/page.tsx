@@ -1228,6 +1228,8 @@ function AddPracticeModal({
   onClose,
   onSave,
   addRecord,
+  updateRecord,
+  deleteRecord,
   practiceOptions,
   practiceHistory = [],
   onChildModalOpen,
@@ -1238,6 +1240,8 @@ function AddPracticeModal({
   onClose: () => void
   onSave: (record: Omit<PracticeRecord, 'id' | 'created_at' | 'updated_at' | 'photos'>) => void
   addRecord: (record: Omit<PracticeRecord, 'id' | 'created_at' | 'updated_at' | 'photos'>) => PracticeRecord
+  updateRecord: (id: string, data: Partial<PracticeRecord>) => void
+  deleteRecord: (id: string) => void
   practiceOptions: PracticeOption[]
   practiceHistory?: PracticeRecord[]
   onChildModalOpen?: (open: boolean) => void
@@ -1266,25 +1270,39 @@ function AddPracticeModal({
       // 创建草稿记录用于照片上传
       const draft = addRecord({
         date: getLocalDateStr(),
-        type: '草稿', // 临时类型
+        type: '草稿', // 临时类型，不显示在时光轴
         duration: 60,
         notes: '',
       })
       setDraftRecord(draft)
-    } else {
-      // 弹窗关闭时清理草稿
+    } else if (draftRecord) {
+      // 弹窗关闭时删除草稿（用户取消）
+      deleteRecord(draftRecord.id)
       setDraftRecord(null)
     }
   }, [isOpen])
 
+  // 清理函数：组件卸载时也删除草稿
+  useEffect(() => {
+    return () => {
+      if (draftRecord) {
+        deleteRecord(draftRecord.id)
+      }
+    }
+  }, [])
+
   const handleSave = (data: PracticeFormData) => {
-    onSave({
-      date: data.date,
-      type: data.type,
-      duration: data.duration * 60, // 转换为秒
-      notes: data.notes || "今日练习完成",
-      breakthrough: data.breakthrough,
-    })
+    if (draftRecord) {
+      // 更新草稿为正式记录
+      updateRecord(draftRecord.id, {
+        date: data.date,
+        type: data.type,
+        duration: data.duration * 60, // 转换为秒
+        notes: data.notes || "今日练习完成",
+        breakthrough: data.breakthrough,
+      })
+      toast.success('补卡成功！')
+    }
     // 重置表单
     setFormData({
       date: getLocalDateStr(),
@@ -1293,6 +1311,7 @@ function AddPracticeModal({
       notes: '',
       breakthrough: undefined,
     })
+    setDraftRecord(null)
     onClose()
   }
 
@@ -1976,6 +1995,8 @@ function CompletionSheet({
   duration,
   onSave,
   addRecord,
+  updateRecord,
+  deleteRecord,
   onOpenVoiceFakeDoor,
   onOpenPhotoFakeDoor,
 }: {
@@ -1984,6 +2005,8 @@ function CompletionSheet({
   duration: string
   onSave: (notes: string, photos: string[], breakthrough?: string) => void
   addRecord: (record: Omit<PracticeRecord, 'id' | 'created_at' | 'updated_at' | 'photos'>) => PracticeRecord
+  updateRecord: (id: string, data: Partial<PracticeRecord>) => void
+  deleteRecord: (id: string) => void
   onOpenVoiceFakeDoor?: () => void
   onOpenPhotoFakeDoor?: () => void
 }) {
@@ -2002,7 +2025,7 @@ function CompletionSheet({
   // 当弹窗打开时，预创建草稿记录并同步数据
   useEffect(() => {
     if (isOpen) {
-      // 创建草稿记录用于照片上传
+      // 创建草稿记录用于照片上传（使用实际类型，不是'草稿'）
       const draft = addRecord({
         date: getLocalDateStr(),
         type: practiceType,
@@ -2017,14 +2040,31 @@ function CompletionSheet({
         notes: '',
         breakthrough: undefined,
       })
-    } else {
-      // 弹窗关闭时清理草稿
+    } else if (draftRecord) {
+      // 弹窗关闭时删除草稿（用户取消）
+      deleteRecord(draftRecord.id)
       setDraftRecord(null)
     }
   }, [isOpen, practiceType, duration])
 
+  // 清理函数：组件卸载时也删除草稿
+  useEffect(() => {
+    return () => {
+      if (draftRecord) {
+        deleteRecord(draftRecord.id)
+      }
+    }
+  }, [])
+
   const handleSave = (data: PracticeFormData) => {
-    onSave(data.notes, [], data.breakthrough)
+    if (draftRecord) {
+      // 更新草稿为正式记录（保留照片）
+      updateRecord(draftRecord.id, {
+        notes: data.notes || "今日练习完成",
+        breakthrough: data.breakthrough,
+      })
+      toast.success('记录已保存！')
+    }
     // 重置表单
     setFormData({
       date: getLocalDateStr(),
@@ -2033,6 +2073,7 @@ function CompletionSheet({
       notes: '',
       breakthrough: undefined,
     })
+    setDraftRecord(null)
   }
 
   return (
@@ -2453,7 +2494,7 @@ function JournalTab({
     const currentYear = today.getFullYear()
     return practiceHistory.filter(r => {
       const d = new Date(r.date)
-      return d.getMonth() === currentMonth && d.getFullYear() === currentYear && r.duration > 0
+      return d.getMonth() === currentMonth && d.getFullYear() === currentYear && r.duration > 0 && r.type !== '草稿'
     }).length
   }, [practiceHistory, today])
   const totalHours = useMemo(() => {
@@ -2521,7 +2562,7 @@ function JournalTab({
       
       {/* Timeline - continuous, split click zones */}
       <div className="px-2 pb-10">
-        {practiceHistory.map((practice, index) => (
+        {practiceHistory.filter(r => r.type !== '草稿').map((practice, index) => (
           <motion.div
             key={practice.id}
             ref={(el) => { recordRefs.current[practice.id] = el }}
@@ -2629,6 +2670,8 @@ function JournalTab({
         onClose={() => onSetShowAddModal(false)}
         onSave={onAddRecord}
         addRecord={onAddRecord}
+        updateRecord={onEditRecord}
+        deleteRecord={onDeleteRecord}
         practiceOptions={practiceOptions}
         practiceHistory={practiceHistory}
         onChildModalOpen={(open) => setChildModalOpen(open)}
@@ -3040,6 +3083,21 @@ function BreathingRipples({ isPaused }: { isPaused: boolean }) {
       <div className="absolute inset-0 rounded-full border-2 border-primary/20 animate-ripple-delayed" />
     </>
   )
+}
+
+function clean_html(text: string): string {
+  if (!text) return ''
+  // 移除 HTML 标签
+  text = text.replace(/<[^>]*>/g, '')
+  // 解码 HTML 实体
+  text = text.replace(/&nbsp;/g, ' ')
+  text = text.replace(/&lt;/g, '<')
+  text = text.replace(/&gt;/g, '>')
+  text = text.replace(/&amp;/g, '&')
+  text = text.replace(/&quot;/g, '"')
+  // 移除多余空行（保留单个换行）
+  text = text.replace(/\n{3,}/g, '\n\n')
+  return text.trim()
 }
 
 export default function AshtangaTracker() {
@@ -3596,19 +3654,20 @@ export default function AshtangaTracker() {
     }
 
     // ===== 5. 应用数据状态 =====
+    const nonDraftRecords = practiceHistory.filter(r => r.type !== '草稿')
     const appState = {
       records: {
-        totalCount: practiceHistory.length,
-        withPhotos: practiceHistory.filter(r => r.photos?.length > 0).length,
-        withNotes: practiceHistory.filter(r => r.notes?.trim()).length,
-        withBreakthrough: practiceHistory.filter(r => r.breakthrough).length,
-        totalDuration: practiceHistory.reduce((sum, r) => sum + (r.duration || 0), 0),
-        averageDuration: practiceHistory.length > 0
-          ? Math.round(practiceHistory.reduce((sum, r) => sum + (r.duration || 0), 0) / practiceHistory.length)
+        totalCount: nonDraftRecords.length,
+        withPhotos: nonDraftRecords.filter(r => r.photos?.length > 0).length,
+        withNotes: nonDraftRecords.filter(r => r.notes?.trim()).length,
+        withBreakthrough: nonDraftRecords.filter(r => r.breakthrough).length,
+        totalDuration: nonDraftRecords.reduce((sum, r) => sum + (r.duration || 0), 0),
+        averageDuration: nonDraftRecords.length > 0
+          ? Math.round(nonDraftRecords.reduce((sum, r) => sum + (r.duration || 0), 0) / nonDraftRecords.length)
           : 0,
-        dateRange: practiceHistory.length > 0 ? {
-          earliest: practiceHistory[practiceHistory.length - 1]?.date,
-          latest: practiceHistory[0]?.date
+        dateRange: nonDraftRecords.length > 0 ? {
+          earliest: nonDraftRecords[nonDraftRecords.length - 1]?.date,
+          latest: nonDraftRecords[0]?.date
         } : null
       },
       options: {
@@ -4295,6 +4354,8 @@ export default function AshtangaTracker() {
           duration={finalDuration}
           onSave={handleSavePractice}
           addRecord={addRecord}
+          updateRecord={updateRecord}
+          deleteRecord={deleteRecord}
           onOpenVoiceFakeDoor={() => setShowFakeDoor({ type: 'voice', isOpen: true })}
           onOpenPhotoFakeDoor={() => setShowFakeDoor({ type: 'photo', isOpen: true })}
         />
@@ -4780,6 +4841,8 @@ export default function AshtangaTracker() {
         duration={finalDuration}
         onSave={handleSavePractice}
         addRecord={addRecord}
+        updateRecord={updateRecord}
+        deleteRecord={deleteRecord}
         onOpenVoiceFakeDoor={() => setShowFakeDoor({ type: 'voice', isOpen: true })}
         onOpenPhotoFakeDoor={() => setShowFakeDoor({ type: 'photo', isOpen: true })}
       />
