@@ -3500,7 +3500,10 @@ export default function AshtangaTracker() {
       has_breakthrough: !!record.breakthrough,
       has_notes: !!record.notes && record.notes.length > 0
     })
-    toast.success('补卡成功！')
+    // 只有非草稿记录才显示 toast
+    if (record.type !== '草稿') {
+      toast.success('补卡成功！')
+    }
     // 延迟 500ms 同步，确保 localStorage 已完全更新
     if (user) {
       setTimeout(() => {
