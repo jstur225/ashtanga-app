@@ -442,14 +442,13 @@ export function PracticeForm({
         </div>
       </div>
 
-      {/* 照片展示 - 只有有照片或加载中时才显示 */}
-      {showPhotoUpload && recordId && (loading || photos.length > 0) && (
+      {/* 照片展示 - 只有有照片时才显示 */}
+      {showPhotoUpload && recordId && photos.length > 0 && (
         <div>
           <PhotoPreviewList
             photos={photos}
             onDelete={deletePhoto}
             layout="grid"
-            isLoading={loading}
           />
         </div>
       )}
