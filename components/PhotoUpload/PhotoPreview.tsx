@@ -109,6 +109,7 @@ export function PhotoPreview({
               className="object-cover"
               sizes={isSquare ? '33vw' : '100vw'}
               priority
+              unoptimized
               onLoad={() => setIsLoading(false)}
               onError={(e) => {
                 console.error('[PhotoPreview] 图片加载失败:', {
