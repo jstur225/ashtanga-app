@@ -95,7 +95,9 @@ export async function POST(request: NextRequest) {
     // 6. 生成预签名 URL（有效期 1 小时），使用实际的 MIME 类型
     const actualMimeType = mimeType || 'application/octet-stream'
     const presignedUrl = generatePresignedUrl(ossKey, actualMimeType)
-    const ossUrl = `https://${OSS_BUCKET}.${OSS_ENDPOINT}/${ossKey}`
+    // 清理 endpoint，移除可能的 https:// 前缀
+    const cleanEndpoint = OSS_ENDPOINT.replace(/^https?:\/\//, '')
+    const ossUrl = `https://${OSS_BUCKET}.${cleanEndpoint}/${ossKey}`
 
     // 7. 返回预签名 URL
     return NextResponse.json({
@@ -150,8 +152,11 @@ function generatePresignedUrl(ossKey: string, contentType: string): string {
   // URL 编码签名
   const encodedSignature = encodeURIComponent(signature)
 
+  // 清理 endpoint，移除可能的 https:// 前缀
+  const cleanEndpoint = OSS_ENDPOINT.replace(/^https?:\/\//, '')
+
   // 构建 URL（注意 OSSAccessKeyId 的拼写）
-  const url = `https://${OSS_BUCKET}.${OSS_ENDPOINT}/${ossKey}?OSSAccessKeyId=${encodeURIComponent(OSS_ACCESS_KEY_ID)}&Expires=${expires}&Signature=${encodedSignature}`
+  const url = `https://${OSS_BUCKET}.${cleanEndpoint}/${ossKey}?OSSAccessKeyId=${encodeURIComponent(OSS_ACCESS_KEY_ID)}&Expires=${expires}&Signature=${encodedSignature}`
 
   console.log('[OSS Signature] Generated URL:', url.slice(0, 100) + '...')
 

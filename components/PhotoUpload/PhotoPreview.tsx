@@ -80,8 +80,17 @@ export function PhotoPreview({
           onClick={handleImageClick}
         >
           {imgError ? (
-            <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400 text-xs">
-              图片加载失败
+            <div className="w-full h-full flex flex-col items-center justify-center bg-gray-100 text-gray-400 text-xs gap-2">
+              <span>图片加载失败</span>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setImgError(false)
+                }}
+                className="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300 transition-colors"
+              >
+                重试
+              </button>
             </div>
           ) : (
             <Image
@@ -91,8 +100,13 @@ export function PhotoPreview({
               className="object-cover"
               sizes={isSquare ? '33vw' : '100vw'}
               loading="lazy"
-              onError={() => {
-                console.error('[PhotoPreview] 图片加载失败:', photo.oss_url)
+              onError={(e) => {
+                console.error('[PhotoPreview] 图片加载失败:', {
+                  url: photo.oss_url,
+                  id: photo.id,
+                  recordId: photo.practice_record_id,
+                  error: e
+                })
                 setImgError(true)
               }}
             />
