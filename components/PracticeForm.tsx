@@ -438,24 +438,24 @@ export function PracticeForm({
                   onChange={handleFileSelect}
                   className="hidden"
                 />
-                {/* 照片上传按钮 - 奶油色系 */}
+                {/* 照片上传按钮 - 绿色渐变 */}
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   disabled={!recordId || uploading || photos.length >= 1}
-                  className="w-10 h-10 rounded-full flex items-center justify-center bg-[#FAF7F2] border border-[#E8E4DF] shadow-[0_2px_8px_rgba(0,0,0,0.08)] transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
+                  className="w-10 h-10 rounded-full green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] flex items-center justify-center transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
                   title="上传照片"
                 >
-                  <Camera className="w-5 h-5 text-[#8B8680]" />
+                  <Camera className="w-5 h-5 text-white" />
                 </button>
               </>
             )}
-            {/* 扩张/展开按钮 - 奶油色系 */}
+            {/* 扩张/展开按钮 - 绿色渐变 */}
             <button
-              onClick={() => {}}
-              className="w-10 h-10 rounded-full flex items-center justify-center bg-[#FAF7F2] border border-[#E8E4DF] shadow-[0_2px_8px_rgba(0,0,0,0.08)] transition-all hover:scale-105 active:scale-95"
+              onClick={() => toast.info('全屏编辑功能开发中，期待上线')}
+              className="w-10 h-10 rounded-full green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] flex items-center justify-center transition-all hover:scale-105 active:scale-95"
               title="展开更多"
             >
-              <Expand className="w-5 h-5 text-[#8B8680]" />
+              <Expand className="w-5 h-5 text-white" />
             </button>
           </div>
         </div>
