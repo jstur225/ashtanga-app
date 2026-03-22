@@ -189,6 +189,10 @@ export async function savePhotoMetadata(data: {
     })
 
     const result = await response.json()
+    // API 返回 { success: true, data: photo }
+    if (result.success && result.data) {
+      return { success: true, photo: result.data }
+    }
     return result
   } catch (error) {
     console.error('[OSS] 保存元数据失败:', error)

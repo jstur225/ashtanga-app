@@ -445,9 +445,6 @@ export function PracticeForm({
       {/* 照片展示 */}
       {showPhotoUpload && recordId && photos.length > 0 && (
         <div>
-          <label className="block text-xs font-serif text-muted-foreground mb-2">
-            练习照片
-          </label>
           <PhotoPreviewList
             photos={photos}
             onDelete={deletePhoto}
