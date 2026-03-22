@@ -208,7 +208,7 @@ export function PracticeForm({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   // 照片管理
-  const { photos, uploading, uploadPhoto, deletePhoto } = useRecordPhotos(recordId)
+  const { photos, loading, uploading, uploadPhoto, deletePhoto } = useRecordPhotos(recordId)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // 同步初始数据变化
