@@ -196,7 +196,6 @@ export function PracticeForm({
   onDatePickerOpen,
   onTypeSelectorOpen,
   onChildModalOpen,
-  initialPhotos,
 }: PracticeFormProps) {
   // 表单状态（优先使用受控值）
   const [internalDate, setInternalDate] = useState(initialData?.date || getLocalDateStr())
