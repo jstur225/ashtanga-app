@@ -456,7 +456,7 @@ export function PracticeForm({
             photos={photos}
             onDelete={deletePhoto}
             layout="grid"
-            isLoading={loading && hasPhotosProp}
+            isLoading={hasPhotosProp && photos.length === 0}
           />
         </div>
       )}
