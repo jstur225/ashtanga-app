@@ -789,29 +789,35 @@ function ShareCardModal({
 
                   {/* 照片展示 - 宽度90%居中，支持最多9张九宫格 */}
                   {record.photos && record.photos.length > 0 && (
-                    <div className="mt-4 mx-auto w-[90%]">
-                      <div className={
-                        record.photos.length === 1
-                          ? 'grid grid-cols-1 gap-2'
-                          : record.photos.length === 2
-                          ? 'grid grid-cols-2 gap-2'
-                          : 'grid grid-cols-3 gap-2'
-                      }>
-                        {record.photos.map((url, index) => (
-                          <div
-                            key={index}
-                            className="relative rounded-xl overflow-hidden border border-white/20 shadow-sm"
-                            style={{ aspectRatio: record.photos!.length === 1 ? '16/9' : '1/1' }}
-                          >
-                            <img
-                              src={url}
-                              alt={`练习照片 ${index + 1}`}
-                              className="w-full h-full object-cover"
-                              loading="lazy"
-                            />
-                          </div>
-                        ))}
-                      </div>
+                    <div className="mt-4 mx-auto w-[90%] flex justify-center">
+                      {record.photos.length === 1 ? (
+                        /* 1张：正方形固定宽度 */
+                        <div className="w-48 h-48 relative rounded-xl overflow-hidden border border-white/20 shadow-sm">
+                          <img
+                            src={record.photos[0]}
+                            alt="练习照片"
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                          />
+                        </div>
+                      ) : (
+                        /* 2张以上：九宫格（3列），每张正方形 */
+                        <div className="grid grid-cols-3 gap-2 w-full">
+                          {record.photos.map((url, index) => (
+                            <div
+                              key={index}
+                              className="relative rounded-xl overflow-hidden border border-white/20 shadow-sm aspect-square"
+                            >
+                              <img
+                                src={url}
+                                alt={`练习照片 ${index + 1}`}
+                                className="w-full h-full object-cover"
+                                loading="lazy"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
