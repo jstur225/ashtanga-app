@@ -4,7 +4,7 @@ import React, { useState, useRef, useCallback } from 'react'
 import { toast } from 'sonner'
 import { PhotoUploadButton } from './PhotoUploadButton'
 import { PhotoPreviewList } from './PhotoPreview'
-import { uploadPhoto, deletePhoto, canUploadToday, validatePhotoFile } from '@/lib/oss'
+import { uploadPhoto, deletePhoto, validatePhotoFile, ERROR_MESSAGES } from '@/lib/oss'
 import type { Photo } from '@/lib/supabase'
 
 interface PhotoUploaderProps {
@@ -28,28 +28,12 @@ export function PhotoUploader({
 }: PhotoUploaderProps) {
   const [photos, setPhotos] = useState<Photo[]>(initialPhotos)
   const [isUploading, setIsUploading] = useState(false)
-  const [canUpload, setCanUpload] = useState<boolean | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // 当 initialPhotos 变化时同步状态
   React.useEffect(() => {
     setPhotos(initialPhotos)
   }, [initialPhotos])
-
-  // 检查是否可以上传
-  const checkCanUpload = useCallback(async () => {
-    const result = await canUploadToday()
-    if (result.success) {
-      setCanUpload(result.canUpload)
-    }
-  }, [])
-
-  // 组件挂载时检查上传权限
-  React.useEffect(() => {
-    if (photos.length < maxPhotos) {
-      checkCanUpload()
-    }
-  }, [checkCanUpload, photos.length, maxPhotos])
 
   // 处理文件选择
   const handleFileSelect = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -77,24 +61,9 @@ export function PhotoUploader({
         setPhotos(newPhotos)
         onPhotosChange?.(newPhotos)
         toast.success('记录了你的练习瞬间 ✓', { id: 'photo-upload' })
-
-        // 更新上传权限状态
-        if (newPhotos.length >= maxPhotos) {
-          setCanUpload(false)
-        } else {
-          checkCanUpload()
-        }
       } else {
         // 处理错误
-        const errorMessages: Record<string, string> = {
-          'DAILY_LIMIT_EXCEEDED': '内测版本每天能上传1张照片',
-          'RECORD_PHOTO_LIMIT_EXCEEDED': '该记录已有照片',
-          'UPLOAD_FAILED_403': '上传失败，请重试',
-          'UPLOAD_FAILED_400': '上传失败，请检查文件',
-          'NETWORK_ERROR': '网络错误，请重试',
-          'UNKNOWN_ERROR': '上传失败，请重试',
-        }
-        toast.error(errorMessages[result.error || ''] || '上传失败，请重试', { id: 'photo-upload' })
+        toast.error(ERROR_MESSAGES[result.error || ''] || '上传失败，请重试', { id: 'photo-upload' })
       }
     } catch (error) {
       console.error('[PhotoUploader] 上传失败:', error)
@@ -112,7 +81,7 @@ export function PhotoUploader({
   const handleUploadClick = useCallback(() => {
     // 检查是否还可以上传
     if (photos.length >= maxPhotos) {
-      toast.info('内测版本每天能上传1张照片')
+      toast.info('当前版本只能上传1张照片')
       return
     }
 
@@ -129,13 +98,10 @@ export function PhotoUploader({
       setPhotos(newPhotos)
       onPhotosChange?.(newPhotos)
       toast.success('照片已删除 ✓')
-
-      // 删除后可以重新上传，更新权限状态
-      checkCanUpload()
     } else {
       toast.error('删除失败，请重试')
     }
-  }, [photos, onPhotosChange, checkCanUpload])
+  }, [photos, onPhotosChange])
 
   // 是否显示上传按钮
   const showUploadButton = photos.length < maxPhotos && !disabled
@@ -167,7 +133,6 @@ export function PhotoUploader({
           <PhotoUploadButton
             onClick={handleUploadClick}
             loading={isUploading}
-            disabled={canUpload === false}
           />
           <span className="text-sm text-gray-500 font-serif">
             记录你的练习瞬间

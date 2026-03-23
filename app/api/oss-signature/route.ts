@@ -55,28 +55,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 3. 检查今日上传限额（临时调整为 10 张）
-    const { data: canUpload, error: limitError } = await supabase.rpc(
-      'can_user_upload_today',
-      { user_uuid: user.id, max_photos: 10 }
-    )
-
-    if (limitError) {
-      console.error('[OSS Signature] 检查限额失败:', limitError)
-      return NextResponse.json(
-        { success: false, error: 'CHECK_LIMIT_FAILED' },
-        { status: 500 }
-      )
-    }
-
-    if (!canUpload) {
-      return NextResponse.json(
-        { success: false, error: 'DAILY_LIMIT_EXCEEDED' },
-        { status: 429 }
-      )
-    }
-
-    // 4. 解析请求体
+    // 3. 解析请求体
     const { fileName, mimeType } = await request.json()
     if (!fileName) {
       return NextResponse.json(
@@ -85,21 +64,21 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 5. 生成 OSS Key（路径：用户ID/日期/随机文件名）
+    // 4. 生成 OSS Key（路径：用户ID/日期/随机文件名）
     const now = new Date()
     const dateStr = now.toISOString().split('T')[0].replace(/-/g, '')
     const fileExt = fileName.split('.').pop() || 'jpg'
     const randomName = uuidv4()
     const ossKey = `${user.id}/${dateStr}/${randomName}.${fileExt}`
 
-    // 6. 生成预签名 URL（有效期 1 小时），使用实际的 MIME 类型
+    // 5. 生成预签名 URL（有效期 1 小时），使用实际的 MIME 类型
     const actualMimeType = mimeType || 'application/octet-stream'
     const presignedUrl = generatePresignedUrl(ossKey, actualMimeType)
     // 清理 endpoint，移除可能的 https:// 前缀
     const cleanEndpoint = OSS_ENDPOINT.replace(/^https?:\/\//, '')
     const ossUrl = `https://${OSS_BUCKET}.${cleanEndpoint}/${ossKey}`
 
-    // 7. 返回预签名 URL
+    // 6. 返回预签名 URL
     return NextResponse.json({
       success: true,
       data: {

@@ -119,12 +119,11 @@ function useRecordPhotos(recordId: string | undefined) {
         return true
       } else {
         const errorMessages: Record<string, string> = {
-          'DAILY_LIMIT_EXCEEDED': '内测版本每天能上传1张照片',
-          'RECORD_PHOTO_LIMIT_EXCEEDED': '该记录已有照片',
+          'RECORD_PHOTO_LIMIT_EXCEEDED': '当前版本只能上传1张照片',
           'UPLOAD_FAILED_403': '上传失败，请重试',
           'UPLOAD_FAILED_400': '上传失败，请检查文件',
           'NETWORK_ERROR': '网络错误，请重试',
-          'NOT_AUTHENTICATED': '请先登录',
+          'NOT_AUTHENTICATED': '上传照片需绑定邮箱',
         }
         toast.error(errorMessages[result.error || ''] || '上传失败，请重试')
         return false

@@ -55,28 +55,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 4. 检查今日上传限额（临时调整为 10 张）
-    const { data: canUpload, error: limitError } = await supabase.rpc(
-      'can_user_upload_today',
-      { user_uuid: user.id, max_photos: 10 }
-    )
-
-    if (limitError) {
-      console.error('[Photos API] 检查限额失败:', limitError)
-      return NextResponse.json(
-        { success: false, error: 'CHECK_LIMIT_FAILED' },
-        { status: 500 }
-      )
-    }
-
-    if (!canUpload) {
-      return NextResponse.json(
-        { success: false, error: 'DAILY_LIMIT_EXCEEDED' },
-        { status: 429 }
-      )
-    }
-
-    // 5. 检查记录是否已有照片
+    // 4. 检查记录是否已有照片
     console.log('[Photos API] 检查现有照片:', { practice_record_id, user_id: user.id })
 
     const { data: existingPhotos, error: countError } = await supabase
@@ -107,7 +86,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 6. 验证记录存在且属于当前用户
+    // 5. 验证记录存在且属于当前用户
     const { data: record, error: recordError } = await supabase
       .from('practice_records')
       .select('id')
@@ -122,7 +101,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 7. 插入照片元数据
+    // 6. 插入照片元数据
     const { data: photo, error: insertError } = await supabase
       .from('photos')
       .insert({

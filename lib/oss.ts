@@ -9,8 +9,17 @@ const OSS_BUCKET = process.env.NEXT_PUBLIC_OSS_BUCKET || ''
 const OSS_ENDPOINT = process.env.NEXT_PUBLIC_OSS_ENDPOINT || ''
 const OSS_REGION = process.env.NEXT_PUBLIC_OSS_REGION || ''
 
-// 文件大小限制（5MB）
-export const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB in bytes
+// 文件大小限制（10MB）
+export const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB in bytes
+
+export const ERROR_MESSAGES: Record<string, string> = {
+  'RECORD_PHOTO_LIMIT_EXCEEDED': '当前版本只能上传1张照片',
+  'NOT_AUTHENTICATED': '上传照片需绑定邮箱',
+  'UPLOAD_FAILED_403': '上传失败，请重试',
+  'UPLOAD_FAILED_400': '上传失败，请检查文件',
+  'NETWORK_ERROR': '网络错误，请重试',
+  'UNKNOWN_ERROR': '上传失败，请重试',
+}
 
 export interface PresignedUrlResponse {
   success: boolean
@@ -277,36 +286,9 @@ export function validatePhotoFile(file: File): { valid: boolean; error?: string 
   if (file.size > MAX_FILE_SIZE) {
     const sizeMB = (file.size / (1024 * 1024)).toFixed(2)
     console.error('[validatePhotoFile] ❌ 文件太大:', sizeMB, 'MB')
-    return { valid: false, error: `图片大小不能超过5MB（当前${sizeMB}MB）` }
+    return { valid: false, error: `上传照片不可大于10m（当前${sizeMB}MB）` }
   }
 
   console.log('[validatePhotoFile] ✅ 验证通过')
   return { valid: true }
-}
-
-/**
- * 检查用户今日是否还能上传
- */
-export async function canUploadToday(): Promise<{
-  success: boolean
-  canUpload: boolean
-  error?: string
-}> {
-  try {
-    const headers = await getAuthHeaders()
-    const response = await fetch('/api/photos/can-upload', {
-      method: 'GET',
-      headers,
-    })
-
-    const result = await response.json()
-    return result
-  } catch (error) {
-    console.error('[OSS] 检查上传权限失败:', error)
-    return {
-      success: false,
-      canUpload: false,
-      error: 'NETWORK_ERROR',
-    }
-  }
 }

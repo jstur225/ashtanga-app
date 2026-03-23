@@ -67,7 +67,7 @@ export function PhotoUploadButton({
         className
       )}
       aria-label={loading ? '上传中' : '上传照片'}
-      title={disabled ? '今日额度已用完' : '上传照片'}
+      title={disabled ? '当前版本只能上传1张照片' : '上传照片'}
     >
       {loading ? (
         <Loader2 className="w-5 h-5 text-white animate-spin" aria-hidden="true" />
