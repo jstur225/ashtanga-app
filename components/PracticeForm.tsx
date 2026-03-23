@@ -214,9 +214,13 @@ export function PracticeForm({
   const { photos, loading, uploading, uploadPhoto, deletePhoto } = useRecordPhotos(recordId)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // 用于标记是否已初始化
+  const hasInitialized = useRef(false)
+
   // 同步初始数据变化
   useEffect(() => {
-    if (initialData) {
+    if (initialData && !hasInitialized.current) {
+      hasInitialized.current = true
       if (initialData.date) setDate(initialData.date)
       if (initialData.type) setType(initialData.type)
       if (initialData.duration !== undefined) setDuration(initialData.duration)
