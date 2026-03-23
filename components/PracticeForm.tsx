@@ -226,11 +226,18 @@ export function PracticeForm({
 
   // 用于标记是否已初始化
   const hasInitialized = useRef(false)
+  const prevInitialDataRef = useRef(initialData)
 
   // 同步初始数据变化
   useEffect(() => {
-    if (initialData && !hasInitialized.current) {
+    // 检测是否是新的记录（通过比较 notes 或其他唯一标识）
+    const isNewRecord = prevInitialDataRef.current?.notes !== initialData?.notes
+      || prevInitialDataRef.current?.date !== initialData?.date
+      || prevInitialDataRef.current?.type !== initialData?.type
+
+    if (initialData && (!hasInitialized.current || isNewRecord)) {
       hasInitialized.current = true
+      prevInitialDataRef.current = initialData
       if (initialData.date) setDate(initialData.date)
       if (initialData.type) setType(initialData.type)
       if (initialData.duration !== undefined) setDuration(initialData.duration)
@@ -459,14 +466,28 @@ export function PracticeForm({
         </div>
       </div>
 
-      {/* 照片展示 - 直接显示，秒开 */}
-      {showPhotoUpload && recordId && photos.length > 0 && (
-        <div>
-          <PhotoPreviewList
-            photos={photos}
-            onDelete={deletePhoto}
-            layout="grid"
-          />
+      {/* 照片展示区域 - 始终显示占位符 */}
+      {showPhotoUpload && recordId && (
+        <div className="space-y-3">
+          {/* 照片列表 - 有照片时显示 */}
+          {photos.length > 0 && (
+            <PhotoPreviewList
+              photos={photos}
+              onDelete={deletePhoto}
+              layout="grid"
+            />
+          )}
+          {/* 照片占位符 - 无照片时显示上传提示 */}
+          {photos.length === 0 && (
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="w-full py-4 rounded-xl border-2 border-dashed border-muted-foreground/30 bg-secondary/30 hover:bg-secondary/50 hover:border-primary/30 transition-all flex flex-col items-center justify-center gap-2 text-muted-foreground/70"
+            >
+              <Camera className="w-6 h-6 opacity-50" />
+              <span className="text-xs font-serif">添加练习照片</span>
+            </button>
+          )}
         </div>
       )}
 
