@@ -1,5 +1,60 @@
 # 阿斯汤加打卡app - 项目记录
 
+## 2026-03-23: 觉察错位修复 + 时光轴照片展示 ✅
+
+**类型**: Bug 修复与功能增强
+
+### 1. 觉察记录数据错位修复
+**问题**: 点击不同记录的"觉察记录"，第一次点击为空，之后数据显示有延迟/错位
+
+**原因**: `PracticeForm` 中的 `hasInitialized` ref 在组件生命周期内只初始化一次，关闭弹窗后不会重置
+
+**修复**: 增加 `prevInitialDataRef` 跟踪上一次数据，通过比较 notes/date/type 检测新记录
+
+```tsx
+const isNewRecord = prevInitialDataRef.current?.notes !== initialData?.notes
+  || prevInitialDataRef.current?.date !== initialData?.date
+  || prevInitialDataRef.current?.type !== initialData?.type
+
+if (initialData && (!hasInitialized.current || isNewRecord)) {
+  // 强制更新数据
+}
+```
+
+### 2. 照片秒开显示优化
+**问题**: 切换记录时照片仍需等待 API 加载
+
+**修复**: 移除 `useRecordPhotos` 的 API 加载逻辑，改用 `useEffect` 监听 `initialPhotos` 直接更新
+- 父组件传入 `record.photos`（URL 数组）
+- 子组件通过 `convertUrlsToPhotos` 转换为 Photo 对象立即显示
+
+### 3. 上传按钮提示修复
+**问题**: 有照片后点击上传按钮无反应（disabled 状态）
+
+**修复**: 移除 disabled 限制，点击时主动提示"当前版本只能上传1张照片"
+
+### 4. 时光轴照片展示（新功能）
+**需求**: 在时光轴（ShareCardModal）觉察文字下方展示照片
+
+**实现**:
+- 位置：觉察文字下方，宽度 90% 居中
+- 布局：
+  - 1 张照片：正方形固定宽度（192px），居中
+  - 2 张以上：九宫格（3列），每张正方形
+- 预留：支持最多 9 张照片的展示逻辑
+
+**影响文件**:
+- `components/PracticeForm.tsx` - 数据错位修复、URL 转 Photo、秒开显示
+- `app/practice/page.tsx` - 时光轴照片展示
+
+### 提交记录
+- `3058320` - fix: 修复觉察记录数据错位和照片占位符问题
+- `281556a` - fix: 照片秒开显示 + 上传按钮提示
+- `2cdaf85` - feat: 修复照片显示并添加时光轴照片展示
+- `de2e2bf` - style: 时光轴照片展示布局调整（1张固定宽度，2张以上九宫格）
+
+---
+
 ## 2026-03-23: 照片上传限制修改 + 性能优化 ✅
 
 **类型**: 功能调整与性能优化
