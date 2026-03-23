@@ -24,6 +24,9 @@ export interface PracticeFormProps {
   initialData?: Partial<PracticeFormData>
   recordId?: string // 记录ID（用于照片关联）
 
+  // 照片数据（如果传入，直接使用不重新加载）
+  initialPhotos?: Photo[]
+
   // 受控模式：外部控制 date 和 type
   date?: string
   type?: string
@@ -51,8 +54,8 @@ export interface PracticeFormProps {
   // 子模态框状态控制
   onChildModalOpen?: (open: boolean) => void
 
-  // 照片预判（用于加载占位符）
-  hasPhotos?: boolean
+  // 照片数据（直接传入，秒开显示）
+  initialPhotos?: Photo[]
 }
 
 // ==================== 工具函数 ====================
@@ -72,15 +75,22 @@ function formatDateDisplay(dateStr: string): string {
 
 // ==================== 照片上传 Hook ====================
 
-function useRecordPhotos(recordId: string | undefined) {
-  const [photos, setPhotos] = useState<Photo[]>([])
+function useRecordPhotos(recordId: string | undefined, initialPhotos?: Photo[]) {
+  const [photos, setPhotos] = useState<Photo[]>(initialPhotos || [])
   const [loading, setLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const hasInitialized = useRef(!!initialPhotos)
 
   // 加载照片
   const loadPhotos = useCallback(async () => {
     if (!recordId) {
       setPhotos([])
+      return
+    }
+
+    // 如果有初始照片且未初始化过，跳过首次加载
+    if (initialPhotos && !hasInitialized.current) {
+      hasInitialized.current = true
       return
     }
 
@@ -99,7 +109,7 @@ function useRecordPhotos(recordId: string | undefined) {
     } finally {
       setLoading(false)
     }
-  }, [recordId])
+  }, [recordId, initialPhotos])
 
   // 上传照片
   const uploadPhoto = useCallback(async (file: File) => {
@@ -168,6 +178,7 @@ function useRecordPhotos(recordId: string | undefined) {
 export function PracticeForm({
   initialData,
   recordId,
+  initialPhotos,
   // 受控 props
   date: controlledDate,
   type: controlledType,
@@ -185,7 +196,7 @@ export function PracticeForm({
   onDatePickerOpen,
   onTypeSelectorOpen,
   onChildModalOpen,
-  hasPhotos: hasPhotosProp,
+  initialPhotos,
 }: PracticeFormProps) {
   // 表单状态（优先使用受控值）
   const [internalDate, setInternalDate] = useState(initialData?.date || getLocalDateStr())
@@ -211,7 +222,7 @@ export function PracticeForm({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   // 照片管理
-  const { photos, loading, uploading, uploadPhoto, deletePhoto } = useRecordPhotos(recordId)
+  const { photos, loading, uploading, uploadPhoto, deletePhoto } = useRecordPhotos(recordId, initialPhotos)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // 用于标记是否已初始化
@@ -449,14 +460,13 @@ export function PracticeForm({
         </div>
       </div>
 
-      {/* 照片展示 - 只有预判有照片或实际有照片时才显示 */}
-      {showPhotoUpload && recordId && (hasPhotosProp || photos.length > 0) && (
+      {/* 照片展示 - 直接显示，秒开 */}
+      {showPhotoUpload && recordId && photos.length > 0 && (
         <div>
           <PhotoPreviewList
             photos={photos}
             onDelete={deletePhoto}
             layout="grid"
-            isLoading={hasPhotosProp && photos.length === 0}
           />
         </div>
       )}

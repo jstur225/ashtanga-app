@@ -548,7 +548,7 @@ function EditRecordModal({
               onDatePickerOpen={() => handleDatePickerToggle(true)}
               onTypeSelectorOpen={() => handleTypeSelectorToggle(true)}
               onChildModalOpen={onChildModalOpen}
-              hasPhotos={record.photos && record.photos.length > 0}
+              initialPhotos={record.photos || []}
             />
           </motion.div>
 
