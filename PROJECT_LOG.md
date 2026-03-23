@@ -1,5 +1,60 @@
 # 阿斯汤加打卡app - 项目记录
 
+## 2026-03-23: 照片上传限制修改 + 性能优化 ✅
+
+**类型**: 功能调整与性能优化
+
+### 1. 照片上传限制变更
+- **之前**: 每天只能上传1张照片（日限额）
+- **之后**: 每条记录只能上传1张照片，取消每日限制
+- **影响文件**:
+  - `app/api/photos/route.ts` - 移除日限额检查
+  - `app/api/oss-signature/route.ts` - 移除日限额检查
+  - `app/api/photos/can-upload/route.ts` - **已删除**
+  - `components/PhotoUpload/PhotoUploader.tsx` - 移除 canUpload 状态
+  - `components/PhotoUpload/PhotoUploadButton.tsx` - 更新提示文案
+  - `lib/oss.ts` - 删除 canUploadToday，添加 ERROR_MESSAGES 常量
+  - `components/PracticeForm.tsx` - 更新错误映射
+
+### 2. 文件大小限制提升
+- 从 5MB 提升到 10MB
+
+### 3. 文案统一
+- 记录已有照片: "当前版本只能上传1张照片"
+- 未登录: "上传照片需绑定邮箱"
+- 文件过大: "上传照片不可大于10m"
+
+### 4. 照片秒开性能优化
+**问题**: 编辑记录时照片加载有 1-2 秒卡顿
+
+**方案演进**:
+1. 先尝试 `hasPhotos` 预判显示占位符 - 仍有延迟
+2. **最终方案**: 父组件直接传入 `initialPhotos`，子组件直接使用
+
+**关键改动**:
+```tsx
+// 父组件
+<PracticeForm initialPhotos={record.photos || []} />
+
+// PracticeForm - 直接使用，无需二次请求
+const [photos, setPhotos] = useState(initialPhotos || [])
+```
+
+**效果**: 打开编辑页面 → 照片**秒开显示**，零等待
+
+### 5. 觉察输入修复
+- 修复 `initialData` 变化导致输入被重置的问题
+- 添加 `hasInitialized` ref 确保只初始化一次
+
+### 提交记录
+- `4d2458e` - feat: 照片上传限制从每日1张改为每记录1张
+- `5f40755` - chore: 删除已废弃的 can-upload API 端点
+- `e375937` - fix: 觉察文字无法输入的问题
+- `a2ac158` - fix: 照片加载占位符立即显示
+- `a408a43` - perf: 照片秒开显示，消除加载卡顿
+
+---
+
 ## 2026-03-22: PracticeForm 提取与弹窗改造 ✅
 
 **类型**: 代码重构与架构优化
