@@ -9,6 +9,21 @@ import { PhotoPreviewList } from './PhotoUpload/PhotoPreview'
 import { toast } from 'sonner'
 import { Expand, Camera } from 'lucide-react'
 
+// 将 URL 数组转换为 Photo 数组的辅助函数
+function convertUrlsToPhotos(urls: string[]): Photo[] {
+  return urls.map((url, index) => ({
+    id: `photo-${index}`,
+    user_id: '',
+    practice_record_id: '',
+    oss_url: url,
+    oss_key: '',
+    file_size: 0,
+    mime_type: 'image/jpeg',
+    display_order: index,
+    uploaded_at: new Date().toISOString(),
+  }))
+}
+
 // ==================== 类型定义 ====================
 
 export interface PracticeFormData {
@@ -24,8 +39,8 @@ export interface PracticeFormProps {
   initialData?: Partial<PracticeFormData>
   recordId?: string // 记录ID（用于照片关联）
 
-  // 照片数据（如果传入，直接使用不重新加载）
-  initialPhotos?: Photo[]
+  // 照片数据（URL 数组，直接使用不重新加载）
+  initialPhotos?: string[]
 
   // 受控模式：外部控制 date 和 type
   date?: string
@@ -53,9 +68,6 @@ export interface PracticeFormProps {
 
   // 子模态框状态控制
   onChildModalOpen?: (open: boolean) => void
-
-  // 照片数据（直接传入，秒开显示）
-  initialPhotos?: Photo[]
 }
 
 // ==================== 工具函数 ====================
@@ -75,17 +87,21 @@ function formatDateDisplay(dateStr: string): string {
 
 // ==================== 照片上传 Hook ====================
 
-function useRecordPhotos(recordId: string | undefined, initialPhotos?: Photo[]) {
-  const [photos, setPhotos] = useState<Photo[]>(initialPhotos || [])
+function useRecordPhotos(recordId: string | undefined, initialPhotoUrls?: string[]) {
+  // 将 URL 转换为 Photo 对象
+  const [photos, setPhotos] = useState<Photo[]>(() => {
+    if (!initialPhotoUrls || initialPhotoUrls.length === 0) return []
+    return convertUrlsToPhotos(initialPhotoUrls)
+  })
   const [loading, setLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
 
-  // 当 initialPhotos 变化时（切换记录），立即更新照片
+  // 当 initialPhotoUrls 变化时（切换记录），立即更新照片
   useEffect(() => {
-    if (initialPhotos !== undefined) {
-      setPhotos(initialPhotos)
+    if (initialPhotoUrls !== undefined) {
+      setPhotos(convertUrlsToPhotos(initialPhotoUrls))
     }
-  }, [initialPhotos])
+  }, [initialPhotoUrls])
 
   // 上传照片
   const uploadPhoto = useCallback(async (file: File) => {
