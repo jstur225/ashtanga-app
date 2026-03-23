@@ -79,37 +79,13 @@ function useRecordPhotos(recordId: string | undefined, initialPhotos?: Photo[]) 
   const [photos, setPhotos] = useState<Photo[]>(initialPhotos || [])
   const [loading, setLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
-  const hasInitialized = useRef(!!initialPhotos)
 
-  // 加载照片
-  const loadPhotos = useCallback(async () => {
-    if (!recordId) {
-      setPhotos([])
-      return
+  // 当 initialPhotos 变化时（切换记录），立即更新照片
+  useEffect(() => {
+    if (initialPhotos !== undefined) {
+      setPhotos(initialPhotos)
     }
-
-    // 如果有初始照片且未初始化过，跳过首次加载
-    if (initialPhotos && !hasInitialized.current) {
-      hasInitialized.current = true
-      return
-    }
-
-    setLoading(true)
-    try {
-      const { getRecordPhotos } = await import('@/lib/oss')
-      const result = await getRecordPhotos(recordId)
-      if (result.success) {
-        setPhotos(result.photos || [])
-      } else {
-        setPhotos([])
-      }
-    } catch (error) {
-      console.error('[PracticeForm] 加载照片失败:', error)
-      setPhotos([])
-    } finally {
-      setLoading(false)
-    }
-  }, [recordId, initialPhotos])
+  }, [initialPhotos])
 
   // 上传照片
   const uploadPhoto = useCallback(async (file: File) => {
@@ -166,11 +142,7 @@ function useRecordPhotos(recordId: string | undefined, initialPhotos?: Photo[]) 
     }
   }, [])
 
-  useEffect(() => {
-    loadPhotos()
-  }, [loadPhotos])
-
-  return { photos, loading, uploading, uploadPhoto, deletePhoto, refresh: loadPhotos }
+  return { photos, loading, uploading, uploadPhoto, deletePhoto }
 }
 
 // ==================== 主组件 ====================
@@ -445,8 +417,14 @@ export function PracticeForm({
                 />
                 {/* 照片上传按钮 - 绿色渐变 */}
                 <button
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={!recordId || uploading || photos.length >= 1}
+                  onClick={() => {
+                    if (photos.length >= 1) {
+                      toast.info('当前版本只能上传1张照片')
+                      return
+                    }
+                    fileInputRef.current?.click()
+                  }}
+                  disabled={!recordId || uploading}
                   className="w-10 h-10 rounded-full green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] flex items-center justify-center transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
                   title="上传照片"
                 >
@@ -466,28 +444,14 @@ export function PracticeForm({
         </div>
       </div>
 
-      {/* 照片展示区域 - 始终显示占位符 */}
-      {showPhotoUpload && recordId && (
-        <div className="space-y-3">
-          {/* 照片列表 - 有照片时显示 */}
-          {photos.length > 0 && (
-            <PhotoPreviewList
-              photos={photos}
-              onDelete={deletePhoto}
-              layout="grid"
-            />
-          )}
-          {/* 照片占位符 - 无照片时显示上传提示 */}
-          {photos.length === 0 && (
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
-              className="w-full py-4 rounded-xl border-2 border-dashed border-muted-foreground/30 bg-secondary/30 hover:bg-secondary/50 hover:border-primary/30 transition-all flex flex-col items-center justify-center gap-2 text-muted-foreground/70"
-            >
-              <Camera className="w-6 h-6 opacity-50" />
-              <span className="text-xs font-serif">添加练习照片</span>
-            </button>
-          )}
+      {/* 照片展示 - 有照片时显示 */}
+      {showPhotoUpload && recordId && photos.length > 0 && (
+        <div>
+          <PhotoPreviewList
+            photos={photos}
+            onDelete={deletePhoto}
+            layout="grid"
+          />
         </div>
       )}
 
