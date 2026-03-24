@@ -8,6 +8,7 @@ import { usePWAInstall } from "@/hooks/usePWAInstall"
 import { useAuth } from "@/hooks/useAuth"
 import { useSync } from "@/hooks/useSync"
 import { BookOpen, BarChart3, Calendar, X, Camera, Pause, Play, Trash2, User, Settings, ChevronLeft, ChevronRight, ChevronUp, Cloud, Download, Upload, Plus, Minus, Share2, Sparkles, Check, Copy, ClipboardPaste, MessageCircle, Bug, AlertCircle, SkipBack, SkipForward, Volume } from "lucide-react"
+import { cn } from '@/lib/utils'
 import { FakeDoorModal } from "@/components/FakeDoorModal"
 import { VoiceButton } from "@/components/VoiceButton"
 import { PhotoUploadButton } from "@/components/PhotoUploadButton"
