@@ -2791,20 +2791,30 @@ function JournalTab({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/90 z-[60]"
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60]"
               onClick={() => setPreviewImage(null)}
             />
+            {/* 关闭按钮 */}
+            <motion.button
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed top-4 right-4 z-[80] w-10 h-10 rounded-full flex items-center justify-center bg-black/60 hover:bg-black/80 text-white transition-colors shadow-lg"
+              onClick={() => setPreviewImage(null)}
+            >
+              <X className="w-6 h-6" />
+            </motion.button>
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
-              className="fixed inset-0 z-[70] flex items-center justify-center p-4"
+              className="fixed inset-0 z-[70] flex items-start justify-center p-4 pt-20"
               onClick={() => setPreviewImage(null)}
             >
               <img
                 src={previewImage}
                 alt="预览"
-                className="max-w-full max-h-full object-contain rounded-lg"
+                className="w-[90%] max-w-[900px] max-h-[85vh] h-auto object-contain rounded-2xl"
                 onClick={(e) => e.stopPropagation()}
               />
             </motion.div>
