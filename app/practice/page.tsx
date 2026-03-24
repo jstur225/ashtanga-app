@@ -2710,7 +2710,7 @@ function JournalTab({
                           className={cn(
                             "rounded-lg overflow-hidden border border-border/50 cursor-pointer",
                             practice.photos.length === 1
-                              ? "aspect-[16/9] w-full" // 1张：16:9 大图
+                              ? "w-full" // 1张：宽度100%（容器已限制90%），高度自适应
                               : "aspect-square w-full" // 多张：正方形
                           )}
                           onClick={(e) => {
@@ -2721,7 +2721,10 @@ function JournalTab({
                           <img
                             src={url}
                             alt={`照片 ${idx + 1}`}
-                            className="w-full h-full object-cover"
+                            className={cn(
+                              "w-full",
+                              practice.photos.length === 1 ? "h-auto" : "h-full object-cover"
+                            )}
                             loading="lazy"
                           />
                         </div>
