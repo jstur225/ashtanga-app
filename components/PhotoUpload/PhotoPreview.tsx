@@ -50,6 +50,7 @@ export function PhotoPreview({
           'overflow-hidden',
           'shadow-[0_4px_30px_rgba(0,0,0,0.1)]',
           'border border-white/20',
+          'bg-transparent',
           className
         )}
         style={{ aspectRatio }}
