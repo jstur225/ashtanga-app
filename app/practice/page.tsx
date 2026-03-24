@@ -2689,6 +2689,28 @@ function JournalTab({
                   <p className="text-sm text-foreground font-serif leading-snug whitespace-pre-wrap break-words w-full">
                     {practice.notes}
                   </p>
+                  {/* ⭐ 照片展示 - 时光轴 */}
+                  {practice.photos && practice.photos.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {practice.photos.map((url, idx) => (
+                        <div
+                          key={idx}
+                          className="w-20 h-20 rounded-lg overflow-hidden border border-border/50"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.open(url, '_blank');
+                          }}
+                        >
+                          <img
+                            src={url}
+                            alt={`照片 ${idx + 1}`}
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </button>
               </div>
             </div>
