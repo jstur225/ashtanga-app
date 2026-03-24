@@ -216,7 +216,14 @@ export function PracticeForm({
 
   // ⭐ 照片变化时通知父组件（用于更新本地记录的 photos 字段）
   const prevPhotosRef = useRef<string[]>([])
+  const isInitialMount = useRef(true)
   useEffect(() => {
+    // 跳过初始化时的调用（避免打开编辑弹窗就触发保存）
+    if (isInitialMount.current) {
+      isInitialMount.current = false
+      prevPhotosRef.current = photos.map(p => p.oss_url)
+      return
+    }
     if (onPhotosChange && photos.length > 0) {
       const photoUrls = photos.map(p => p.oss_url)
       // 只有当照片真正变化时才通知父组件（避免无限循环）

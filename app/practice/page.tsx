@@ -2505,6 +2505,7 @@ function JournalTab({
   const [childModalOpen, setChildModalOpen] = useState(false)
   const [showBackToTop, setShowBackToTop] = useState(false)
   const [highlightedDate, setHighlightedDate] = useState<string | null>(null)
+  const [previewImage, setPreviewImage] = useState<string | null>(null) // ⭐ 图片预览状态
   const recordRefs = useRef<Record<string, HTMLDivElement | null>>({})
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
@@ -2704,7 +2705,7 @@ function JournalTab({
                           className="w-20 h-20 rounded-lg overflow-hidden border border-border/50"
                           onClick={(e) => {
                             e.stopPropagation();
-                            window.open(url, '_blank');
+                            setPreviewImage(url);
                           }}
                         >
                           <img
@@ -2779,6 +2780,35 @@ function JournalTab({
           >
             <ChevronUp className="w-6 h-6" />
           </motion.button>
+        )}
+      </AnimatePresence>
+
+      {/* ⭐ 图片预览 Modal */}
+      <AnimatePresence>
+        {previewImage && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/90 z-[60]"
+              onClick={() => setPreviewImage(null)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="fixed inset-0 z-[70] flex items-center justify-center p-4"
+              onClick={() => setPreviewImage(null)}
+            >
+              <img
+                src={previewImage}
+                alt="预览"
+                className="max-w-full max-h-full object-contain rounded-lg"
+                onClick={(e) => e.stopPropagation()}
+              />
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
     </div>
