@@ -448,11 +448,14 @@ function EditRecordModal({
   practiceHistory?: PracticeRecord[]
   onChildModalOpen?: (open: boolean) => void
 }) {
+  // ⭐ 强制刷新计数器（照片上传后触发重新计算）
+  const [refreshCounter, setRefreshCounter] = useState(0)
+
   // ⭐ 从最新的 practiceHistory 中获取记录数据（避免照片上传后数据过时）
   const latestRecord = useMemo(() => {
     if (!record) return null
     return practiceHistory.find(r => r.id === record.id) || record
-  }, [record, practiceHistory])
+  }, [record, practiceHistory, refreshCounter])
 
   // 子模态框状态
   const [showDatePicker, setShowDatePicker] = useState(false)
@@ -498,6 +501,8 @@ function EditRecordModal({
   const handlePhotosChange = (photos: string[]) => {
     if (latestRecord) {
       onSave(latestRecord.id, { photos })
+      // 强制刷新以显示新照片
+      setRefreshCounter(prev => prev + 1)
     }
   }
 
