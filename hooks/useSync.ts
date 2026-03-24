@@ -731,7 +731,7 @@ export function useSync(
       type: r.type,
       duration: r.duration,
       notes: r.notes || '',
-      photos: null, // ⚠️ 照片暂不同步
+      photos: r.photos && r.photos.length > 0 ? JSON.stringify(r.photos) : null, // ⭐ 同步照片
       breakthrough: r.breakthrough || null,
       start_time: r.start_time || null, // ⭐ 练习开始时间
       updated_at: r.updated_at || r.created_at || new Date().toISOString(), // ⭐ 添加更新时间
