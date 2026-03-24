@@ -247,8 +247,8 @@ export async function getRecordPhotos(recordId: string): Promise<{
 /**
  * 软删除照片
  * 支持两种方式：
- * 1. 通过 photoId 删除
- * 2. 通过 practice_record_id 和 oss_url 删除（用于编辑记录时的本地照片）
+ * 1. 通过 photoId 直接删除
+ * 2. 本地生成的 ID（photo-${index}）：通过 practice_record_id 和 oss_url 查找真实 ID 后删除
  */
 export async function deletePhoto(
   photoId: string,
@@ -260,23 +260,43 @@ export async function deletePhoto(
 }> {
   try {
     const headers = await getAuthHeaders()
+    let realPhotoId = photoId
 
-    // 如果是本地生成的 ID（photo-${index}），使用 practice_record_id + oss_url 删除
+    // 如果是本地生成的 ID，先查询数据库找到真实 ID
     if (photoId.startsWith('photo-') && practiceRecordId && ossUrl) {
-      const response = await fetch('/api/photos/delete-by-record', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          practice_record_id: practiceRecordId,
-          oss_url: ossUrl,
-        }),
-      })
-      const result = await response.json()
-      return result
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+      const userId = session?.user?.id
+      if (!token || !userId) {
+        return { success: false, error: 'NOT_AUTHENTICATED' }
+      }
+
+      // 通过 Supabase REST API 查询
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/photos?select=id&practice_record_id=eq.${practiceRecordId}&user_id=eq.${userId}&oss_url=eq.${encodeURIComponent(ossUrl)}&deleted_at=is.null`,
+        {
+          headers: {
+            'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+            'Authorization': `Bearer ${token}`,
+          },
+        }
+      )
+
+      if (!response.ok) {
+        console.error('[Delete Photo] 查询照片失败:', await response.text())
+        return { success: false, error: 'PHOTO_NOT_FOUND' }
+      }
+
+      const photos = await response.json()
+      if (!photos || photos.length === 0) {
+        return { success: false, error: 'PHOTO_NOT_FOUND' }
+      }
+
+      realPhotoId = photos[0].id
     }
 
-    // 否则通过 photoId 删除
-    const response = await fetch(`/api/photos/${photoId}`, {
+    // 使用真实 ID 软删除
+    const response = await fetch(`/api/photos/${realPhotoId}`, {
       method: 'PATCH',
       headers,
       body: JSON.stringify({ deleted_at: new Date().toISOString() }),
