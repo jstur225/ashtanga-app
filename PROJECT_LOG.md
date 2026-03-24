@@ -1,5 +1,68 @@
 # 阿斯汤加打卡app - 项目记录
 
+## 2026-03-24: 照片删除修复 + React 无限循环修复 ✅
+
+**类型**: Bug 修复
+
+### 1. 编辑记录删除照片失败修复
+**问题**: 点击删除照片时提示失败，API 返回 404
+
+**原因**: 编辑记录时照片的 ID 是本地生成的 `photo-${index}`，不是数据库真实 ID
+
+**修复**:
+- 修改 `deletePhoto` 函数，支持通过 `practice_record_id` + `oss_url` 查找真实 ID
+- 新增 `getRecordPhotos` 查询，通过 Supabase REST API 获取真实 photo ID
+- 再用真实 ID 调用原有删除接口
+
+```ts
+// 本地 ID 时先查询真实 ID
+if (photoId.startsWith('photo-') && practiceRecordId && ossUrl) {
+  const photos = await fetch(`${SUPABASE_URL}/rest/v1/photos?...`)
+  realPhotoId = photos[0].id
+}
+// 使用真实 ID 删除
+await fetch(`/api/photos/${realPhotoId}`, { method: 'PATCH', ... })
+```
+
+### 2. React Error #185 无限循环修复
+**问题**: 打开编辑记录或上传照片后出现 Application error
+
+**原因**: `PracticeForm` 中的 `useEffect` 在照片变化时调用 `onPhotosChange`，触发父组件更新，形成无限循环
+
+**修复**:
+- 添加 `isInitialMount` 标记，跳过初始化时的回调
+- 添加 `prevPhotosRef` 比较，只有真正变化时才通知父组件
+
+```ts
+const isInitialMount = useRef(true)
+useEffect(() => {
+  if (isInitialMount.current) {
+    isInitialMount.current = false
+    return
+  }
+  // 只有真正变化时才通知
+  if (hasChanged) onPhotosChange(photoUrls)
+}, [photos])
+```
+
+### 3. 时光轴图片预览样式优化
+**改进**: 统一编辑记录和时光轴的图片预览样式
+- 背景: `bg-black/60 backdrop-blur-sm`（半透明毛玻璃）
+- 添加关闭按钮（右上角黑色半透明圆圈）
+
+### 4. 时光轴照片展示优化
+**改进**: 根据照片数量调整布局
+- 1 张照片：宽度 90%，高度自适应原图比例
+- 2 张及以上：九宫格（3列），正方形小图
+
+**提交记录**:
+- `2f39e94` - fix: 添加缺失的 cn 导入
+- `b01f005` - fix: 修复照片上传导致的无限循环错误
+- `7217d0d` - fix: 修复编辑记录弹窗自动显示更新成功的问题
+- `9f31b8a` - fix: 删除照片时通过 Supabase API 查找真实 photo ID
+
+---
+
 ## 2026-03-23: 觉察错位修复 + 时光轴照片展示 ✅
 
 **类型**: Bug 修复与功能增强
