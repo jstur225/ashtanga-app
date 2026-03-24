@@ -5,26 +5,42 @@ const MIXPANEL_TOKEN = process.env.NEXT_PUBLIC_MIXPANEL_TOKEN || '110c459d4e609b
 // 启用数据收集 - Beta版本封闭测试
 const MIXPANEL_ENABLED = true;
 
+// ⭐ 包装 Mixpanel 调用，防止错误影响应用
+const safeMixpanelCall = (fn: () => void) => {
+  try {
+    fn();
+  } catch (error) {
+    // 静默忽略 Mixpanel 错误（如广告拦截器导致的失败）
+    console.log('[Analytics] Mixpanel call failed (likely blocked by extension):', error);
+  }
+};
+
 export const initAnalytics = () => {
   if (typeof window !== 'undefined' && MIXPANEL_ENABLED) {
-    mixpanel.init(MIXPANEL_TOKEN, {
-      debug: false, // 关闭调试日志
-      track_pageview: true, // 保留页面浏览统计
-      persistence: 'localStorage',
-      autocapture: false, // 关闭自动点击捕获，只收集手动埋点
-      record_sessions_percent: 0, // 关闭会话录制，保护用户隐私
+    safeMixpanelCall(() => {
+      mixpanel.init(MIXPANEL_TOKEN, {
+        debug: false, // 关闭调试日志
+        track_pageview: true, // 保留页面浏览统计
+        persistence: 'localStorage',
+        autocapture: false, // 关闭自动点击捕获，只收集手动埋点
+        record_sessions_percent: 0, // 关闭会话录制，保护用户隐私
+      });
     });
   }
 };
 
 export const identifyUser = (uuid: string) => {
   if (typeof window !== 'undefined' && MIXPANEL_ENABLED) {
-    mixpanel.identify(uuid);
+    safeMixpanelCall(() => {
+      mixpanel.identify(uuid);
+    });
   }
 };
 
 export const trackEvent = (eventName: string, props?: Record<string, any>) => {
   if (typeof window !== 'undefined' && MIXPANEL_ENABLED) {
-    mixpanel.track(eventName, props);
+    safeMixpanelCall(() => {
+      mixpanel.track(eventName, props);
+    });
   }
 };
