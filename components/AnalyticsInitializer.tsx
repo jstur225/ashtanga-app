@@ -21,38 +21,49 @@ export function AnalyticsInitializer() {
     trackEvent('app_open', { uuid })
 
     // 4. Collect user statistics
+    let stats = {
+      total_records: 0,
+      completed_practice: 0,
+      patched_practice: 0,
+      records_with_notes: 0,
+      records_with_breakthrough: 0,
+      notes_rate: 0
+    }
+
     try {
       const recordsData = localStorage.getItem('ashtanga_records')
       if (recordsData) {
         const records = JSON.parse(recordsData)
+        // ⭐ 确保 records 是数组
+        if (Array.isArray(records)) {
+          const totalRecords = records.length
+          const completedPractice = records.filter((r: any) =>
+            r.created_at && r.date && new Date(r.created_at).toDateString() === new Date(r.date).toDateString()
+          ).length
+          const patchedPractice = totalRecords - completedPractice
+          const recordsWithNotes = records.filter((r: any) =>
+            r.notes && r.notes.trim().length > 0
+          ).length
+          const recordsWithBreakthrough = records.filter((r: any) =>
+            r.breakthrough && r.breakthrough.trim().length > 0
+          ).length
 
-        // 统计数据
-        const totalRecords = records.length
-        const completedPractice = records.filter((r: any) =>
-          r.created_at && r.date && new Date(r.created_at).toDateString() === new Date(r.date).toDateString()
-        ).length
-        const patchedPractice = totalRecords - completedPractice
-
-        // 觉察记录统计（有 notes 或 breakthrough 的记录）
-        const recordsWithNotes = records.filter((r: any) =>
-          r.notes && r.notes.trim().length > 0
-        ).length
-        const recordsWithBreakthrough = records.filter((r: any) =>
-          r.breakthrough && r.breakthrough.trim().length > 0
-        ).length
-
-        trackEvent('user_stats', {
-          total_records: totalRecords,
-          completed_practice: completedPractice,
-          patched_practice: patchedPractice,
-          records_with_notes: recordsWithNotes,
-          records_with_breakthrough: recordsWithBreakthrough,
-          notes_rate: totalRecords > 0 ? Math.round((recordsWithNotes / totalRecords) * 100) : 0
-        })
+          stats = {
+            total_records: totalRecords,
+            completed_practice: completedPractice,
+            patched_practice: patchedPractice,
+            records_with_notes: recordsWithNotes,
+            records_with_breakthrough: recordsWithBreakthrough,
+            notes_rate: totalRecords > 0 ? Math.round((recordsWithNotes / totalRecords) * 100) : 0
+          }
+        }
       }
     } catch (error) {
       console.error('Failed to collect user stats:', error)
     }
+
+    // ⭐ 无论是否有记录，都发送 user_stats 事件
+    trackEvent('user_stats', stats)
   }, [])
 
   return null
