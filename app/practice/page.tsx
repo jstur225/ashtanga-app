@@ -2698,11 +2698,21 @@ function JournalTab({
                   </p>
                   {/* ⭐ 照片展示 - 时光轴 */}
                   {practice.photos && practice.photos.length > 0 && (
-                    <div className="mt-2 flex flex-wrap gap-2">
+                    <div className={cn(
+                      "mt-2",
+                      practice.photos.length === 1
+                        ? "w-[90%]" // 1张大图：觉察文案宽度的90%
+                        : "grid grid-cols-3 gap-2" // 2张以上：九宫格
+                    )}>
                       {practice.photos.map((url, idx) => (
                         <div
                           key={idx}
-                          className="w-20 h-20 rounded-lg overflow-hidden border border-border/50"
+                          className={cn(
+                            "rounded-lg overflow-hidden border border-border/50 cursor-pointer",
+                            practice.photos.length === 1
+                              ? "aspect-[16/9] w-full" // 1张：16:9 大图
+                              : "aspect-square w-full" // 多张：正方形
+                          )}
                           onClick={(e) => {
                             e.stopPropagation();
                             setPreviewImage(url);
