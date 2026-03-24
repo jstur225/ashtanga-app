@@ -121,6 +121,39 @@ export const usePracticeData = () => {
       }
     }
 
+    // ⭐ 数据迁移：确保记录中的 photos 字段是数组格式（处理从云端同步下来的 JSON 字符串）
+    try {
+      const storedRecords = localStorage.getItem('ashtanga_records');
+      if (storedRecords && storedRecords !== '[]') {
+        const parsedRecords: PracticeRecord[] = JSON.parse(storedRecords);
+        let needsMigration = false;
+        const migratedRecords = parsedRecords.map(r => {
+          // 如果 photos 是字符串，解析为数组
+          if (r.photos && typeof r.photos === 'string') {
+            try {
+              needsMigration = true;
+              return { ...r, photos: JSON.parse(r.photos) };
+            } catch (e) {
+              console.error('[数据迁移] 解析 photos 失败:', r.photos);
+              return { ...r, photos: [] };
+            }
+          }
+          // 如果 photos 未定义或为 null，设置为空数组
+          if (!r.photos) {
+            needsMigration = true;
+            return { ...r, photos: [] };
+          }
+          return r;
+        });
+        if (needsMigration) {
+          console.log('🔄 [数据迁移] 修复 records 中的 photos 字段格式');
+          setRecords(migratedRecords);
+        }
+      }
+    } catch (e) {
+      console.error('❌ [数据迁移] 处理 records 失败:', e);
+    }
+
     // 为首次用户添加教程记录
     const storedRecords = localStorage.getItem('ashtanga_records');
     if (!storedRecords || storedRecords === '[]') {
