@@ -215,10 +215,18 @@ export function PracticeForm({
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // ⭐ 照片变化时通知父组件（用于更新本地记录的 photos 字段）
+  const prevPhotosRef = useRef<string[]>([])
   useEffect(() => {
     if (onPhotosChange && photos.length > 0) {
       const photoUrls = photos.map(p => p.oss_url)
-      onPhotosChange(photoUrls)
+      // 只有当照片真正变化时才通知父组件（避免无限循环）
+      const prevUrls = prevPhotosRef.current
+      const hasChanged = photoUrls.length !== prevUrls.length ||
+        photoUrls.some((url, i) => url !== prevUrls[i])
+      if (hasChanged) {
+        prevPhotosRef.current = photoUrls
+        onPhotosChange(photoUrls)
+      }
     }
   }, [photos, onPhotosChange])
 
