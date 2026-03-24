@@ -124,6 +124,25 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // 7. 更新 practice_records 表的 photos 字段
+    console.log('[Photos API] 更新记录 photos 字段:', { practice_record_id, oss_url })
+
+    const { error: updateError } = await supabase
+      .from('practice_records')
+      .update({
+        photos: JSON.stringify([oss_url]),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', practice_record_id)
+      .eq('user_id', user.id)
+
+    if (updateError) {
+      console.error('[Photos API] 更新记录 photos 字段失败:', updateError)
+      // 不影响照片上传成功，只记录错误
+    } else {
+      console.log('[Photos API] 记录 photos 字段更新成功')
+    }
+
     return NextResponse.json({
       success: true,
       data: photo,

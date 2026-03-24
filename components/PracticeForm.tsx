@@ -65,6 +65,7 @@ export interface PracticeFormProps {
   onDelete?: () => void
   onDatePickerOpen?: () => void
   onTypeSelectorOpen?: () => void
+  onPhotosChange?: (photos: string[]) => void // ⭐ 照片变化回调（用于更新本地记录）
 
   // 子模态框状态控制
   onChildModalOpen?: (open: boolean) => void
@@ -183,6 +184,7 @@ export function PracticeForm({
   onDelete,
   onDatePickerOpen,
   onTypeSelectorOpen,
+  onPhotosChange,
   onChildModalOpen,
 }: PracticeFormProps) {
   // 表单状态（优先使用受控值）
@@ -211,6 +213,14 @@ export function PracticeForm({
   // 照片管理
   const { photos, loading, uploading, uploadPhoto, deletePhoto } = useRecordPhotos(recordId, initialPhotos)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // ⭐ 照片变化时通知父组件（用于更新本地记录的 photos 字段）
+  useEffect(() => {
+    if (onPhotosChange && photos.length > 0) {
+      const photoUrls = photos.map(p => p.oss_url)
+      onPhotosChange(photoUrls)
+    }
+  }, [photos, onPhotosChange])
 
   // 用于标记是否已初始化
   const hasInitialized = useRef(false)

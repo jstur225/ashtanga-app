@@ -48,7 +48,7 @@ export async function PATCH(
     // 3. 验证照片存在且属于当前用户
     const { data: existingPhoto, error: fetchError } = await supabase
       .from('photos')
-      .select('id, user_id')
+      .select('id, user_id, practice_record_id')
       .eq('id', id)
       .single()
 
@@ -89,6 +89,23 @@ export async function PATCH(
     }
 
     console.log('[Photos API] 照片已软删除:', { photoId: id })
+
+    // 5. 更新 practice_records 表的 photos 字段为空数组
+    const { error: updateError } = await supabase
+      .from('practice_records')
+      .update({
+        photos: JSON.stringify([]),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', existingPhoto.practice_record_id)
+      .eq('user_id', user.id)
+
+    if (updateError) {
+      console.error('[Photos API] 更新记录 photos 字段失败:', updateError)
+      // 不影响删除成功，只记录错误
+    } else {
+      console.log('[Photos API] 记录 photos 字段已清空:', { recordId: existingPhoto.practice_record_id })
+    }
 
     return NextResponse.json({
       success: true,
