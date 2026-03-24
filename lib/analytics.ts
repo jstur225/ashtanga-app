@@ -28,3 +28,10 @@ export const trackEvent = (eventName: string, props?: Record<string, any>) => {
     mixpanel.track(eventName, props);
   }
 };
+
+// ⭐ 设置用户属性（用于在 Mixpanel 中查看用户的总记录数等）
+export const setUserProfile = (props: Record<string, any>) => {
+  if (typeof window !== 'undefined' && MIXPANEL_ENABLED) {
+    mixpanel.people.set(props);
+  }
+};
