@@ -82,7 +82,7 @@ export function PhotoPreview({
         >
           {/* Loading 占位图 */}
           {isLoading && !imgError && (
-            <div className="absolute inset-0 flex items-center justify-center bg-secondary/50">
+            <div className="absolute inset-0 flex items-center justify-center bg-secondary/30">
               <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
             </div>
           )}
