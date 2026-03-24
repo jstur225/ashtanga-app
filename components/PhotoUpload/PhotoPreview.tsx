@@ -78,7 +78,7 @@ export function PhotoPreview({
 
         {/* 照片 */}
         <div
-          className="relative w-full h-full cursor-pointer"
+          className="relative w-full h-full cursor-pointer bg-transparent"
           onClick={handleImageClick}
         >
           {/* Loading 占位图 */}
@@ -107,7 +107,7 @@ export function PhotoPreview({
               src={photo.oss_url}
               alt="练习照片"
               fill
-              className="object-cover"
+              className="object-cover bg-transparent"
               sizes={isSquare ? '33vw' : '100vw'}
               priority
               unoptimized
