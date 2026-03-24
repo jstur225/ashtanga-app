@@ -548,44 +548,9 @@ function EditRecordModal({
               </button>
             </div>
 
-            {/* ⭐ DEBUG: 照片调试信息 */}
-            {(() => {
-              console.log('[DEBUG EditRecordModal] latestRecord:', {
-                id: latestRecord?.id,
-                photos: latestRecord?.photos,
-                photosLength: latestRecord?.photos?.length,
-                hasPhotos: !!(latestRecord?.photos && latestRecord.photos.length > 0)
-              })
-              return null
-            })()}
-
-            {latestRecord?.photos && latestRecord.photos.length > 0 ? (
-              <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-                <p className="text-sm text-green-700 font-medium">
-                  📸 DEBUG: 找到 {latestRecord.photos.length} 张照片
-                </p>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {latestRecord.photos.map((url, idx) => (
-                    <div
-                      key={idx}
-                      className="w-20 h-20 bg-gray-200 rounded-lg flex items-center justify-center text-xs text-gray-500 border-2 border-dashed border-green-400"
-                    >
-                      照片 {idx + 1}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <p className="text-sm text-yellow-700">
-                  ⚠️ DEBUG: 没有照片数据 (photos: {JSON.stringify(latestRecord?.photos)})
-                </p>
-              </div>
-            )}
-
             <PracticeForm
               initialData={formData}
-              recordId={latestRecord.id}
+              recordId={latestRecord?.id}
               date={formData.date}
               type={formData.type}
               onDateChange={(d) => setFormData(prev => ({ ...prev, date: d }))}
@@ -2735,36 +2700,26 @@ function JournalTab({
                   <p className="text-sm text-foreground font-serif leading-snug whitespace-pre-wrap break-words w-full">
                     {practice.notes}
                   </p>
-                  {/* ⭐ DEBUG: 时光轴照片调试 */}
-                  {(() => {
-                    console.log('[DEBUG Timeline] practice:', {
-                      id: practice?.id,
-                      photos: practice?.photos,
-                      photosLength: practice?.photos?.length,
-                      hasPhotos: !!(practice?.photos && practice.photos.length > 0)
-                    })
-                    return null
-                  })()}
-
                   {/* ⭐ 照片展示 - 时光轴 */}
-                  {practice.photos && practice.photos.length > 0 ? (
+                  {practice.photos && practice.photos.length > 0 && (
                     <div className="mt-2 flex flex-wrap gap-2">
                       {practice.photos.map((url, idx) => (
                         <div
                           key={idx}
-                          className="w-20 h-20 bg-green-100 rounded-lg flex items-center justify-center text-xs text-green-700 border-2 border-dashed border-green-400"
+                          className="w-20 h-20 rounded-lg overflow-hidden border border-border/50"
                           onClick={(e) => {
                             e.stopPropagation();
                             window.open(url, '_blank');
                           }}
                         >
-                          📷 {idx + 1}
+                          <img
+                            src={url}
+                            alt={`照片 ${idx + 1}`}
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                          />
                         </div>
                       ))}
-                    </div>
-                  ) : (
-                    <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-700">
-                      ⚠️ 无照片
                     </div>
                   )}
                 </button>
