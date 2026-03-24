@@ -246,13 +246,36 @@ export async function getRecordPhotos(recordId: string): Promise<{
 
 /**
  * 软删除照片
+ * 支持两种方式：
+ * 1. 通过 photoId 删除
+ * 2. 通过 practice_record_id 和 oss_url 删除（用于编辑记录时的本地照片）
  */
-export async function deletePhoto(photoId: string): Promise<{
+export async function deletePhoto(
+  photoId: string,
+  practiceRecordId?: string,
+  ossUrl?: string
+): Promise<{
   success: boolean
   error?: string
 }> {
   try {
     const headers = await getAuthHeaders()
+
+    // 如果是本地生成的 ID（photo-${index}），使用 practice_record_id + oss_url 删除
+    if (photoId.startsWith('photo-') && practiceRecordId && ossUrl) {
+      const response = await fetch('/api/photos/delete-by-record', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          practice_record_id: practiceRecordId,
+          oss_url: ossUrl,
+        }),
+      })
+      const result = await response.json()
+      return result
+    }
+
+    // 否则通过 photoId 删除
     const response = await fetch(`/api/photos/${photoId}`, {
       method: 'PATCH',
       headers,
