@@ -24,7 +24,7 @@ import { AuthModal } from "@/components/AuthModal"
 import { DataConflictModal } from "@/components/DataConflictModal"
 import { DebugLogModal } from "@/components/DebugLogModal"
 import { toast } from 'sonner'
-import { trackEvent } from '@/lib/analytics'
+import { trackEvent, setUserProfile } from '@/lib/analytics'
 import { captureWithFallback, formatErrorForUser } from '@/lib/screenshot'
 import { MOON_DAYS_2026 } from '@/lib/moon-phase-data'
 import { supabase } from '@/lib/supabase'
@@ -3587,6 +3587,36 @@ export default function AshtangaTracker() {
       has_breakthrough: !!record.breakthrough,
       has_notes: !!record.notes && record.notes.length > 0
     })
+
+    // ⭐ 更新 Mixpanel User Profile（实时同步总数）
+    setTimeout(() => {
+      const recordsData = localStorage.getItem('ashtanga_records')
+      if (recordsData) {
+        try {
+          const records = JSON.parse(recordsData)
+          if (Array.isArray(records)) {
+            const totalRecords = records.length
+            const recordsWithNotes = records.filter((r: any) =>
+              r.notes && r.notes.trim().length > 0
+            ).length
+            const recordsWithBreakthrough = records.filter((r: any) =>
+              r.breakthrough && r.breakthrough.trim().length > 0
+            ).length
+
+            setUserProfile({
+              total_records: totalRecords,
+              records_with_notes: recordsWithNotes,
+              records_with_breakthrough: recordsWithBreakthrough,
+              notes_rate: totalRecords > 0 ? Math.round((recordsWithNotes / totalRecords) * 100) : 0,
+              last_patch_at: new Date().toISOString()
+            })
+          }
+        } catch (e) {
+          console.error('[add_record] 更新 Mixpanel Profile 失败:', e)
+        }
+      }
+    }, 100)
+
     // 只有非草稿记录才显示 toast
     if (record.type !== '草稿') {
       toast.success('补卡成功！')
@@ -4197,6 +4227,33 @@ export default function AshtangaTracker() {
         duration: record.duration,
         is_patch: false
       })
+
+      // ⭐ 更新 Mixpanel User Profile（实时同步总数）
+      const recordsData = localStorage.getItem('ashtanga_records')
+      if (recordsData) {
+        try {
+          const records = JSON.parse(recordsData)
+          if (Array.isArray(records)) {
+            const totalRecords = records.length
+            const recordsWithNotes = records.filter((r: any) =>
+              r.notes && r.notes.trim().length > 0
+            ).length
+            const recordsWithBreakthrough = records.filter((r: any) =>
+              r.breakthrough && r.breakthrough.trim().length > 0
+            ).length
+
+            setUserProfile({
+              total_records: totalRecords,
+              records_with_notes: recordsWithNotes,
+              records_with_breakthrough: recordsWithBreakthrough,
+              notes_rate: totalRecords > 0 ? Math.round((recordsWithNotes / totalRecords) * 100) : 0,
+              last_practice_at: new Date().toISOString()
+            })
+          }
+        } catch (e) {
+          console.error('[finish_practice] 更新 Mixpanel Profile 失败:', e)
+        }
+      }
 
       // Reset UI and switch to journal tab
       console.log('Resetting UI and switching to journal tab')

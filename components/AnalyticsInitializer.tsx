@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import { v4 as uuidv4 } from 'uuid'
-import { initAnalytics, identifyUser, trackEvent } from '@/lib/analytics'
+import { initAnalytics, identifyUser, trackEvent, setUserProfile } from '@/lib/analytics'
 
 export function AnalyticsInitializer() {
   useEffect(() => {
@@ -64,6 +64,17 @@ export function AnalyticsInitializer() {
 
     // ⭐ 无论是否有记录，都发送 user_stats 事件
     trackEvent('user_stats', stats)
+
+    // ⭐ 设置用户 Profile 属性（在 Mixpanel 用户列表中可直接查看）
+    setUserProfile({
+      total_records: stats.total_records,
+      completed_practice: stats.completed_practice,
+      patched_practice: stats.patched_practice,
+      records_with_notes: stats.records_with_notes,
+      records_with_breakthrough: stats.records_with_breakthrough,
+      notes_rate: stats.notes_rate,
+      last_active: new Date().toISOString()
+    })
   }, [])
 
   return null
