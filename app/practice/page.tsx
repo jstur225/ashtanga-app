@@ -448,6 +448,12 @@ function EditRecordModal({
   practiceHistory?: PracticeRecord[]
   onChildModalOpen?: (open: boolean) => void
 }) {
+  // ⭐ 从最新的 practiceHistory 中获取记录数据（避免照片上传后数据过时）
+  const latestRecord = useMemo(() => {
+    if (!record) return null
+    return practiceHistory.find(r => r.id === record.id) || record
+  }, [record, practiceHistory])
+
   // 子模态框状态
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [showTypeSelector, setShowTypeSelector] = useState(false)
@@ -463,20 +469,20 @@ function EditRecordModal({
 
   // 当记录变化时，同步表单数据
   useEffect(() => {
-    if (record) {
+    if (latestRecord) {
       setFormData({
-        date: record.date,
-        type: record.type,
-        duration: Math.floor(record.duration / 60), // 转换为分钟
-        notes: record.notes || '',
-        breakthrough: record.breakthrough,
+        date: latestRecord.date,
+        type: latestRecord.type,
+        duration: Math.floor(latestRecord.duration / 60), // 转换为分钟
+        notes: latestRecord.notes || '',
+        breakthrough: latestRecord.breakthrough,
       })
     }
-  }, [record])
+  }, [latestRecord])
 
   const handleSave = (data: PracticeFormData) => {
-    if (record) {
-      onSave(record.id, {
+    if (latestRecord) {
+      onSave(latestRecord.id, {
         date: data.date,
         type: data.type,
         duration: data.duration * 60, // 转换为秒
@@ -490,14 +496,14 @@ function EditRecordModal({
 
   // ⭐ 处理照片变化（更新本地记录的 photos 字段）
   const handlePhotosChange = (photos: string[]) => {
-    if (record) {
-      onSave(record.id, { photos })
+    if (latestRecord) {
+      onSave(latestRecord.id, { photos })
     }
   }
 
   const handleDelete = () => {
-    if (record) {
-      onDelete(record.id)
+    if (latestRecord) {
+      onDelete(latestRecord.id)
       onClose()
     }
   }
@@ -514,7 +520,7 @@ function EditRecordModal({
 
   return (
     <AnimatePresence>
-      {isOpen && record && (
+      {isOpen && latestRecord && (
         <>
           <motion.div
             initial={{ opacity: 0 }}
@@ -528,7 +534,7 @@ function EditRecordModal({
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 bg-card rounded-t-[24px] z-50 p-6 pb-10 shadow-[0_-4px-20px_rgba(0,0,0,0.08)] max-h-[calc(100vh-2rem)] overflow-y-auto"
+            className="fixed bottom-0 left-0 right-0 bg-card rounded-t-[24px] z-50 p-6 pb-10 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] max-h-[calc(100vh-2rem)] overflow-y-auto"
           >
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-serif text-foreground">编辑记录</h2>
@@ -539,7 +545,7 @@ function EditRecordModal({
 
             <PracticeForm
               initialData={formData}
-              recordId={record.id}
+              recordId={latestRecord.id}
               date={formData.date}
               type={formData.type}
               onDateChange={(d) => setFormData(prev => ({ ...prev, date: d }))}
@@ -556,7 +562,7 @@ function EditRecordModal({
               onTypeSelectorOpen={() => handleTypeSelectorToggle(true)}
               onChildModalOpen={onChildModalOpen}
               onPhotosChange={handlePhotosChange}
-              initialPhotos={record.photos || []}
+              initialPhotos={latestRecord.photos || []}
             />
           </motion.div>
 
