@@ -802,22 +802,22 @@ function ShareCardModal({
                     </p>
                   )}
 
-                  {/* 照片展示 - 宽度90%居中，支持最多9张九宫格 */}
+                  {/* 照片展示 - 与文案区同宽，高度自适应 */}
                   {record.photos && record.photos.length > 0 && (
-                    <div className="mt-4 mx-auto w-[90%] flex justify-center">
+                    <div className="mt-4 mx-auto w-[90%]">
                       {record.photos.length === 1 ? (
-                        /* 1张：正方形固定宽度 */
-                        <div className="w-48 h-48 relative rounded-xl overflow-hidden border border-white/20 shadow-sm">
+                        /* 1张：与文案同宽，高度自适应 */
+                        <div className="relative rounded-xl overflow-hidden border border-white/20 shadow-sm">
                           <img
                             src={record.photos[0]}
                             alt="练习照片"
-                            className="w-full h-full object-cover"
+                            className="w-full h-auto object-cover"
                             loading="lazy"
                           />
                         </div>
                       ) : (
                         /* 2张以上：九宫格（3列），每张正方形 */
-                        <div className="grid grid-cols-3 gap-2 w-full">
+                        <div className="grid grid-cols-3 gap-2">
                           {record.photos.map((url, index) => (
                             <div
                               key={index}
