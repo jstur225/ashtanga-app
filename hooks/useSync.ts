@@ -741,7 +741,7 @@ export function useSync(
       user_id: userId,
       date: r.date,
       type: r.type,
-      duration: r.duration,
+      duration: Number(r.duration) || 0, // ⭐ 确保是数字
       notes: r.notes || '',
       photos: r.photos && r.photos.length > 0 ? r.photos : null,
       breakthrough: r.breakthrough || null,
@@ -884,12 +884,12 @@ export function useSync(
           user_id: userId,
           date: r.date,
           type: r.type,
-          duration: r.duration,
+          duration: Number(r.duration) || 0, // ⭐ 确保是数字
           notes: r.notes || '',
-          photos: r.photos && r.photos.length > 0 ? JSON.stringify(r.photos) : null, // ⚠️ 转换为 JSON 字符串
+          photos: r.photos && r.photos.length > 0 ? r.photos : null, // ⭐ 直接传数组，不 stringify
           breakthrough: r.breakthrough || null,
-          start_time: r.start_time || null, // ⭐ 练习开始时间
-          updated_at: r.updated_at || r.created_at || new Date().toISOString(), // ⭐ 添加更新时间
+          start_time: r.start_time || null,
+          updated_at: r.updated_at || r.created_at || new Date().toISOString(),
         }))
 
         console.error(`📤 [uploadLocalData] 准备上传${recordsToUpload.length}条记录`)

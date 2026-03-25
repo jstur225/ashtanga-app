@@ -270,7 +270,7 @@ export function AccountBindingSection({
               <div className="flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0" />
                 <p className="text-xs text-muted-foreground font-serif">
-                  上限提醒：已同步接近1000条，<span className="font-medium">{syncStats.localOnlyCount}</span> 条新记录仅保存在本地
+                  本地记录共 {syncStats?.totalLocalRecords} 条，云端最多存储 1000 条，<span className="font-medium">{syncStats.localOnlyCount}</span> 条仅保存在本地
                 </p>
               </div>
             </div>
