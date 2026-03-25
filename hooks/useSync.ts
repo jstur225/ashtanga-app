@@ -737,36 +737,64 @@ export function useSync(
     const failedIds: string[] = []
 
     const recordsToUpload = recordsToSync.map(r => ({
-      id: r.id, // ⭐ 使用原始 ID，不生成新的
+      id: r.id,
       user_id: userId,
       date: r.date,
       type: r.type,
       duration: r.duration,
       notes: r.notes || '',
-      photos: r.photos && r.photos.length > 0 ? JSON.stringify(r.photos) : null, // ⭐ 同步照片
+      photos: r.photos && r.photos.length > 0 ? r.photos : null,
       breakthrough: r.breakthrough || null,
-      start_time: r.start_time || null, // ⭐ 练习开始时间
-      updated_at: r.updated_at || r.created_at || new Date().toISOString(), // ⭐ 添加更新时间
+      start_time: r.start_time || null,
+      updated_at: r.updated_at || r.created_at || new Date().toISOString(),
     }))
 
-    const { error } = await supabase
-      .from(TABLES.PRACTICE_RECORDS)
-      .upsert(recordsToUpload, { onConflict: 'id' })
+    // ⭐ 显示排查日志到页面
+    addLog(`准备上传 ${recordsToUpload.length} 条记录`, 'success')
 
-    if (error) {
-      records.forEach(r => failedIds.push(r.id))
-      addLog('批量上传失败', 'error', undefined, error.message, {
-        requestInfo: `records: ${recordsToUpload.length}, table: ${TABLES.PRACTICE_RECORDS}`
-      })
-    } else {
-      addLog(`批量上传${recordsToSync.length}条记录成功`, 'success')
+    // ⭐ 检查数据格式
+    const firstRecord = recordsToUpload[0]
+    addLog(`首条记录ID: ${firstRecord?.id?.slice(0,8)}...`, 'success')
+    addLog(`首条日期: ${firstRecord?.date}`, 'success')
+    addLog(`照片字段类型: ${typeof firstRecord?.photos}`, 'success')
+
+    // ⭐ 分批上传：每批50条
+    const BATCH_SIZE = 50
+    let successCount = 0
+    let lastError: any = null
+
+    for (let i = 0; i < recordsToUpload.length; i += BATCH_SIZE) {
+      const batch = recordsToUpload.slice(i, i + BATCH_SIZE)
+      const batchNum = Math.floor(i/BATCH_SIZE) + 1
+      const totalBatches = Math.ceil(recordsToUpload.length/BATCH_SIZE)
+
+      addLog(`上传第 ${batchNum}/${totalBatches} 批 (${batch.length}条)`, 'success')
+
+      const { error } = await supabase
+        .from(TABLES.PRACTICE_RECORDS)
+        .upsert(batch, { onConflict: 'id' })
+
+      if (error) {
+        lastError = error
+        addLog(`第 ${batchNum} 批失败: ${error.message}`, 'error')
+        addLog(`错误代码: ${error.code}`, 'error')
+        addLog(`错误详情: ${JSON.stringify(error).slice(0, 200)}`, 'error')
+
+        // 记录失败的ID
+        batch.forEach(r => failedIds.push(r.id))
+      } else {
+        successCount += batch.length
+        addLog(`第 ${batchNum} 批成功`, 'success')
+      }
     }
 
     if (failedIds.length > 0) {
+      addLog(`失败 ${failedIds.length} 条，成功 ${successCount} 条`, 'error')
       setFailedSyncIds(failedIds)
       setLastSyncStatus('error')
       return { success: false, localOnlyCount }
     } else {
+      addLog(`全部上传成功: ${successCount} 条`, 'success')
       setFailedSyncIds([])
       setLastSyncStatus('success')
       return { success: true, localOnlyCount }
