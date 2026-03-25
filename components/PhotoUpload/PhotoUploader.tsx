@@ -86,22 +86,17 @@ export function PhotoUploader({
     toast.error(errorMessage, { id: `photo-upload-${id}` })
   }, [clearUploadTimer])
 
-  // 处理文件选择
-  const handleFileSelect = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files
-    if (!files || files.length === 0) return
-
-    const file = files[0]
-
+  // 单文件上传
+  const uploadSingleFile = useCallback(async (file: File) => {
     // 验证文件
     const validation = validatePhotoFile(file)
     if (!validation.valid) {
-      toast.error(validation.error)
+      toast.error(`${file.name}: ${validation.error}`)
       return
     }
 
     // 创建上传占位项
-    const uploadId = `upload-${Date.now()}`
+    const uploadId = `upload-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
     const newItem: UploadingItem = {
       id: uploadId,
       progress: 0,
@@ -154,10 +149,11 @@ export function PhotoUploader({
       if (metadataResult.success && metadataResult.photo) {
         // 立即完成：跳到100%，占位图消失，显示真实照片
         completeUpload(uploadId)
-        const newPhotos = [...photos, metadataResult.photo]
-        setPhotos(newPhotos)
-        onPhotosChange?.(newPhotos)
-        toast.success('记录了你的练习瞬间 ✓', { id: 'photo-upload' })
+        setPhotos(prev => {
+          const newPhotos = [...prev, metadataResult.photo!]
+          onPhotosChange?.(newPhotos)
+          return newPhotos
+        })
       } else {
         failUpload(uploadId, ERROR_MESSAGES[metadataResult.error || ''] || '保存失败，请重试')
       }
@@ -165,20 +161,42 @@ export function PhotoUploader({
       console.error('[PhotoUploader] 上传失败:', error)
       const errorMsg = error instanceof Error ? error.message : '上传失败，请重试'
       failUpload(uploadId, errorMsg)
-    } finally {
-      // 清空 input，允许重复选择同一文件
-      if (fileInputRef.current) {
-        fileInputRef.current.value = ''
-      }
     }
-  }, [recordId, photos, startProgressSimulation, completeUpload, failUpload, onPhotosChange])
+  }, [recordId, startProgressSimulation, completeUpload, failUpload, onPhotosChange])
+
+  // 处理文件选择 - 支持多选
+  const handleFileSelect = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files
+    if (!files || files.length === 0) return
+
+    // 计算剩余可上传数量
+    const remainingSlots = maxPhotos - photos.length - uploadingItems.length
+    if (remainingSlots <= 0) {
+      toast.info(`最多上传 ${maxPhotos} 张照片`)
+      return
+    }
+
+    // 只取剩余槽位的文件数
+    const filesToUpload = Array.from(files).slice(0, remainingSlots)
+    if (files.length > remainingSlots) {
+      toast.info(`已选择 ${files.length} 张，仅上传前 ${remainingSlots} 张`)
+    }
+
+    // 并发上传所有选中的文件
+    await Promise.all(filesToUpload.map(file => uploadSingleFile(file)))
+
+    // 清空 input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }, [maxPhotos, photos.length, uploadingItems.length, uploadSingleFile])
 
   // 处理上传按钮点击
   const handleUploadClick = useCallback(() => {
     // 检查是否还可以上传（已上传 + 上传中 < 上限）
     const totalCount = photos.length + uploadingItems.length
     if (totalCount >= maxPhotos) {
-      toast.info('当前版本只能上传1张照片')
+      toast.info(`最多上传 ${maxPhotos} 张照片`)
       return
     }
 
@@ -186,16 +204,37 @@ export function PhotoUploader({
     fileInputRef.current?.click()
   }, [photos.length, uploadingItems.length, maxPhotos])
 
-  // 处理删除照片
+  // 处理删除照片 - 乐观删除，即时反馈
   const handleDelete = useCallback(async (photoId: string) => {
-    const result = await deletePhoto(photoId)
+    // 先本地移除，立即反馈
+    const photoToDelete = photos.find(p => p.id === photoId)
+    const newPhotos = photos.filter(p => p.id !== photoId)
+    setPhotos(newPhotos)
+    onPhotosChange?.(newPhotos)
+    toast.success('照片已删除 ✓')
 
-    if (result.success) {
-      const newPhotos = photos.filter(p => p.id !== photoId)
-      setPhotos(newPhotos)
-      onPhotosChange?.(newPhotos)
-      toast.success('照片已删除 ✓')
-    } else {
+    // 后台发送删除请求
+    try {
+      const result = await deletePhoto(photoId)
+      if (!result.success) {
+        // 删除失败，回滚状态
+        console.error('[PhotoUploader] 删除失败:', result.error)
+        setPhotos(prev => {
+          // 如果照片还在，不要重复添加
+          if (prev.some(p => p.id === photoId)) return prev
+          return photoToDelete ? [...prev, photoToDelete].sort((a, b) =>
+            new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+          ) : prev
+        })
+        toast.error('删除失败，请重试')
+      }
+    } catch (error) {
+      console.error('[PhotoUploader] 删除异常:', error)
+      // 网络异常也回滚
+      setPhotos(prev => {
+        if (prev.some(p => p.id === photoId)) return prev
+        return photoToDelete ? [...prev, photoToDelete] : prev
+      })
       toast.error('删除失败，请重试')
     }
   }, [photos, onPhotosChange])
@@ -212,6 +251,7 @@ export function PhotoUploader({
         ref={fileInputRef}
         type="file"
         accept="image/*"
+        multiple
         onChange={handleFileSelect}
         className="hidden"
         aria-label="选择照片"
