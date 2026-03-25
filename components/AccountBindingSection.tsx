@@ -57,7 +57,7 @@ export function AccountBindingSection({
   const { user: authUser, signOut } = useAuth()
   // 优先使用 prop 传递的 user，如果没有则使用 useAuth 获取的
   const user = propUser || authUser
-  const { syncStatus, lastSyncTime, lastSyncStatus, uploadLocalData, autoSync, syncStats, resetSyncStatus } = useSync(
+  const { syncStatus, lastSyncTime, lastSyncStatus, uploadLocalData, autoSync, syncStats, syncLogs, resetSyncStatus } = useSync(
     user,
     { ...localData, profile },
     onSyncComplete
@@ -304,6 +304,28 @@ export function AccountBindingSection({
               <X className="w-3 h-3" />
               同步卡住？点击重置
             </button>
+          )}
+
+          {/* ⭐ 同步日志显示区域 */}
+          {syncLogs && syncLogs.length > 0 && (
+            <div className="mt-4 p-3 bg-secondary/50 rounded-lg max-h-[200px] overflow-y-auto">
+              <div className="text-xs font-serif text-muted-foreground mb-2">同步日志（最近10条）:</div>
+              <div className="space-y-1">
+                {syncLogs.slice(-10).map((log, index) => (
+                  <div
+                    key={index}
+                    className={`text-[10px] font-mono ${
+                      log.status === 'error' ? 'text-red-500' :
+                      log.status === 'warning' ? 'text-yellow-600' :
+                      'text-green-600'
+                    }`}
+                  >
+                    [{new Date(log.time).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}] {log.message}
+                    {log.details && <span className="text-muted-foreground"> - {String(log.details).slice(0, 100)}</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
 
           {/* 修改密码按钮 */}
