@@ -122,7 +122,7 @@ function useRecordPhotos(recordId: string | undefined, initialPhotoUrls?: string
         return true
       } else {
         const errorMessages: Record<string, string> = {
-          'RECORD_PHOTO_LIMIT_EXCEEDED': '当前版本只能上传1张照片',
+          'RECORD_PHOTO_LIMIT_EXCEEDED': '最多上传9张照片',
           'UPLOAD_FAILED_403': '上传失败，请重试',
           'UPLOAD_FAILED_400': '上传失败，请检查文件',
           'NETWORK_ERROR': '网络错误，请重试',
@@ -242,13 +242,26 @@ export function PracticeForm({
     }
   }, [initialData])
 
-  // 处理文件选择
+  // 处理文件选择 - 支持多选
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files
     if (!files || files.length === 0) return
 
-    const file = files[0]
-    await uploadPhoto(file)
+    // 计算剩余可上传数量
+    const remainingSlots = 9 - photos.length
+    if (remainingSlots <= 0) {
+      toast.info('最多上传9张照片')
+      return
+    }
+
+    // 只取剩余槽位的文件数
+    const filesToUpload = Array.from(files).slice(0, remainingSlots)
+    if (files.length > remainingSlots) {
+      toast.info(`已选择 ${files.length} 张，仅上传前 ${remainingSlots} 张`)
+    }
+
+    // 并发上传所有选中的文件
+    await Promise.all(filesToUpload.map(file => uploadPhoto(file)))
 
     // 清空 input
     if (fileInputRef.current) {
@@ -434,14 +447,15 @@ export function PracticeForm({
                   ref={fileInputRef}
                   type="file"
                   accept="image/*"
+                  multiple
                   onChange={handleFileSelect}
                   className="hidden"
                 />
                 {/* 照片上传按钮 - 绿色渐变 */}
                 <button
                   onClick={() => {
-                    if (photos.length >= 1) {
-                      toast.info('当前版本只能上传1张照片')
+                    if (photos.length >= 9) {
+                      toast.info('最多上传9张照片')
                       return
                     }
                     fileInputRef.current?.click()

@@ -13,7 +13,7 @@ const OSS_REGION = process.env.NEXT_PUBLIC_OSS_REGION || ''
 export const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB in bytes
 
 export const ERROR_MESSAGES: Record<string, string> = {
-  'RECORD_PHOTO_LIMIT_EXCEEDED': '当前版本只能上传1张照片',
+  'RECORD_PHOTO_LIMIT_EXCEEDED': '最多上传9张照片',
   'NOT_AUTHENTICATED': '上传照片需绑定邮箱',
   'UPLOAD_FAILED_403': '上传失败，请重试',
   'UPLOAD_FAILED_400': '上传失败，请检查文件',

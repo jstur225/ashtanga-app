@@ -78,8 +78,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (existingPhotos && existingPhotos.length >= 1) {
-      console.log('[Photos API] 记录已有照片，拒绝上传:', existingPhotos[0])
+    if (existingPhotos && existingPhotos.length >= 9) {
+      console.log('[Photos API] 记录已有9张照片，拒绝上传:', existingPhotos[0])
       return NextResponse.json(
         { success: false, error: 'RECORD_PHOTO_LIMIT_EXCEEDED' },
         { status: 429 }
