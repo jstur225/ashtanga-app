@@ -32,6 +32,7 @@ export interface PracticeFormData {
   duration: number // 分钟
   notes: string
   breakthrough?: string
+  photos?: string[] // ⭐ 照片URL数组（保存时一起提交）
 }
 
 export interface PracticeFormProps {
@@ -65,7 +66,6 @@ export interface PracticeFormProps {
   onDelete?: () => void
   onDatePickerOpen?: () => void
   onTypeSelectorOpen?: () => void
-  onPhotosChange?: (photos: string[]) => void // ⭐ 照片变化回调（用于更新本地记录）
 
   // 子模态框状态控制
   onChildModalOpen?: (open: boolean) => void
@@ -188,7 +188,6 @@ export function PracticeForm({
   onDelete,
   onDatePickerOpen,
   onTypeSelectorOpen,
-  onPhotosChange,
   onChildModalOpen,
 }: PracticeFormProps) {
   // 表单状态（优先使用受控值）
@@ -217,29 +216,6 @@ export function PracticeForm({
   // 照片管理
   const { photos, loading, uploading, uploadPhoto, deletePhoto } = useRecordPhotos(recordId, initialPhotos)
   const fileInputRef = useRef<HTMLInputElement>(null)
-
-  // ⭐ 照片变化时通知父组件（用于更新本地记录的 photos 字段）
-  const prevPhotosRef = useRef<string[]>([])
-  const isInitialMount = useRef(true)
-  useEffect(() => {
-    // 跳过初始化时的调用（避免打开编辑弹窗就触发保存）
-    if (isInitialMount.current) {
-      isInitialMount.current = false
-      prevPhotosRef.current = photos.map(p => p.oss_url)
-      return
-    }
-    if (onPhotosChange && photos.length > 0) {
-      const photoUrls = photos.map(p => p.oss_url)
-      // 只有当照片真正变化时才通知父组件（避免无限循环）
-      const prevUrls = prevPhotosRef.current
-      const hasChanged = photoUrls.length !== prevUrls.length ||
-        photoUrls.some((url, i) => url !== prevUrls[i])
-      if (hasChanged) {
-        prevPhotosRef.current = photoUrls
-        onPhotosChange(photoUrls)
-      }
-    }
-  }, [photos, onPhotosChange])
 
   // 用于标记是否已初始化
   const hasInitialized = useRef(false)
@@ -288,6 +264,7 @@ export function PracticeForm({
       duration,
       notes,
       breakthrough: breakthroughEnabled ? breakthroughText : undefined,
+      photos: photos.map(p => p.oss_url), // ⭐ 保存时包含照片
     })
   }
 

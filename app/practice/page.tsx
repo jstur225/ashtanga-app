@@ -489,16 +489,10 @@ function EditRecordModal({
         duration: data.duration * 60, // 转换为秒
         notes: data.notes,
         breakthrough: data.breakthrough,
+        photos: data.photos, // ⭐ 保存时包含照片
       })
       toast.success('更新成功')
       onClose()
-    }
-  }
-
-  // ⭐ 处理照片变化（更新本地记录的 photos 字段）
-  const handlePhotosChange = (photos: string[]) => {
-    if (latestRecord) {
-      onSave(latestRecord.id, { photos })
     }
   }
 
@@ -562,7 +556,6 @@ function EditRecordModal({
               onDatePickerOpen={() => handleDatePickerToggle(true)}
               onTypeSelectorOpen={() => handleTypeSelectorToggle(true)}
               onChildModalOpen={onChildModalOpen}
-              onPhotosChange={handlePhotosChange}
               initialPhotos={latestRecord.photos || []}
             />
           </motion.div>
@@ -1350,6 +1343,7 @@ function AddPracticeModal({
         duration: data.duration * 60, // 转换为秒
         notes: data.notes || "今日练习完成",
         breakthrough: data.breakthrough,
+        photos: data.photos, // ⭐ 保存时包含照片
       })
       toast.success('补卡成功！')
     }
@@ -1363,13 +1357,6 @@ function AddPracticeModal({
     })
     setDraftRecord(null)
     onClose()
-  }
-
-  // ⭐ 处理照片变化（更新本地记录的 photos 字段）
-  const handlePhotosChange = (photos: string[]) => {
-    if (draftRecord) {
-      updateRecord(draftRecord.id, { photos })
-    }
   }
 
   const handleDatePickerToggle = (open: boolean) => {
@@ -1424,7 +1411,6 @@ function AddPracticeModal({
               onDatePickerOpen={() => handleDatePickerToggle(true)}
               onTypeSelectorOpen={() => handleTypeSelectorToggle(true)}
               onChildModalOpen={onChildModalOpen}
-              onPhotosChange={handlePhotosChange}
             />
           </motion.div>
 
@@ -2116,10 +2102,11 @@ function CompletionSheet({
 
   const handleSave = (data: PracticeFormData) => {
     if (draftRecord) {
-      // 更新草稿为正式记录（保留照片）
+      // 更新草稿为正式记录（包含照片）
       updateRecord(draftRecord.id, {
         notes: data.notes || "今日练习完成",
         breakthrough: data.breakthrough,
+        photos: data.photos, // ⭐ 保存时包含照片
       })
       toast.success('记录已保存！')
     }
@@ -2132,13 +2119,6 @@ function CompletionSheet({
       breakthrough: undefined,
     })
     setDraftRecord(null)
-  }
-
-  // ⭐ 处理照片变化（更新本地记录的 photos 字段）
-  const handlePhotosChange = (photos: string[]) => {
-    if (draftRecord) {
-      updateRecord(draftRecord.id, { photos })
-    }
   }
 
   return (
@@ -2174,7 +2154,6 @@ function CompletionSheet({
               showPhotoUpload={true}
               practiceOptions={[]}
               onSave={handleSave}
-              onPhotosChange={handlePhotosChange}
             />
           </motion.div>
         </>
