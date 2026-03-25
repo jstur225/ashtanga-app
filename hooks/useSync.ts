@@ -413,6 +413,10 @@ export function useSync(
             options: remoteData.options || [],
             profile: mergedProfile
           })
+          // ⭐ 关键修复：直接保存到 localStorage（不依赖回调）
+          localStorage.setItem('ashtanga_records', JSON.stringify(mergedRecords))
+          localStorage.setItem('ashtanga_options', JSON.stringify(remoteData.options || []))
+          console.error('✅ [autoSync] records 和 options 已保存到 localStorage')
           setSyncStatus('success')
           setLastSyncStatus('success')
           setLastSyncTime(Date.now())
@@ -474,6 +478,10 @@ export function useSync(
           options: remoteData.options || [],
           profile: cloudProfile
         })
+        // ⭐ 关键修复：直接保存到 localStorage
+        localStorage.setItem('ashtanga_records', JSON.stringify(remoteRecordsToUse))
+        localStorage.setItem('ashtanga_options', JSON.stringify(remoteData.options || []))
+        console.error('✅ [autoSync] 云端数据已保存到 localStorage')
         setSyncStatus('success')
         setLastSyncStatus('success')
         setLastSyncTime(Date.now())
@@ -557,11 +565,15 @@ export function useSync(
     if (remoteOnly.length > 0) {
       // 云端有新数据，下载到本地
       addLog(`下载${remoteOnly.length}条云端记录`, 'success')
+      const mergedRecords = [...freshLocalData.records, ...remoteOnly]
       onSyncComplete({
-        records: [...freshLocalData.records, ...remoteOnly],
+        records: mergedRecords,
         options: remoteData.options || [],
         profile: mergedProfile // ⭐ 添加 profile
       })
+      // ⭐ 关键修复：直接保存到 localStorage
+      localStorage.setItem('ashtanga_records', JSON.stringify(mergedRecords))
+      localStorage.setItem('ashtanga_options', JSON.stringify(remoteData.options || []))
     }
 
     if (localOnly.length > 0) {
@@ -964,6 +976,9 @@ export function useSync(
             options: remoteData.options || [],
             profile: remoteProfile
           })
+          // ⭐ 关键修复：直接保存到 localStorage
+          localStorage.setItem('ashtanga_records', JSON.stringify(remoteData.records))
+          localStorage.setItem('ashtanga_options', JSON.stringify(remoteData.options || []))
           break
 
         case 'local':
