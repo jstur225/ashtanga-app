@@ -776,9 +776,23 @@ export function useSync(
 
       if (error) {
         lastError = error
-        addLog(`第 ${batchNum} 批失败: ${error.message}`, 'error')
-        addLog(`错误代码: ${error.code}`, 'error')
-        addLog(`错误详情: ${JSON.stringify(error).slice(0, 200)}`, 'error')
+        addLog(`第 ${batchNum} 批失败`, 'error')
+        addLog(`错误消息: ${error.message || '无消息'}`, 'error')
+        addLog(`错误代码: ${error.code || '无代码'}`, 'error')
+        addLog(`错误详情: ${JSON.stringify(error).slice(0, 300)}`, 'error')
+
+        // ⭐ 尝试解析 Supabase 错误详情
+        if (error.message && error.message.includes('400')) {
+          addLog('400 错误: 请求格式不正确', 'error')
+          // 打印第一条记录的数据格式
+          const sampleRecord = batch[0]
+          addLog(`样本记录ID: ${sampleRecord.id}`, 'error')
+          addLog(`样本日期: ${sampleRecord.date}`, 'error')
+          addLog(`样本类型: ${sampleRecord.type}`, 'error')
+          addLog(`样本时长: ${sampleRecord.duration} (类型: ${typeof sampleRecord.duration})`, 'error')
+          addLog(`照片类型: ${typeof sampleRecord.photos}`, 'error')
+          addLog(`更新时间: ${sampleRecord.updated_at}`, 'error')
+        }
 
         // 记录失败的ID
         batch.forEach(r => failedIds.push(r.id))

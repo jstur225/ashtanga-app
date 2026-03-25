@@ -320,7 +320,7 @@ export function AccountBindingSection({
                       'text-green-600'
                     }`}
                   >
-                    [{new Date(log.time).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}] {log.message}
+                    [{log.timestamp ? new Date(log.timestamp).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '--:--:--'}] {log.action}
                     {log.details && <span className="text-muted-foreground"> - {String(log.details).slice(0, 100)}</span>}
                   </div>
                 ))}
