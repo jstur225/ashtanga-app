@@ -2,10 +2,9 @@
 
 import React, { useState, useRef, useCallback } from 'react'
 import { toast } from 'sonner'
-import { cn } from '@/lib/utils'
 import { PhotoUploadButton } from './PhotoUploadButton'
-import { PhotoPreviewList } from './PhotoPreview'
-import { uploadPhoto, deletePhoto, validatePhotoFile, ERROR_MESSAGES } from '@/lib/oss'
+import { PhotoPreview } from './PhotoPreview'
+import { deletePhoto, validatePhotoFile, ERROR_MESSAGES } from '@/lib/oss'
 import type { Photo } from '@/lib/supabase'
 
 interface PhotoUploaderProps {
@@ -17,25 +16,75 @@ interface PhotoUploaderProps {
 }
 
 /**
+ * 上传中的项目（用于显示占位进度条）
+ * 支持多照片上传架构
+ */
+interface UploadingItem {
+  id: string
+  progress: number
+  fileName: string
+}
+
+/**
  * 照片上传容器组件
  * 包含上传逻辑、限额检查、预览显示
+ * 支持多照片并发上传（预留架构）
  */
 export function PhotoUploader({
   recordId,
   initialPhotos = [],
-  maxPhotos = 1,
+  maxPhotos = 9,
   disabled = false,
   onPhotosChange,
 }: PhotoUploaderProps) {
   const [photos, setPhotos] = useState<Photo[]>(initialPhotos)
-  const [isUploading, setIsUploading] = useState(false)
-  const [uploadStep, setUploadStep] = useState<'idle' | 'preparing' | 'uploading' | 'processing'>('idle')
+  const [uploadingItems, setUploadingItems] = useState<UploadingItem[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const uploadTimersRef = useRef<Map<string, NodeJS.Timeout>>(new Map())
 
-  // 当 initialPhotos 变化时同步状态
-  React.useEffect(() => {
-    setPhotos(initialPhotos)
-  }, [initialPhotos])
+  // 清理指定上传项的定时器
+  const clearUploadTimer = useCallback((id: string) => {
+    const timer = uploadTimersRef.current.get(id)
+    if (timer) {
+      clearInterval(timer)
+      uploadTimersRef.current.delete(id)
+    }
+  }, [])
+
+  // 模拟进度增长
+  const startProgressSimulation = useCallback((id: string) => {
+    const timer = setInterval(() => {
+      setUploadingItems(prev => prev.map(item => {
+        if (item.id !== id) return item
+        // 渐进增长：开始快，后面慢，到90%暂停等待真实完成
+        const increment = item.progress < 30 ? 15 :
+                         item.progress < 60 ? 8 :
+                         item.progress < 80 ? 3 :
+                         item.progress < 90 ? 1 : 0
+        return { ...item, progress: Math.min(item.progress + increment, 90) }
+      }))
+    }, 200)
+    uploadTimersRef.current.set(id, timer)
+  }, [])
+
+  // 完成上传，进度跳到100%
+  const completeUpload = useCallback((id: string) => {
+    clearUploadTimer(id)
+    setUploadingItems(prev => prev.map(item =>
+      item.id === id ? { ...item, progress: 100 } : item
+    ))
+    // 100ms 后移除占位图
+    setTimeout(() => {
+      setUploadingItems(prev => prev.filter(item => item.id !== id))
+    }, 100)
+  }, [clearUploadTimer])
+
+  // 上传失败，移除占位图并显示真实错误
+  const failUpload = useCallback((id: string, errorMessage: string) => {
+    clearUploadTimer(id)
+    setUploadingItems(prev => prev.filter(item => item.id !== id))
+    toast.error(errorMessage, { id: `photo-upload-${id}` })
+  }, [clearUploadTimer])
 
   // 处理文件选择
   const handleFileSelect = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -51,13 +100,20 @@ export function PhotoUploader({
       return
     }
 
-    // 开始上传
-    setIsUploading(true)
-    setUploadStep('preparing')
+    // 创建上传占位项
+    const uploadId = `upload-${Date.now()}`
+    const newItem: UploadingItem = {
+      id: uploadId,
+      progress: 0,
+      fileName: file.name,
+    }
+    setUploadingItems(prev => [...prev, newItem])
+
+    // 开始模拟进度
+    startProgressSimulation(uploadId)
 
     try {
       // 步骤 1: 准备上传（获取预签名 URL）
-      setUploadStep('preparing')
       const { getPresignedUrl } = await import('@/lib/oss')
       const fileExt = file.name.split('.').pop() || 'jpg'
       const timestamp = Date.now()
@@ -66,12 +122,11 @@ export function PhotoUploader({
 
       const presignedResult = await getPresignedUrl(fileName, file.type)
       if (!presignedResult.success) {
-        toast.error(ERROR_MESSAGES[presignedResult.error || ''] || '准备上传失败', { id: 'photo-upload' })
+        failUpload(uploadId, ERROR_MESSAGES[presignedResult.error || ''] || '准备上传失败，请重试')
         return
       }
 
       // 步骤 2: 上传到 OSS
-      setUploadStep('uploading')
       const { presignedUrl, ossKey, ossUrl } = presignedResult.data!
 
       const uploadResponse = await fetch(presignedUrl, {
@@ -87,7 +142,6 @@ export function PhotoUploader({
       }
 
       // 步骤 3: 保存元数据
-      setUploadStep('processing')
       const { savePhotoMetadata } = await import('@/lib/oss')
       const metadataResult = await savePhotoMetadata({
         practice_record_id: recordId,
@@ -98,37 +152,39 @@ export function PhotoUploader({
       })
 
       if (metadataResult.success && metadataResult.photo) {
+        // 立即完成：跳到100%，占位图消失，显示真实照片
+        completeUpload(uploadId)
         const newPhotos = [...photos, metadataResult.photo]
         setPhotos(newPhotos)
         onPhotosChange?.(newPhotos)
         toast.success('记录了你的练习瞬间 ✓', { id: 'photo-upload' })
       } else {
-        toast.error(ERROR_MESSAGES[metadataResult.error || ''] || '保存失败，请重试', { id: 'photo-upload' })
+        failUpload(uploadId, ERROR_MESSAGES[metadataResult.error || ''] || '保存失败，请重试')
       }
     } catch (error) {
       console.error('[PhotoUploader] 上传失败:', error)
-      toast.error('上传失败，请重试', { id: 'photo-upload' })
+      const errorMsg = error instanceof Error ? error.message : '上传失败，请重试'
+      failUpload(uploadId, errorMsg)
     } finally {
-      setIsUploading(false)
-      setUploadStep('idle')
       // 清空 input，允许重复选择同一文件
       if (fileInputRef.current) {
         fileInputRef.current.value = ''
       }
     }
-  }, [recordId, photos, maxPhotos, onPhotosChange])
+  }, [recordId, photos, startProgressSimulation, completeUpload, failUpload, onPhotosChange])
 
   // 处理上传按钮点击
   const handleUploadClick = useCallback(() => {
-    // 检查是否还可以上传
-    if (photos.length >= maxPhotos) {
+    // 检查是否还可以上传（已上传 + 上传中 < 上限）
+    const totalCount = photos.length + uploadingItems.length
+    if (totalCount >= maxPhotos) {
       toast.info('当前版本只能上传1张照片')
       return
     }
 
     // 打开文件选择器
     fileInputRef.current?.click()
-  }, [photos.length, maxPhotos])
+  }, [photos.length, uploadingItems.length, maxPhotos])
 
   // 处理删除照片
   const handleDelete = useCallback(async (photoId: string) => {
@@ -145,7 +201,9 @@ export function PhotoUploader({
   }, [photos, onPhotosChange])
 
   // 是否显示上传按钮
-  const showUploadButton = photos.length < maxPhotos && !disabled
+  const totalCount = photos.length + uploadingItems.length
+  const showUploadButton = totalCount < maxPhotos && !disabled
+  const isUploading = uploadingItems.length > 0
 
   return (
     <div className="space-y-3">
@@ -159,13 +217,23 @@ export function PhotoUploader({
         aria-label="选择照片"
       />
 
-      {/* 照片预览 - 编辑页面使用三等分网格 */}
-      {photos.length > 0 && (
-        <PhotoPreviewList
-          photos={photos}
-          onDelete={handleDelete}
-          layout="grid"
-        />
+      {/* 照片预览区：已上传照片 + 上传中占位图 */}
+      {(photos.length > 0 || uploadingItems.length > 0) && (
+        <div className="grid grid-cols-3 gap-2">
+          {/* 已上传的照片 */}
+          {photos.map((photo) => (
+            <PhotoPreviewItem
+              key={photo.id}
+              photo={photo}
+              onDelete={handleDelete}
+            />
+          ))}
+
+          {/* 上传中的占位图（带进度条） */}
+          {uploadingItems.map((item) => (
+            <UploadingPlaceholder key={item.id} progress={item.progress} />
+          ))}
+        </div>
       )}
 
       {/* 上传按钮 */}
@@ -175,42 +243,69 @@ export function PhotoUploader({
             onClick={handleUploadClick}
             loading={isUploading}
           />
-          <div className="flex flex-col">
-            {isUploading ? (
-              <>
-                <span className="text-sm font-serif text-primary">
-                  {uploadStep === 'preparing' && '准备上传...'}
-                  {uploadStep === 'uploading' && '上传中...'}
-                  {uploadStep === 'processing' && '处理中...'}
-                </span>
-                {/* 步骤进度条 */}
-                <div className="flex items-center gap-1 mt-1">
-                  <div className={cn(
-                    "w-2 h-2 rounded-full transition-colors",
-                    uploadStep === 'preparing' ? "bg-primary animate-pulse" : "bg-primary"
-                  )} />
-                  <div className="w-4 h-[2px] bg-border" />
-                  <div className={cn(
-                    "w-2 h-2 rounded-full transition-colors",
-                    uploadStep === 'uploading' ? "bg-primary animate-pulse" :
-                    uploadStep === 'processing' || uploadStep === 'idle' ? "bg-primary" : "bg-gray-300"
-                  )} />
-                  <div className="w-4 h-[2px] bg-border" />
-                  <div className={cn(
-                    "w-2 h-2 rounded-full transition-colors",
-                    uploadStep === 'processing' ? "bg-primary animate-pulse" :
-                    uploadStep === 'idle' ? "bg-primary" : "bg-gray-300"
-                  )} />
-                </div>
-              </>
-            ) : (
-              <span className="text-sm text-gray-500 font-serif">
-                记录你的练习瞬间
-              </span>
-            )}
-          </div>
+          <span className="text-sm text-gray-500 font-serif">
+            记录你的练习瞬间
+          </span>
         </div>
       )}
+    </div>
+  )
+}
+
+/**
+ * 单张照片预览项（三等分网格用）
+ */
+function PhotoPreviewItem({
+  photo,
+  onDelete,
+}: {
+  photo: Photo
+  onDelete?: (photoId: string) => void
+}) {
+  return (
+    <div className="relative aspect-square">
+      <PhotoPreview
+        photo={photo}
+        onDelete={onDelete}
+        aspectRatio="1/1"
+      />
+    </div>
+  )
+}
+
+/**
+ * 上传中占位图组件
+ * 中间显示进度条，无数字
+ */
+function UploadingPlaceholder({ progress }: { progress: number }) {
+  return (
+    <div className="relative aspect-square rounded-lg overflow-hidden bg-gray-100">
+      {/* 背景图片占位 */}
+      <div className="absolute inset-0 flex items-center justify-center">
+        <svg
+          className="w-12 h-12 text-gray-300"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={1.5}
+            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+          />
+        </svg>
+      </div>
+
+      {/* 进度条 */}
+      <div className="absolute inset-x-4 bottom-4">
+        <div className="h-1.5 bg-white/30 rounded-full overflow-hidden backdrop-blur-sm">
+          <div
+            className="h-full bg-white rounded-full transition-all duration-200 ease-out"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+      </div>
     </div>
   )
 }
