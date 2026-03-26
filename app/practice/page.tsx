@@ -731,7 +731,7 @@ function ShareCardModal({
               {/* Share Card Content (for screenshot) */}
               <div
                 id="share-card-content"
-                className="bg-background rounded-3xl shadow-2xl overflow-hidden"
+                className="bg-background rounded-3xl shadow-2xl overflow-hidden max-h-[70vh] overflow-y-auto"
               >
                 {/* Header: Hero Duration Design */}
                 <div className="px-5 pt-5 pb-4 border-b border-border">
@@ -801,7 +801,7 @@ function ShareCardModal({
                       {record.photos.map((url, index) => (
                         <div
                           key={index}
-                          className="relative rounded-xl overflow-hidden border border-white/20 shadow-sm"
+                          className="relative rounded-xl overflow-hidden"
                         >
                           <img
                             src={url}
