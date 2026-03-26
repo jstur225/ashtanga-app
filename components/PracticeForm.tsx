@@ -245,7 +245,13 @@ export function PracticeForm({
   // 处理文件选择 - 支持多选
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files
+    console.log('[照片上传] 选择文件:', files?.length || 0, '个')
     if (!files || files.length === 0) return
+
+    // 显示文件详情（调试用）
+    Array.from(files).forEach((file, i) => {
+      console.log(`[照片上传] 文件 ${i + 1}:`, file.name, file.type, `${(file.size / 1024 / 1024).toFixed(2)}MB`)
+    })
 
     // 计算剩余可上传数量
     const remainingSlots = 9 - photos.length
@@ -446,8 +452,10 @@ export function PracticeForm({
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept="image/*"
+                  accept="image/jpeg,image/png,image/heic,image/*"
                   multiple
+                  // iOS 兼容性优化
+                  {...{ webkitdirectory: undefined, directory: undefined }}
                   onChange={handleFileSelect}
                   className="hidden"
                 />
@@ -462,7 +470,7 @@ export function PracticeForm({
                   }}
                   disabled={!recordId || uploading}
                   className="w-10 h-10 rounded-full green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] flex items-center justify-center transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
-                  title="上传照片"
+                  title="上传照片（可多选）"
                 >
                   <Camera className="w-5 h-5 text-white" />
                 </button>

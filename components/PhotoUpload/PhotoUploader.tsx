@@ -167,7 +167,13 @@ export function PhotoUploader({
   // 处理文件选择 - 支持多选
   const handleFileSelect = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files
+    console.log('[PhotoUploader] 选择文件:', files?.length || 0, '个')
     if (!files || files.length === 0) return
+
+    // 显示文件详情（调试用）
+    Array.from(files).forEach((file, i) => {
+      console.log(`[PhotoUploader] 文件 ${i + 1}:`, file.name, file.type, `${(file.size / 1024 / 1024).toFixed(2)}MB`)
+    })
 
     // 计算剩余可上传数量
     const remainingSlots = maxPhotos - photos.length - uploadingItems.length
@@ -240,8 +246,10 @@ export function PhotoUploader({
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/*"
+        accept="image/jpeg,image/png,image/heic,image/*"
         multiple
+        // iOS 兼容性优化：允许照片多选
+        {...{ webkitdirectory: undefined, directory: undefined }}
         onChange={handleFileSelect}
         className="hidden"
         aria-label="选择照片"
