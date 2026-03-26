@@ -28,7 +28,9 @@ export function PhotoPreview({
   const [imgError, setImgError] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
 
-  const handleDelete = () => {
+  const handleDelete = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
     if (onDelete) {
       onDelete(photo.id)
     }
@@ -60,6 +62,7 @@ export function PhotoPreview({
           <button
             type="button"
             onClick={handleDelete}
+            onMouseDown={(e) => e.preventDefault()}
             className={cn(
               'absolute top-2 right-2 z-10',
               'w-7 h-7 rounded-full',

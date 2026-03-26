@@ -347,7 +347,7 @@ export function AccountBindingSection({
 
           {/* Modal - 居中显示 */}
           <div className="fixed inset-0 flex items-center justify-center z-[110] p-4 pointer-events-none">
-            <div className="bg-card rounded-[24px] shadow-[0_8px_32px_rgba(0,0,0,0.12)] w-full max-w-md pointer-events-auto">
+            <div className="bg-card rounded-[24px] shadow-[0_8px_32px_rgba(0,0,0,0.12)] w-full max-w-md pointer-events-auto max-h-[calc(100vh-2rem)] overflow-y-auto">
               <div className="p-6 pb-10">
                 <div className="flex items-center justify-between mb-2">
                   <h2 className="text-lg font-serif text-foreground">退出选项</h2>

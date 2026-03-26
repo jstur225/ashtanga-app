@@ -206,37 +206,27 @@ export function PhotoUploader({
 
   // 处理删除照片 - 乐观删除，即时反馈
   const handleDelete = useCallback(async (photoId: string) => {
-    // 先本地移除，立即反馈
+    // 立即本地移除，提供即时视觉反馈
     const photoToDelete = photos.find(p => p.id === photoId)
+    if (!photoToDelete) return
+
     const newPhotos = photos.filter(p => p.id !== photoId)
     setPhotos(newPhotos)
     onPhotosChange?.(newPhotos)
     toast.success('照片已删除 ✓')
 
-    // 后台发送删除请求
-    try {
-      const result = await deletePhoto(photoId)
-      if (!result.success) {
-        // 删除失败，回滚状态
-        console.error('[PhotoUploader] 删除失败:', result.error)
-        setPhotos(prev => {
-          // 如果照片还在，不要重复添加
-          if (prev.some(p => p.id === photoId)) return prev
-          return photoToDelete ? [...prev, photoToDelete].sort((a, b) =>
-            new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-          ) : prev
-        })
-        toast.error('删除失败，请重试')
-      }
-    } catch (error) {
-      console.error('[PhotoUploader] 删除异常:', error)
-      // 网络异常也回滚
+    // 后台异步发送删除请求（不阻塞 UI）
+    deletePhoto(photoId).catch(error => {
+      console.error('[PhotoUploader] 删除失败:', error)
+      // 删除失败，回滚状态
       setPhotos(prev => {
         if (prev.some(p => p.id === photoId)) return prev
-        return photoToDelete ? [...prev, photoToDelete] : prev
+        return photoToDelete ? [...prev, photoToDelete].sort((a, b) =>
+          new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        ) : prev
       })
       toast.error('删除失败，请重试')
-    }
+    })
   }, [photos, onPhotosChange])
 
   // 是否显示上传按钮
