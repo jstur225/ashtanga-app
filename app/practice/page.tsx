@@ -646,11 +646,16 @@ function ShareCardModal({
       return
     }
 
+    // 保存原始样式
+    const originalMaxHeight = element.style.maxHeight
+    const originalOverflow = element.style.overflow
+
     try {
       toast.loading('正在生成图片...', { id: 'export' })
 
-      // 1. 设置截图状态（展开全部内容）
-      setIsCapturing(true)
+      // 1. 临时移除滚动限制，展开完整内容
+      element.style.maxHeight = 'none'
+      element.style.overflow = 'visible'
 
       // 2. 等待DOM更新（确保高度扩展完成）
       await new Promise(resolve => setTimeout(resolve, 100))
@@ -672,9 +677,6 @@ function ShareCardModal({
         }
       })
 
-      // 4. 恢复预览状态（恢复高度限制）
-      setIsCapturing(false)
-
       // 记录分享卡片导出事件
       trackEvent('share_card_export', {
         export_method: result.method,
@@ -691,8 +693,6 @@ function ShareCardModal({
         toast.error(errorMessage)
       }
     } catch (error) {
-      // 5. 出错时也要恢复状态
-      setIsCapturing(false)
       // 记录失败
       trackEvent('share_card_export', {
         export_method: 'error',
@@ -700,6 +700,10 @@ function ShareCardModal({
       })
       toast.dismiss('export')
       toast.error('导出失败，请重试')
+    } finally {
+      // 恢复原始样式
+      element.style.maxHeight = originalMaxHeight
+      element.style.overflow = originalOverflow
     }
   }
 
