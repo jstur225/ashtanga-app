@@ -795,37 +795,22 @@ function ShareCardModal({
                     </p>
                   )}
 
-                  {/* 照片展示 - 与文案区同宽，高度自适应 */}
+                  {/* 照片展示 - 与文案区同宽，垂直排列，一行一张 */}
                   {record.photos && record.photos.length > 0 && (
-                    <div className="mt-4 mx-auto w-[90%]">
-                      {record.photos.length === 1 ? (
-                        /* 1张：与文案同宽，高度自适应 */
-                        <div className="relative rounded-xl overflow-hidden border border-white/20 shadow-sm">
+                    <div className="mt-4 mx-auto w-[90%] space-y-3">
+                      {record.photos.map((url, index) => (
+                        <div
+                          key={index}
+                          className="relative rounded-xl overflow-hidden border border-white/20 shadow-sm"
+                        >
                           <img
-                            src={record.photos[0]}
-                            alt="练习照片"
+                            src={url}
+                            alt={`练习照片 ${index + 1}`}
                             className="w-full h-auto object-cover"
                             loading="lazy"
                           />
                         </div>
-                      ) : (
-                        /* 2张以上：九宫格（3列），每张正方形 */
-                        <div className="grid grid-cols-3 gap-2">
-                          {record.photos.map((url, index) => (
-                            <div
-                              key={index}
-                              className="relative rounded-xl overflow-hidden border border-white/20 shadow-sm aspect-square"
-                            >
-                              <img
-                                src={url}
-                                alt={`练习照片 ${index + 1}`}
-                                className="w-full h-full object-cover"
-                                loading="lazy"
-                              />
-                            </div>
-                          ))}
-                        </div>
-                      )}
+                      ))}
                     </div>
                   )}
                 </div>
