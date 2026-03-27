@@ -524,20 +524,20 @@ export function PracticeForm({
         </div>
       </div>
 
-      {/* 照片展示 - 有照片时显示 */}
-      {showPhotoUpload && recordId && photos.length > 0 && (
-        <div>
-          <PhotoPreviewList
-            photos={photos}
-            onDelete={deletePhoto}
-            layout="grid"
-          />
-        </div>
-      )}
-
-      {/* 上传中占位符 - 灰色淡雅风格 */}
-      {testPlaceholders.length > 0 && (
+      {/* 照片展示 + 上传中占位符 */}
+      {(showPhotoUpload && recordId && photos.length > 0) || testPlaceholders.length > 0 ? (
         <div className="grid grid-cols-3 gap-2">
+          {/* 已上传的照片 */}
+          {photos.map((photo) => (
+            <div key={photo.id} className="relative aspect-square">
+              <PhotoPreview
+                photo={photo}
+                onDelete={deletePhoto}
+                aspectRatio="1/1"
+              />
+            </div>
+          ))}
+          {/* 上传中占位符 */}
           {testPlaceholders.map((item) => (
             <div
               key={item.id}
@@ -548,7 +548,9 @@ export function PracticeForm({
             </div>
           ))}
         </div>
-      )}
+      ) : null}
+
+      {/* 原来的 PhotoPreviewList 移除，改用上面的统一 grid */}
 
       {/* 保存按钮 */}
       <button
