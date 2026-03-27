@@ -207,23 +207,18 @@ export function PhotoUploader({
       })
     })
 
-    // 使用 flushSync 强制立即更新状态，确保占位图立即显示
+    // 使用 flushSync 强制立即更新状态
     flushSync(() => {
       setUploadingItems(prev => [...prev, ...newItems])
     })
 
-    // Step 2: 延迟开始上传，给浏览器足够时间渲染占位图
-    // 使用双重 requestAnimationFrame 确保渲染完成
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        // 额外延迟 200ms，确保用户看到占位图后再开始上传
-        setTimeout(() => {
-          uploadEntries.forEach(({ file, uploadId }) => {
-            uploadSingleFile(file, uploadId)
-          })
-        }, 200)
+    // Step 2: 使用 setTimeout 0 将上传逻辑推迟到下一个事件循环
+    // 确保浏览器有时间渲染占位图
+    setTimeout(() => {
+      uploadEntries.forEach(({ file, uploadId }) => {
+        uploadSingleFile(file, uploadId)
       })
-    })
+    }, 0)
 
     // 清空 input
     if (fileInputRef.current) {
