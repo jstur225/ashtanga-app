@@ -169,29 +169,29 @@ export function PhotoUploader({
     }
   }, [recordId, startProgressSimulation, completeUpload, failUpload, onPhotosChange])
 
-  // 处理文件选择 - 极简版本：先显示占位图，其他不管
+  // 处理文件选择 - 测试版本：完全同步
   const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files
     if (!files || files.length === 0) return
 
-    // 简单切片，不做复杂计算
     const filesToUpload = Array.from(files).slice(0, maxPhotos - photos.length).slice(0, 9)
 
-    // 立即显示占位图（用函数形式避免依赖旧状态）
+    // 完全同步：先显示所有占位图
     filesToUpload.forEach((file) => {
       const uploadId = `upload-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 
-      // 先显示占位图
+      // 显示占位图
       setUploadingItems(prev => [...prev, {
         id: uploadId,
         progress: 0,
         fileName: file.name,
       }])
+    })
 
-      // 延迟一下再开始上传
-      setTimeout(() => {
-        uploadSingleFile(file, uploadId)
-      }, 100)
+    // 再开始上传（不用setTimeout）
+    filesToUpload.forEach((file) => {
+      const uploadId = `upload-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+      uploadSingleFile(file, uploadId)
     })
 
     // 清空 input
