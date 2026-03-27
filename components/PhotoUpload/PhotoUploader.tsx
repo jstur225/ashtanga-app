@@ -87,15 +87,8 @@ export function PhotoUploader({
     toast.error(errorMessage, { id: `photo-upload-${id}` })
   }, [clearUploadTimer])
 
-  // 单文件上传（支持传入 uploadId）
+  // 单文件上传（支持传入 uploadId）- 完全延后执行
   const uploadSingleFile = useCallback(async (file: File, existingUploadId?: string) => {
-    // 验证文件
-    const validation = validatePhotoFile(file)
-    if (!validation.valid) {
-      toast.error(`${file.name}: ${validation.error}`)
-      return
-    }
-
     // 使用传入的 uploadId 或创建新的
     const uploadId = existingUploadId || `upload-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 
@@ -109,9 +102,25 @@ export function PhotoUploader({
       setUploadingItems(prev => [...prev, newItem])
     }
 
-    // 开始模拟进度
-    startProgressSimulation(uploadId)
+    // 把实际上传逻辑完全延后到宏任务，不阻塞当前渲染
+    setTimeout(() => {
+      // 开始模拟进度
+      startProgressSimulation(uploadId)
 
+      // 验证文件
+      const validation = validatePhotoFile(file)
+      if (!validation.valid) {
+        toast.error(`${file.name}: ${validation.error}`)
+        return
+      }
+
+      // 执行实际上传
+      doUpload(file, uploadId)
+    }, 0)
+  }, [startProgressSimulation])
+
+  // 实际的上传逻辑（从原 uploadSingleFile 提取）
+  const doUpload = useCallback(async (file: File, uploadId: string) => {
     try {
       // 步骤 1: 准备上传（获取预签名 URL）
       const { getPresignedUrl } = await import('@/lib/oss')
