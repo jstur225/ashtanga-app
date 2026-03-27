@@ -299,27 +299,14 @@ export function PhotoUploader({
             fileName: '测试',
           }])
         }}
-        className="px-3 py-1 bg-blue-500 text-white rounded text-sm mb-2"
+        className="px-4 py-2 bg-blue-500 text-white rounded-lg text-sm font-medium mb-3 block"
       >
-        测试占位符
+        测试占位符（点击立即显示）
       </button>
 
       {/* 上传按钮 */}
       {showUploadButton && (
         <div className="flex items-center gap-3">
-          {/* 测试按钮：直接添加占位符（放在相机图标左边） */}
-          <button
-            onClick={() => {
-              setUploadingItems(prev => [...prev, {
-                id: `test-${Date.now()}`,
-                progress: 50,
-                fileName: '测试',
-              }])
-            }}
-            className="px-3 py-1 bg-blue-500 text-white rounded text-sm"
-          >
-            测试占位符
-          </button>
           <PhotoUploadButton
             onClick={handleUploadClick}
             loading={isUploading}
