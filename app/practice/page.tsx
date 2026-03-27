@@ -805,7 +805,7 @@ function ShareCardModal({
                       {record.photos.map((url, index) => (
                         <div
                           key={index}
-                          className="relative rounded-xl overflow-hidden"
+                          className="relative rounded-lg overflow-hidden"
                         >
                           <img
                             src={url}
@@ -2671,13 +2671,13 @@ function JournalTab({
                       "mt-2",
                       practice.photos.length === 1
                         ? "w-[90%]" // 1张大图：觉察文案宽度的90%
-                        : "grid grid-cols-3 gap-2" // 2张以上：九宫格
+                        : "grid grid-cols-3 gap-1" // 2张以上：九宫格
                     )}>
                       {practice.photos.map((url, idx) => (
                         <div
                           key={idx}
                           className={cn(
-                            "rounded-lg overflow-hidden border border-border/50 cursor-pointer",
+                            "rounded-md overflow-hidden border border-border/50 cursor-pointer",
                             practice.photos.length === 1
                               ? "w-full" // 1张：宽度100%（容器已限制90%），高度自适应
                               : "aspect-square w-full" // 多张：正方形
@@ -2790,14 +2790,15 @@ function JournalTab({
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
-              className="fixed inset-0 z-[70] flex items-start justify-center p-4 pt-20"
+              className="fixed inset-0 z-[70] flex items-center justify-center p-4 overflow-y-auto"
               onClick={() => setPreviewImage(null)}
             >
               <img
                 src={previewImage}
                 alt="预览"
-                className="w-[90%] max-w-[900px] max-h-[85vh] h-auto object-contain rounded-2xl"
+                className="w-[90%] max-w-[900px] h-auto object-contain rounded-2xl my-auto"
                 onClick={(e) => e.stopPropagation()}
+                draggable={false}
               />
             </motion.div>
           </>
