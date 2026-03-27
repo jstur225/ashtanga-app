@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useRef, useCallback } from 'react'
+import { flushSync } from 'react-dom'
 import { toast } from 'sonner'
 import { PhotoUploadButton } from './PhotoUploadButton'
 import { PhotoPreview } from './PhotoPreview'
@@ -192,27 +193,36 @@ export function PhotoUploader({
       toast.info(`已选择 ${files.length} 张，仅上传前 ${remainingSlots} 张`)
     }
 
-    // Step 1: 立即创建所有占位项，确保 UI 即时响应
+    // Step 1: 立即创建所有占位项，使用 flushSync 强制同步更新确保 UI 即时响应
     const uploadEntries: { file: File; uploadId: string }[] = []
+    const newItems: UploadingItem[] = []
+
     filesToUpload.forEach(file => {
       const uploadId = `upload-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
       uploadEntries.push({ file, uploadId })
-
-      setUploadingItems(prev => [...prev, {
+      newItems.push({
         id: uploadId,
         progress: 0,
         fileName: file.name,
-      }])
+      })
     })
 
-    // Step 2: 使用 requestAnimationFrame 确保占位图渲染后再开始上传
+    // 使用 flushSync 强制立即更新状态，确保占位图立即显示
+    flushSync(() => {
+      setUploadingItems(prev => [...prev, ...newItems])
+    })
+
+    // Step 2: 延迟开始上传，给浏览器足够时间渲染占位图
+    // 使用双重 requestAnimationFrame 确保渲染完成
     requestAnimationFrame(() => {
-      // 给浏览器一帧时间渲染占位图
-      setTimeout(() => {
-        uploadEntries.forEach(({ file, uploadId }) => {
-          uploadSingleFile(file, uploadId)
-        })
-      }, 50) // 50ms 延迟确保状态更新已应用
+      requestAnimationFrame(() => {
+        // 额外延迟 200ms，确保用户看到占位图后再开始上传
+        setTimeout(() => {
+          uploadEntries.forEach(({ file, uploadId }) => {
+            uploadSingleFile(file, uploadId)
+          })
+        }, 200)
+      })
     })
 
     // 清空 input
