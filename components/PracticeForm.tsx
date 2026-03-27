@@ -274,6 +274,9 @@ export function PracticeForm({
     // 并发上传所有选中的文件
     await Promise.all(filesToUpload.map(file => uploadPhoto(file)))
 
+    // 上传完成后清除占位符
+    setTestPlaceholders([])
+
     // 清空 input
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
@@ -532,22 +535,16 @@ export function PracticeForm({
         </div>
       )}
 
-      {/* 测试占位符展示 - 读取中/上传中占位符 */}
-      {(testPlaceholders.length > 0 || isReadingFiles) && (
+      {/* 上传中占位符 - 只在有占位符时显示 */}
+      {testPlaceholders.length > 0 && (
         <div className="grid grid-cols-3 gap-2">
-          {isReadingFiles && (
-            <div className="aspect-square rounded-lg bg-green-50 border-2 border-dashed border-green-300 flex flex-col items-center justify-center">
-              <div className="w-8 h-8 border-2 border-green-300 border-t-green-500 rounded-full animate-spin mb-2" />
-              <span className="text-xs text-green-600">读取中...</span>
-            </div>
-          )}
           {testPlaceholders.map((item) => (
             <div
               key={item.id}
-              className="aspect-square rounded-lg bg-green-50 border-2 border-dashed border-green-300 flex flex-col items-center justify-center p-2"
+              className="aspect-square rounded-lg bg-[#f0fdf4] border-2 border-dashed border-[#86efac] flex flex-col items-center justify-center p-2"
             >
-              <div className="w-8 h-8 border-2 border-green-300 border-t-green-500 rounded-full animate-spin mb-2" />
-              <span className="text-green-600 text-xs text-center truncate w-full">{item.name}</span>
+              <div className="w-8 h-8 border-2 border-[#86efac] border-t-[#22c55e] rounded-full animate-spin mb-2" />
+              <span className="text-[#22c55e] text-xs text-center truncate w-full">{item.name}</span>
             </div>
           ))}
         </div>
