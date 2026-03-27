@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Sparkles, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { supabase, type PracticeRecord, type PracticeOption, type Photo } from '@/lib/supabase'
-import { PhotoPreviewList } from './PhotoUpload/PhotoPreview'
+import { PhotoPreviewList, PhotoPreview } from './PhotoUpload/PhotoPreview'
 import { toast } from 'sonner'
 import { Expand, Camera } from 'lucide-react'
 
