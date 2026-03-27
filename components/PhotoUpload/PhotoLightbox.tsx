@@ -42,21 +42,31 @@ export function PhotoLightbox({
 
     if (isOpen) {
       document.addEventListener('keydown', handleKeyDown)
+      // 保存原始 overflow 值
+      const originalOverflow = document.body.style.overflow
       document.body.style.overflow = 'hidden'
-    }
 
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown)
-      document.body.style.overflow = ''
+      // 保存原始值用于恢复
+      return () => {
+        document.removeEventListener('keydown', handleKeyDown)
+        document.body.style.overflow = originalOverflow
+      }
     }
   }, [isOpen, onClose])
+
+  // 阻止触摸穿透 - 确保 Lightbox 内部可以滚动
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    // 允许默认行为，让内部滚动容器正常工作
+    e.stopPropagation()
+  }, [])
 
   if (!isOpen) return null
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm overflow-hidden"
       onClick={handleBackdropClick}
+      onTouchMove={handleTouchMove}
     >
       {/* 关闭按钮 */}
       <button
@@ -82,7 +92,10 @@ export function PhotoLightbox({
           'relative w-[90%] max-w-[900px] mx-auto',
           'max-h-[85vh]',
           'overflow-y-auto overflow-x-hidden',
-          'flex items-start justify-center'
+          'flex items-start justify-center',
+          // 确保 iOS Safari 上也能滚动
+          'touch-pan-y',
+          '-webkit-overflow-scrolling-touch'
         )}
         onClick={(e) => e.stopPropagation()} // 防止点击照片时关闭
       >
@@ -94,11 +107,14 @@ export function PhotoLightbox({
           className={cn(
             'w-full h-auto max-w-full',
             'rounded-2xl',
-            'block'
+            'block',
+            // 防止图片拖动干扰滚动
+            'touch-none'
           )}
           style={{
             objectFit: 'contain',
           }}
+          draggable={false}
         />
       </div>
     </div>

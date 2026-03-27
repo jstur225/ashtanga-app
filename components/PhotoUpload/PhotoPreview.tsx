@@ -53,7 +53,7 @@ export function PhotoPreview({
         className={cn(
           'relative group',
           'w-full',
-          'rounded-[12px]',
+          'rounded-md',
           'overflow-hidden',
           'shadow-[0_4px_30px_rgba(0,0,0,0.1)]',
           'border border-white/20',
@@ -69,8 +69,8 @@ export function PhotoPreview({
             onClick={handleDelete}
             onMouseDown={(e) => e.preventDefault()}
             className={cn(
-              'absolute top-2 right-2 z-10',
-              'w-7 h-7 rounded-full',
+              'absolute top-1 right-1 z-10',
+              'w-5 h-5 rounded-full',
               'flex items-center justify-center',
               'bg-black/60 hover:bg-black/80',
               'text-white',
@@ -193,7 +193,7 @@ export function PhotoPreviewList({
     const isSingle = photos.length === 1
     return (
       <div className={cn(
-        'grid gap-2',
+        'grid gap-1',
         isSingle ? 'grid-cols-1' : 'grid-cols-3',
         className
       )}>

@@ -550,7 +550,7 @@ export function PracticeForm({
               {testPlaceholders.map((item) => (
                 <div
                   key={item.id}
-                  className="aspect-square rounded-lg bg-gray-50 border-2 border-dashed border-gray-200 flex flex-col items-center justify-center p-2"
+                  className="aspect-square rounded-lg border-2 border-dashed border-gray-200 flex flex-col items-center justify-center p-2"
                 >
                   <div className="w-8 h-8 border-2 border-gray-200 border-t-gray-400 rounded-full animate-spin mb-2" />
                   <span className="text-gray-400 text-xs text-center truncate w-full">{item.name}</span>
@@ -559,10 +559,10 @@ export function PracticeForm({
             </div>
           ) : (
             /* 3张以上：横向滑动布局 */
-            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+            <div className="flex gap-2 overflow-x-auto pb-2 snap-x snap-mandatory scroll-smooth -mx-4 px-4 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
               {/* 已上传的照片 */}
               {photos.map((photo) => (
-                <div key={photo.id} className="relative w-24 h-24 flex-shrink-0">
+                <div key={photo.id} className="relative w-24 h-24 flex-shrink-0 snap-start">
                   <PhotoPreview
                     photo={photo}
                     onDelete={deletePhoto}
@@ -574,7 +574,7 @@ export function PracticeForm({
               {testPlaceholders.map((item) => (
                 <div
                   key={item.id}
-                  className="w-24 h-24 flex-shrink-0 rounded-lg bg-gray-50 border-2 border-dashed border-gray-200 flex flex-col items-center justify-center p-2"
+                  className="w-24 h-24 flex-shrink-0 snap-start rounded-lg border-2 border-dashed border-gray-200 flex flex-col items-center justify-center p-2"
                 >
                   <div className="w-8 h-8 border-2 border-gray-200 border-t-gray-400 rounded-full animate-spin mb-2" />
                   <span className="text-gray-400 text-xs text-center truncate w-full">{item.name}</span>
