@@ -265,27 +265,14 @@ export function PhotoUploader({
           const files = e.target.files
           if (!files || files.length === 0) return
 
-          const filesToUpload = Array.from(files).slice(0, maxPhotos - photos.length).slice(0, 9)
-
-          filesToUpload.forEach((file) => {
-            const uploadId = `upload-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
-
-            // 立即显示占位图
+          // 最简单的逻辑：只显示占位图，什么都不做
+          Array.from(files).forEach((file, index) => {
             setUploadingItems(prev => [...prev, {
-              id: uploadId,
-              progress: 0,
+              id: `test-${Date.now()}-${index}`,
+              progress: 50,
               fileName: file.name,
             }])
-
-            // 把上传逻辑完全延后到下一个事件循环
-            Promise.resolve().then(() => {
-              uploadSingleFile(file, uploadId)
-            })
           })
-
-          if (fileInputRef.current) {
-            fileInputRef.current.value = ''
-          }
         }}
         className="hidden"
         aria-label="选择照片"
