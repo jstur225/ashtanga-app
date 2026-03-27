@@ -61,7 +61,6 @@ const DEFAULT_OPTIONS: PracticeOption[] = [
   { id: '3', created_at: new Date().toISOString(), label: '二序列', notes: 'Mysore', is_custom: false },
   { id: '4', created_at: new Date().toISOString(), label: '二序列', notes: 'Led class', is_custom: false },
   { id: '5', created_at: new Date().toISOString(), label: '半序列', notes: '站立+休息', is_custom: false },
-  { id: '6', created_at: new Date().toISOString(), label: '休息日', notes: '满月/新月', is_custom: false },
 ];
 
 export const usePracticeData = () => {
