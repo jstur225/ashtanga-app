@@ -293,14 +293,7 @@ export function PhotoUploader({
       {/* 上传按钮 + 测试按钮 */}
       {showUploadButton && (
         <div className="flex items-center gap-3">
-          <PhotoUploadButton
-            onClick={handleUploadClick}
-            loading={isUploading}
-          />
-          <span className="text-sm text-gray-500 font-serif">
-            记录你的练习瞬间
-          </span>
-          {/* 测试按钮：直接添加占位符 */}
+          {/* 测试按钮：直接添加占位符（放在相机图标左边） */}
           <button
             onClick={() => {
               setUploadingItems(prev => [...prev, {
@@ -313,6 +306,13 @@ export function PhotoUploader({
           >
             测试占位符
           </button>
+          <PhotoUploadButton
+            onClick={handleUploadClick}
+            loading={isUploading}
+          />
+          <span className="text-sm text-gray-500 font-serif">
+            记录你的练习瞬间
+          </span>
         </div>
       )}
     </div>
