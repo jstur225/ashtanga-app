@@ -447,6 +447,24 @@ export function PracticeForm({
           />
           {/* 照片上传按钮 - 位于输入框右下方 */}
           <div className="absolute bottom-3 right-3 flex items-center gap-2">
+            {/* 测试按钮：直接添加占位符 */}
+            <button
+              onClick={() => {
+                setPhotos(prev => [...prev, {
+                  id: `test-${Date.now()}`,
+                  oss_url: '',
+                  oss_key: '',
+                  file_size: 0,
+                  mime_type: 'image/jpeg',
+                  uploaded_at: new Date().toISOString(),
+                  created_at: new Date().toISOString(),
+                }])
+              }}
+              className="w-10 h-10 rounded-full bg-blue-500 text-white text-xs flex items-center justify-center shadow-lg"
+              title="测试占位符"
+            >
+              测试
+            </button>
             {showPhotoUpload && (
               <>
                 <input
