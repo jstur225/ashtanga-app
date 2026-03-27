@@ -280,14 +280,8 @@ export function PhotoUploader({
       {/* 照片预览区：已上传照片 + 上传中占位图 */}
       {(photos.length > 0 || uploadingItems.length > 0) && (
         <div className="grid grid-cols-3 gap-2">
-          {/* 已上传的照片 */}
-          {photos.map((photo) => (
-            <PhotoPreviewItem
-              key={photo.id}
-              photo={photo}
-              onDelete={handleDelete}
-            />
-          ))}
+          {/* 已上传的照片 - 使用memo缓存 */}
+          <PhotoGrid photos={photos} onDelete={handleDelete} />
 
           {/* 上传中的占位图（带进度条） */}
           {uploadingItems.map((item) => (
@@ -311,6 +305,29 @@ export function PhotoUploader({
     </div>
   )
 }
+
+/**
+ * 照片网格 - 使用memo缓存避免重复渲染
+ */
+const PhotoGrid = React.memo(function PhotoGrid({
+  photos,
+  onDelete,
+}: {
+  photos: Photo[]
+  onDelete?: (photoId: string) => void
+}) {
+  return (
+    <>
+      {photos.map((photo) => (
+        <PhotoPreviewItem
+          key={photo.id}
+          photo={photo}
+          onDelete={onDelete}
+        />
+      ))}
+    </>
+  )
+})
 
 /**
  * 单张照片预览项（三等分网格用）
