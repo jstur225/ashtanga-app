@@ -207,6 +207,9 @@ export function PracticeForm({
   }
   const [duration, setDuration] = useState(initialData?.duration || 60)
   const [notes, setNotes] = useState(initialData?.notes || "")
+
+  // 测试用：占位符显示状态
+  const [testPlaceholders, setTestPlaceholders] = useState<{id: string; name: string}[]>([])
   const [breakthroughEnabled, setBreakthroughEnabled] = useState(!!initialData?.breakthrough)
   const [breakthroughText, setBreakthroughText] = useState(initialData?.breakthrough || "")
 
@@ -447,17 +450,12 @@ export function PracticeForm({
           />
           {/* 照片上传按钮 - 位于输入框右下方 */}
           <div className="absolute bottom-3 right-3 flex items-center gap-2">
-            {/* 测试按钮：直接添加占位符 */}
+            {/* 测试按钮：直接显示占位符 */}
             <button
               onClick={() => {
-                setPhotos(prev => [...prev, {
+                setTestPlaceholders(prev => [...prev, {
                   id: `test-${Date.now()}`,
-                  oss_url: '',
-                  oss_key: '',
-                  file_size: 0,
-                  mime_type: 'image/jpeg',
-                  uploaded_at: new Date().toISOString(),
-                  created_at: new Date().toISOString(),
+                  name: '测试占位符'
                 }])
               }}
               className="w-10 h-10 rounded-full bg-blue-500 text-white text-xs flex items-center justify-center shadow-lg"
@@ -514,6 +512,20 @@ export function PracticeForm({
             onDelete={deletePhoto}
             layout="grid"
           />
+        </div>
+      )}
+
+      {/* 测试占位符展示 */}
+      {testPlaceholders.length > 0 && (
+        <div className="grid grid-cols-3 gap-2">
+          {testPlaceholders.map((item) => (
+            <div
+              key={item.id}
+              className="aspect-square rounded-lg bg-blue-100 border-2 border-blue-300 flex items-center justify-center"
+            >
+              <span className="text-blue-500 text-xs">{item.name}</span>
+            </div>
+          ))}
         </div>
       )}
 
