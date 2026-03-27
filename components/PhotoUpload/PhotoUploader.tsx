@@ -265,14 +265,13 @@ export function PhotoUploader({
           const files = e.target.files
           if (!files || files.length === 0) return
 
-          // 最简单的逻辑：只显示占位图，什么都不做
-          Array.from(files).forEach((file, index) => {
-            setUploadingItems(prev => [...prev, {
-              id: `test-${Date.now()}-${index}`,
-              progress: 50,
-              fileName: file.name,
-            }])
-          })
+          // 超简单：只取第一个文件，只添加一个占位图
+          const file = files[0]
+          setUploadingItems(prev => [...prev, {
+            id: `test-${Date.now()}`,
+            progress: 50,
+            fileName: '上传中...',
+          }])
         }}
         className="hidden"
         aria-label="选择照片"
