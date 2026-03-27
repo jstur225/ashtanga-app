@@ -210,6 +210,8 @@ export function PracticeForm({
 
   // 测试用：占位符显示状态
   const [testPlaceholders, setTestPlaceholders] = useState<{id: string; name: string}[]>([])
+  // 读取文件中的 loading 状态
+  const [isReadingFiles, setIsReadingFiles] = useState(false)
   const [breakthroughEnabled, setBreakthroughEnabled] = useState(!!initialData?.breakthrough)
   const [breakthroughText, setBreakthroughText] = useState(initialData?.breakthrough || "")
 
@@ -472,7 +474,25 @@ export function PracticeForm({
                   multiple
                   // iOS 兼容性优化
                   {...{ webkitdirectory: undefined, directory: undefined }}
-                  onChange={handleFileSelect}
+                  onChange={(e) => {
+                    const files = e.target.files
+                    if (!files || files.length === 0) {
+                      setIsReadingFiles(false)
+                      return
+                    }
+
+                    // 立即创建占位图显示
+                    Array.from(files).slice(0, 9 - photos.length).forEach((file, index) => {
+                      setTestPlaceholders(prev => [...prev, {
+                        id: `upload-${Date.now()}-${index}`,
+                        name: file.name || '上传中...'
+                      }])
+                    })
+
+                    // 调用实际的上传逻辑
+                    handleFileSelect(e)
+                    setIsReadingFiles(false)
+                  }}
                   className="hidden"
                 />
                 {/* 照片上传按钮 - 绿色渐变 */}
@@ -482,13 +502,22 @@ export function PracticeForm({
                       toast.info('最多上传9张照片')
                       return
                     }
-                    fileInputRef.current?.click()
+                    // 显示读取中状态
+                    setIsReadingFiles(true)
+                    // 稍微延迟打开文件选择器，让loading状态先显示
+                    setTimeout(() => {
+                      fileInputRef.current?.click()
+                    }, 50)
                   }}
-                  disabled={!recordId || uploading}
+                  disabled={!recordId || uploading || isReadingFiles}
                   className="w-10 h-10 rounded-full green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] flex items-center justify-center transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
                   title="上传照片（可多选）"
                 >
-                  <Camera className="w-5 h-5 text-white" />
+                  {isReadingFiles ? (
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <Camera className="w-5 h-5 text-white" />
+                  )}
                 </button>
               </>
             )}
@@ -515,15 +544,22 @@ export function PracticeForm({
         </div>
       )}
 
-      {/* 测试占位符展示 */}
-      {testPlaceholders.length > 0 && (
+      {/* 测试占位符展示 - 读取中/上传中占位符 */}
+      {(testPlaceholders.length > 0 || isReadingFiles) && (
         <div className="grid grid-cols-3 gap-2">
+          {isReadingFiles && (
+            <div className="aspect-square rounded-lg bg-gray-100 flex flex-col items-center justify-center">
+              <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin mb-2" />
+              <span className="text-xs text-gray-500">读取中...</span>
+            </div>
+          )}
           {testPlaceholders.map((item) => (
             <div
               key={item.id}
-              className="aspect-square rounded-lg bg-blue-100 border-2 border-blue-300 flex items-center justify-center"
+              className="aspect-square rounded-lg bg-blue-50 border-2 border-blue-200 flex flex-col items-center justify-center p-2"
             >
-              <span className="text-blue-500 text-xs">{item.name}</span>
+              <div className="w-8 h-8 border-2 border-blue-300 border-t-blue-500 rounded-full animate-spin mb-2" />
+              <span className="text-blue-500 text-xs text-center truncate w-full">{item.name}</span>
             </div>
           ))}
         </div>
