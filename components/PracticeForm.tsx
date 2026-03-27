@@ -452,19 +452,7 @@ export function PracticeForm({
           />
           {/* 照片上传按钮 - 位于输入框右下方 */}
           <div className="absolute bottom-3 right-3 flex items-center gap-2">
-            {/* 测试按钮：直接显示占位符 */}
-            <button
-              onClick={() => {
-                setTestPlaceholders(prev => [...prev, {
-                  id: `test-${Date.now()}`,
-                  name: '测试占位符'
-                }])
-              }}
-              className="w-10 h-10 rounded-full bg-blue-500 text-white text-xs flex items-center justify-center shadow-lg"
-              title="测试占位符"
-            >
-              测试
-            </button>
+            {/* 测试按钮已删除 */}
             {showPhotoUpload && (
               <>
                 <input
@@ -548,18 +536,18 @@ export function PracticeForm({
       {(testPlaceholders.length > 0 || isReadingFiles) && (
         <div className="grid grid-cols-3 gap-2">
           {isReadingFiles && (
-            <div className="aspect-square rounded-lg bg-gray-100 flex flex-col items-center justify-center">
-              <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin mb-2" />
-              <span className="text-xs text-gray-500">读取中...</span>
+            <div className="aspect-square rounded-lg bg-green-50 border-2 border-dashed border-green-300 flex flex-col items-center justify-center">
+              <div className="w-8 h-8 border-2 border-green-300 border-t-green-500 rounded-full animate-spin mb-2" />
+              <span className="text-xs text-green-600">读取中...</span>
             </div>
           )}
           {testPlaceholders.map((item) => (
             <div
               key={item.id}
-              className="aspect-square rounded-lg bg-blue-50 border-2 border-blue-200 flex flex-col items-center justify-center p-2"
+              className="aspect-square rounded-lg bg-green-50 border-2 border-dashed border-green-300 flex flex-col items-center justify-center p-2"
             >
-              <div className="w-8 h-8 border-2 border-blue-300 border-t-blue-500 rounded-full animate-spin mb-2" />
-              <span className="text-blue-500 text-xs text-center truncate w-full">{item.name}</span>
+              <div className="w-8 h-8 border-2 border-green-300 border-t-green-500 rounded-full animate-spin mb-2" />
+              <span className="text-green-600 text-xs text-center truncate w-full">{item.name}</span>
             </div>
           ))}
         </div>
