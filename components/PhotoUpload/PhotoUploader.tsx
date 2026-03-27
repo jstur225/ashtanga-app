@@ -245,15 +245,35 @@ export function PhotoUploader({
 
   return (
     <div className="space-y-3">
-      {/* 隐藏的文件输入框 */}
+      {/* 隐藏的文件输入框 - 直接使用内联 onChange */}
       <input
         ref={fileInputRef}
         type="file"
         accept="image/jpeg,image/png,image/heic,image/*"
         multiple
-        // iOS 兼容性优化：允许照片多选
         {...{ webkitdirectory: undefined, directory: undefined }}
-        onChange={handleFileSelect}
+        onChange={(e) => {
+          const files = e.target.files
+          if (!files || files.length === 0) return
+
+          const filesToUpload = Array.from(files).slice(0, maxPhotos - photos.length).slice(0, 9)
+
+          filesToUpload.forEach((file) => {
+            const uploadId = `upload-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+
+            setUploadingItems(prev => [...prev, {
+              id: uploadId,
+              progress: 0,
+              fileName: file.name,
+            }])
+
+            uploadSingleFile(file, uploadId)
+          })
+
+          if (fileInputRef.current) {
+            fileInputRef.current.value = ''
+          }
+        }}
         className="hidden"
         aria-label="选择照片"
       />
