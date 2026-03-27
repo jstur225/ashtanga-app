@@ -541,10 +541,10 @@ export function PracticeForm({
           {testPlaceholders.map((item) => (
             <div
               key={item.id}
-              className="aspect-square rounded-lg bg-[#f6fdf8] border-2 border-dashed border-[#86efac] flex flex-col items-center justify-center p-2"
+              className="aspect-square rounded-lg bg-[#ecfdf5] border-2 border-dashed border-[#a7f3d0] flex flex-col items-center justify-center p-2"
             >
-              <div className="w-8 h-8 border-2 border-[#86efac] border-t-[#f6fdf8] rounded-full animate-spin mb-2" />
-              <span className="text-[#86efac] text-xs text-center truncate w-full">{item.name}</span>
+              <div className="w-8 h-8 border-2 border-[#a7f3d0] border-t-[#34d399] rounded-full animate-spin mb-2" />
+              <span className="text-[#34d399] text-xs text-center truncate w-full">{item.name}</span>
             </div>
           ))}
         </div>
