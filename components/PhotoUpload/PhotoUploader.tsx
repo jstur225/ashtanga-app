@@ -261,13 +261,17 @@ export function PhotoUploader({
           filesToUpload.forEach((file) => {
             const uploadId = `upload-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 
+            // 立即显示占位图
             setUploadingItems(prev => [...prev, {
               id: uploadId,
               progress: 0,
               fileName: file.name,
             }])
 
-            uploadSingleFile(file, uploadId)
+            // 把上传逻辑完全延后到下一个事件循环
+            Promise.resolve().then(() => {
+              uploadSingleFile(file, uploadId)
+            })
           })
 
           if (fileInputRef.current) {
