@@ -86,8 +86,8 @@ export function PhotoUploader({
     toast.error(errorMessage, { id: `photo-upload-${id}` })
   }, [clearUploadTimer])
 
-  // 单文件上传
-  const uploadSingleFile = useCallback(async (file: File) => {
+  // 单文件上传（支持传入 uploadId）
+  const uploadSingleFile = useCallback(async (file: File, existingUploadId?: string) => {
     // 验证文件
     const validation = validatePhotoFile(file)
     if (!validation.valid) {
@@ -95,14 +95,18 @@ export function PhotoUploader({
       return
     }
 
-    // 创建上传占位项
-    const uploadId = `upload-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
-    const newItem: UploadingItem = {
-      id: uploadId,
-      progress: 0,
-      fileName: file.name,
+    // 使用传入的 uploadId 或创建新的
+    const uploadId = existingUploadId || `upload-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+
+    // 如果没有传入 uploadId，需要创建占位项
+    if (!existingUploadId) {
+      const newItem: UploadingItem = {
+        id: uploadId,
+        progress: 0,
+        fileName: file.name,
+      }
+      setUploadingItems(prev => [...prev, newItem])
     }
-    setUploadingItems(prev => [...prev, newItem])
 
     // 开始模拟进度
     startProgressSimulation(uploadId)
@@ -164,7 +168,7 @@ export function PhotoUploader({
     }
   }, [recordId, startProgressSimulation, completeUpload, failUpload, onPhotosChange])
 
-  // 处理文件选择 - 支持多选
+  // 处理文件选择 - 支持多选（优化：先显示占位图，再延迟上传）
   const handleFileSelect = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files
     console.log('[PhotoUploader] 选择文件:', files?.length || 0, '个')
@@ -188,8 +192,28 @@ export function PhotoUploader({
       toast.info(`已选择 ${files.length} 张，仅上传前 ${remainingSlots} 张`)
     }
 
-    // 并发上传所有选中的文件
-    await Promise.all(filesToUpload.map(file => uploadSingleFile(file)))
+    // Step 1: 立即创建所有占位项，确保 UI 即时响应
+    const uploadEntries: { file: File; uploadId: string }[] = []
+    filesToUpload.forEach(file => {
+      const uploadId = `upload-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+      uploadEntries.push({ file, uploadId })
+
+      setUploadingItems(prev => [...prev, {
+        id: uploadId,
+        progress: 0,
+        fileName: file.name,
+      }])
+    })
+
+    // Step 2: 使用 requestAnimationFrame 确保占位图渲染后再开始上传
+    requestAnimationFrame(() => {
+      // 给浏览器一帧时间渲染占位图
+      setTimeout(() => {
+        uploadEntries.forEach(({ file, uploadId }) => {
+          uploadSingleFile(file, uploadId)
+        })
+      }, 50) // 50ms 延迟确保状态更新已应用
+    })
 
     // 清空 input
     if (fileInputRef.current) {

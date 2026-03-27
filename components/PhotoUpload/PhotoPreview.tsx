@@ -27,10 +27,15 @@ export function PhotoPreview({
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [imgError, setImgError] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const handleDelete = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
+
+    // 立即显示删除中状态，提供即时视觉反馈
+    setIsDeleting(true)
+
     if (onDelete) {
       onDelete(photo.id)
     }
@@ -69,13 +74,14 @@ export function PhotoPreview({
               'flex items-center justify-center',
               'bg-black/60 hover:bg-black/80',
               'text-white',
-              'transition-colors',
-              'shadow-lg'
+              'transition-all duration-150',
+              'shadow-lg',
+              isDeleting && 'scale-90 opacity-70'  // 删除时缩小并变淡
             )}
             aria-label="删除照片"
             title="删除照片"
           >
-            <X className="w-3.5 h-3.5" aria-hidden="true" />
+            <X className={cn('w-3.5 h-3.5', isDeleting && 'animate-spin')} aria-hidden="true" />
           </button>
         )}
 
