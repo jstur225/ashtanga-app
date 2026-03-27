@@ -141,23 +141,29 @@ function useRecordPhotos(recordId: string | undefined, initialPhotoUrls?: string
 
   // 删除照片
   const deletePhoto = useCallback(async (photoId: string) => {
+    console.log('[删除照片] 开始删除:', photoId, 'recordId:', recordId)
     try {
       const { deletePhoto: doDelete } = await import('@/lib/oss')
       // 找到对应的 photo 对象获取 URL
       const photo = photos.find(p => p.id === photoId)
       const photoUrl = photo?.oss_url
+      console.log('[删除照片] 找到照片:', photo ? '是' : '否', 'URL:', photoUrl)
+
       // 本地生成的 ID 需要传入 recordId 和 oss_url
       const result = await doDelete(photoId, recordId, photoUrl)
+      console.log('[删除照片] 删除结果:', result)
 
       if (result.success) {
         setPhotos(prev => prev.filter(p => p.id !== photoId))
         toast.success('照片已删除 ✓')
         return true
       } else {
-        toast.error('删除失败，请重试')
+        console.error('[删除照片] 删除失败:', result.error)
+        toast.error(`删除失败: ${result.error || '请重试'}`)
         return false
       }
     } catch (error) {
+      console.error('[删除照片] 删除出错:', error)
       toast.error('删除出错，请重试')
       return false
     }
