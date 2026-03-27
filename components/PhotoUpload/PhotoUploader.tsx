@@ -169,62 +169,36 @@ export function PhotoUploader({
     }
   }, [recordId, startProgressSimulation, completeUpload, failUpload, onPhotosChange])
 
-  // 处理文件选择 - 支持多选（优化：先显示占位图，再延迟上传）
-  const handleFileSelect = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+  // 处理文件选择 - 极简版本：先显示占位图，其他不管
+  const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files
-    console.log('[PhotoUploader] 选择文件:', files?.length || 0, '个')
     if (!files || files.length === 0) return
 
-    // 显示文件详情（调试用）
-    Array.from(files).forEach((file, i) => {
-      console.log(`[PhotoUploader] 文件 ${i + 1}:`, file.name, file.type, `${(file.size / 1024 / 1024).toFixed(2)}MB`)
-    })
+    // 简单切片，不做复杂计算
+    const filesToUpload = Array.from(files).slice(0, maxPhotos - photos.length).slice(0, 9)
 
-    // 计算剩余可上传数量
-    const remainingSlots = maxPhotos - photos.length - uploadingItems.length
-    if (remainingSlots <= 0) {
-      toast.info(`最多上传 ${maxPhotos} 张照片`)
-      return
-    }
-
-    // 只取剩余槽位的文件数
-    const filesToUpload = Array.from(files).slice(0, remainingSlots)
-    if (files.length > remainingSlots) {
-      toast.info(`已选择 ${files.length} 张，仅上传前 ${remainingSlots} 张`)
-    }
-
-    // Step 1: 立即创建所有占位项，使用 flushSync 强制同步更新确保 UI 即时响应
-    const uploadEntries: { file: File; uploadId: string }[] = []
-    const newItems: UploadingItem[] = []
-
-    filesToUpload.forEach(file => {
+    // 立即显示占位图（用函数形式避免依赖旧状态）
+    filesToUpload.forEach((file) => {
       const uploadId = `upload-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
-      uploadEntries.push({ file, uploadId })
-      newItems.push({
+
+      // 先显示占位图
+      setUploadingItems(prev => [...prev, {
         id: uploadId,
         progress: 0,
         fileName: file.name,
-      })
-    })
+      }])
 
-    // 使用 flushSync 强制立即更新状态
-    flushSync(() => {
-      setUploadingItems(prev => [...prev, ...newItems])
-    })
-
-    // Step 2: 使用 setTimeout 0 将上传逻辑推迟到下一个事件循环
-    // 确保浏览器有时间渲染占位图
-    setTimeout(() => {
-      uploadEntries.forEach(({ file, uploadId }) => {
+      // 延迟一下再开始上传
+      setTimeout(() => {
         uploadSingleFile(file, uploadId)
-      })
-    }, 0)
+      }, 100)
+    })
 
     // 清空 input
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
     }
-  }, [maxPhotos, photos.length, uploadingItems.length, uploadSingleFile])
+  }, [maxPhotos, photos.length, uploadSingleFile])
 
   // 处理上传按钮点击
   const handleUploadClick = useCallback(() => {
