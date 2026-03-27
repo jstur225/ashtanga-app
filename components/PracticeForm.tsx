@@ -535,16 +535,16 @@ export function PracticeForm({
         </div>
       )}
 
-      {/* 上传中占位符 - 只在有占位符时显示 */}
+      {/* 上传中占位符 - 灰色淡雅风格 */}
       {testPlaceholders.length > 0 && (
         <div className="grid grid-cols-3 gap-2">
           {testPlaceholders.map((item) => (
             <div
               key={item.id}
-              className="aspect-square rounded-lg bg-[#ecfdf5] border-2 border-dashed border-[#a7f3d0] flex flex-col items-center justify-center p-2"
+              className="aspect-square rounded-lg bg-gray-50 border-2 border-dashed border-gray-200 flex flex-col items-center justify-center p-2"
             >
-              <div className="w-8 h-8 border-2 border-[#a7f3d0] border-t-[#34d399] rounded-full animate-spin mb-2" />
-              <span className="text-[#34d399] text-xs text-center truncate w-full">{item.name}</span>
+              <div className="w-8 h-8 border-2 border-gray-200 border-t-gray-400 rounded-full animate-spin mb-2" />
+              <span className="text-gray-400 text-xs text-center truncate w-full">{item.name}</span>
             </div>
           ))}
         </div>
