@@ -55,6 +55,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // 2.1 检查用户是否绑定邮箱
+    if (!user.email) {
+      return NextResponse.json(
+        { success: false, error: 'EMAIL_REQUIRED' },
+        { status: 403 }
+      )
+    }
+
     // 3. 解析请求体
     const { fileName, mimeType } = await request.json()
     if (!fileName) {

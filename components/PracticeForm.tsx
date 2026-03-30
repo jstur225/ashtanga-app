@@ -43,6 +43,12 @@ export interface PracticeFormProps {
   // 照片数据（URL 数组，直接使用不重新加载）
   initialPhotos?: string[]
 
+  // 用户信息（用于照片上传权限判断）
+  user?: {
+    email?: string | null
+    is_pro?: boolean
+  } | null
+
   // 受控模式：外部控制 date 和 type
   date?: string
   type?: string
@@ -122,11 +128,12 @@ function useRecordPhotos(recordId: string | undefined, initialPhotoUrls?: string
         return true
       } else {
         const errorMessages: Record<string, string> = {
-          'RECORD_PHOTO_LIMIT_EXCEEDED': '最多上传9张照片',
+          'RECORD_PHOTO_LIMIT_EXCEEDED': '当前版本只能上传1张照片',
           'UPLOAD_FAILED_403': '上传失败，请重试',
           'UPLOAD_FAILED_400': '上传失败，请检查文件',
           'NETWORK_ERROR': '网络错误，请重试',
-          'NOT_AUTHENTICATED': '上传照片需绑定邮箱',
+          'NOT_AUTHENTICATED': '请先登录',
+          'EMAIL_REQUIRED': '绑定邮箱后可使用照片功能',
         }
         toast.error(errorMessages[result.error || ''] || '上传失败，请重试')
         return false
@@ -178,6 +185,7 @@ export function PracticeForm({
   initialData,
   recordId,
   initialPhotos,
+  user, // ⭐ 新增：用户信息
   // 受控 props
   date: controlledDate,
   type: controlledType,
@@ -228,6 +236,12 @@ export function PracticeForm({
   const { photos, loading, uploading, uploadPhoto, deletePhoto } = useRecordPhotos(recordId, initialPhotos)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // ⭐ 照片上传权限和限制
+  const hasEmail = !!user?.email
+  const isPro = user?.is_pro ?? false
+  const maxPhotos = isPro ? 9 : 1
+  const canUploadPhotos = hasEmail && showPhotoUpload
+
   // 用于标记是否已初始化
   const hasInitialized = useRef(false)
   const prevInitialDataRef = useRef(initialData)
@@ -264,10 +278,16 @@ export function PracticeForm({
       console.log(`[照片上传] 文件 ${i + 1}:`, file.name, file.type, `${(file.size / 1024 / 1024).toFixed(2)}MB`)
     })
 
+    // 检查是否有邮箱
+    if (!hasEmail) {
+      toast.error('绑定邮箱后可使用照片功能')
+      return
+    }
+
     // 计算剩余可上传数量
-    const remainingSlots = 9 - photos.length
+    const remainingSlots = maxPhotos - photos.length
     if (remainingSlots <= 0) {
-      toast.info('最多上传9张照片')
+      toast.info('当前版本只能上传1张照片')
       return
     }
 
@@ -462,13 +482,13 @@ export function PracticeForm({
           {/* 照片上传按钮 - 位于输入框右下方 */}
           <div className="absolute bottom-3 right-3 flex items-center gap-2">
             {/* 测试按钮已删除 */}
-            {showPhotoUpload && (
+            {showPhotoUpload && recordId && (
               <>
                 <input
                   ref={fileInputRef}
                   type="file"
                   accept="image/jpeg,image/png,image/heic,image/*"
-                  multiple
+                  multiple={isPro} // ⭐ 会员可多选，普通用户单选
                   // iOS 兼容性优化
                   {...{ webkitdirectory: undefined, directory: undefined }}
                   onChange={(e) => {
@@ -478,8 +498,15 @@ export function PracticeForm({
                       return
                     }
 
+                    // 检查是否有邮箱
+                    if (!hasEmail) {
+                      toast.error('绑定邮箱后可使用照片功能')
+                      setIsReadingFiles(false)
+                      return
+                    }
+
                     // 立即创建占位图显示
-                    Array.from(files).slice(0, 9 - photos.length).forEach((file, index) => {
+                    Array.from(files).slice(0, maxPhotos - photos.length).forEach((file, index) => {
                       setTestPlaceholders(prev => [...prev, {
                         id: `upload-${Date.now()}-${index}`,
                         name: file.name || '上传中...'
@@ -495,8 +522,13 @@ export function PracticeForm({
                 {/* 照片上传按钮 - 绿色渐变 */}
                 <button
                   onClick={() => {
-                    if (photos.length >= 9) {
-                      toast.info('最多上传9张照片')
+                    // 检查是否有邮箱
+                    if (!hasEmail) {
+                      toast.info('绑定邮箱后可使用照片功能')
+                      return
+                    }
+                    if (photos.length >= maxPhotos) {
+                      toast.info('当前版本只能上传1张照片')
                       return
                     }
                     // 显示读取中状态
@@ -508,7 +540,7 @@ export function PracticeForm({
                   }}
                   disabled={!recordId || uploading || isReadingFiles}
                   className="w-10 h-10 rounded-full green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] flex items-center justify-center transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
-                  title="上传照片（可多选）"
+                  title={hasEmail ? '上传照片（当前版本限1张）' : '绑定邮箱后可使用照片功能'}
                 >
                   {isReadingFiles ? (
                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />

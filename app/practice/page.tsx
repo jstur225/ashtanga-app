@@ -11,10 +11,6 @@ import { BookOpen, BarChart3, Calendar, X, Camera, Pause, Play, Trash2, User, Se
 import { cn } from '@/lib/utils'
 import { FakeDoorModal } from "@/components/FakeDoorModal"
 import { VoiceButton } from "@/components/VoiceButton"
-import { PhotoUploadButton } from "@/components/PhotoUploadButton"
-import { PhotoUploader } from "@/components/PhotoUpload"
-import { PhotoPreviewList } from "@/components/PhotoUpload/PhotoPreview"
-import type { Photo } from "@/lib/supabase"
 import { PracticeForm, type PracticeFormData } from "@/components/PracticeForm"
 import { ImportModal } from "@/components/ImportModal"
 import { ExportModal } from "@/components/ExportModal"
@@ -541,6 +537,7 @@ function EditRecordModal({
             <PracticeForm
               initialData={formData}
               recordId={latestRecord?.id}
+              user={{ email: user?.email, is_pro: userProfile?.is_pro }} // ⭐ 传入用户信息
               date={formData.date}
               type={formData.type}
               onDateChange={(d) => setFormData(prev => ({ ...prev, date: d }))}
@@ -1386,6 +1383,7 @@ function AddPracticeModal({
             <PracticeForm
               initialData={formData}
               recordId={draftRecord?.id}
+              user={{ email: user?.email, is_pro: userProfile?.is_pro }} // ⭐ 传入用户信息
               date={formData.date}
               type={formData.type}
               onDateChange={(d) => setFormData(prev => ({ ...prev, date: d }))}
@@ -2132,6 +2130,7 @@ function CompletionSheet({
             <PracticeForm
               initialData={formData}
               recordId={draftRecord?.id}
+              user={{ email: user?.email, is_pro: userProfile?.is_pro }} // ⭐ 传入用户信息
               date={formData.date}
               type={formData.type}
               onDateChange={() => {}} // 只读，不处理

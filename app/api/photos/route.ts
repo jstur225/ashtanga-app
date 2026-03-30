@@ -37,6 +37,29 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // 2.1 检查用户是否绑定邮箱
+    if (!user.email) {
+      return NextResponse.json(
+        { success: false, error: 'EMAIL_REQUIRED' },
+        { status: 403 }
+      )
+    }
+
+    // 2.2 获取用户 profile 检查 is_pro 状态
+    const { data: userProfile, error: profileError } = await supabase
+      .from('profiles')
+      .select('is_pro')
+      .eq('id', user.id)
+      .single()
+
+    if (profileError) {
+      console.error('[Photos API] 获取用户资料失败:', profileError)
+    }
+
+    // 普通用户最多1张，会员最多9张
+    const isPro = userProfile?.is_pro ?? false
+    const maxPhotos = isPro ? 9 : 1
+
     // 2. 解析请求体
     const body = await request.json()
     const {
@@ -78,10 +101,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (existingPhotos && existingPhotos.length >= 9) {
-      console.log('[Photos API] 记录已有9张照片，拒绝上传:', existingPhotos[0])
+    if (existingPhotos && existingPhotos.length >= maxPhotos) {
+      console.log(`[Photos API] 记录已有${existingPhotos.length}张照片，${isPro ? '会员' : '普通用户'}限制为${maxPhotos}张，拒绝上传`)
       return NextResponse.json(
-        { success: false, error: 'RECORD_PHOTO_LIMIT_EXCEEDED' },
+        { success: false, error: 'RECORD_PHOTO_LIMIT_EXCEEDED', maxPhotos },
         { status: 429 }
       )
     }
