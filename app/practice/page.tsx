@@ -2108,6 +2108,9 @@ function CompletionSheet({
         photos: data.photos, // ⭐ 保存时包含照片
       })
       toast.success('记录已保存！')
+      
+      // ⭐ 调用 onSave 回调，触发关闭弹窗并切换到 journal 标签页
+      onSave(data.notes || "今日练习完成", data.photos || [], data.breakthrough)
     }
     // 重置表单
     setFormData({
