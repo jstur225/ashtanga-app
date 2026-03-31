@@ -4672,6 +4672,8 @@ export default function AshtangaTracker() {
           setShowPWAInstallTutorial={setShowPWAInstallTutorial}
         />
       )}
+      <AnimatePresence>
+
         {!hasAnyModalOpen && (
           <motion.nav
             initial={{ y: 0, opacity: 1 }}
