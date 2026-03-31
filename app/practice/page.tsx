@@ -1314,7 +1314,7 @@ function AddPracticeModal({
       setDraftRecord(draft)
     } else if (draftRecord) {
       // 弹窗关闭时删除草稿（用户取消）
-      deleteRecord(draftRecord.id)
+      deleteRecord(draftRecord.id, true) // true = 跳过确认
       setDraftRecord(null)
     }
   }, [isOpen])
@@ -1323,7 +1323,7 @@ function AddPracticeModal({
   useEffect(() => {
     return () => {
       if (draftRecord) {
-        deleteRecord(draftRecord.id)
+        deleteRecord(draftRecord.id, true) // true = 跳过确认
       }
     }
   }, [])
@@ -2085,7 +2085,7 @@ function CompletionSheet({
       })
     } else if (draftRecord) {
       // 弹窗关闭时删除草稿（用户取消）
-      deleteRecord(draftRecord.id)
+      deleteRecord(draftRecord.id, true) // true = 跳过确认
       setDraftRecord(null)
     }
   }, [isOpen, practiceType, duration])
@@ -2094,7 +2094,7 @@ function CompletionSheet({
   useEffect(() => {
     return () => {
       if (draftRecord) {
-        deleteRecord(draftRecord.id)
+        deleteRecord(draftRecord.id, true) // true = 跳过确认
       }
     }
   }, [])
@@ -3596,9 +3596,9 @@ export default function AshtangaTracker() {
     toast.success('更新成功')
   }
 
-  const handleDeleteRecord = async (id: string) => {
-    // Confirm before deleting
-    if (!confirm('确定要删除这条记录吗？')) return
+  const handleDeleteRecord = async (id: string, skipConfirm = false) => {
+    // Confirm before deleting (skip for draft records)
+    if (!skipConfirm && !confirm('确定要删除这条记录吗？')) return
 
     // 1. 从本地状态移除
     deleteRecord(id)
