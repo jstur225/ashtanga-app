@@ -1747,7 +1747,7 @@ function SettingsModal({
 
               {activeSection === 'account' && (
                 <AccountBindingSection
-                  profile={userProfile}
+                  profile={profile}
                   localData={{
                     records: practiceHistory,
                     options: practiceOptionsData
@@ -1949,7 +1949,7 @@ function AccountSyncModal({
             </div>
 
             <AccountBindingSection
-              profile={userProfile}
+              profile={profile}
               localData={{
                 records: practiceHistory,
                 options: practiceOptionsData
