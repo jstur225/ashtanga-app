@@ -306,28 +306,6 @@ export function AccountBindingSection({
             </button>
           )}
 
-          {/* ⭐ 同步日志显示区域 */}
-          {syncLogs && syncLogs.length > 0 && (
-            <div className="mt-4 p-3 bg-secondary/50 rounded-lg max-h-[200px] overflow-y-auto">
-              <div className="text-xs font-serif text-muted-foreground mb-2">同步日志（最近10条）:</div>
-              <div className="space-y-1">
-                {syncLogs.slice(-10).map((log, index) => (
-                  <div
-                    key={index}
-                    className={`text-[10px] font-mono ${
-                      log.status === 'error' ? 'text-red-500' :
-                      log.status === 'warning' ? 'text-yellow-600' :
-                      'text-green-600'
-                    }`}
-                  >
-                    [{log.timestamp ? new Date(log.timestamp).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '--:--:--'}] {log.action}
-                    {log.details && <span className="text-muted-foreground"> - {String(log.details).slice(0, 100)}</span>}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
           {/* 修改密码按钮 */}
           <button
             onClick={handleChangePassword}
@@ -630,7 +608,7 @@ export function AccountBindingSection({
                           console.log('   用户邮箱:', user?.email)
 
                           const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-                            email: user?.email || '',
+                            email: propUser?.email || authUser?.email || '',
                             password: oldPassword
                           })
 
