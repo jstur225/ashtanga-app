@@ -3606,7 +3606,10 @@ export default function AshtangaTracker() {
     // 2. 软删除 Supabase 中的记录（设置 deleted_at）
     const success = await deletePracticeRecord(id)
     if (success) {
-      toast.success('已删除记录')
+      // 只有正式记录才显示删除成功提示（草稿记录静默删除）
+      if (!skipConfirm) {
+        toast.success('已删除记录')
+      }
       // 3. 触发同步（如果用户已登录）
       if (user) {
         autoSync()
