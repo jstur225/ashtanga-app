@@ -2730,14 +2730,14 @@ function JournalTab({
         onOpenVoiceFakeDoor={onOpenVoiceFakeDoor}
         onOpenPhotoFakeDoor={onOpenPhotoFakeDoor}
         user={user}
-        userProfile={userProfile}
+        userProfile={profile}
       />
 
       <ShareCardModal
         isOpen={!!sharingRecord}
         onClose={() => setSharingRecordId(null)}
         record={sharingRecord}
-        profile={userProfile}
+        profile={profile}
         totalPracticeCount={totalPracticeCount}
         thisMonthDays={thisMonthDays}
         totalHours={totalHours}
@@ -2761,7 +2761,7 @@ function JournalTab({
         onOpenVoiceFakeDoor={onOpenVoiceFakeDoor}
         onOpenPhotoFakeDoor={onOpenPhotoFakeDoor}
         user={user}
-        userProfile={userProfile}
+        userProfile={profile}
       />
 
 {/* Back to Top Button - Floating, Jade Glassmorphism */}
