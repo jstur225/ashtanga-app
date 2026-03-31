@@ -175,6 +175,25 @@ export const usePracticeData = () => {
 
       setRecords(tutorialRecords);
     }
+
+    // ⭐ 清理残留的草稿记录（用户刷新页面或关闭浏览器导致草稿未被删除）
+    try {
+      const storedRecords = localStorage.getItem('ashtanga_records');
+      if (storedRecords && storedRecords !== '[]') {
+        const parsedRecords: PracticeRecord[] = JSON.parse(storedRecords);
+        const draftRecords = parsedRecords.filter(r => r.type === '草稿');
+        
+        if (draftRecords.length > 0) {
+          console.log(`🧹 [清理草稿] 发现 ${draftRecords.length} 条残留的草稿记录，正在清理...`);
+          const cleanedRecords = parsedRecords.filter(r => r.type !== '草稿');
+          localStorage.setItem('ashtanga_records', JSON.stringify(cleanedRecords));
+          setRecords(cleanedRecords);
+          console.log('✅ [清理草稿] 已清理所有草稿记录');
+        }
+      }
+    } catch (e) {
+      console.error('❌ [清理草稿] 清理草稿记录失败:', e);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // 只在组件挂载时执行一次
 
@@ -340,8 +359,10 @@ export const usePracticeData = () => {
   const exportData = () => {
     // 移除头像，避免 base64 数据过大导致无法复制
     const { avatar, ...profileWithoutAvatar } = profile;
+    // ⭐ 过滤掉草稿记录，只导出正式记录
+    const nonDraftRecords = (records || []).filter(r => r.type !== '草稿');
     const data = {
-      records,
+      records: nonDraftRecords,
       options,
       profile: profileWithoutAvatar,
       export_at: new Date().toISOString(),
