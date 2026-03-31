@@ -2840,7 +2840,6 @@ function ProBadge({ isPro }: { isPro: boolean }) {
   )
 }
 
-// Stats Tab Component with Profile and Heatmap - Removed title, added PRO badge
 function StatsTab({
   practiceHistory,
   profile,
@@ -2851,6 +2850,8 @@ function StatsTab({
   hasNewXhsMessage,
   user,
   setReadInviteVersion,
+  showPWAInstallTutorial,
+  setShowPWAInstallTutorial,
 }: {
   practiceHistory: PracticeRecord[]
   profile: UserProfile
@@ -2860,6 +2861,8 @@ function StatsTab({
   setShowXiaohongshuModal: (value: boolean) => void
   hasNewXhsMessage: boolean
   user?: any
+  showPWAInstallTutorial: boolean
+  setShowPWAInstallTutorial: (value: boolean) => void
   setReadInviteVersion: (version: string) => void
 }) {
   // 隐藏邮箱的辅助函数
@@ -4665,11 +4668,10 @@ export default function AshtangaTracker() {
           hasNewXhsMessage={hasNewXhsMessage}
           user={user}
           setReadInviteVersion={setReadInviteVersion}
+          showPWAInstallTutorial={showPWAInstallTutorial}
+          setShowPWAInstallTutorial={setShowPWAInstallTutorial}
         />
       )}
-
-      {/* Fixed Bottom Navigation */}
-      <AnimatePresence>
         {!hasAnyModalOpen && (
           <motion.nav
             initial={{ y: 0, opacity: 1 }}
