@@ -1,5 +1,27 @@
 # 待处理问题
 
+## 2026-03-31 - 照片上传限制功能 Bug
+
+### 🐛 待修复：照片上传限制功能有 Bug
+
+**问题描述：**
+已实现照片上传限制功能（普通用户1张，会员9张），但代码存在 bug 需要修复。
+
+**已实现内容：**
+- ✅ 后端 API 限制：`app/api/photos/route.ts` 检查 `is_pro` 和邮箱绑定
+- ✅ 前端权限控制：`components/PracticeForm.tsx` 传入 user 信息
+- ✅ 提示信息："当前版本只能上传1张照片"、"绑定邮箱后可使用照片功能"
+
+**涉及文件：**
+- `app/api/photos/route.ts`
+- `app/api/oss-signature/route.ts`
+- `components/PracticeForm.tsx`
+- `lib/oss.ts`
+
+**状态：** 代码已推送 master2 分支，但存在 bug 需修复
+
+---
+
 ## 2026-03-27 - 新功能需求与设计优化
 
 ### ✅ 已完成：编辑记录页面照片布局优化（3张以上横向滑动）
