@@ -168,7 +168,7 @@ export const usePracticeData = () => {
           notes: `🔴特别提醒
 👈点击左侧日期区域，可编辑或删除记录
 
-🌟Mysore，让我们找回到自我的锚点🌟`,
+🌟Mysore，让我们找回到自我的锚点`,
           photos: []
         }
       ];
