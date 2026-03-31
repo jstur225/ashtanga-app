@@ -1747,7 +1747,7 @@ function SettingsModal({
 
               {activeSection === 'account' && (
                 <AccountBindingSection
-                  profile={profile}
+                  profile={userProfile}
                   localData={{
                     records: practiceHistory,
                     options: practiceOptionsData
@@ -1949,7 +1949,7 @@ function AccountSyncModal({
             </div>
 
             <AccountBindingSection
-              profile={profile}
+              profile={userProfile}
               localData={{
                 records: practiceHistory,
                 options: practiceOptionsData
@@ -2737,7 +2737,7 @@ function JournalTab({
         isOpen={!!sharingRecord}
         onClose={() => setSharingRecordId(null)}
         record={sharingRecord}
-        profile={profile}
+        profile={userProfile}
         totalPracticeCount={totalPracticeCount}
         thisMonthDays={thisMonthDays}
         totalHours={totalHours}
