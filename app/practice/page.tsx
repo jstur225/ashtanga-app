@@ -3240,7 +3240,7 @@ export default function AshtangaTracker() {
 
   // Auth Modal 状态
   const [showAuthModal, setShowAuthModal] = useState(false)
-const [showPWAInstallTutorial, setShowPWAInstallTutorial] = useState(false)
+  const [showPWAInstallTutorial, setShowPWAInstallTutorial] = useState(false)
   const [authMode, setAuthMode] = useState<'login' | 'register' | 'forgot-password'>('login')
 
   // 数据冲突处理状态
