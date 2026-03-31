@@ -433,6 +433,8 @@ function EditRecordModal({
   onChildModalOpen,
   onOpenVoiceFakeDoor,
   onOpenPhotoFakeDoor,
+  user,
+  userProfile,
 }: {
   isOpen: boolean
   onClose: () => void
@@ -444,6 +446,8 @@ function EditRecordModal({
   practiceOptions: PracticeOption[]
   practiceHistory?: PracticeRecord[]
   onChildModalOpen?: (open: boolean) => void
+  user?: { email?: string | null } | null
+  userProfile?: UserProfile | null
 }) {
   // ⭐ 从最新的 practiceHistory 中获取记录数据（避免照片上传后数据过时）
   const latestRecord = useMemo(() => {
@@ -1264,6 +1268,8 @@ function AddPracticeModal({
   onChildModalOpen,
   onOpenVoiceFakeDoor,
   onOpenPhotoFakeDoor,
+  user,
+  userProfile,
 }: {
   isOpen: boolean
   onClose: () => void
@@ -1276,6 +1282,8 @@ function AddPracticeModal({
   onChildModalOpen?: (open: boolean) => void
   onOpenVoiceFakeDoor?: () => void
   onOpenPhotoFakeDoor?: () => void
+  user?: { email?: string | null } | null
+  userProfile?: UserProfile | null
 }) {
   // 表单数据状态（用于 PracticeForm）
   const [formData, setFormData] = useState({
@@ -2030,6 +2038,8 @@ function CompletionSheet({
   deleteRecord,
   onOpenVoiceFakeDoor,
   onOpenPhotoFakeDoor,
+  user,
+  userProfile,
 }: {
   isOpen: boolean
   practiceType: string
@@ -2040,6 +2050,8 @@ function CompletionSheet({
   deleteRecord: (id: string) => void
   onOpenVoiceFakeDoor?: () => void
   onOpenPhotoFakeDoor?: () => void
+  user?: { email?: string | null } | null
+  userProfile?: UserProfile | null
 }) {
   // 表单数据状态（用于 PracticeForm）
   const [formData, setFormData] = useState({
@@ -2717,6 +2729,8 @@ function JournalTab({
         onChildModalOpen={(open) => setChildModalOpen(open)}
         onOpenVoiceFakeDoor={onOpenVoiceFakeDoor}
         onOpenPhotoFakeDoor={onOpenPhotoFakeDoor}
+        user={user}
+        userProfile={userProfile}
       />
 
       <ShareCardModal
@@ -2746,6 +2760,8 @@ function JournalTab({
         onChildModalOpen={(open) => setChildModalOpen(open)}
         onOpenVoiceFakeDoor={onOpenVoiceFakeDoor}
         onOpenPhotoFakeDoor={onOpenPhotoFakeDoor}
+        user={user}
+        userProfile={userProfile}
       />
 
 {/* Back to Top Button - Floating, Jade Glassmorphism */}
@@ -4527,6 +4543,8 @@ export default function AshtangaTracker() {
           deleteRecord={deleteRecord}
           onOpenVoiceFakeDoor={() => setShowFakeDoor({ type: 'voice', isOpen: true })}
           onOpenPhotoFakeDoor={() => setShowFakeDoor({ type: 'photo', isOpen: true })}
+          user={user}
+          userProfile={userProfile}
         />
       </motion.div>
     )
@@ -5014,6 +5032,8 @@ export default function AshtangaTracker() {
         deleteRecord={deleteRecord}
         onOpenVoiceFakeDoor={() => setShowFakeDoor({ type: 'voice', isOpen: true })}
         onOpenPhotoFakeDoor={() => setShowFakeDoor({ type: 'photo', isOpen: true })}
+        user={user}
+        userProfile={userProfile}
       />
 
       {/* Fake Door Modal */}
