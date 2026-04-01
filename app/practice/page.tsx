@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils'
 import { FakeDoorModal } from "@/components/FakeDoorModal"
 import { VoiceButton } from "@/components/VoiceButton"
 import { PracticeForm, type PracticeFormData } from "@/components/PracticeForm"
+import { PhotoUploadButton } from "@/components/PhotoUploadButton"
 import { ImportModal } from "@/components/ImportModal"
 import { ExportModal } from "@/components/ExportModal"
 import { XiaohongshuInviteModal, INVITE_VERSION } from "@/components/XiaohongshuInviteModal"
