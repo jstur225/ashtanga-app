@@ -513,7 +513,7 @@ export function PracticeForm({
             onChange={(e) => setNotes(e.target.value.slice(0, 2000))}
             placeholder="今天练习感受如何？有什么觉察？"
             rows={5}
-            className="w-full px-4 py-3 pr-20 rounded-2xl bg-secondary text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-none font-serif text-sm"
+            className="w-full px-4 py-3 pr-24 rounded-2xl bg-secondary text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-none font-serif text-sm text-justify"
           />
           {/* 照片上传按钮 - 位于输入框右下方 */}
           <div className="absolute bottom-3 right-3 flex items-center gap-2">
