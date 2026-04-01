@@ -4,6 +4,7 @@
  */
 
 import { supabase, type Photo } from './supabase'
+import { addPhotoLog } from './photo-logger'
 
 const OSS_BUCKET = process.env.NEXT_PUBLIC_OSS_BUCKET || ''
 const OSS_ENDPOINT = process.env.NEXT_PUBLIC_OSS_ENDPOINT || ''
@@ -125,10 +126,25 @@ export async function uploadPhoto(
   file: File,
   recordId: string
 ): Promise<{ success: boolean; photo?: Photo; error?: string }> {
+  const startTime = Date.now()
+  const logDetails = {
+    recordId,
+    fileName: file.name,
+    fileSize: file.size,
+    mimeType: file.type,
+  }
+
   try {
     // 1. 验证文件
     const validation = validatePhotoFile(file)
     if (!validation.valid) {
+      addPhotoLog({
+        action: 'upload_error',
+        ...logDetails,
+        error: validation.error,
+        errorCode: 'VALIDATION_FAILED',
+        duration: Date.now() - startTime,
+      })
       return { success: false, error: validation.error }
     }
 
@@ -140,6 +156,13 @@ export async function uploadPhoto(
 
     const presignedResult = await getPresignedUrl(fileName, file.type)
     if (!presignedResult.success) {
+      addPhotoLog({
+        action: 'upload_error',
+        ...logDetails,
+        error: presignedResult.error,
+        errorCode: 'PRESIGNED_URL_FAILED',
+        duration: Date.now() - startTime,
+      })
       return { success: false, error: presignedResult.error }
     }
 
@@ -151,6 +174,14 @@ export async function uploadPhoto(
     const uploadResult = await uploadToOSS(file, presignedUrl, mimeType)
     if (!uploadResult.success) {
       console.error('[uploadPhoto] 上传失败:', uploadResult.error, uploadResult.details)
+      addPhotoLog({
+        action: 'upload_error',
+        ...logDetails,
+        error: uploadResult.error,
+        errorCode: uploadResult.error,
+        details: { ossErrorDetails: uploadResult.details },
+        duration: Date.now() - startTime,
+      })
       return { success: false, error: uploadResult.error }
     }
 
@@ -164,8 +195,23 @@ export async function uploadPhoto(
     })
 
     if (!metadataResult.success) {
+      addPhotoLog({
+        action: 'upload_error',
+        ...logDetails,
+        error: metadataResult.error,
+        errorCode: 'METADATA_SAVE_FAILED',
+        duration: Date.now() - startTime,
+      })
       return { success: false, error: metadataResult.error }
     }
+
+    // 记录成功日志
+    addPhotoLog({
+      action: 'upload_success',
+      ...logDetails,
+      photoId: metadataResult.photo?.id,
+      duration: Date.now() - startTime,
+    })
 
     return {
       success: true,
@@ -173,6 +219,13 @@ export async function uploadPhoto(
     }
   } catch (error) {
     console.error('[OSS] 上传流程失败:', error)
+    addPhotoLog({
+      action: 'upload_error',
+      ...logDetails,
+      error: String(error),
+      errorCode: 'UNKNOWN_ERROR',
+      duration: Date.now() - startTime,
+    })
     return {
       success: false,
       error: 'UNKNOWN_ERROR',
@@ -221,7 +274,14 @@ export async function getRecordPhotos(recordId: string): Promise<{
   photos?: Photo[]
   error?: string
 }> {
+  const startTime = Date.now()
+
   try {
+    addPhotoLog({
+      action: 'query_start',
+      recordId,
+    })
+
     const headers = await getAuthHeaders()
     const response = await fetch(`/api/practice-records/${recordId}/photos`, {
       method: 'GET',
@@ -231,6 +291,24 @@ export async function getRecordPhotos(recordId: string): Promise<{
     const result = await response.json()
     // API 返回 { success: true, data: { photos: [...] } }
     // 转换为 { success: true, photos: [...] }
+
+    if (result.success) {
+      addPhotoLog({
+        action: 'query_success',
+        recordId,
+        details: { photoCount: result.data?.photos?.length || 0 },
+        duration: Date.now() - startTime,
+      })
+    } else {
+      addPhotoLog({
+        action: 'query_error',
+        recordId,
+        error: result.error,
+        errorCode: result.error,
+        duration: Date.now() - startTime,
+      })
+    }
+
     return {
       success: result.success,
       photos: result.data?.photos,
@@ -238,6 +316,13 @@ export async function getRecordPhotos(recordId: string): Promise<{
     }
   } catch (error) {
     console.error('[OSS] 获取照片失败:', error)
+    addPhotoLog({
+      action: 'query_error',
+      recordId,
+      error: String(error),
+      errorCode: 'NETWORK_ERROR',
+      duration: Date.now() - startTime,
+    })
     return {
       success: false,
       error: 'NETWORK_ERROR',
@@ -259,7 +344,18 @@ export async function deletePhoto(
   success: boolean
   error?: string
 }> {
+  const startTime = Date.now()
+  const logDetails = {
+    photoId,
+    recordId: practiceRecordId,
+  }
+
   try {
+    addPhotoLog({
+      action: 'delete_start',
+      ...logDetails,
+    })
+
     const headers = await getAuthHeaders()
     let realPhotoId = photoId
 
@@ -269,6 +365,13 @@ export async function deletePhoto(
       const token = session?.access_token
       const userId = session?.user?.id
       if (!token || !userId) {
+        addPhotoLog({
+          action: 'delete_error',
+          ...logDetails,
+          error: 'NOT_AUTHENTICATED',
+          errorCode: 'NOT_AUTHENTICATED',
+          duration: Date.now() - startTime,
+        })
         return { success: false, error: 'NOT_AUTHENTICATED' }
       }
 
@@ -285,11 +388,25 @@ export async function deletePhoto(
 
       if (!response.ok) {
         console.error('[Delete Photo] 查询照片失败:', await response.text())
+        addPhotoLog({
+          action: 'delete_error',
+          ...logDetails,
+          error: 'PHOTO_NOT_FOUND',
+          errorCode: 'QUERY_FAILED',
+          duration: Date.now() - startTime,
+        })
         return { success: false, error: 'PHOTO_NOT_FOUND' }
       }
 
       const photos = await response.json()
       if (!photos || photos.length === 0) {
+        addPhotoLog({
+          action: 'delete_error',
+          ...logDetails,
+          error: 'PHOTO_NOT_FOUND',
+          errorCode: 'PHOTO_NOT_FOUND',
+          duration: Date.now() - startTime,
+        })
         return { success: false, error: 'PHOTO_NOT_FOUND' }
       }
 
@@ -304,9 +421,33 @@ export async function deletePhoto(
     })
 
     const result = await response.json()
+
+    if (result.success) {
+      addPhotoLog({
+        action: 'delete_success',
+        ...logDetails,
+        duration: Date.now() - startTime,
+      })
+    } else {
+      addPhotoLog({
+        action: 'delete_error',
+        ...logDetails,
+        error: result.error,
+        errorCode: result.error,
+        duration: Date.now() - startTime,
+      })
+    }
+
     return result
   } catch (error) {
     console.error('[OSS] 删除照片失败:', error)
+    addPhotoLog({
+      action: 'delete_error',
+      ...logDetails,
+      error: String(error),
+      errorCode: 'NETWORK_ERROR',
+      duration: Date.now() - startTime,
+    })
     return {
       success: false,
       error: 'NETWORK_ERROR',

@@ -3947,10 +3947,26 @@ export default function AshtangaTracker() {
       syncLogs = [{ action: '读取同步日志失败', error: String(e), timestamp: new Date().toISOString() }]
     }
 
+    // ===== 13. 照片操作日志 =====
+    let photoLogs: any[] = []
+    try {
+      const { getPhotoLogs, getPhotoErrorLogs } = await import('@/lib/photo-logger')
+      photoLogs = {
+        all: getPhotoLogs().slice(0, 50),
+        errors: getPhotoErrorLogs().slice(0, 20),
+        summary: {
+          total: getPhotoLogs().length,
+          errors: getPhotoErrorLogs().length,
+        }
+      }
+    } catch (e) {
+      photoLogs = { error: '读取照片日志失败', details: String(e) }
+    }
+
     // 生成完整日志
     const debugLog = {
       _meta: {
-        version: '2.2',
+        version: '2.3',
         exportTime: new Date().toISOString(),
         description: '熬汤日记调试日志 - 用于问题排查',
         gitVersion: getVersionInfo()
@@ -3968,7 +3984,8 @@ export default function AshtangaTracker() {
       errorHistory,
       performanceInfo,
       currentAppState,
-      syncLogs
+      syncLogs,
+      photoLogs
     }
 
     // 转换为JSON字符串并显示在弹窗中
