@@ -2677,7 +2677,7 @@ function JournalTab({
                   className="w-full text-left hover:bg-secondary/30 rounded-lg transition-colors overflow-hidden"
                   style={{ borderRadius: '0 0.5rem 0.5rem 0' }}
                 >
-                  <p className="text-sm text-foreground font-serif leading-snug whitespace-pre-wrap break-words w-full">
+                  <p className="text-sm text-foreground font-serif leading-snug whitespace-pre-wrap break-words w-full text-justify">
                     {practice.notes}
                   </p>
                   {/* ⭐ 照片展示 - 时光轴 */}
