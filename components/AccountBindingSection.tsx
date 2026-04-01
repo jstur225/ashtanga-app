@@ -237,7 +237,7 @@ export function AccountBindingSection({
         <div className="space-y-3">
           <button
             onClick={onOpenRegisterModal}
-            className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl hover:from-orange-600 hover:to-amber-600 transition-all font-medium font-serif backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)]"
+            className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-[#C1A268] to-[#D4AF37] text-white rounded-xl hover:from-[#B08F55] hover:to-[#C1A268] transition-all font-medium font-serif backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)]"
           >
             <Mail className="w-5 h-5" />
             去绑定邮箱
