@@ -134,6 +134,38 @@ function useRecordPhotos(recordId: string | undefined, initialPhotoUrls?: string
     fetchPhotosFromDB()
   }, [recordId])
 
+  // 删除照片 - 改为本地标记，保存时批量删除
+  const deletePhoto = useCallback((photoId: string) => {
+    console.log('[删除照片] 标记待删除:', photoId)
+    const photo = photos.find(p => p.id === photoId)
+    if (!photo) return false
+
+    // 标记待删除并立即从 UI 移除
+    setPendingDeletePhotos(prev => [...prev, photo])
+    setPhotos(prev => prev.filter(p => p.id !== photoId))
+    toast.success('照片已删除，保存时生效')
+    return true
+  }, [photos])
+
+  // 执行待删除照片的批量删除（在保存或上传时调用）
+  const executePendingDeletions = useCallback(async () => {
+    if (pendingDeletePhotos.length === 0) return true
+
+    console.log('[删除照片] 批量删除待删除照片:', pendingDeletePhotos.length)
+    const { deletePhoto: doDelete } = await import('@/lib/oss')
+
+    try {
+      await Promise.all(
+        pendingDeletePhotos.map(p => doDelete(p.id, recordId, p.oss_url))
+      )
+      setPendingDeletePhotos([])
+      return true
+    } catch (error) {
+      console.error('[删除照片] 批量删除失败:', error)
+      return false
+    }
+  }, [pendingDeletePhotos, recordId])
+
   // 上传照片
   const uploadPhoto = useCallback(async (file: File) => {
     if (!recordId) {
@@ -143,6 +175,12 @@ function useRecordPhotos(recordId: string | undefined, initialPhotoUrls?: string
 
     setUploading(true)
     try {
+      // ⭐ 如果有待删除的照片，先执行删除腾出空间
+      if (pendingDeletePhotos.length > 0) {
+        console.log('[上传照片] 先执行待删除:', pendingDeletePhotos.length)
+        await executePendingDeletions()
+      }
+
       const { uploadPhoto: doUpload } = await import('@/lib/oss')
       const result = await doUpload(file, recordId)
 
@@ -168,39 +206,7 @@ function useRecordPhotos(recordId: string | undefined, initialPhotoUrls?: string
     } finally {
       setUploading(false)
     }
-  }, [recordId])
-
-  // 删除照片 - 改为本地标记，保存时批量删除
-  const deletePhoto = useCallback((photoId: string) => {
-    console.log('[删除照片] 标记待删除:', photoId)
-    const photo = photos.find(p => p.id === photoId)
-    if (!photo) return false
-
-    // 标记待删除并立即从 UI 移除
-    setPendingDeletePhotos(prev => [...prev, photo])
-    setPhotos(prev => prev.filter(p => p.id !== photoId))
-    toast.success('照片已删除，保存时生效')
-    return true
-  }, [photos])
-
-  // 执行待删除照片的批量删除（在保存时调用）
-  const executePendingDeletions = useCallback(async () => {
-    if (pendingDeletePhotos.length === 0) return true
-
-    console.log('[删除照片] 批量删除待删除照片:', pendingDeletePhotos.length)
-    const { deletePhoto: doDelete } = await import('@/lib/oss')
-
-    try {
-      await Promise.all(
-        pendingDeletePhotos.map(p => doDelete(p.id, recordId, p.oss_url))
-      )
-      setPendingDeletePhotos([])
-      return true
-    } catch (error) {
-      console.error('[删除照片] 批量删除失败:', error)
-      return false
-    }
-  }, [pendingDeletePhotos, recordId])
+  }, [recordId, pendingDeletePhotos, executePendingDeletions])
 
   return { photos, loading, uploading, uploadPhoto, deletePhoto, pendingDeletePhotos, executePendingDeletions }
 }
