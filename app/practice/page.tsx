@@ -604,8 +604,6 @@ function ShareCardModal({
   totalHours,
   onEditRecord,
   onLogExport,
-  onOpenVoiceFakeDoor,
-  onOpenPhotoFakeDoor,
   syncStatus,
 }: {
   isOpen: boolean
@@ -617,26 +615,9 @@ function ShareCardModal({
   totalHours: number
   onEditRecord: (id: string, notes: string, photos: string[], breakthrough?: string) => void
   onLogExport: (log: any) => void
-  onOpenVoiceFakeDoor?: () => void
-  onOpenPhotoFakeDoor?: () => void
   syncStatus?: 'idle' | 'syncing' | 'success' | 'error'
 }) {
-  const [editableNotes, setEditableNotes] = useState("")
-  const [isEditingNotes, setIsEditingNotes] = useState(false)
-  const [originalNotes, setOriginalNotes] = useState("")
   const [isCapturing, setIsCapturing] = useState(false)  // 截图状态
-
-  // 计算是否修改
-  const isNotesModified = editableNotes !== originalNotes
-
-  // 当 record 变化时，更新 editableNotes 和 originalNotes
-  useEffect(() => {
-    if (record) {
-      const notes = record.notes || "今日练习完成"
-      setEditableNotes(notes)
-      setOriginalNotes(notes)
-    }
-  }, [record, record?.notes])
 
   // 早期返回必须在所有 Hooks 之后
   if (!record) return null
@@ -759,48 +740,13 @@ function ShareCardModal({
                   )}
                 </div>
 
-                {/* Reflection Text - Editable Notes with elegant serif font */}
+                {/* Reflection Text - 只读显示 */}
                 <div className="px-5 py-6">
-                  {isEditingNotes ? (
-                    <div className="relative">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs text-muted-foreground/60">{editableNotes.length}字</span>
-                      </div>
-                      <textarea
-                        value={editableNotes}
-                        onChange={(e) => setEditableNotes(e.target.value)}
-                        onBlur={() => setIsEditingNotes(false)}
-                        autoFocus
-                        rows={Math.max(4, editableNotes.split('\n').length)}
-                        placeholder="今天练习感受如何？有什么觉察？可以尝试右下方的语音输入，轻松地说出你的当下想法，留下更多真实的痕迹。"
-                        className={`w-full px-3 py-2 pr-12 text-sm text-foreground font-serif leading-relaxed bg-secondary rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 resize-y ${
-                          isCapturing
-                            ? 'max-h-none'  // 截图时：无高度限制
-                            : 'max-h-[60vh] overflow-y-auto'  // 编辑时：最大60vh，超出滚动
-                        }`}
-                      />
-                      {/* Voice Input + Photo Upload - 浮动在右下角（假门测试） */}
-                      <div className="absolute bottom-3 right-3 flex items-center gap-2">
-                        <PhotoUploadButton
-                          onClick={() => onOpenPhotoFakeDoor?.()}
-                        />
-                        <VoiceButton
-                          onClick={() => onOpenVoiceFakeDoor?.()}
-                        />
-                      </div>
-                    </div>
-                  ) : (
-                    <p
-                      onClick={() => setIsEditingNotes(true)}
-                      className={`text-sm text-foreground font-serif leading-relaxed cursor-text hover:bg-secondary/30 rounded-lg p-1 -m-1 transition-colors whitespace-pre-wrap break-words ${
-                        isCapturing
-                          ? 'max-h-none'
-                          : 'max-h-[60vh] overflow-y-auto'
-                      }`}
-                    >
-                      {editableNotes || "点击编辑笔记，或尝试右下方的语音输入，轻松说出你的想法..."}
-                    </p>
-                  )}
+                  <p className={`text-sm text-foreground font-serif leading-relaxed whitespace-pre-wrap break-words ${
+                    isCapturing ? 'max-h-none' : 'max-h-[50vh] overflow-y-auto'
+                  }`}>
+                    {record.notes || "今日练习完成"}
+                  </p>
 
                   {/* 照片展示 - 与文案区同宽，垂直排列，一行一张 */}
                   {record.photos && record.photos.length > 0 && (
@@ -889,21 +835,12 @@ function ShareCardModal({
                     console.log('💾 保存按钮')
                     e.stopPropagation()
                     e.preventDefault()
-                    if (isNotesModified) {
-                      // 保存文案，但不关闭模态框
-                      if (record) {
-                        onEditRecord(record.id, editableNotes, [], record.breakthrough)
-                        setOriginalNotes(editableNotes)
-                      }
-                    } else {
-                      // 导出图片
-                      handleExportImage()
-                    }
+                    handleExportImage()
                   }}
                   className="flex-1 py-3 rounded-full green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white font-serif transition-all hover:opacity-90 active:scale-[0.98] flex items-center justify-center gap-2"
                 >
                   <Share2 className="w-4 h-4" />
-                  {isNotesModified ? '保存' : '保存图片'}
+                  保存图片
                 </button>
               </div>
             </div>
@@ -2748,8 +2685,6 @@ function JournalTab({
         totalHours={totalHours}
         onEditRecord={handleShareCardEdit}
         onLogExport={onLogExport}
-        onOpenVoiceFakeDoor={onOpenVoiceFakeDoor}
-        onOpenPhotoFakeDoor={onOpenPhotoFakeDoor}
         syncStatus={syncStatus}
       />
 
