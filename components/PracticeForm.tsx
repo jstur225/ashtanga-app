@@ -111,6 +111,29 @@ function useRecordPhotos(recordId: string | undefined, initialPhotoUrls?: string
     }
   }, [initialPhotoUrls])
 
+  // 从数据库查询真实照片状态（解决前后端不一致问题）
+  useEffect(() => {
+    if (!recordId) return
+
+    const fetchPhotosFromDB = async () => {
+      setLoading(true)
+      try {
+        const { getRecordPhotos } = await import('@/lib/oss')
+        const result = await getRecordPhotos(recordId)
+        if (result.success && result.photos) {
+          console.log('[useRecordPhotos] 数据库照片:', result.photos.length)
+          setPhotos(result.photos)
+        }
+      } catch (error) {
+        console.error('[useRecordPhotos] 查询照片失败:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchPhotosFromDB()
+  }, [recordId])
+
   // 上传照片
   const uploadPhoto = useCallback(async (file: File) => {
     if (!recordId) {
