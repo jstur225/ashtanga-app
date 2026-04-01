@@ -45,11 +45,12 @@ export async function PATCH(
     const body = await request.json()
     const { deleted_at } = body
 
-    // 3. 验证照片存在且属于当前用户
+    // 3. 验证照片存在且属于当前用户（只查询未删除的照片）
     const { data: existingPhoto, error: fetchError } = await supabase
       .from('photos')
       .select('id, user_id, practice_record_id')
       .eq('id', id)
+      .is('deleted_at', null)
       .single()
 
     if (fetchError || !existingPhoto) {

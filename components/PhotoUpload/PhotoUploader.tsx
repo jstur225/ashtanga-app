@@ -234,9 +234,26 @@ export function PhotoUploader({
     toast.success('照片已删除 ✓')
 
     // 后台异步发送删除请求（不阻塞 UI）
-    deletePhoto(photoId).catch(error => {
-      console.error('[PhotoUploader] 删除失败:', error)
-      // 删除失败，回滚状态
+    deletePhoto(photoId, recordId, photoToDelete.oss_url).then(result => {
+      if (!result.success) {
+        // 如果是 PHOTO_NOT_FOUND，说明照片已经被删除，视为成功
+        if (result.error === 'PHOTO_NOT_FOUND') {
+          console.log('[PhotoUploader] 照片已不存在，视为删除成功')
+          return
+        }
+        console.error('[PhotoUploader] 删除失败:', result.error)
+        // 删除失败，回滚状态
+        setPhotos(prev => {
+          if (prev.some(p => p.id === photoId)) return prev
+          return photoToDelete ? [...prev, photoToDelete].sort((a, b) =>
+            new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+          ) : prev
+        })
+        toast.error('删除失败，请重试')
+      }
+    }).catch(error => {
+      console.error('[PhotoUploader] 删除请求异常:', error)
+      // 网络错误等情况，回滚状态
       setPhotos(prev => {
         if (prev.some(p => p.id === photoId)) return prev
         return photoToDelete ? [...prev, photoToDelete].sort((a, b) =>

@@ -102,6 +102,7 @@ function useRecordPhotos(recordId: string | undefined, initialPhotoUrls?: string
   })
   const [loading, setLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [pendingDeletePhotos, setPendingDeletePhotos] = useState<Photo[]>([])  // ← 标记待删除的照片
 
   // 当 initialPhotoUrls 变化时（切换记录），立即更新照片
   useEffect(() => {
@@ -146,37 +147,39 @@ function useRecordPhotos(recordId: string | undefined, initialPhotoUrls?: string
     }
   }, [recordId])
 
-  // 删除照片
-  const deletePhoto = useCallback(async (photoId: string) => {
-    console.log('[删除照片] 开始删除:', photoId, 'recordId:', recordId)
+  // 删除照片 - 改为本地标记，保存时批量删除
+  const deletePhoto = useCallback((photoId: string) => {
+    console.log('[删除照片] 标记待删除:', photoId)
+    const photo = photos.find(p => p.id === photoId)
+    if (!photo) return false
+
+    // 标记待删除并立即从 UI 移除
+    setPendingDeletePhotos(prev => [...prev, photo])
+    setPhotos(prev => prev.filter(p => p.id !== photoId))
+    toast.success('照片已删除，保存时生效')
+    return true
+  }, [photos])
+
+  // 执行待删除照片的批量删除（在保存时调用）
+  const executePendingDeletions = useCallback(async () => {
+    if (pendingDeletePhotos.length === 0) return true
+
+    console.log('[删除照片] 批量删除待删除照片:', pendingDeletePhotos.length)
+    const { deletePhoto: doDelete } = await import('@/lib/oss')
+
     try {
-      const { deletePhoto: doDelete } = await import('@/lib/oss')
-      // 找到对应的 photo 对象获取 URL
-      const photo = photos.find(p => p.id === photoId)
-      const photoUrl = photo?.oss_url
-      console.log('[删除照片] 找到照片:', photo ? '是' : '否', 'URL:', photoUrl)
-
-      // 本地生成的 ID 需要传入 recordId 和 oss_url
-      const result = await doDelete(photoId, recordId, photoUrl)
-      console.log('[删除照片] 删除结果:', result)
-
-      if (result.success) {
-        setPhotos(prev => prev.filter(p => p.id !== photoId))
-        toast.success('照片已删除 ✓')
-        return true
-      } else {
-        console.error('[删除照片] 删除失败:', result.error)
-        toast.error(`删除失败: ${result.error || '请重试'}`)
-        return false
-      }
+      await Promise.all(
+        pendingDeletePhotos.map(p => doDelete(p.id, recordId, p.oss_url))
+      )
+      setPendingDeletePhotos([])
+      return true
     } catch (error) {
-      console.error('[删除照片] 删除出错:', error)
-      toast.error('删除出错，请重试')
+      console.error('[删除照片] 批量删除失败:', error)
       return false
     }
-  }, [recordId, photos])
+  }, [pendingDeletePhotos, recordId])
 
-  return { photos, loading, uploading, uploadPhoto, deletePhoto }
+  return { photos, loading, uploading, uploadPhoto, deletePhoto, pendingDeletePhotos, executePendingDeletions }
 }
 
 // ==================== 主组件 ====================
@@ -233,7 +236,7 @@ export function PracticeForm({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   // 照片管理
-  const { photos, loading, uploading, uploadPhoto, deletePhoto } = useRecordPhotos(recordId, initialPhotos)
+  const { photos, loading, uploading, uploadPhoto, deletePhoto, executePendingDeletions } = useRecordPhotos(recordId, initialPhotos)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // ⭐ 照片上传权限和限制
@@ -310,7 +313,11 @@ export function PracticeForm({
   }
 
   // 保存
-  const handleSave = () => {
+  const handleSave = async () => {
+    // 1. 先执行待删除照片的批量删除
+    await executePendingDeletions()
+
+    // 2. 保存记录
     onSave({
       date,
       type,
