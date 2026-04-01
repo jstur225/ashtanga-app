@@ -3844,17 +3844,17 @@ export default function AshtangaTracker() {
     }
 
     // ===== 7. 最近的练习记录（最近10条） =====
+    // 注意：隐藏具体觉察内容，只保留是否有内容的标记，保护用户隐私
     const recentRecords = practiceHistory.slice(0, 10).map(r => ({
       id: r.id,
       date: r.date,
       type: r.type?.substring(0, 30),
       duration: r.duration,
       hasNotes: !!r.notes,
-      notesPreview: r.notes?.substring(0, 50) || null,
+      notesLength: r.notes?.length || 0, // 只显示字数，不显示内容
       hasPhotos: !!r.photos?.length,
       photosCount: r.photos?.length || 0,
       hasBreakthrough: !!r.breakthrough,
-      breakthroughPreview: r.breakthrough?.substring(0, 50) || null,
       createdAt: r.created_at
     }))
 
