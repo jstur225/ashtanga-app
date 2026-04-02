@@ -4238,10 +4238,15 @@ export default function AshtangaTracker() {
 
       // ⭐ 延迟 500ms 同步，确保 localStorage 已完全更新
       // 只有绑定邮箱的用户才同步到云端
+      console.log('[handleSavePractice] 准备同步，user:', user?.email || '未登录')
       if (user?.email) {
+        console.log('[handleSavePractice] 用户已绑定邮箱，启动同步')
         setTimeout(() => {
+          console.log('[handleSavePractice] 执行 autoSync')
           autoSync()
         }, 500)
+      } else {
+        console.log('[handleSavePractice] 用户未绑定邮箱，跳过同步')
       }
     } catch (error) {
       console.error('保存失败:', error)
@@ -4253,7 +4258,7 @@ export default function AshtangaTracker() {
       setIsSaving(false)
       console.log('setIsSaving(false) called')
     }
-  }, [elapsedTime, getSelectedLabel, addRecord, isSaving, autoSync, user?.email])
+  }, [elapsedTime, getSelectedLabel, addRecord, isSaving, autoSync, user])
 
   // Full-screen Timer View with Hero Transition
   if (isPracticing) {
