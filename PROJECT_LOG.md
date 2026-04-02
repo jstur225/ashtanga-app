@@ -1,5 +1,54 @@
 # 阿斯汤加打卡app - 项目记录
 
+## 2026-04-02: 照片上传修复 + 重复记录修复 + 排序修复 ✅
+
+**类型**: Bug 修复
+
+### 1. 完成练习后照片上传失败 (RECORD_NOT_FOUND)
+**问题**: 完成练习后在编辑页面上传照片提示 "记录不存在"
+
+**原因**:
+- 完成练习创建的是本地草稿记录
+- 草稿未及时同步到云端数据库
+- 上传照片时后端查不到记录
+
+**解决方案**:
+- `CompletionSheet` 创建草稿后立即触发同步
+- 添加 `autoSync` prop 传递同步函数
+- 只有绑定邮箱的用户才执行同步
+
+### 2. 重复创建记录
+**问题**: 完成练习保存后，Tab2 出现两条记录（一条空白，一条有内容）
+
+**原因**:
+- `CompletionSheet` 的 `handleSave` 调用了 `updateRecord` 后又调用 `handleSavePractice`
+- `handleSavePractice` 又执行 `addRecord` 创建新记录
+
+**解决方案**:
+- `CompletionSheet` 不再调用 `handleSavePractice`
+- 改为调用 `onClose` 关闭弹窗
+- 添加 `onClose` prop 处理弹窗关闭逻辑
+
+### 3. 时光轴记录排序错乱
+**问题**: 新创建的记录有时排在时光轴最后
+
+**原因**: `usePracticeData` 初始化时未对记录排序
+
+**解决方案**: 初始化时检查并按日期倒序排序
+
+**涉及文件**:
+- `app/practice/page.tsx` - CompletionSheet 同步逻辑、重复记录修复
+- `hooks/usePracticeData.ts` - 初始化排序
+
+**提交**: `master2` 分支
+- `aa431db` fix: 初始化时对记录按日期排序
+- `e86a185` fix: CompletionSheet 创建草稿后立即触发同步
+- `a2b8d5b` fix: 修复完成练习重复创建记录的问题
+- `0c2c481` fix: 添加调试日志，修复 handleSavePractice 闭包问题
+- `41f1efd` fix: 完成练习后触发同步
+
+---
+
 ## 2026-04-01: 照片功能完善 + 延迟删除 + UI优化 ✅
 
 **类型**: 功能完善 + 体验优化
