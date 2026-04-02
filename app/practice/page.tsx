@@ -3568,7 +3568,8 @@ export default function AshtangaTracker() {
       toast.success('补卡成功！')
     }
     // 延迟 500ms 同步，确保 localStorage 已完全更新
-    if (user) {
+    // ⭐ 只有绑定邮箱的用户才同步到云端
+    if (user?.email) {
       setTimeout(() => {
         autoSync()
       }, 500)
@@ -4234,6 +4235,14 @@ export default function AshtangaTracker() {
         duration: 2000,
         position: 'top-center'
       })
+
+      // ⭐ 延迟 500ms 同步，确保 localStorage 已完全更新
+      // 只有绑定邮箱的用户才同步到云端
+      if (user?.email) {
+        setTimeout(() => {
+          autoSync()
+        }, 500)
+      }
     } catch (error) {
       console.error('保存失败:', error)
       toast.error('❌ 保存失败，请重试', {
@@ -4244,7 +4253,7 @@ export default function AshtangaTracker() {
       setIsSaving(false)
       console.log('setIsSaving(false) called')
     }
-  }, [elapsedTime, getSelectedLabel, addRecord, isSaving])
+  }, [elapsedTime, getSelectedLabel, addRecord, isSaving, autoSync, user?.email])
 
   // Full-screen Timer View with Hero Transition
   if (isPracticing) {
