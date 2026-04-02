@@ -1972,6 +1972,7 @@ function CompletionSheet({
   practiceType,
   duration,
   onSave,
+  onClose,
   addRecord,
   updateRecord,
   deleteRecord,
@@ -1984,6 +1985,7 @@ function CompletionSheet({
   practiceType: string
   duration: string
   onSave: (notes: string, photos: string[], breakthrough?: string) => void
+  onClose?: () => void
   addRecord: (record: Omit<PracticeRecord, 'id' | 'created_at' | 'updated_at' | 'photos'>) => PracticeRecord
   updateRecord: (id: string, data: Partial<PracticeRecord>) => void
   deleteRecord: (id: string) => void
@@ -2047,9 +2049,9 @@ function CompletionSheet({
         photos: data.photos, // ⭐ 保存时包含照片
       })
       toast.success('记录已保存！')
-      
-      // ⭐ 调用 onSave 回调，触发关闭弹窗并切换到 journal 标签页
-      onSave(data.notes || "今日练习完成", data.photos || [], data.breakthrough)
+
+      // ⭐ 关闭弹窗
+      onClose?.()
     }
     // 重置表单
     setFormData({
@@ -4477,6 +4479,14 @@ export default function AshtangaTracker() {
           practiceType={getSelectedLabel()}
           duration={finalDuration}
           onSave={handleSavePractice}
+          onClose={() => {
+            setShowCompletion(false)
+            setSelectedOption(null)
+            setCustomPracticeName("")
+            setElapsedTime(0)
+            setIsPaused(false)
+            setActiveTab('journal')
+          }}
           addRecord={addRecord}
           updateRecord={updateRecord}
           deleteRecord={deleteRecord}
@@ -4967,6 +4977,14 @@ export default function AshtangaTracker() {
         practiceType={getSelectedLabel()}
         duration={finalDuration}
         onSave={handleSavePractice}
+        onClose={() => {
+          setShowCompletion(false)
+          setSelectedOption(null)
+          setCustomPracticeName("")
+          setElapsedTime(0)
+          setIsPaused(false)
+          setActiveTab('journal')
+        }}
         addRecord={addRecord}
         updateRecord={updateRecord}
         deleteRecord={deleteRecord}
