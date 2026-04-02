@@ -2563,7 +2563,10 @@ function JournalTab({
       
       {/* Timeline - continuous, split click zones */}
       <div className="px-2 pb-10">
-        {practiceHistory.filter(r => r.type !== '草稿').map((practice, index) => (
+        {practiceHistory
+          .filter(r => r.type !== '草稿')
+          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+          .map((practice, index) => (
           <motion.div
             key={practice.id}
             ref={(el) => { recordRefs.current[practice.id] = el }}

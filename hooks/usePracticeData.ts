@@ -176,35 +176,41 @@ export const usePracticeData = () => {
       setRecords(tutorialRecords);
     }
 
-    // ⭐ 清理残留的草稿记录（用户刷新页面或关闭浏览器导致草稿未被删除）
+    // ⭐ 清理残留的草稿记录并确保排序（用户刷新页面或关闭浏览器导致草稿未被删除）
     try {
       const storedRecords = localStorage.getItem('ashtanga_records');
       if (storedRecords && storedRecords !== '[]') {
         const parsedRecords: PracticeRecord[] = JSON.parse(storedRecords);
-        const draftRecords = parsedRecords.filter(r => r.type === '草稿');
 
-        if (draftRecords.length > 0) {
-          console.log(`🧹 [清理草稿] 发现 ${draftRecords.length} 条残留的草稿记录，正在清理...`);
-          const cleanedRecords = parsedRecords.filter(r => r.type !== '草稿');
-          localStorage.setItem('ashtanga_records', JSON.stringify(cleanedRecords));
-          setRecords(cleanedRecords);
-          console.log('✅ [清理草稿] 已清理所有草稿记录');
+        // 步骤1：清理草稿记录
+        const cleanedRecords = parsedRecords.filter(r => r.type !== '草稿');
+        const draftRecordsCount = parsedRecords.length - cleanedRecords.length;
+
+        if (draftRecordsCount > 0) {
+          console.log(`🧹 [清理草稿] 发现 ${draftRecordsCount} 条残留的草稿记录，正在清理...`);
         }
 
-        // ⭐ 确保记录按日期倒序排序（最新的在最前面）
-        const sortedRecords = parsedRecords.sort((a, b) => {
+        // 步骤2：确保记录按日期倒序排序（最新的在最前面）
+        // 注意：使用 [...cleanedRecords] 创建副本，避免原地排序
+        const sortedRecords = [...cleanedRecords].sort((a, b) => {
           return new Date(b.date).getTime() - new Date(a.date).getTime();
         });
-        // 如果排序后有变化，更新 localStorage 和状态
-        const hasChanges = parsedRecords.some((r, i) => r.id !== sortedRecords[i]?.id);
-        if (hasChanges) {
-          console.log('🔄 [排序] 记录未按日期排序，重新排序...');
+
+        // 步骤3：检查是否有变化（草稿被清理或顺序需要调整）
+        const hasOrderChanges = cleanedRecords.some((r, i) => r.id !== sortedRecords[i]?.id);
+        const needsUpdate = draftRecordsCount > 0 || hasOrderChanges;
+
+        if (needsUpdate) {
+          if (hasOrderChanges) {
+            console.log('🔄 [排序] 记录未按日期排序，重新排序...');
+          }
           localStorage.setItem('ashtanga_records', JSON.stringify(sortedRecords));
           setRecords(sortedRecords);
+          console.log('✅ [初始化] 记录已清理草稿并排序');
         }
       }
     } catch (e) {
-      console.error('❌ [清理草稿] 清理草稿记录失败:', e);
+      console.error('❌ [初始化] 清理草稿或排序失败:', e);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // 只在组件挂载时执行一次

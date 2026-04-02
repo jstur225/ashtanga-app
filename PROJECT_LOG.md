@@ -1,5 +1,51 @@
 # 阿斯汤加打卡app - 项目记录
 
+## 2026-04-02: Tab2 排序问题彻底修复 ✅
+
+**类型**: Bug 修复
+
+### 问题描述
+Tab2（觉察日记）时光轴记录排序错乱，旧记录也出现顺序错位。
+
+### 根因分析（3个问题）
+
+**问题1（严重）: 排序检查逻辑错误**
+- 位置: `hooks/usePracticeData.ts` 第195-199行
+- 代码: `const sortedRecords = parsedRecords.sort(...)`
+- 原因: `sort()` 原地排序，返回原数组引用。`sortedRecords` 和 `parsedRecords` 是同一对象，比较永远无变化
+- 结果: `hasChanges` 永远为 `false`，排序后数据永不保存
+
+**问题2（严重）: 草稿清理与排序逻辑冲突**
+- 位置: `hooks/usePracticeData.ts` 第186-204行
+- 流程:
+  1. 清理草稿 → 设置状态为 cleanedRecords
+  2. 对原始 parsedRecords（含草稿）排序
+  3. 用含草稿的 sortedRecords 覆盖状态
+- 结果: 草稿被重新写回 localStorage，数据污染
+
+**问题3（缺失）: JournalTab 无排序保障**
+- 位置: `app/practice/page.tsx` JournalTab 第2566行
+- 代码: `practiceHistory.filter(r => r.type !== '草稿').map(...)`
+- 原因: 仅过滤草稿，未按日期排序
+- 结果: 如果传入数据未排序，显示错乱
+
+### 修复方案
+
+**修复1: usePracticeData.ts 初始化逻辑重写**
+- 使用 `[...cleanedRecords]` 创建副本再排序，避免原地排序
+- 统一处理草稿清理和排序，避免逻辑冲突
+- 正确检测变化（草稿清理或顺序调整）
+
+**修复2: JournalTab 添加排序保障**
+- 过滤后添加 `.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())`
+- 确保无论传入数据是否排序，显示始终正确
+
+### 涉及文件
+- `hooks/usePracticeData.ts` - 重写初始化排序逻辑
+- `app/practice/page.tsx` - JournalTab 添加排序
+
+---
+
 ## 2026-04-02: 照片上传修复 + 重复记录修复 + 排序修复 ✅
 
 **类型**: Bug 修复
