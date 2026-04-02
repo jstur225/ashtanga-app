@@ -1976,6 +1976,7 @@ function CompletionSheet({
   addRecord,
   updateRecord,
   deleteRecord,
+  autoSync,
   onOpenVoiceFakeDoor,
   onOpenPhotoFakeDoor,
   user,
@@ -1988,7 +1989,8 @@ function CompletionSheet({
   onClose?: () => void
   addRecord: (record: Omit<PracticeRecord, 'id' | 'created_at' | 'updated_at' | 'photos'>) => PracticeRecord
   updateRecord: (id: string, data: Partial<PracticeRecord>) => void
-  deleteRecord: (id: string) => void
+  deleteRecord: (id: string, skipConfirm?: boolean) => void
+  autoSync?: () => Promise<void>
   onOpenVoiceFakeDoor?: () => void
   onOpenPhotoFakeDoor?: () => void
   user?: { email?: string | null } | null
@@ -2024,6 +2026,15 @@ function CompletionSheet({
         notes: '',
         breakthrough: undefined,
       })
+
+      // ⭐ 延迟 500ms 同步，确保 localStorage 已完全更新
+      // 只有绑定邮箱的用户才同步到云端
+      if (user?.email && autoSync) {
+        console.log('[CompletionSheet] 草稿创建完成，准备同步')
+        setTimeout(() => {
+          autoSync()
+        }, 500)
+      }
     } else if (draftRecord) {
       // 弹窗关闭时删除草稿（用户取消）
       deleteRecord(draftRecord.id, true) // true = 跳过确认
@@ -4490,6 +4501,7 @@ export default function AshtangaTracker() {
           addRecord={addRecord}
           updateRecord={updateRecord}
           deleteRecord={deleteRecord}
+          autoSync={autoSync}
           onOpenVoiceFakeDoor={() => setShowFakeDoor({ type: 'voice', isOpen: true })}
           onOpenPhotoFakeDoor={() => setShowFakeDoor({ type: 'photo', isOpen: true })}
           user={user}
@@ -4988,6 +5000,7 @@ export default function AshtangaTracker() {
         addRecord={addRecord}
         updateRecord={updateRecord}
         deleteRecord={deleteRecord}
+        autoSync={autoSync}
         onOpenVoiceFakeDoor={() => setShowFakeDoor({ type: 'voice', isOpen: true })}
         onOpenPhotoFakeDoor={() => setShowFakeDoor({ type: 'photo', isOpen: true })}
         user={user}
