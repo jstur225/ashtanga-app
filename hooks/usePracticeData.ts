@@ -182,13 +182,25 @@ export const usePracticeData = () => {
       if (storedRecords && storedRecords !== '[]') {
         const parsedRecords: PracticeRecord[] = JSON.parse(storedRecords);
         const draftRecords = parsedRecords.filter(r => r.type === '草稿');
-        
+
         if (draftRecords.length > 0) {
           console.log(`🧹 [清理草稿] 发现 ${draftRecords.length} 条残留的草稿记录，正在清理...`);
           const cleanedRecords = parsedRecords.filter(r => r.type !== '草稿');
           localStorage.setItem('ashtanga_records', JSON.stringify(cleanedRecords));
           setRecords(cleanedRecords);
           console.log('✅ [清理草稿] 已清理所有草稿记录');
+        }
+
+        // ⭐ 确保记录按日期倒序排序（最新的在最前面）
+        const sortedRecords = parsedRecords.sort((a, b) => {
+          return new Date(b.date).getTime() - new Date(a.date).getTime();
+        });
+        // 如果排序后有变化，更新 localStorage 和状态
+        const hasChanges = parsedRecords.some((r, i) => r.id !== sortedRecords[i]?.id);
+        if (hasChanges) {
+          console.log('🔄 [排序] 记录未按日期排序，重新排序...');
+          localStorage.setItem('ashtanga_records', JSON.stringify(sortedRecords));
+          setRecords(sortedRecords);
         }
       }
     } catch (e) {
