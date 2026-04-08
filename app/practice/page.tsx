@@ -7,7 +7,7 @@ import { usePracticeData, type PracticeRecord, type PracticeOption, type UserPro
 import { usePWAInstall } from "@/hooks/usePWAInstall"
 import { useAuth } from "@/hooks/useAuth"
 import { useSync } from "@/hooks/useSync"
-import { BookOpen, BarChart3, Calendar, X, Camera, Pause, Play, Trash2, User, Settings, ChevronLeft, ChevronRight, ChevronUp, Cloud, Download, Upload, Plus, Minus, Share2, Sparkles, Check, Copy, ClipboardPaste, MessageCircle, Bug, AlertCircle, SkipBack, SkipForward, Volume } from "lucide-react"
+import { BookOpen, BarChart3, Calendar, X, Camera, Pause, Play, Trash2, User, Settings, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Cloud, Download, Upload, Plus, Minus, Share2, Sparkles, Check, Copy, ClipboardPaste, MessageCircle, Bug, AlertCircle, SkipBack, SkipForward, Volume } from "lucide-react"
 import { cn } from '@/lib/utils'
 import { FakeDoorModal } from "@/components/FakeDoorModal"
 import { VoiceButton } from "@/components/VoiceButton"
@@ -2598,8 +2598,9 @@ function JournalTab({
   const recordRefs = useRef<Record<string, HTMLDivElement | null>>({})
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
-  // ⭐ 当前查看的月份（用于筛选记录列表）
-  const [viewMonth, setViewMonth] = useState<Date>(new Date())
+  // ⭐ 已加载的月份列表（无限滚动）
+  const [loadedMonths, setLoadedMonths] = useState<Date[]>([new Date()])
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
 
   // 月相Map
   const moonPhaseMap = useMemo(() => getMoonPhaseMap(), [])
@@ -2627,18 +2628,42 @@ function JournalTab({
     return type.split(/\s+|-\s*/)[0]
   }
 
-  // Handle scroll to show/hide back-to-top button (threshold: 400px)
+  // Handle scroll to show/hide back-to-top button and infinite scroll
   useEffect(() => {
     const container = scrollContainerRef.current
     if (!container) return
 
     const handleScroll = () => {
       setShowBackToTop(container.scrollTop > 400)
+
+      // ⭐ 无限滚动：接近底部时加载上一个月
+      const { scrollTop, scrollHeight, clientHeight } = container
+      const isNearBottom = scrollHeight - scrollTop - clientHeight < 100
+
+      if (isNearBottom && !isLoadingMore) {
+        const lastMonth = loadedMonths[loadedMonths.length - 1]
+        const prevMonth = new Date(lastMonth.getFullYear(), lastMonth.getMonth() - 1, 1)
+
+        // 检查是否已有记录在这个月份，有才加载
+        const hasRecordsInPrevMonth = practiceHistory.some(r => {
+          const d = new Date(r.date)
+          return d.getFullYear() === prevMonth.getFullYear() &&
+                 d.getMonth() === prevMonth.getMonth() &&
+                 r.type !== '草稿' &&
+                 r.duration > 0
+        })
+
+        if (hasRecordsInPrevMonth) {
+          setIsLoadingMore(true)
+          setLoadedMonths(prev => [...prev, prevMonth])
+          setTimeout(() => setIsLoadingMore(false), 300)
+        }
+      }
     }
 
     container.addEventListener('scroll', handleScroll, { passive: true })
     return () => container.removeEventListener('scroll', handleScroll)
-  }, [])
+  }, [loadedMonths, isLoadingMore, practiceHistory])
 
   const scrollToTop = () => {
     scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
@@ -2715,7 +2740,10 @@ function JournalTab({
           votedCloud={votedCloud}
           syncStatus={syncStatus}
           user={user}
-          onMonthChange={setViewMonth}
+          onMonthChange={(date) => {
+            // ⭐ 切换月份时重置加载的月份列表
+            setLoadedMonths([date])
+          }}
         />
       </div>
 
@@ -2723,8 +2751,8 @@ function JournalTab({
       <div className="px-6 mt-3">
         <MonthlyStatsCard
           practiceHistory={practiceHistory}
-          year={viewMonth.getFullYear()}
-          month={viewMonth.getMonth()}
+          year={loadedMonths[0].getFullYear()}
+          month={loadedMonths[0].getMonth()}
         />
       </div>
 
@@ -2733,9 +2761,11 @@ function JournalTab({
         {practiceHistory
           .filter(r => {
             if (r.type === '草稿') return false
-            // ⭐ 筛选当月记录
+            // ⭐ 筛选所有已加载月份的记录
             const d = new Date(r.date)
-            return d.getFullYear() === viewMonth.getFullYear() && d.getMonth() === viewMonth.getMonth()
+            return loadedMonths.some(month =>
+              d.getFullYear() === month.getFullYear() && d.getMonth() === month.getMonth()
+            )
           })
           .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
           .map((practice, index) => (
@@ -2846,6 +2876,31 @@ function JournalTab({
             </div>
           </motion.div>
         ))}
+
+        {/* ⭐ 加载提示 */}
+        {isLoadingMore && (
+          <div className="flex items-center justify-center py-4">
+            <div className="w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+            <span className="ml-2 text-sm text-muted-foreground font-serif">加载中...</span>
+          </div>
+        )}
+
+        {/* ⭐ 手动加载更多按钮（兜底） */}
+        {!isLoadingMore && loadedMonths.length < 12 && (
+          <div className="flex items-center justify-center py-4">
+            <button
+              onClick={() => {
+                const lastMonth = loadedMonths[loadedMonths.length - 1]
+                const prevMonth = new Date(lastMonth.getFullYear(), lastMonth.getMonth() - 1, 1)
+                setLoadedMonths(prev => [...prev, prevMonth])
+              }}
+              className="text-sm text-muted-foreground font-serif hover:text-foreground transition-colors flex items-center gap-1"
+            >
+              <span>查看更多</span>
+              <ChevronDown className="w-4 h-4" />
+            </button>
+          </div>
+        )}
       </div>
 
       <EditRecordModal
