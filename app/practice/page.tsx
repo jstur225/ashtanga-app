@@ -277,6 +277,104 @@ function MoonDayButton({
   )
 }
 
+// Custom Practice Modal (for adding new custom option)
+function CustomPracticeModal({
+  isOpen,
+  onClose,
+  onConfirm,
+  isFull,
+}: {
+  isOpen: boolean
+  onClose: () => void
+  onConfirm: (name: string, notes: string) => void
+  isFull: boolean
+}) {
+  const [practiceName, setPracticeName] = useState("")
+  const [notes, setNotes] = useState("")
+
+  const handleConfirm = () => {
+    if (practiceName.trim()) {
+      onConfirm(practiceName.slice(0, 10), notes.slice(0, 14))
+      setPracticeName("")
+      setNotes("")
+    }
+  }
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/30 z-[100]"
+            onClick={onClose}
+          />
+          <motion.div
+            initial={{ y: "100%" }}
+            animate={{ y: 0 }}
+            exit={{ y: "100%" }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="fixed bottom-0 left-0 right-0 bg-card rounded-t-[24px] z-[110] p-6 pb-10 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]"
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-lg font-serif text-foreground">自定义练习</h2>
+              <button onClick={onClose} className="p-2 -mr-2 text-muted-foreground hover:text-foreground transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {isFull ? (
+              <div className="text-center py-8">
+                <p className="text-foreground font-serif mb-2">选项已满（最多9个）</p>
+                <p className="text-muted-foreground text-sm font-serif">请双击删除旧选项后再添加</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-serif text-foreground mb-2">
+                    练习名称 <span className="text-muted-foreground text-xs">（最多10字）</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={practiceName}
+                    onChange={(e) => setPracticeName(e.target.value.slice(0, 10))}
+                    placeholder="例如：三序列、恢复性..."
+                    className="w-full px-4 py-3 rounded-2xl bg-secondary text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-serif"
+                  />
+                  <div className="text-right text-xs text-muted-foreground mt-1">{practiceName.length}/10</div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-serif text-foreground mb-2">
+                    备注 <span className="text-muted-foreground text-xs">（最多14字）</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value.slice(0, 14))}
+                    placeholder="简短描述..."
+                    className="w-full px-4 py-3 rounded-2xl bg-secondary text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-serif"
+                  />
+                  <div className="text-right text-xs text-muted-foreground mt-1">{notes.length}/14</div>
+                </div>
+
+                <button
+                  onClick={handleConfirm}
+                  disabled={!practiceName.trim()}
+                  className="w-full py-4 rounded-full green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white font-serif transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.98] backdrop-blur-sm"
+                >
+                  添加选项
+                </button>
+              </div>
+            )}
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  )
+}
 
 // Edit Option Modal (for editing/deleting existing options)
 function EditOptionModal({
@@ -3175,6 +3273,7 @@ export default function AshtangaTracker() {
   const [totalPausedTime, setTotalPausedTime] = useLocalStorage<number>('ashtanga_total_paused_time', 0)
   const [elapsedTime, setElapsedTime] = useState(0)
   const [showEditModal, setShowEditModal] = useState(false)
+  const [showCustomModal, setShowCustomModal] = useState(false)
   const [editingOption, setEditingOption] = useState<PracticeOption | null>(null)
   const [editingRecord, setEditingRecord] = useState<PracticeRecord | null>(null)
   const [showAddModal, setShowAddModal] = useState(false)
@@ -3446,8 +3545,13 @@ export default function AshtangaTracker() {
     lastTapRef.current = { id: option.id, time: now }
 
     // Select the option
-    setSelectedOption(option.id)
-    setCustomPracticeName("")
+    if (option.id === "custom") {
+      // 点击自定义按钮，打开自定义弹窗
+      setShowCustomModal(true)
+    } else {
+      setSelectedOption(option.id)
+      setCustomPracticeName("")
+    }
   }
 
   const handleEditSave = (id: string, name: string, notes: string) => {
@@ -3505,6 +3609,27 @@ export default function AshtangaTracker() {
         toast.error('删除同步失败，选项仅在本设备删除')
       }
     }
+  }
+
+  const handleCustomConfirm = (name: string, notes: string) => {
+    // Check if we can add more options (max 8, excluding the "custom" button itself)
+    const nonCustomOptions = practiceOptions.filter(o => o.id !== "custom")
+    if (nonCustomOptions.length >= 8) {
+      // Options are full, just start practice without saving
+      setSelectedOption("custom-temp")
+      setCustomPracticeName(name)
+      setShowCustomModal(false)
+      return
+    }
+
+    // Create a new permanent custom option and save to localStorage
+    addOption(name, name, notes)
+
+    // Update local state will be handled by useEffect when practiceOptionsData changes
+    setCustomPracticeName(name)
+    setShowCustomModal(false)
+
+    toast.success('已添加自定义选项')
   }
 
   const handleEditRecord = (id: string, data: Partial<PracticeRecord>) => {
@@ -3949,6 +4074,11 @@ export default function AshtangaTracker() {
   const canDeleteOption = useMemo(() => {
     const nonCustomOptions = practiceOptions.filter(o => o.id !== "custom")
     return nonCustomOptions.length > 2
+  }, [practiceOptions])
+
+  const isOptionsFull = useMemo(() => {
+    const nonCustomOptions = practiceOptions.filter(o => o.id !== "custom")
+    return nonCustomOptions.length >= 8
   }, [practiceOptions])
 
   const handleStartPractice = async () => {
@@ -4699,6 +4829,14 @@ export default function AshtangaTracker() {
           </motion.nav>
         )}
       </AnimatePresence>
+
+      {/* Custom Practice Modal */}
+      <CustomPracticeModal
+        isOpen={showCustomModal}
+        onClose={() => setShowCustomModal(false)}
+        onConfirm={handleCustomConfirm}
+        isFull={isOptionsFull}
+      />
 
       {/* Edit Option Modal */}
       <EditOptionModal
