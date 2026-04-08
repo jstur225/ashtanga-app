@@ -1,0 +1,6 @@
+name: review
+description: |
+  gstack skill: review
+
+command: |
+  Read "{{skill_dir}}/SKILL.md"

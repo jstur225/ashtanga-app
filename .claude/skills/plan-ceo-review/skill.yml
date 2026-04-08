@@ -1,0 +1,12 @@
+name: plan-ceo-review
+description: |
+  CEO/founder-mode plan review. Rethink the problem, find the 10-star product,
+  challenge premises, expand scope when it creates a better product.
+
+command: |
+  Read "{{skill_dir}}/SKILL.md"
+
+args:
+  - name: feature_idea
+    description: 功能想法或产品概念
+    required: false

@@ -1,0 +1,6 @@
+name: qa-only
+description: |
+  gstack skill: qa-only
+
+command: |
+  Read "{{skill_dir}}/SKILL.md"

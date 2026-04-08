@@ -1,368 +1,554 @@
 # 阿斯汤加打卡app - 项目记录
 
-## 2026-03-17: 分享卡片最终优化 - 按钮悬浮固定 ✅
+## 2026-04-02: Tab2 排序问题彻底修复 ✅
 
-**阶段**: 功能优化完成
+**类型**: Bug 修复
 
-**背景**:
-- 长文案时卡片滚动，但按钮跟着一起滚动，看不到
-- 需要按钮始终悬浮在底部，卡片单独滚动
-- 短文案时不应有空白区域
+### 问题描述
+Tab2（觉察日记）时光轴记录排序错乱，旧记录也出现顺序错位。
 
-**修复内容**:
+### 根因分析（3个问题）
 
-**最终提交**: `e9ce8c5` - perf: scale 改回 2，提高清晰度
+**问题1（严重）: 排序检查逻辑错误**
+- 位置: `hooks/usePracticeData.ts` 第195-199行
+- 代码: `const sortedRecords = parsedRecords.sort(...)`
+- 原因: `sort()` 原地排序，返回原数组引用。`sortedRecords` 和 `parsedRecords` 是同一对象，比较永远无变化
+- 结果: `hasChanges` 永远为 `false`，排序后数据永不保存
 
-**最终方案**:
-- ✅ 外层容器 `max-h-[90vh]`（不强制高度）
-- ✅ 卡片 `max-h-[calc(90vh-8rem)]`（限制最大高度）
-- ✅ 短文案：自然高度，无空白
-- ✅ 长文案：达到限制后内部滚动，按钮固定悬浮
-- ✅ 截图时展开全部内容，保留圆角
-- ✅ 截图清晰度 scale: 2
+**问题2（严重）: 草稿清理与排序逻辑冲突**
+- 位置: `hooks/usePracticeData.ts` 第186-204行
+- 流程:
+  1. 清理草稿 → 设置状态为 cleanedRecords
+  2. 对原始 parsedRecords（含草稿）排序
+  3. 用含草稿的 sortedRecords 覆盖状态
+- 结果: 草稿被重新写回 localStorage，数据污染
 
-**迭代过程**:
-- `1a632f3` - flex布局，卡片滚动
-- `de818e7` - 顶部对齐
-- `3162231` - 修复语法错误
-- `c10c03f` - overflow-hidden
-- `8554614` - 明确高度
-- `07a51ed` - 短文案自然高度
-- `7554419` - 截图展开全部内容
-- `8165b4c` - scale: 2 提高清晰度
-- `eea0042` - scale: 1.5 平衡测试
-- `e59a33e` - 截图彻底展开
-- `4b6c501` - 保留圆角
-- `e9ce8c5` - scale: 2 最终清晰度
+**问题3（缺失）: JournalTab 无排序保障**
+- 位置: `app/practice/page.tsx` JournalTab 第2566行
+- 代码: `practiceHistory.filter(r => r.type !== '草稿').map(...)`
+- 原因: 仅过滤草稿，未按日期排序
+- 结果: 如果传入数据未排序，显示错乱
 
-**推送**:
-```
-To https://github.com/jstur225/ashtanga-app.git
-   1a632f3..e9ce8c5  master2 -> master2
-```
+### 修复方案
 
-**状态**: ✅ 已推送至 master2，功能完成
+**修复1: usePracticeData.ts 初始化逻辑重写**
+- 使用 `[...cleanedRecords]` 创建副本再排序，避免原地排序
+- 统一处理草稿清理和排序，避免逻辑冲突
+- 正确检测变化（草稿清理或顺序调整）
 
----
+**修复2: JournalTab 添加排序保障**
+- 过滤后添加 `.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())`
+- 确保无论传入数据是否排序，显示始终正确
 
-## 2026-03-17: 分享卡片修复 - 毛玻璃背景和长文案问题 ✅
-
-**阶段**: Bug修复
-
-**背景**:
-- 毛玻璃背景是淡黑色，在深色主题下不明显
-- 长文案（500字）点击放大后，底部按钮被挤出可视区域
-- 放大时按钮隐藏，用户不知道怎么缩小
-
-**修复内容**:
-
-**提交**: `1d33933` - fix: 分享卡片毛玻璃背景改淡白色，修复长文案时按钮被挤出问题
-
-**改动点**:
-- ✅ 毛玻璃背景：`bg-black/20` → `bg-white/30`（淡白色）
-- ✅ 外层容器限制最大高度 `max-h-[85vh]`
-- ✅ 卡片区域 `flex-1` 自适应滚动
-- ✅ 按钮始终固定在底部，不再被顶出去
-- ✅ 放大时按钮保持可见（移除隐藏逻辑）
-- ✅ 提示文字动态切换：放大时显示"点击卡片或背景缩小"
-- ✅ 提示背景改为 `bg-black/40` 确保在淡白背景下可见
-
-**推送**:
-```
-To https://github.com/jstur225/ashtanga-app.git
-   436032c..1d33933  master2 -> master2
-```
-
-**状态**: ✅ 已推送至 master2
+### 涉及文件
+- `hooks/usePracticeData.ts` - 重写初始化排序逻辑
+- `app/practice/page.tsx` - JournalTab 添加排序
 
 ---
 
-## 2026-03-17: 分享卡片功能简化 ✅
+## 2026-04-02: 照片上传修复 + 重复记录修复 + 排序修复 ✅
 
-**阶段**: 功能优化
+**类型**: Bug 修复
 
-**背景**:
-- 分享卡片功能过于复杂，包含编辑、语音、图片等多个功能
-- 与觉察日记的编辑功能重复
-- 笔记有字数限制，长内容需要滚动
+### 1. 完成练习后照片上传失败 (RECORD_NOT_FOUND)
+**问题**: 完成练习后在编辑页面上传照片提示 "记录不存在"
 
-**工作内容**:
-
-### 1. 简化分享卡片
-
-**提交**: `75d1ca7` - feat: 分享卡片添加点击放大功能，取消笔记高度限制
-
-**改动点**:
-- ✅ 移除卡片内的编辑功能（避免功能重复）
-- ✅ 笔记改为只读显示
-- ✅ 取消字数限制，移除滚动条
-- ✅ 按钮改为悬浮样式，移除 `onMouseDown` 事件
-
-### 2. 添加点击放大功能
-
-**交互设计**:
-- 点击卡片 → 放大到 `max-w-lg`
-- 放大状态可滚动查看全部内容
-- 点击背景或再次点击 → 缩小
-- 放大时按钮自动隐藏
-- 添加提示文字"点击卡片放大查看"
-
-**技术实现**:
-- 添加 `isZoomed` state
-- 动态缩放 + 点击放大双重机制
-- 背景透明度变化（`bg-black/90`）
-
-### 3. 样式优化 - 毛玻璃效果
-
-**提交**: `436032c` - style: 分享卡片放大时改为毛玻璃效果
-
-**改动点**:
-- ✅ 背景：`bg-black/90` → `backdrop-blur-xl bg-black/20`
-- ✅ 添加深层阴影 `shadow-[0_32px_64px_-12px_rgba(0,0,0,0.4)]`
-- ✅ 添加细白边 `ring-1 ring-white/10`
-- ✅ 微放大 `scale(1.02)` 增强浮起感
-- ✅ 提示文字添加毛玻璃背景
-
-### 4. 推送部署
-
-```
-To https://github.com/jstur225/ashtanga-app.git
-   75d1ca7..436032c  master2 -> master2
-```
-
-**状态**: ✅ 已推送至 master2
-
----
-
-## 2026-03-11: 分支架构优化 - master2同步到master ✅
-
-**阶段**: 架构优化（分支管理）
-
-**背景**:
-- 项目存在两个主要分支：master（生产分支）和 master2（开发分支）
-- master2包含大量新功能和修复，但未同步到master
-- 需要建立清晰的分支工作流
-
-**工作内容**:
-
-### 1. 同步master2到master
-
-**合并提交**: `55f0c65` - merge: 合并master2到master（2026-03-11）
-
-**同步的提交数**: 22个
-
-**冲突解决**: 2个文件（使用master2版本）
-- `app/practice/page.tsx` - 包含getLocalDateStr函数、图标显示等冲突
-- `hooks/usePracticeData.ts` - 包含口令跟练选项配置冲突
-
-### 2. 推送到远程
-
-**推送结果**: ✅ 成功
-```
-To https://github.com/jstur225/ashtanga-app.git
-   7f10fb6..55f0c65  master -> master
-```
-
-**分支状态**:
-- ✅ master已更新到最新
-- ✅ origin/master已更新
-- ✅ origin/HEAD已更新为master
-- ✅ master和master2现在同步
-
-### 3. 建立分支工作流
-
-**新的分支架构**:
-```
-master2 (开发分支)
-    ↓ 开发新功能
-    ↓ 测试通过
-    ↓ 合并
-master (生产分支) ✅
-    ↓ 自动部署
-Vercel (生产环境)
-```
-
-**分支职责**:
-- **master**: 生产分支，只接受从master2的合并，稳定代码
-- **master2**: 开发分支，日常开发新功能
-- **dev**: 实验性分支（可选）
-
-**工作流程**:
-1. 在master2开发新功能
-2. 本地测试通过
-3. 合并到master: `git checkout master && git merge master2`
-4. 推送到GitHub: `git push origin master`
-5. Vercel自动部署master分支
-
-### 4. 同步的内容
-
-**核心修复**（2个）:
-- ✅ **时区修复** (f8b1014)
-  - 问题：凌晨练习（00:30）保存后显示为昨天
-  - 原因：`toISOString().split('T')[0]` 返回UTC日期
-  - 解决：使用 `getLocalDateStr()` 返回本地日期
-  - 位置：6处替换
-
-- ✅ **自定义选项同步修复** (b5c67ed)
-  - 问题：20个绑定用户，但practice_options表只有10条记录
-  - 原因：默认选项ID固定，用户上传时相互覆盖
-  - 解决：只同步自定义选项（`is_custom: true`）
-  - 修改：从 `!o.is_preset` 改为 `o.is_custom`
-
-**功能改进**（20个）:
-- ✅ 口令跟练功能优化（5个提交）
-  - 选项备注改为"老掌门人口令"
-  - 选项名称从"一序列口令"改为"一序列"
-  - 添加喇叭图标显示
-  - 优化首次下载提示
-  - 双击预设选项显示提示
-
-- ✅ PWA安装教程改进（4个提交）
-  - 从文案弹窗改为图片弹窗
-  - 简化界面，删除提示信息
-  - 调整大小和样式
-  - 修复props传递问题
-
-- ✅ 音频播放状态恢复
-  - 页面刷新后恢复音频播放状态
-
-- ✅ 小红书群邀请弹窗
-  - 更新为图片展示
-
-- ✅ start_time改进
-  - 改为存储完整ISO 8601时间戳
-
-- ✅ 其他14个改进和修复
-
-### 5. 部署状态
-
-- ✅ master已推送到GitHub
-- ✅ Vercel自动部署中（1-2分钟完成）
-- 🌐 生产环境：https://ashtanga-app.vercel.app
-
-### 6. 重要说明
-
-**未来工作流**:
-1. 在master2开发新功能
-2. 本地测试通过
-3. 合并到master
-4. 推送到GitHub
-5. Vercel自动部署master分支到生产环境
-
-**分支管理原则**:
-- master：只接受从master2的合并，不直接修改
-- master2：日常开发分支
-- 不要在master上直接修改代码
-
-**Git常用命令**:
-```bash
-# 查看分支状态
-git status
-git branch -vv
-
-# 合并master2到master
-git checkout master
-git merge master2
-git push origin master
-
-# 查看提交历史
-git log --oneline --graph --all --decorate
-```
-
----
-
-## 2026-03-10: 修复时区Bug导致日期显示错误 ✅
-
-**阶段**: Bug修复（日期显示）
-
-**问题描述**（用户反馈）:
-- **早上练习**（6-8点）：完成后显示**昨天**的日期 ❌
-- **下午练习**：显示**当天**的日期 ✓
-- 需要手动编辑修改日期，影响用户体验
-
-**根本原因**:
-使用 `new Date().toISOString().split('T')[0]` 获取日期时，`toISOString()` 返回的是**UTC时间**，不是本地时间。
-
-**时区问题示例**:
-- 北京时间：2026-03-10 06:00 (UTC+8)
-- UTC时间：2026-03-09 22:00 (前一天晚上10点)
-- `.split('T')[0]` 返回：`"2026-03-09"` ❌ 错误！
+**原因**:
+- 完成练习创建的是本地草稿记录
+- 草稿未及时同步到云端数据库
+- 上传照片时后端查不到记录
 
 **解决方案**:
-1. 增强 `getLocalDateStr` 函数，支持传入可选的日期参数
-2. 替换所有 `toISOString().split('T')[0]` 为 `getLocalDateStr()`
-3. 替换 `d.toISOString().split('T')[0]` 为 `getLocalDateStr(d)`
+- `CompletionSheet` 创建草稿后立即触发同步
+- 添加 `autoSync` prop 传递同步函数
+- 只有绑定邮箱的用户才执行同步
 
-**修改位置**（7处）:
-1. 完成练习弹窗默认日期（第1496行）
-2. 点击"今天"按钮（第1570行）
-3. 保存练习记录（第4487行）
-4. 日历视图日期生成（第3270行）
-5. 日期选择器maxDate（第805、1737行）
-6. todayStr变量（第2514、3196行）
+### 2. 重复创建记录
+**问题**: 完成练习保存后，Tab2 出现两条记录（一条空白，一条有内容）
 
-**Git提交**:
-- `4029a7a` (master) - fix: 修复早上练习显示昨天日期的时区bug
-- `f8b1014` (master2) - fix: 将master分支的时区修复同步到master2
+**原因**:
+- `CompletionSheet` 的 `handleSave` 调用了 `updateRecord` 后又调用 `handleSavePractice`
+- `handleSavePractice` 又执行 `addRecord` 创建新记录
 
-**测试验证**:
-- ✓ 早上6-8点练习：显示当天日期
-- ✓ 下午练习：显示当天日期
-- ✓ 晚上11点后练习：显示当天日期
-- ✓ 日历视图打卡小圆点：显示正确日期
+**解决方案**:
+- `CompletionSheet` 不再调用 `handleSavePractice`
+- 改为调用 `onClose` 关闭弹窗
+- 添加 `onClose` prop 处理弹窗关闭逻辑
 
-**技术要点**:
-```typescript
-// ❌ 错误：返回UTC日期
-new Date().toISOString().split('T')[0]
+### 3. 时光轴记录排序错乱
+**问题**: 新创建的记录有时排在时光轴最后
 
-// ✓ 正确：返回本地日期
-function getLocalDateStr(dateInput?: Date): string {
-  const date = dateInput || new Date()
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
+**原因**: `usePracticeData` 初始化时未对记录排序
+
+**解决方案**: 初始化时检查并按日期倒序排序
+
+**涉及文件**:
+- `app/practice/page.tsx` - CompletionSheet 同步逻辑、重复记录修复
+- `hooks/usePracticeData.ts` - 初始化排序
+
+**提交**: `master2` 分支
+- `aa431db` fix: 初始化时对记录按日期排序
+- `e86a185` fix: CompletionSheet 创建草稿后立即触发同步
+- `a2b8d5b` fix: 修复完成练习重复创建记录的问题
+- `0c2c481` fix: 添加调试日志，修复 handleSavePractice 闭包问题
+- `41f1efd` fix: 完成练习后触发同步
+
+---
+
+## 2026-04-01: 照片功能完善 + 延迟删除 + UI优化 ✅
+
+**类型**: 功能完善 + 体验优化
+
+### 1. 延迟删除照片功能
+**问题**: 删除照片时需要等待3-5秒API响应，用户体验差
+
+**解决方案**:
+- 删除时仅本地标记，立即从UI移除
+- 保存记录时批量执行真正的删除操作
+- 上传新照片前先执行待删除，腾出空间
+
+**涉及文件**:
+- `components/PracticeForm.tsx` - `useRecordPhotos` Hook重构
+
+### 2. 前后端照片数据同步
+**问题**: 前端显示与后端数据库状态不一致
+
+**解决方案**:
+- 组件加载时从数据库查询真实照片状态
+- 使用 `getRecordPhotos` 获取最新数据
+
+### 3. Tab2觉察内容样式优化
+**改进**:
+- 觉察内容两端对齐 (`text-justify`)
+- 右边距从 `pr-6` 增加到 `pr-8` (24px → 32px)
+
+### 4. 觉察输入框布局调整
+**改进**:
+- 左右边距一致 (`px-4`)
+- 按钮覆盖在文字上，不预留额外空间
+
+**提交**: `master2` 分支
+- `1aa8aeb` feat: 延迟删除照片功能
+- `7e77900` fix: 前后端照片数据不一致
+- `f7cb66f` fix: 删除后立即上传失败问题
+- `0f32146` style: 觉察输入框文字对齐
+- `5494606` style: 调整输入框右内边距
+- `19eb87d` style: 觉察输入框左右边距一致
+- `1ca44e9` style: Tab2觉察内容两端对齐
+- `0631849` style: Tab2右边距 pr-6 -> pr-8
+- `4fbe602` fix: 添加缺失的PhotoUploadButton导入
+
+---
+
+## 2026-03-27: 简化新用户默认记录文案 ✅
+
+**类型**: 体验优化
+
+**变更**:
+- 将新用户的默认教程记录文案从长篇功能说明简化为简洁提示
+
+**原文案**:
+```
+👋 同学你好，欢迎使用熬汤日记！
+功能说明：
+📱 Tab1 - 今日练习
+...
+```
+
+**新文案**:
+```
+🔴特别提醒
+👈点击左侧日期区域，可编辑或删除记录
+
+🌟Mysore，让我们找回到自我的锚点🌟
+```
+
+**提交**: `cd2cfa4` (master), `c156803` (master2)
+
+---
+
+## 2026-03-27: 删除默认休息日练习选项 ✅
+
+**类型**: 体验优化
+
+**变更**:
+- 从 `DEFAULT_OPTIONS` 中移除 id 为 '6' 的"休息日"选项
+- 默认练习选项从 6 个减少到 5 个
+
+**原因**:
+- 用户反馈显示该选项几乎无人使用
+- 保持练习选项的精简性
+
+**提交**: `4679b1c` (master), `3ee5768` (master2)
+
+---
+
+## 2026-03-24: 照片删除修复 + React 无限循环修复 ✅
+
+**类型**: Bug 修复
+
+### 1. 编辑记录删除照片失败修复
+**问题**: 点击删除照片时提示失败，API 返回 404
+
+**原因**: 编辑记录时照片的 ID 是本地生成的 `photo-${index}`，不是数据库真实 ID
+
+**修复**:
+- 修改 `deletePhoto` 函数，支持通过 `practice_record_id` + `oss_url` 查找真实 ID
+- 新增 `getRecordPhotos` 查询，通过 Supabase REST API 获取真实 photo ID
+- 再用真实 ID 调用原有删除接口
+
+```ts
+// 本地 ID 时先查询真实 ID
+if (photoId.startsWith('photo-') && practiceRecordId && ossUrl) {
+  const photos = await fetch(`${SUPABASE_URL}/rest/v1/photos?...`)
+  realPhotoId = photos[0].id
+}
+// 使用真实 ID 删除
+await fetch(`/api/photos/${realPhotoId}`, { method: 'PATCH', ... })
+```
+
+### 2. React Error #185 无限循环修复
+**问题**: 打开编辑记录或上传照片后出现 Application error
+
+**原因**: `PracticeForm` 中的 `useEffect` 在照片变化时调用 `onPhotosChange`，触发父组件更新，形成无限循环
+
+**修复**:
+- 添加 `isInitialMount` 标记，跳过初始化时的回调
+- 添加 `prevPhotosRef` 比较，只有真正变化时才通知父组件
+
+```ts
+const isInitialMount = useRef(true)
+useEffect(() => {
+  if (isInitialMount.current) {
+    isInitialMount.current = false
+    return
+  }
+  // 只有真正变化时才通知
+  if (hasChanged) onPhotosChange(photoUrls)
+}, [photos])
+```
+
+### 3. 时光轴图片预览样式优化
+**改进**: 统一编辑记录和时光轴的图片预览样式
+- 背景: `bg-black/60 backdrop-blur-sm`（半透明毛玻璃）
+- 添加关闭按钮（右上角黑色半透明圆圈）
+
+### 4. 时光轴照片展示优化
+**改进**: 根据照片数量调整布局
+- 1 张照片：宽度 90%，高度自适应原图比例
+- 2 张及以上：九宫格（3列），正方形小图
+
+**提交记录**:
+- `2f39e94` - fix: 添加缺失的 cn 导入
+- `b01f005` - fix: 修复照片上传导致的无限循环错误
+- `7217d0d` - fix: 修复编辑记录弹窗自动显示更新成功的问题
+- `9f31b8a` - fix: 删除照片时通过 Supabase API 查找真实 photo ID
+
+---
+
+## 2026-03-23: 觉察错位修复 + 时光轴照片展示 ✅
+
+**类型**: Bug 修复与功能增强
+
+### 1. 觉察记录数据错位修复
+**问题**: 点击不同记录的"觉察记录"，第一次点击为空，之后数据显示有延迟/错位
+
+**原因**: `PracticeForm` 中的 `hasInitialized` ref 在组件生命周期内只初始化一次，关闭弹窗后不会重置
+
+**修复**: 增加 `prevInitialDataRef` 跟踪上一次数据，通过比较 notes/date/type 检测新记录
+
+```tsx
+const isNewRecord = prevInitialDataRef.current?.notes !== initialData?.notes
+  || prevInitialDataRef.current?.date !== initialData?.date
+  || prevInitialDataRef.current?.type !== initialData?.type
+
+if (initialData && (!hasInitialized.current || isNewRecord)) {
+  // 强制更新数据
 }
 ```
 
+### 2. 照片秒开显示优化
+**问题**: 切换记录时照片仍需等待 API 加载
+
+**修复**: 移除 `useRecordPhotos` 的 API 加载逻辑，改用 `useEffect` 监听 `initialPhotos` 直接更新
+- 父组件传入 `record.photos`（URL 数组）
+- 子组件通过 `convertUrlsToPhotos` 转换为 Photo 对象立即显示
+
+### 3. 上传按钮提示修复
+**问题**: 有照片后点击上传按钮无反应（disabled 状态）
+
+**修复**: 移除 disabled 限制，点击时主动提示"当前版本只能上传1张照片"
+
+### 4. 时光轴照片展示（新功能）
+**需求**: 在时光轴（ShareCardModal）觉察文字下方展示照片
+
+**实现**:
+- 位置：觉察文字下方，宽度 90% 居中
+- 布局：
+  - 1 张照片：正方形固定宽度（192px），居中
+  - 2 张以上：九宫格（3列），每张正方形
+- 预留：支持最多 9 张照片的展示逻辑
+
+**影响文件**:
+- `components/PracticeForm.tsx` - 数据错位修复、URL 转 Photo、秒开显示
+- `app/practice/page.tsx` - 时光轴照片展示
+
+### 提交记录
+- `3058320` - fix: 修复觉察记录数据错位和照片占位符问题
+- `281556a` - fix: 照片秒开显示 + 上传按钮提示
+- `2cdaf85` - feat: 修复照片显示并添加时光轴照片展示
+- `de2e2bf` - style: 时光轴照片展示布局调整（1张固定宽度，2张以上九宫格）
+
 ---
 
-## 2026-03-10: 优化调试日志隐私保护 ✅
+## 2026-03-23: 照片上传限制修改 + 性能优化 ✅
 
-**阶段**: 优化（用户体验）
+**类型**: 功能调整与性能优化
 
-**问题背景**:
-- 调试日志包含用户敏感打卡内容（觉察文字、突破时刻）
-- 日志文件过大（约12,000字），超出小红书评论限制（1,000-2,000字）
-- 用户无法在小红书上把调试日志发送给开发者
+### 1. 照片上传限制变更
+- **之前**: 每天只能上传1张照片（日限额）
+- **之后**: 每条记录只能上传1张照片，取消每日限制
+- **影响文件**:
+  - `app/api/photos/route.ts` - 移除日限额检查
+  - `app/api/oss-signature/route.ts` - 移除日限额检查
+  - `app/api/photos/can-upload/route.ts` - **已删除**
+  - `components/PhotoUpload/PhotoUploader.tsx` - 移除 canUpload 状态
+  - `components/PhotoUpload/PhotoUploadButton.tsx` - 更新提示文案
+  - `lib/oss.ts` - 删除 canUploadToday，添加 ERROR_MESSAGES 常量
+  - `components/PracticeForm.tsx` - 更新错误映射
 
-**完成工作**:
+### 2. 文件大小限制提升
+- 从 5MB 提升到 10MB
 
-1. **移除敏感信息**
-   - 删除 `notesPreview` 字段（觉察文字预览）
-   - 删除 `breakthroughPreview` 字段（突破时刻预览）
-   - 只保留元数据（是否存在、数量等）
+### 3. 文案统一
+- 记录已有照片: "当前版本只能上传1张照片"
+- 未登录: "上传照片需绑定邮箱"
+- 文件过大: "上传照片不可大于10m"
 
-2. **限制日志数量**
-   - 错误历史：从全部改为最近10条
-   - 同步日志：从全部改为最近10条
-   - 练习记录：保持最近10条
-   - 导出日志：保持最近10条
+### 4. 照片秒开性能优化
+**问题**: 编辑记录时照片加载有 1-2 秒卡顿
+
+**方案演进**:
+1. 先尝试 `hasPhotos` 预判显示占位符 - 仍有延迟
+2. **最终方案**: 父组件直接传入 `initialPhotos`，子组件直接使用
+
+**关键改动**:
+```tsx
+// 父组件
+<PracticeForm initialPhotos={record.photos || []} />
+
+// PracticeForm - 直接使用，无需二次请求
+const [photos, setPhotos] = useState(initialPhotos || [])
+```
+
+**效果**: 打开编辑页面 → 照片**秒开显示**，零等待
+
+### 5. 觉察输入修复
+- 修复 `initialData` 变化导致输入被重置的问题
+- 添加 `hasInitialized` ref 确保只初始化一次
+
+### 提交记录
+- `4d2458e` - feat: 照片上传限制从每日1张改为每记录1张
+- `5f40755` - chore: 删除已废弃的 can-upload API 端点
+- `e375937` - fix: 觉察文字无法输入的问题
+- `a2ac158` - fix: 照片加载占位符立即显示
+- `a408a43` - perf: 照片秒开显示，消除加载卡顿
+
+---
+
+## 2026-03-22: PracticeForm 提取与弹窗改造 ✅
+
+**类型**: 代码重构与架构优化
+
+### 背景与目标
+`app/practice/page.tsx` 共 5369 行，包含 3 个表单弹窗（EditRecordModal、AddPracticeModal、CompletionSheet），有大量重复代码。本次重构提取公共组件，减少 ~1400 行代码。
+
+### 已完成改造
+
+#### 1. PracticeForm 公共组件
+- 提取 `components/PracticeForm.tsx` 作为统一表单组件
+- 支持受控/非受控模式（date/type 可外部控制）
+- 支持字段可编辑性配置（dateEditable/typeEditable/durationEditable）
+- 统一照片上传、展示、删除功能
+
+#### 2. 三个弹窗统一使用 PracticeForm
+| 弹窗 | 改造前 | 改造后 |
+|-----|--------|--------|
+| EditRecordModal | ~395 行 | ~100 行 |
+| AddPracticeModal | ~400 行 | ~150 行 |
+| CompletionSheet | ~200 行 | ~80 行 |
+
+#### 3. 草稿记录模式
+- AddPracticeModal 和 CompletionSheet 采用「预创建草稿记录」方案
+- 打开弹窗时自动创建 type='草稿' 的记录，获得 record_id 用于照片上传
+- 保存时更新为正式记录，取消时删除草稿
+- 用户无感知，体验流畅
+
+#### 4. 移除的功能
+- 删除「自定义练习」功能（无实际使用场景）
+- 删除 CustomPracticeModal 组件
+- 清理相关状态管理和逻辑
+
+### 代码优化亮点
+- **消除重复**: notes/breakthrough 状态管理、formatDateDisplay 函数、突破输入 UI 不再重复
+- **统一体验**: 三个弹窗的照片上传体验完全一致
+- **性能优化**: 使用 `hasPhotos` 预判控制加载占位符显示
+
+### 关键提交
+- `7861b4a` - refactor: extract PracticeForm component and simplify modals
+- `7a31ffb` - feat: enable real photo upload in all three modals
+- `6941e9d` - feat: implement draft record pattern - transparent to users
+- `4bcfb4f` - fix: use hasPhotos prop to control loading placeholder
+
+---
+
+## 2026-03-21: 照片上传功能完整修复 ✅
+
+**类型**: 功能完善与 Bug 修复
+
+### 已完成功能
+
+#### 1. 照片上传功能（v1.0 正式发布）
+- ✅ 编辑记录页面支持上传练习照片
+- ✅ 阿里云 OSS 预签名 URL 上传（安全高效）
+- ✅ 每日限额 1 张（内测期间临时调整为 10 张）
+- ✅ 照片 Lightbox 放大查看（支持原图比例、超长图滚动）
+- ✅ 照片删除功能（软删除，可重新上传）
+
+**技术实现**:
+- 前端：React + Next.js Image 组件
+- 存储：阿里云 OSS（上海节点）
+- 数据库：Supabase photos 表（含软删除标记）
+- 安全：RLS 策略 + SECURITY DEFINER RPC 函数
+
+#### 2. 关键 Bug 修复
+
+**问题1：照片查询不返回数据**
+- **原因**: Supabase RLS 策略 `auth.uid() = user_id` 在 service role 环境下 `auth.uid()` 为 null
+- **解决**: 使用 `get_record_photos_debug` RPC 函数（SECURITY DEFINER 绕过 RLS）
+
+**问题2：照片删除不生效**
+- **原因**: 直接 UPDATE 被 RLS 阻止
+- **解决**: 使用 `soft_delete_photo` RPC 函数执行软删除
+
+**问题3：照片显示不完整**
+- **原因**: OSS 签名 Content-Type 不匹配
+- **解决**: 后端返回 MIME 类型，前端使用相同类型上传
+
+### UI 优化
+
+| 组件 | 优化内容 |
+|-----|---------|
+| Lightbox | 支持原图比例自适应、超长图上下滚动、圆角显示 |
+| 关闭按钮 | 统一为黑色半透明圆圈 + 白色 X 图标 |
+| 上传按钮 | 文案优化为「内测版本每天能上传1张照片」 |
+| 语音图标 | 改为扩张图标（Maximize2），后续再定义功能 |
+
+### 代码提交
+- `627ae70` - fix: 照片上传功能完整修复 - 清理调试代码
+- `a17fd40` - fix: 修复照片删除不生效问题 - 使用 RPC 绕过 RLS
+- `2fc597d` - fix: 恢复使用 RPC 查询照片，绕过 RLS
+- `6bcd521` - feat: Lightbox 支持原图比例自适应 + 超长图滚动
+
+---
+
+## 2026-03-20: Video Diary 视频日记修复 ✅
+
+**类型**: Bug 修复（Tauri 桌面应用）
+
+**项目路径**: `video_diary/video-diary-tauri/`
+
+### 修复1: 全片预览黑屏问题
+**问题描述**: 30 个视频片段连续播放时，片段切换有黑屏闪烁
+
+**根本原因**: 使用 `setInterval` 检测时间精度不够，切换时有延迟
+
+**解决方案**:
+- 使用 `timeupdate` 事件替代 `setInterval`（更精确）
+- 提前 50ms 触发切换，给视频解码留时间
+
+**代码变更**:
+```typescript
+// 之前: setInterval(checkTime, 50)
+// 现在: timeupdate 事件
+video.addEventListener('timeupdate', handleTimeUpdate)
+
+const handleTimeUpdate = () => {
+  if (video.currentTime >= endTime - 0.05) {
+    goToNextClip()  // 提前50ms切换
+  }
+}
+```
+
+### 修复2: FFmpeg 导出视频格式问题
+**问题描述**: 导出视频无法正常播放，报 `Invalid argument` 错误
+
+**根本原因**: FFmpeg concat 协议对视频格式要求严格，要求所有输入编码参数完全一致
+
+**解决方案**:
+- 改用 `filter_complex` 滤镜链进行精确剪辑和拼接
+- 对每个片段使用 `trim`/`atrim` 裁剪时间
+- 统一重新编码为 H.264/AAC，确保兼容性
+
+**代码变更**:
+```rust
+// 构建 filter_complex 字符串
+for (i, clip) in clips.iter().enumerate() {
+  let filter = format!(
+    "[{}:v]trim=start={}:duration={},setpts=PTS-STARTPTS[v{}]; \
+     [{}:a]atrim=start={}:duration={},asetpts=PTS-STARTPTS[a{}]",
+    input_idx, start, duration, i, input_idx, start, duration, i
+  );
+}
+
+// 添加 concat 滤镜
+format!("{}concat=n={}:v=1:a=1[outv][outa]", concat_inputs, clips.len())
+
+// 统一编码
+args(&["-c:v", "libx264", "-c:a", "aac", "-b:a", "192k"])
+```
+
+### 技术亮点
+- **双视频预加载策略**：尝试过双视频元素重叠方案，但过于复杂，最终选择优化单视频切换时机
+- **音量叠加计算**：支持 clip 音量 × 全局音量，灵活调整
+- **filter_complex 多输入处理**：动态构建滤镜链，支持任意数量片段
 
 **Git提交**:
-- `2231ac3` (master) - fix: 优化调试日志隐私保护和数据量控制
-
-**修改位置**:
-- app/practice/page.tsx: 第4112、4116、4133-4134、4202-4203行
-
-**效果**:
-- ✓ 保护用户隐私（不包含觉察文字）
-- ✓ 减少日志大小（但仍较大，约10k+字）
-- ⚠️ 仍不适合直接在小红书发布
+- `4c99730` - fix: 全片预览黑屏问题 + FFmpeg导出视频格式修复
 
 ---
 
+## 2026-03-19: AweSun MCP 远程控制测试
+
+**类型**: 工具探索与评估
+
+**背景**:
+- 配置向日葵 MCP 服务器，探索通过 AI 控制远程电脑的可能性
+- 测试目的是评估是否比直接向日葵远程更方便
+
+**配置内容**:
+- 向日葵 MCP 服务器：`D:\runjian\xiangrvkui\AweSun\flutter\awesun-mcp-server.exe`
+- API Token：`ZThhNzg4NmQtZWQ1MC00OTQ0LWJiMzctODRjNTM4YTdhZjg0`
+- 配置文件：`C:\Users\BIN\.claude\settings.local.json`
+
+**测试过程**:
+1. ✅ 发现并验证 24 个 MCP 工具可用
+2. ✅ 成功搜索设备（发现 2 台：XXBB、广州仓库）
+3. ✅ 成功建立 CMD 远程连接并执行命令（whoami）
+4. ✅ 成功建立桌面远程连接并截图
+5. ✅ 成功打开浏览器、导航到下载页面
+
+**结论与反思**:
+- **用户体验**: 配置复杂，学习成本高，每一步操作都需要写脚本
+- **效率对比**: 对于 2 台设备，直接向日葵远程手动操作更简单高效
+- **适用场景**: MCP 更适合批量操作（5+ 台设备）或定时自动化任务
+- **最终决定**: **停用 MCP**，继续直接使用向日葵远程
+
+**用户原话**: "这个 MCP 就是一个玩具"
+
+**符合'简单'理念**: 最简单的方案就是最好的方案，不为了技术而技术
+
+---
 
 ## 2026-03-05: 修复 Vercel 构建错误 ✅
 
@@ -2043,1034 +2229,3 @@ export const INVITE_VERSION = 'v2'  // 从 v1 更新到 v2
 - 优化状态管理区块的交互
 
 ---
-
----
-
-## 2026-03-13: 性能优化 - 图片压缩 ✅
-
-**阶段**: 性能优化
-
-**背景**:
-- 发现项目中存在多个大图片文件（总计超过11MB）
-- 影响首屏加载速度和用户体验
-- 需要优化图片大小以提升性能
-
-**工作内容**:
-
-### 1. 性能优化探索（已放弃）
-
-**尝试方向**: Modal组件动态导入优化
-- 提取SettingsModal为动态导入组件
-- 遇到技术问题：导入路径错误、导出方式错误、样式丢失
-- 评估后发现收益不明显（仅减少10-20KB Bundle）
-- 决策：放弃此优化方向
-
-**问题总结**:
-- 3次构建失败，3次修复
-- 开发时间：1-2小时
-- 用户感知收益：几乎为零
-- **教训**: 优先优化高性价比项目（图片 > 代码结构）
-
-### 2. 图片压缩优化 ✅
-
-**发现的大文件**:
-| 文件名 | 大小 |
-|--------|------|
-| Gemini_Generated_Image_g8eq8eg8eq8eg8eq.png | 7.2MB |
-| 进群方法.png | 2.2MB |
-| pwa-install.png | 1.2MB |
-| Sri K. Pattabhi Jois.png | 475KB |
-| Sri K.jpeg | 251KB |
-| **总计** | **11.1MB** |
-
-**实施步骤**:
-
-1. **创建压缩脚本** (`compress-images.js`)
-   - 使用 sharp 库（Next.js自带）
-   - 根据文件大小自动调整压缩质量
-   - 大于5MB用60%质量，大于1MB用70%，其他用80%
-
-2. **执行压缩**
-   ```bash
-   node compress-images.js
-   ```
-
-3. **压缩结果**:
-   - Gemini_Generated_Image.png: 7.1MB → 238KB (减少96.7%)
-   - 进群方法.png: 2.1MB → 337KB (减少84.4%)
-   - pwa-install.png: 1.1MB → 200KB (减少83.0%)
-   - Sri K. Pattabhi Jois.png: 475KB → 78KB (减少83.6%)
-   - Sri K.jpeg: 250KB → 104KB (减少58.3%)
-
-**最终效果**:
-- 压缩前: 11.1 MB
-- 压缩后: 958 KB
-- **节省空间: 10.1 MB (91.6%)**
-
-### 3. 分支同步
-
-**Master分支**: 
-- Commit: `448bb29`
-- 状态: ✅ 已推送到远程
-
-**Master2分支**:
-- Commit: `4fcacce`
-- 状态: ✅ 已推送到远程
-
-**Dev分支**: 
-- 状态: ❌ 已删除（性能优化尝试失败）
-
-### 4. 技术总结
-
-**成功经验**:
-- ✅ 图片优化性价比极高（5分钟完成，节省10MB）
-- ✅ 使用sharp库自动压缩，保持视觉质量
-- ✅ 大幅减少首屏加载时间
-
-**失败教训**:
-- ❌ Modal动态导入收益低、风险高
-- ❌ 技术正确不等于业务价值
-- ❌ 性能优化需要数据支撑（Lighthouse分数）
-
-**决策框架**:
-| 情况 | 建议 |
-|------|------|
-| 用户抱怨慢 | 优化性能 |
-| 没人抱怨但想完美 | 只做高性价比优化 |
-| 有更重要功能要做 | 停止优化，做功能 |
-| 想学技术 | 可以继续，但承认是学习 |
-
-**时间投入**: 约2小时（包括失败的尝试）
-**最终收益**: 两个分支共节省20.2MB空间
-
-
----
-
-## 2026-03-17: 性能优化 - 保存图片速度优化 ⚡
-
-**阶段**: 性能优化
-
-**背景**:
-- 用户反馈保存图片功能太慢，需要5秒或更久
-- 其他APP都是1-2秒（秒级体验）
-- 需要优化保存时间，提升用户体验
-
-**工作内容**:
-
-### 1. 问题分析
-
-**核心瓶颈识别**:
-1. ❌ 双重降级策略导致时间翻倍（先试modern-screenshot失败，再试html2canvas）
-2. ❌ scale: 2 导致渲染4倍像素量
-3. ❌ 100ms硬编码等待浪费时间
-
-**性能分析**:
-```
-用户点击保存
-  ↓
-尝试 modern-screenshot (2秒) → ❌ 失败
-  ↓
-尝试 html2canvas (3秒) → ✅ 成功
-  ↓
-总共：5秒！！！
-```
-
-### 2. 优化实施 ✅
-
-**优化1: 方法缓存机制（最关键！）**
-- 使用localStorage记录上次成功的截图方法
-- 下次直接使用缓存的方法，避免双重尝试
-- **代码位置**: `lib/screenshot.ts:40-62`
-
-```typescript
-// 缓存上次成功的截图方法
-const STORAGE_KEY = 'screenshot_last_successful_method'
-let lastSuccessfulMethod: 'modern-screenshot' | 'html2canvas' | null = null
-
-// 从localStorage读取缓存
-function getCachedMethod() {
-  const cached = localStorage.getItem(STORAGE_KEY)
-  return cached === 'modern-screenshot' || cached === 'html2canvas' ? cached : null
-}
-
-// 保存成功的方法
-function saveSuccessfulMethod(method) {
-  localStorage.setItem(STORAGE_KEY, method)
-  lastSuccessfulMethod = method
-}
-
-// 优化逻辑
-if (lastSuccessfulMethod === 'modern-screenshot') {
-  console.log('🚀 使用缓存方法: modern-screenshot')
-  return await captureWithModernScreenshot(element)
-}
-```
-
-**优化2: 降低scale参数**
-- scale: 2 → scale: 1（减少75%渲染像素量）
-- **代码位置**: `lib/screenshot.ts:99, 130`
-
-```typescript
-// modern-screenshot
-const dataUrl = await domToPng(element, {
-  scale: 1,  // 从2改为1
-  backgroundColor: '#ffffff'
-})
-
-// html2canvas
-const canvas = await html2canvas(element, {
-  scale: 1,  // 从2改为1
-  backgroundColor: '#ffffff'
-})
-```
-
-**优化3: 优化DOM更新时机**
-- 使用requestAnimationFrame替代setTimeout
-- **代码位置**: `app/practice/page.tsx:890-892`
-
-```typescript
-// 优化前
-await new Promise(resolve => setTimeout(resolve, 100))
-
-// 优化后
-await new Promise(resolve => {
-  requestAnimationFrame(() => requestAnimationFrame(resolve))
-})
-```
-
-**优化4: 移除冗余scale参数**
-- 移除page.tsx中的scale参数
-- **代码位置**: `app/practice/page.tsx:893`
-
-### 3. 性能提升预期
-
-| 优化项 | 效果 |
-|--------|------|
-| 方法缓存 | 减少50%时间 |
-| scale: 2→1 | 减少75%像素量 |
-| RAF替代setTimeout | 更准确的时机 |
-| 移除冗余参数 | 代码更简洁 |
-
-**综合效果**:
-- 优化前: ~5秒
-- 优化后: 1-2秒
-- **提升: 减少60-75%时间 ⚡**
-
-### 4. 代码修改统计
-
-**lib/screenshot.ts**:
-- 新增: 130行（方法缓存机制）
-- 修改: 10行（scale参数、降级逻辑）
-
-**app/practice/page.tsx**:
-- 修改: 5行（RAF替代setTimeout、移除scale参数）
-
-### 5. 待测试验证
-
-**浏览器兼容性**:
-- [ ] Chrome浏览器
-- [ ] Safari浏览器
-- [ ] 微信浏览器
-
-**验收标准**:
-- [ ] 保存时间 < 2秒
-- [ ] 图片清晰度足够
-- [ ] 兼容性不降低
-- [ ] 缓存机制正常工作
-
-### 6. 技术亮点
-
-**用户体验优化**:
-```
-第一次使用：
-点击保存 → 尝试modern-screenshot → 失败 → 尝试html2canvas → 成功 → 保存方法到缓存
-总时间：2-3秒
-
-后续使用：
-点击保存 → 直接使用html2canvas（缓存）→ 成功
-总时间：1-2秒 ⚡
-```
-
-**缓存失效机制**:
-- 缓存方法失败时自动清除
-- 用户清除浏览器数据时清除
-- localStorage错误时降级到默认策略
-
-### 7. 文档更新
-
-**已创建文档**:
-- ✅ `memory.md` - 更新本次优化记录
-- ✅ `优化总结_保存图片性能.md` - 详细技术文档
-
-**分支状态**:
-- 当前分支: master2
-- 待推送: 本地已修改，准备推送
-
-**时间投入**: 约1小时
-**预期收益**: 用户体验大幅提升，达到其他APP的"秒级"体验
-
-
-## 2026-03-18: Canvas 分享卡片绘制优化 ✅
-
-**阶段**: 性能优化（分享卡片导出）
-
-**问题描述**:
-- 原有分享卡片使用 html2canvas/modern-screenshot 将 DOM 转为图片
-- 长文案时耗时 800ms-1500ms，用户体验慢
-- 有时图片已保存，toast 还在显示"生成中"
-
-**优化目标**:
-- 绘制时间从 1.5s 降至 300ms 以内
-- 保持现有视觉样式
-- 输出高清图片（scale: 2）
-
-**解决方案**:
-
-### 1. 新建 Canvas 绘制工具
-**文件**: `lib/share-card-canvas.ts`
-
-核心函数:
-- `drawShareCard()` - 绘制分享卡片
-- `createShareCard()` - 完整流程封装
-- `wrapText()` - 文字自动换行（保留手动换行和空行）
-- `loadImage()` - 加载图片（带 3 秒超时）
-
-### 2. 修改页面逻辑
-**文件**: `app/practice/page.tsx`
-
-- 优先使用 Canvas 绘制（高性能）
-- Canvas 失败时降级到 DOM 截图（兼容性好）
-- 保留原有日志记录和错误处理
-
-### 3. 视觉细节调整
-
-| 问题 | 解决方案 |
-|------|----------|
-| 灰色背景和圆角 | 背景改为白色，使用 clip 裁剪 |
-| 底部白色块 | 精确计算 contentHeight，移除最小高度限制 |
-| 数字和单位贴在一起 | 改为左右分布，中间有间距 |
-| 文案不居中 | fillText y 坐标 +18px，垂直居中于行高 |
-| 手动换行丢失 | wrapText 先按 \\n 分割，再自动换行 |
-| 空行丢失 | 空段落添加空字符串，绘制时保留高度 |
-| 头像加载阻塞 | 添加 3 秒超时，超时后降级为绿色默认头像 |
-| 默认头像颜色 | 改为绿色圆形 #2d5a27 |
-| 品牌名位置 | 移到签名同行右侧 |
-| 时长数字间距 | 到上线条间距 25px |
-
-### 4. 性能对比
-
-| 方案 | 耗时 |
-|------|------|
-| html2canvas | 800ms-1500ms |
-| modern-screenshot | 500ms-1000ms |
-| **Canvas 绘制** | **50-100ms** |
-
-提升约 **10-15 倍**
-
-**Git提交**:
-- `c262408` - fix: 头像加载超时从 500ms 增加到 3 秒
-- `6c24ba9` - fix: 时长数字到上线条间距 38 -> 25px
-- `1f08973` - fix: 调整时长间距 + 默认头像改为绿色
-- `00c9f7b` - fix: 保留空行 + 垂直居中修复
-- `8835a21` - fix: 保留用户手动输入的换行符
-- `5fdda8a` - fix: 文案在分隔线之间精确垂直居中
-- `3cf9fc2` - fix: 精确计算 contentHeight，消除底部空白
-- `2b60114` - feat: Canvas 绘制分享卡片，性能提升 10-15 倍
-
-**相关文件**:
-- 新增: `lib/share-card-canvas.ts`
-- 修改: `app/practice/page.tsx`
-
----
-
-## 2026-03-05: 修复 Vercel 构建错误 ✅
-
-**阶段**: Bug修复（部署问题）
-
-**问题描述**:
-- Vercel 部署失败，报错：`await isn't allowed in non-async function`
-- 错误位置：`app/practice/page.tsx:4272`
-
-**根本原因**:
-`handleStartPractice` 函数使用了 `await` 调用 `audioCache.isCacheValid()`，但函数定义缺少 `async` 关键字。
-
-**修复方案**:
-```typescript
-// 修复前
-const handleStartPractice = () => {
-
-// 修复后
-const handleStartPractice = async () => {
-```
-
-**Git提交**:
-- `c386e4d` (master2) - fix: 修复 handleStartPractice 函数缺少 async 关键字
-
----
-
-## 项目概述
-**创建时间**: 2026-01-14
-**项目阶段**: 需求验证阶段
-**核心理念**: 简单 - 专注打卡功能做到极致
-
----
-
-## 2026-03-05: 修复口令跟练功能点击无反应问题 ✅
-
-**阶段**: Bug修复（口令跟练功能）
-
-**问题描述**:
-- 点击口令跟练选项后，再点击"开始练习"没有反应
-- 用户感觉界面卡死，没有任何反馈
-
-**根本原因分析**:
-
-1. **音频加载阻塞界面**: `handleStartPractice` 函数中，口令跟练模式会创建 `Audio` 对象并等待 `loadedmetadata` 事件
-2. **延迟进入练习界面**: 只有在音频加载完成后（约几秒到十几秒，取决于网络），才设置 `setIsPracticing(true)` 进入练习界面
-3. **用户无感知**: 在此期间用户看不到任何反馈，以为点击无效
-
-**修复方案**:
-
-### 修复1: 立即进入练习界面
-**文件**: `app/practice/page.tsx:4240` (`handleStartPractice` 函数)
-
-**修复前**:
-```typescript
-const handleStartPractice = () => {
-  if (selectedOption) {
-    // 口令跟练模式：先加载音频
-    if (selectedOption === 'guided_audio') {
-      setIsAudioLoading(true)
-      const audio = new Audio(GUIDED_AUDIO_OPTION.audio_src)
-
-      audio.addEventListener('loadedmetadata', () => {
-        // 音频加载完成后才进入练习界面
-        setIsPracticing(true)  // ⭐ 延迟执行
-        audio.play()
-      })
-    }
-  }
-}
-```
-
-**修复后**:
-```typescript
-const handleStartPractice = () => {
-  if (selectedOption) {
-    // 先进入练习界面（立即给用户反馈）
-    const now = Date.now()
-    setStartTime(now)
-    setIsPracticing(true)  // ⭐ 立即执行
-    setIsPaused(false)
-    // ...
-
-    // 口令跟练模式：加载音频
-    if (selectedOption === 'guided_audio') {
-      setIsAudioLoading(true)
-      setAudioError(null)
-      setIsPaused(true)  // ⭐ 先暂停，等音频加载完成
-
-      const audio = new Audio(GUIDED_AUDIO_OPTION.audio_src)
-
-      audio.addEventListener('loadedmetadata', () => {
-        setAudioDuration(audio.duration)
-        setIsAudioLoaded(true)
-        setIsAudioLoading(false)
-
-        // 音频加载完成，自动开始播放和计时
-        setIsPaused(false)  // ⭐ 加载完成后自动开始
-        audio.play()
-      })
-      // ...
-      setAudioElement(audio)
-    }
-  }
-}
-```
-
-### 修复2: 统一口令跟练选项样式
-**文件**: `app/practice/page.tsx:4714-4720`
-
-- 移除 `isGuidedAudio` 特殊样式判断
-- 移除 `Volume2` 图标
-- 样式改为和其他普通选项完全一致
-
-**代码变更**:
-```typescript
-// 之前：特殊样式和图标
-const isGuidedAudio = option.id === "guided_audio"
-// ...
-isGuidedAudio
-  ? "bg-primary/10 text-primary border border-primary/30..."
-  : "bg-background text-foreground..."
-// ...
-{isGuidedAudio && <Volume2 className="w-3.5 h-3.5 inline-block" />}
-
-// 现在：和其他选项一样
-"bg-background text-foreground shadow-[0_4px_16px_rgba(0,0,0,0.06)] border border-stone-100/50"
-```
-
-**Git提交**:
-- `a3f3189` (master2) - fix: 修复口令跟练功能点击无反应问题
-- `ce7a3e8` (master) - fix: 修复口令跟练功能点击无反应问题
-
-**用户体验改进**:
-- 点击"开始练习"立即进入计时界面，不再卡顿
-- 音频加载期间显示"加载中..."状态
-- 音频加载完成后自动开始播放和计时
-- 口令跟练选项样式和其他选项一致，不突兀
-
-**测试建议**:
-1. 选择"一序列跟练"选项
-2. 点击"开始练习"
-3. 验证是否立即进入计时界面
-4. 验证是否显示"加载中..."
-5. 验证音频加载完成后是否自动开始播放
-
----
-
-## 2026-02-28: 修复同步时名字签名被重置问题 ✅ 完成
-
-**阶段**: Bug修复（同步功能优化）
-
-**问题描述**:
-- 用户在同步练习记录时，选择"智能合并"后，个人资料（名字、签名）有时会被重置为默认状态
-
-**根本原因分析**:
-
-1. **问题1**: `smartMerge` 函数未处理 profile 数据
-   - 只同步了练习记录和选项，完全没有处理 profile
-   - 如果云端 profile 被错误构建为默认值，智能合并不会修正
-
-2. **问题2**: 使用云端数据时错误的有效性判断
-   - 多处代码排除了 `'阿斯汤加习练者'` 这个值，认为它是"无效的"
-   - 但实际上用户可能恰好喜欢用这个名字
-   - 选择"使用云端数据"时，如果云端是默认名字，会被强制重置
-
-3. **问题3**: 同步对比逻辑与构建逻辑不一致
-   - 对比阶段已正确识别 profile 变更来源
-   - 但构建 `mergedProfile` 时重新进行"有效性"判断，覆盖了对比结果
-
-**修复方案**:
-
-### 修复1: 智能合并时正确处理 profile 数据
-**文件**: `hooks/useSync.ts:547` (`smartMerge` 函数)
-```typescript
-// 智能合并 profile：比较时间戳，使用更新的那个
-let mergedProfile = freshLocalData.profile
-if (remoteData.profile) {
-  const localTime = new Date(freshLocalData.profile?.updated_at || freshLocalData.profile?.created_at || 0).getTime()
-  const remoteTime = new Date(remoteData.profile.updated_at || remoteData.profile.created_at).getTime()
-
-  if (remoteTime > localTime) {
-    mergedProfile = remoteData.profile
-  }
-}
-
-onSyncComplete({
-  records: [...freshLocalData.records, ...remoteOnly],
-  options: remoteData.options || [],
-  profile: mergedProfile // ⭐ 添加 profile
-})
-```
-
-### 修复2: 移除错误的默认值判断
-**文件**: `hooks/useSync.ts`
-**位置**: 394-408 行, 454-468 行, 928-942 行
-
-**修复前**:
-```typescript
-const mergedProfile = remoteData.profile && remoteData.profile.name && !remoteData.profile.name.match(/^\d+$/) && remoteData.profile.name !== '阿斯汤加习练者'
-  ? { /* 使用云端 */ }
-  : { name: '阿斯汤加习练者', ... } // 默认值
-```
-
-**修复后**:
-```typescript
-const mergedProfile = remoteData.profile && remoteData.profile.name
-  ? { /* 直接使用云端数据 */ }
-  : freshLocalData.profile || { name: '阿斯汤加习练者', ... } // 只有真正没有数据时才用默认值
-```
-
-**关键原则**: 默认值 `'阿斯汤加习练者'` 只是一个初始值，不应该在同步过程中被当作"无效数据"处理。
-
-### 修复3: 信任同步对比结果
-**文件**: `hooks/useSync.ts:394-408`
-- 直接使用 `profileChangeSource` 的结果
-- 不要重新判断 profile 是否"有效"
-
-**验证方案**:
-
-1. **测试用例1**: 智能合并时 profile 不被重置
-   - 设备 A：修改名字为 "小明"，等待同步到云端
-   - 设备 B：触发冲突，选择智能合并
-   - 验证：设备 B 的名字应该是 "小明"（不是默认值）
-
-2. **测试用例2**: 云端是默认名字时不被强制重置
-   - 云端 profile 名字为 "阿斯汤加习练者"
-   - 本地 profile 名字为 "小明"
-   - 同步时选择"使用云端数据"
-   - 验证：云端数据被正确下载，名字为 "阿斯汤加习练者"（不是又被重置一次）
-
-3. **测试用例3**: 基于时间戳的正确合并
-   - 本地 profile 更新时间为今天 10:00，名字为 "小明"
-   - 云端 profile 更新时间为今天 12:00，名字为 "大明"
-   - 触发智能合并
-   - 验证：最终名字为 "大明"（云端更新）
-
-**Git提交**:
-- `fd9ea26` - fix(sync): 修复同步时名字签名被重置的问题
-
-**修改文件**:
-| 文件 | 位置 | 说明 |
-|------|------|------|
-| `hooks/useSync.ts` | 394-408, 454-468, 547, 928-942 | 主要修复位置 |
-
-**下一步**:
-- 继续观察同步功能是否稳定
-- 处理其他已知问题（练习选项同步异常）
-
----
-
-## 2026-02-27: 飞书多维表格读取技能 ✅ 完成
-
-### 背景
-用户希望将飞书读取功能单独做成一个 Claude Code 技能，可以直接发送多维表格链接，Claude 就能读取表格内容进行分析。
-
-### 实现
-创建了 `.claude/skills/feishu-bitable-read/` 技能：
-
-**文件结构**:
-```
-.claude/skills/feishu-bitable-read/
-├── skill.yml          # 技能定义
-├── config.json        # 配置文件（app_id, app_secret）
-└── read_bitable.py    # 核心逻辑
-```
-
-**核心功能**:
-1. **URL 解析**: 从 `https://xxx.feishu.cn/base/{app_token}?table={table_id}` 提取参数
-2. **Token 管理**: 自动获取 tenant_access_token
-3. **分页读取**: 处理大量数据的分页获取（每页 500 条）
-4. **字段映射**: 自动将 field_id 转换为字段名显示
-5. **缓存机制**: 默认 5 分钟缓存，避免重复调用 API
-6. **表格目录**: 支持配置多个表格，使用 key 快速切换
-7. **默认表格**: 无需输入 URL，自动使用默认表格
-8. **待发货清单**: 一键查看待发货订单和订货清单
-
-**表格目录** (`config.json`):
-```json
-{
-  "default_table": "orders",
-  "tables": {
-    "orders": {
-      "name": "有赞订单",
-      "url": "https://xxx.feishu.cn/base/xxx",
-      "description": "有赞商城订单数据"
-    }
-  }
-}
-```
-
-**使用方式**:
-```bash
-# 查看待发货订单（使用默认表格）
-/feishu-bitable-read
-
-# 使用指定表格 key
-/feishu-bitable-read orders
-
-# 使用完整链接
-/feishu-bitable-read https://xxx.feishu.cn/base/xxx
-
-# 查看表格目录
-/feishu-bitable-read --list-tables
-```
-
-**配置凭证**:
-- `app_id`: cli_a92a4d950d385cef
-- `app_secret`: rbhvYLZ8zJj5Lx3Vz4DlLcBEcJ2FgEVj
-
-### 测试验证
-使用有赞订单表格链接测试成功：
-- 表格名称: 有赞订单
-- 记录总数: 486 条
-- 字段数量: 161 个
-
-### 版本迭代
-
-**v1.0 (2026-02-27)**: 基础功能
-- URL 解析、Token 管理、分页读取、缓存机制
-
-**v2.0 (2026-02-27)**: 智能表格目录
-- 添加表格目录管理功能
-- 支持默认表格（无需输入 URL）
-- 支持表格 key 快速切换
-- 待发货订单统计功能
-- `--list-tables` 查看表格目录
-
-### 复用代码
-从 `XBB-APP/ashtanga-xiaohongshu/_scripts/sync_feishu_content.py` 复用了：
-- `get_tenant_token()` 方法
-- `get_all_records()` 分页逻辑
-- 错误处理模式
-
----
-
-## 用户画像
-- **姓名**: orange
-- **角色**: 产品经理
-- **背景**: 阿斯汤加瑜伽练习3年
-- **技术背景**: 不会写代码，用AI开发
-- **付费意愿**: 小几十块/年
-
----
-
-## 需求描述
-
-### 现状痛点
-- 在约课软件上看练了几天
-- 在个人日记上记录练习
-- **数据不统一**，无法看进步/状态
-
-### 核心需求
-- 打卡 + 时间 + 文字补充 + 照片
-- 时间线回顾
-- 以后可能生成回忆
-
-### 功能定位
-**不是**瑜伽学习app
-**不是**体式教学app
-**就是**专注打卡 + 身体觉察的记录工具
-
----
-
-## 市场调研
-- **小红书搜索**: 没有专注阿斯汤加打卡的产品
-- **竞品**: 瑜伽学习app（嵌入打卡功能，不纯粹）
-- **参考案例**: 鸿蒙咖啡打卡app（成功案例）
-
----
-
-## 需求验证计划
-
-### Week 1: 验证需求（不写代码）
-
-#### 方案1: 小红书测试
-- **内容**: "练了3年阿斯汤加，想做个打卡app，有人需要吗？"
-- **观察指标**: 收藏数 > 50 = 需求成立
-- **关键信号**: 有人问"什么时候出"、"求分享"
-
-#### 方案2: 亲身体验
-- **工具**: Excel/飞书表格
-- **时长**: 1周
-- **目的**: 验证自己能否坚持记录
-
-#### 方案3: 用户调研
-- **目标**: 找10个阿斯汤加练习者
-- **问题**:
-  - 你现在怎么打卡？
-  - 打卡最痛苦的是什么？
-  - 愿意为app付多少钱？
-
----
-
-## 技术方案（待验证后确定）
-
-### 候选方案
-
-| 方案 | 成本 | 时间 | 美观度 |
-|------|------|------|--------|
-| v0.dev (Vercel) | 0 | 3-5天 | ⭐⭐⭐⭐⭐ |
-| Claude Code + Streamlit | 0 | 1周 | ⭐⭐⭐ |
-| PWA (打包) | 0 | 1周 | ⭐⭐⭐⭐ |
-
-### 核心功能
-- 打卡按钮
-- 时间记录
-- 文字补充
-- 照片上传
-- 时间线回顾
-
----
-
-## 产品方法论应用
-
-### 预测
-- 阿斯汤加小众但粘性高
-- 市场上没有纯打卡产品
-- 打卡app留存问题（3个月后流失）
-
-### 单点击穿
-- **核心功能**: "今天练了，记录一下"
-- **差异化**: 不做教学，只做记录
-- **目标用户**: 练了很久的人，不是新手
-
-### All-in
-- 待需求验证后再决定
-
----
-
-## 验证标准
-
-### ✅ 需求成立的信号
-- 小红书收藏 > 50
-- 10+人说"希望有app"
-- 自己能坚持记录1周
-
-### ❌ 需求不成立的信号
-- 小红书没人理
-- 自己1周都坚持不了记录
-- 反馈都是"不需要"
-
----
-
-## 下一步行动
-
-- [ ] Week 1: 小红书发帖测试
-- [ ] Week 1: 用Excel记录1周
-- [ ] Week 1: 收集用户反馈
-- [ ] Week 2: 根据反馈决定是否开发
-
----
-
-## 项目对话记录
-
-### 2026-01-22 Tab1 UI样式优化完成 ✅
-
-**阶段**: UI细节打磨
-
-**核心改动**:
-- ✅ 选项按钮样式全面优化
-  - 按钮间距：gap-4 (16px) → gap-2 (8px)，更紧凑
-  - 按钮内边距：py-2 px-2 → py-[6px] px-1 (上下6px, 左右4px)
-  - 名称字号：text-xs (12px) → text-[14px]，可读性提升
-  - 备注字号：text-[10px] → text-[11px]
-  - 按钮最小高度：min-h-[72px]
-- ✅ 默认选项文案简化（hooks/usePracticeData.ts）
-  - 原来："一序列 Mysore"、"一序列 Led Class"（混用中英文，太长）
-  - 现在："一序列" + "Mysore"、"一序列" + "Ledclass"（纯中文+简短英文）
-  - 6个默认选项：一序列(Mysore/Ledclass)、二序列(Mysore/Ledclass)、半序列、休息日
-- ✅ 底部Tab导航间距优化：pb-8 (32px) → pb-4 (16px)，更贴近屏幕底部
-- ✅ 网页标题修改：熬汤日记·觉察呼吸 → 熬汤日记·呼吸·觉察（顺序调整）
-- ✅ 首页添加英文标语："Practice, practice, and all is coming."
-  - Pattabhi Jois的名言
-  - 9px 字号，灰色50%透明度，贴在中文标题正下方
-- ✅ 提示文字优化：单击选择·双击编辑（使用中点号）
-  - 间距优化：mt-2 (8px) → mt-[-4px]（负值，上移4px）
-  - 实际间距从24px减小到12px
-- ✅ Logo图标调整：32px × 32px → 34px × 34px
-- ✅ 删除Zeabur相关文档：确认使用Vercel部署
-
-**技术实现**:
-- Next.js 16 + React 19 + TypeScript
-- Tailwind CSS 自定义值：text-[14px], text-[9px], w-[34px], py-[6px]
-- 负边距技巧：mt-[-4px] 实现元素重叠效果
-
-**Git提交**:
-- `d83af42` - 优化选项按钮显示 - 调整内边距为px-1，间距改为gap-4
-- `495d218` - 删除Zeabur相关内容，更新为Vercel部署
-- `47016ec` - 名称字号改为20px
-- `fe85d6f` - 名称字号改回16px
-- `1d27d9e` - 名称字号改为14px
-- `da7f79e` - 按钮上下内边距改为6px
-- `e4b6e83` - 底部Tab导航改为pb-4，更贴近屏幕底部
-- `6551ef4` - 网页标题改为'熬汤日记·呼吸·觉察'
-- `4230414` - 首页标题下方添加英文小字'Practice, practice, and all is coming.'
-- `40a4199` - 英文标语改为9px，贴在中文标题正下方
-- `3e30ba5` - 提示文字改为'单击选择·双击编辑'，间距改为mt-2(8px)，英文标语改为9px
-- `cb52f47` - 提示文字间距改为mt-[-4px]，更贴近按钮
-- `b1c6542` - logo图标大小改为34px×34px
-
-**用户体验改进**:
-- 按钮更紧凑，文字更大更清晰
-- 默认选项文案更简洁，一眼就能看懂
-- Tab导航更贴近底部，更方便操作
-- 英文标语增添瑜伽文化气息
-- 整体UI更加精致和专业
-
-**产品决策**: 符合"简单"理念，Tab1样式打磨完成，达到稳定可用标准
-
-**下一步计划**:
-- P0: 继续使用和测试，发现其他问题
-- P1: 照片上传功能（Supabase Storage）
-- P2: 其他Tab的UI优化
-
----
-
-### 2026-01-19 Supabase数据持久化完成 ✅
-
-**阶段**: 从MVP到可用产品
-
-**核心功能**:
-- ✅ Supabase数据库集成（3个表：practice_records, practice_options, user_profiles）
-- ✅ 完整CRUD操作（创建、读取、更新、删除）
-- ✅ 编辑记录功能（点击记录左侧编辑，同步更新到Supabase）
-- ✅ 删除记录功能（确认对话框，同步删除Supabase数据）
-- ✅ 保存后自动跳转到觉察日记Tab
-- ✅ 数据持久化（刷新页面数据不丢失）
-- ✅ 错误处理优化（网络错误时优雅降级）
-
-**技术实现**:
-- Next.js 16 + React 19 + TypeScript
-- Supabase PostgreSQL数据库
-- @supabase/supabase-js客户端
-- lib/database.ts - 完整CRUD函数库
-- lib/supabase.ts - 数据库连接配置
-- .env.local - 环境变量配置
-
-**数据库表结构**:
-```sql
--- practice_records (练习记录表)
-- id: BIGINT (主键，自增)
-- created_at: TIMESTAMP (创建时间)
-- date: DATE (练习日期)
-- type: TEXT (练习类型，如"一序列Mysore")
-- duration: BIGINT (时长，秒)
-- notes: TEXT (觉察文字)
-- photos: TEXT[] (照片数组，存储URL)
-- breakthrough?: TEXT (突破标题，可选)
-
--- practice_options (练习选项表)
-- id: BIGINT (主键，自增)
-- created_at: TIMESTAMP (创建时间)
-- label: TEXT (英文标签)
-- label_zh: TEXT (中文标签)
-- notes?: TEXT (备注说明)
-- is_custom: BOOLEAN (是否用户自定义)
-
--- user_profiles (用户信息表)
-- id: BIGINT (主键，自增)
-- created_at: TIMESTAMP (创建时间)
-- name: TEXT (用户名)
-- signature: TEXT (个性签名)
-- avatar?: TEXT (头像URL)
-- phone?: TEXT (手机号)
-- email?: TEXT (邮箱)
-- is_pro: BOOLEAN (是否付费会员)
-```
-
-**遇到的问题和解决方案**:
-
-1. ❌ API key格式错误
-   - 问题：使用了新版publishable key（`sb_publishable_xxx`格式）
-   - 解决：改用legacy anon key（`eyJhbG...`JWT格式）
-   - 教训：Supabase更新了API key系统，需要使用legacy key
-
-2. ❌ 数据表缺少date字段
-   - 问题：表结构与设计文档不一致
-   - 解决：按照设计方案重新创建表
-   - 工具：在SQL Editor中执行DROP TABLE + CREATE TABLE
-
-3. ❌ React key重复警告
-   - 问题：mock数据和Supabase数据有重复的id
-   - 解决：移除mock数据，初始状态改为空数组
-   - 结果：只使用Supabase真实数据
-
-4. ❌ 删除功能失败（错误信息为空对象）
-   - 问题：错误日志不够详细，无法排查
-   - 解决：改进错误日志，输出JSON.stringify(error)
-   - 结果：发现是RLS权限问题，关闭RLS后正常
-
-**技术决策**:
-- v1.0只给自己用，关闭RLS（Row Level Security）
-- v1.5对外开放时再开启权限控制
-- 符合"简单"理念，先核心功能，后权限管理
-
-**Git提交**:
-- `35cf58e` - feat: 阿斯汤加打卡app - Supabase数据持久化完成
-  - 99个文件，16214行代码
-  - 包含完整的Next.js项目、UI组件、数据库逻辑
-- `57e7682` - docs: 更新memory.md记录今日工作
-
-**配置文档**:
-- `SUPABASE_SETUP_GUIDE.md` - 详细的Supabase配置指南
-  - 创建项目的步骤
-  - 3个数据表的SQL语句
-  - RLS配置说明
-  - API key获取方法
-
-**下一步计划**:
-- **P0（核心完善）**: 照片上传功能（压缩+存储到Supabase Storage）
-- **P1（体验优化）**: 加载状态提示、错误提示美化（用toast替代alert）
-- **P2（部署上线）**: 部署到Vercel、配置自定义域名
-
-**产品决策**: 符合"简单"理念，专注核心数据功能，app现在真正可用了！
-
----
-
-### 2026-01-19 Zeabur云端部署成功 ✅
-
-**阶段**: 从本地开发到云端可用
-
-**部署成果**:
-- ✅ 成功部署到Zeabur平台
-- ✅ GitHub仓库自动化部署
-- ✅ 89个核心文件上传
-- ✅ 环境变量配置完成
-- ✅ 应用成功运行在云端
-
-**部署过程**:
-
-1. **GitHub仓库清理**
-   - 清空远程仓库，准备重新上传
-   - 保留本地文件，只清空GitHub
-
-2. **创建部署版本**
-   - 在Ashtang_app/目录初始化新git仓库
-   - 配置.gitignore排除非部署文件：
-     - `screenshots/` - 截图目录
-     - `yoga-app-homepage/` - 备份目录
-     - `docs/` - 文档目录
-     - `*.md` - Markdown文件（除了.zeabur.yaml）
-     - `node_modules/` - 依赖包
-     - `.next/` - 构建缓存
-
-3. **上传核心文件**（89个文件）
-   - Next.js应用完整代码
-   - 配置文件（package.json, tsconfig.json, next.config.mjs等）
-   - 组件库（57个shadcn/ui组件）
-   - 公共资源（11个图标和占位图）
-   - Zeabur配置（.zeabur.yaml）
-
-4. **Zeabur配置**
-   - Root Directory: `/`（项目文件在仓库根目录）
-   - 环境变量配置：
-     - `NEXT_PUBLIC_SUPABASE_URL`: https://xojbgxvwgvjanxsowqik.supabase.co
-     - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-   - 自动部署配置：GitHub推送自动触发部署
-
-5. **部署验证**
-   - ✅ 文件上传成功
-   - ✅ 构建过程正常
-   - ✅ 应用成功运行
-   - ✅ Supabase连接正常
-
-**技术亮点**:
-- 使用pnpm作为包管理器
-- Zeabur自动检测Next.js项目
-- 零配置部署（.zeabur.yaml只需设置build命令）
-- GitHub集成实现自动化部署
-
-**部署地址**:
-- GitHub仓库: https://github.com/jstur225/ashtanga-app
-- Zeabur控制台: （用户提供）
-
-**遇到的问题**:
-1. ❌ 初次部署Zeabur找不到项目文件
-   - 原因：项目文件在yoga-app-homepage/子目录
-   - 解决：将项目文件移到仓库根目录
-
-2. ❌ .env.local未包含在部署中
-   - 原因：.gitignore排除了.env*文件
-   - 解决：在Zeabur中手动配置环境变量
-
-**Git提交**:
-- （部署版本在Ashtang_app/目录的新git仓库）
-
-**下一步计划**:
-- **P0**: 测试云端应用功能完整性
-- **P1**: 配置自定义域名
-- **P2**: 添加监控和错误追踪
-- **P3**: 照片上传功能（Storage配置）
-

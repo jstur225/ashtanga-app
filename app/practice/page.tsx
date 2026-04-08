@@ -8,14 +8,16 @@ import { usePWAInstall } from "@/hooks/usePWAInstall"
 import { useAuth } from "@/hooks/useAuth"
 import { useSync } from "@/hooks/useSync"
 import { BookOpen, BarChart3, Calendar, X, Camera, Pause, Play, Trash2, User, Settings, ChevronLeft, ChevronRight, ChevronUp, Cloud, Download, Upload, Plus, Minus, Share2, Sparkles, Check, Copy, ClipboardPaste, MessageCircle, Bug, AlertCircle, SkipBack, SkipForward, Volume } from "lucide-react"
+import { cn } from '@/lib/utils'
 import { FakeDoorModal } from "@/components/FakeDoorModal"
 import { VoiceButton } from "@/components/VoiceButton"
+import { PracticeForm, type PracticeFormData } from "@/components/PracticeForm"
 import { PhotoUploadButton } from "@/components/PhotoUploadButton"
 import { ImportModal } from "@/components/ImportModal"
 import { ExportModal } from "@/components/ExportModal"
 import { XiaohongshuInviteModal, INVITE_VERSION } from "@/components/XiaohongshuInviteModal"
-import { PWAInstallTutorialModal } from "@/components/PWAInstallTutorialModal"
 import { PWAInstallBanner } from "@/components/PWAInstallBanner"
+import { PWAInstallTutorialModal } from "@/components/PWAInstallTutorialModal"
 import { AccountBindingSection } from "@/components/AccountBindingSection"
 import { AuthModal } from "@/components/AuthModal"
 import { DataConflictModal } from "@/components/DataConflictModal"
@@ -23,7 +25,6 @@ import { DebugLogModal } from "@/components/DebugLogModal"
 import { toast } from 'sonner'
 import { trackEvent, setUserProfile } from '@/lib/analytics'
 import { captureWithFallback, formatErrorForUser } from '@/lib/screenshot'
-import { createShareCard } from '@/lib/share-card-canvas'
 import { MOON_DAYS_2026 } from '@/lib/moon-phase-data'
 import { supabase } from '@/lib/supabase'
 import { deletePracticeRecord } from '@/lib/database'
@@ -49,7 +50,7 @@ const getMoonPhaseMap = () => {
 }
 
 // Helper functions
-function getLocalDateStr(dateInput?: Date | string): string {
+function getLocalDateStr(dateInput?: Date | string) {
   const now = dateInput ? new Date(dateInput) : new Date()
   const year = now.getFullYear()
   const month = String(now.getMonth() + 1).padStart(2, '0')
@@ -519,7 +520,8 @@ function EditOptionModal({
   )
 }
 
-// Edit Record Modal (for editing/deleting practice records)
+
+// Edit Record Modal (for editing/deleting practice records) - 使用 PracticeForm
 function EditRecordModal({
   isOpen,
   onClose,
@@ -531,6 +533,8 @@ function EditRecordModal({
   onChildModalOpen,
   onOpenVoiceFakeDoor,
   onOpenPhotoFakeDoor,
+  user,
+  userProfile,
 }: {
   isOpen: boolean
   onClose: () => void
@@ -542,75 +546,61 @@ function EditRecordModal({
   practiceOptions: PracticeOption[]
   practiceHistory?: PracticeRecord[]
   onChildModalOpen?: (open: boolean) => void
+  user?: { email?: string | null } | null
+  userProfile?: UserProfile | null
 }) {
-  const [notes, setNotes] = useState("")
-  const [breakthroughEnabled, setBreakthroughEnabled] = useState(false)
-  const [breakthroughText, setBreakthroughText] = useState("")
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  // ⭐ 从最新的 practiceHistory 中获取记录数据（避免照片上传后数据过时）
+  const latestRecord = useMemo(() => {
+    if (!record) return null
+    return practiceHistory.find(r => r.id === record.id) || record
+  }, [record, practiceHistory])
 
-  // 新增：日期、类型、时长的状态
-  const [date, setDate] = useState("")
-  const [type, setType] = useState("")
-  const [duration, setDuration] = useState(60)
-
-  // 新增：子模态框状态
+  // 子模态框状态
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [showTypeSelector, setShowTypeSelector] = useState(false)
 
-  // 日期显示格式化
-  const formatDateDisplay = (dateStr: string) => {
-    if (!dateStr) return "选择日期"
-    const date = new Date(dateStr)
-    return `${date.getMonth() + 1}月${date.getDate()}日`
-  }
+  // 表单数据状态（用于 PracticeForm）
+  const [formData, setFormData] = useState({
+    date: '',
+    type: '',
+    duration: 60,
+    notes: '',
+    breakthrough: undefined as string | undefined,
+  })
 
+  // 当记录变化时，同步表单数据
   useEffect(() => {
-    if (record) {
-      setNotes(record.notes || "")
-      setBreakthroughEnabled(!!record.breakthrough)
-      setBreakthroughText(record.breakthrough || "")
-      setDate(record.date)
-      setType(record.type)
-      setDuration(Math.floor(record.duration / 60)) // 转换为分钟
-      // ⭐ 重置删除确认状态，避免直接显示删除确认界面
-      setShowDeleteConfirm(false)
+    if (latestRecord) {
+      setFormData({
+        date: latestRecord.date,
+        type: latestRecord.type,
+        duration: Math.floor(latestRecord.duration / 60), // 转换为分钟
+        notes: latestRecord.notes || '',
+        breakthrough: latestRecord.breakthrough,
+      })
     }
-  }, [record])
+  }, [latestRecord])
 
-  const handleSave = () => {
-    if (record) {
-      onSave(record.id, {
-        notes,
-        breakthrough: breakthroughEnabled ? breakthroughText : undefined,
-        date,
-        type,
-        duration: duration * 60,
+  const handleSave = (data: PracticeFormData) => {
+    if (latestRecord) {
+      onSave(latestRecord.id, {
+        date: data.date,
+        type: data.type,
+        duration: data.duration * 60, // 转换为秒
+        notes: data.notes,
+        breakthrough: data.breakthrough,
+        photos: data.photos, // ⭐ 保存时包含照片
       })
       toast.success('更新成功')
       onClose()
     }
   }
 
-  const handleDeleteClick = () => {
-    setShowDeleteConfirm(true)
-    onChildModalOpen?.(true)
-  }
-
-  const handleConfirmDelete = async () => {
-    if (record) {
-      // 关闭弹窗
-      setShowDeleteConfirm(false)
-      onChildModalOpen?.(false)
+  const handleDelete = () => {
+    if (latestRecord) {
+      onDelete(latestRecord.id)
       onClose()
-
-      // 调用父组件的删除处理（会自动同步）
-      onDelete(record.id)
     }
-  }
-
-  const handleCancelDelete = () => {
-    setShowDeleteConfirm(false)
-    onChildModalOpen?.(false)
   }
 
   const handleDatePickerToggle = (open: boolean) => {
@@ -625,7 +615,7 @@ function EditRecordModal({
 
   return (
     <AnimatePresence>
-      {isOpen && record && (
+      {isOpen && latestRecord && (
         <>
           <motion.div
             initial={{ opacity: 0 }}
@@ -648,151 +638,27 @@ function EditRecordModal({
               </button>
             </div>
 
-            {showDeleteConfirm ? (
-              <div className="space-y-4">
-                <p className="text-center font-serif text-foreground">确定要删除这条记录吗？</p>
-                <p className="text-center text-sm text-muted-foreground font-serif">{formatDate(record.date)} · {record.type}</p>
-                <div className="flex gap-3">
-                  <button
-                    onClick={handleCancelDelete}
-                    className="flex-1 py-3 rounded-full bg-secondary text-foreground font-serif transition-all hover:bg-secondary/80 active:scale-[0.98]"
-                  >
-                    取消
-                  </button>
-                  <button
-                    onClick={handleConfirmDelete}
-                    className="flex-1 py-3 rounded-full font-serif transition-all active:scale-[0.98] bg-gradient-to-br from-red-400 to-red-700 text-white backdrop-blur-md shadow-lg hover:shadow-xl border border-red-300/30"
-                  >
-                    删除
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {/* Date & Type - 可编辑 */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-serif text-muted-foreground mb-1.5">日期</label>
-                    <button
-                      onClick={() => handleDatePickerToggle(true)}
-                      className="w-full px-3 py-2.5 rounded-xl bg-secondary text-foreground font-serif text-left transition-all hover:bg-secondary/80 active:scale-[0.98] text-sm"
-                    >
-                      {formatDateDisplay(date)}
-                    </button>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-serif text-muted-foreground mb-1.5">练习类型</label>
-                    <button
-                      onClick={() => handleTypeSelectorToggle(true)}
-                      className={`
-                        w-full px-3 py-2.5 rounded-xl font-serif text-left transition-all active:scale-[0.98] text-sm
-                        ${type
-                          ? 'green-gradient-light text-primary border border-primary/20'
-                          : 'bg-secondary text-muted-foreground hover:bg-secondary/80'
-                        }
-                      `}
-                    >
-                      {type ? type.split(' ')[0] : "选择类型"}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Duration & Breakthrough Toggle */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-serif text-muted-foreground mb-1.5">练习时长 (分钟)</label>
-                    <input
-                      type="number"
-                      value={duration || ''}
-                      onChange={(e) => setDuration(e.target.value === '' ? 0 : Number(e.target.value))}
-                      placeholder="输入时长"
-                      className="w-full px-3 py-2.5 rounded-xl bg-secondary text-foreground font-serif focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-serif text-muted-foreground mb-1.5">突破时刻</label>
-                    <button
-                      type="button"
-                      onClick={() => setBreakthroughEnabled(!breakthroughEnabled)}
-                      className={`w-full flex items-center justify-start gap-1.5 px-3 py-2.5 rounded-xl border transition-all ${
-                        breakthroughEnabled
-                          ? 'bg-orange-50 border-orange-200 text-orange-600 shadow-sm'
-                          : 'bg-secondary border-transparent text-muted-foreground'
-                      }`}
-                    >
-                      <Sparkles className={`w-3.5 h-3.5 ${breakthroughEnabled ? 'text-orange-500' : 'text-muted-foreground'}`} />
-                      <span className="text-sm font-serif">解锁/突破</span>
-                    </button>
-                  </div>
-                </div>
-
-                <AnimatePresence>
-                  {breakthroughEnabled && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      className="overflow-hidden"
-                    >
-                      <div className="pt-1">
-                        <label className="block text-xs font-serif text-muted-foreground mb-1.5">觉察/笔记</label>
-                        <input
-                          type="text"
-                          value={breakthroughText}
-                          onChange={(e) => setBreakthroughText(e.target.value)}
-                          placeholder="记录今天的里程碑..."
-                          maxLength={20}
-                          className="w-full px-3 py-2.5 rounded-xl bg-gradient-to-br from-orange-50/80 to-orange-50/40 text-foreground placeholder:text-orange-300/70 font-serif focus:outline-none focus:ring-2 focus:ring-orange-300/50 focus:border-orange-300 border border-orange-200/60 transition-all duration-200 text-sm shadow-sm shadow-orange-100/50"
-                        />
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                {/* Editable notes */}
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-xs font-serif text-muted-foreground">
-                      觉察/笔记
-                    </label>
-                    <span className="text-xs text-muted-foreground/60">{notes.length}/2000</span>
-                  </div>
-                  <div className="relative">
-                    <textarea
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value.slice(0, 2000))}
-                      placeholder="今天练习感受如何？有什么觉察？可以尝试右下方的语音输入，轻松地说出你的当下想法，留下更多真实的痕迹。"
-                      rows={7}
-                      className="w-full px-4 py-3 pr-12 rounded-2xl bg-secondary text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-none font-serif text-sm"
-                    />
-                    {/* Voice Input + Photo Upload - 浮动在输入框右下角（假门测试） */}
-                    <div className="absolute bottom-3 right-3 flex items-center gap-2">
-                      <PhotoUploadButton
-                        onClick={() => onOpenPhotoFakeDoor?.()}
-                      />
-                      <VoiceButton
-                        onClick={() => onOpenVoiceFakeDoor?.()}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <button
-                  onClick={handleSave}
-                  className="w-full py-4 rounded-full green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white font-serif transition-all hover:opacity-90 active:scale-[0.98]"
-                >
-                  保存修改
-                </button>
-
-                <button
-                  onClick={handleDeleteClick}
-                  className="w-full py-3 rounded-full bg-transparent text-destructive font-serif transition-all hover:bg-destructive/10 active:scale-[0.98] flex items-center justify-center gap-2"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  删除记录
-                </button>
-              </div>
-            )}
+            <PracticeForm
+              initialData={formData}
+              recordId={latestRecord?.id}
+              user={{ email: user?.email, is_pro: userProfile?.is_pro }} // ⭐ 传入用户信息
+              date={formData.date}
+              type={formData.type}
+              onDateChange={(d) => setFormData(prev => ({ ...prev, date: d }))}
+              onTypeChange={(t) => setFormData(prev => ({ ...prev, type: t }))}
+              dateEditable={true}
+              typeEditable={true}
+              durationEditable={true}
+              showDelete={true}
+              showPhotoUpload={true}
+              practiceOptions={practiceOptions}
+              onSave={handleSave}
+              onDelete={handleDelete}
+              onDatePickerOpen={() => handleDatePickerToggle(true)}
+              onTypeSelectorOpen={() => handleTypeSelectorToggle(true)}
+              onChildModalOpen={onChildModalOpen}
+              initialPhotos={latestRecord.photos || []}
+            />
           </motion.div>
 
           {/* DatePicker Modal */}
@@ -800,7 +666,7 @@ function EditRecordModal({
             isOpen={showDatePicker}
             onClose={(selectedDate) => {
               if (selectedDate) {
-                setDate(selectedDate)
+                setFormData(prev => ({ ...prev, date: selectedDate }))
               }
               handleDatePickerToggle(false)
             }}
@@ -812,22 +678,20 @@ function EditRecordModal({
           <TypeSelectorModal
             isOpen={showTypeSelector}
             onClose={(selectedType) => {
-              if (selectedType && selectedType !== "__custom__") {
-                setType(selectedType)
+              if (selectedType) {
+                setFormData(prev => ({ ...prev, type: selectedType }))
               }
               handleTypeSelectorToggle(false)
             }}
             practiceOptions={practiceOptions}
-            selectedType={type}
+            selectedType={formData.type}
           />
         </>
       )}
     </AnimatePresence>
   )
 }
-
 // Share Card Modal - v3 "The Aotang Poster" with Magazine Layout
-// 简化版：只读显示 + 动态缩放 + 悬浮按钮
 function ShareCardModal({
   isOpen,
   onClose,
@@ -838,8 +702,6 @@ function ShareCardModal({
   totalHours,
   onEditRecord,
   onLogExport,
-  onOpenVoiceFakeDoor,
-  onOpenPhotoFakeDoor,
   syncStatus,
 }: {
   isOpen: boolean
@@ -851,146 +713,79 @@ function ShareCardModal({
   totalHours: number
   onEditRecord: (id: string, notes: string, photos: string[], breakthrough?: string) => void
   onLogExport: (log: any) => void
-  onOpenVoiceFakeDoor?: () => void
-  onOpenPhotoFakeDoor?: () => void
   syncStatus?: 'idle' | 'syncing' | 'success' | 'error'
 }) {
   const [isCapturing, setIsCapturing] = useState(false)  // 截图状态
-  const cardRef = useRef<HTMLDivElement>(null)
-
-
 
   // 早期返回必须在所有 Hooks 之后
   if (!record) return null
 
-  // 图片导出功能 - Canvas 优先，DOM 截图降级
+  // 图片导出功能
   const handleExportImage = async () => {
-    const startTime = performance.now()
-
-    if (!record) {
-      toast.error('未找到练习记录')
+    const element = document.getElementById('share-card-content')
+    if (!element) {
+      toast.error('未找到分享卡片内容')
       return
     }
+
+    // 保存原始样式
+    const originalMaxHeight = element.style.maxHeight
+    const originalOverflow = element.style.overflow
 
     try {
       toast.loading('正在生成图片...', { id: 'export' })
 
-      // === 方案1: Canvas 绘制（高性能）===
-      const formattedDate = new Date(record.date).toLocaleDateString('zh-CN', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit'
-      }).replace(/\//g, '.')
+      // 1. 临时移除滚动限制，展开完整内容
+      element.style.maxHeight = 'none'
+      element.style.overflow = 'visible'
 
-      const canvasResult = await createShareCard({
-        date: formattedDate,
-        type: record.type,
-        duration: Math.floor(record.duration / 60),
-        notes: record.notes || '今日练习完成',
-        breakthrough: record.breakthrough,
-        thisMonthDays,
-        totalCount: totalPracticeCount,
-        totalHours,
-        profile: {
-          name: profile.name,
-          signature: profile.signature,
-          avatar: profile.avatar
-        }
-      }, { scale: 2 })
-
-      if (canvasResult.success && canvasResult.dataUrl) {
-        // Canvas 成功，直接下载
-        const link = document.createElement('a')
-        link.download = `ashtanga-${record.date || 'practice'}.png`
-        link.href = canvasResult.dataUrl
-        link.click()
-
-        // 记录日志
-        onLogExport({
-          timestamp: new Date().toISOString(),
-          success: true,
-          userAgent: navigator.userAgent,
-          recordDate: record.date,
-          duration: canvasResult.duration,
-          attempts: [{
-            method: 'canvas-draw',
-            success: true,
-            duration: canvasResult.duration
-          }],
-          browserInfo: {
-            name: 'unknown',
-            isWeChat: /MicroMessenger/i.test(navigator.userAgent),
-            isMobile: /Mobile|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
-          }
-        })
-
-        trackEvent('share_card_export', {
-          export_method: 'canvas-draw',
-          export_success: true,
-          duration: canvasResult.duration
-        })
-
-        toast.dismiss('export')
-        toast.success('图片已保存')
-        onClose()
-
-        console.log(`✅ Canvas 绘制成功，耗时 ${canvasResult.duration}ms`)
-        return
-      }
-
-      // === 方案2: DOM 截图降级（兼容性更好）===
-      console.log('Canvas 绘制失败，降级到 DOM 截图:', canvasResult.error)
-
-      const element = document.getElementById('share-card-content')
-      if (!element) {
-        throw new Error('未找到分享卡片元素')
-      }
-
-      // 设置截图状态（展开全部内容）
-      setIsCapturing(true)
+      // 2. 等待DOM更新（确保高度扩展完成）
       await new Promise(resolve => setTimeout(resolve, 100))
 
-      const fallbackResult = await captureWithFallback(element, {
+      // 3. 执行截图
+      const result = await captureWithFallback(element, {
+        scale: 2,
         backgroundColor: '#ffffff',
-        filename: `ashtanga-${record.date || 'practice'}.png`,
+        filename: `ashtanga-${record?.date || 'practice'}.png`,
         onLog: (log) => {
-          onLogExport({
+          const logEntry = {
             ...log,
             timestamp: log.timestamp,
             success: log.success,
             userAgent: log.userAgent,
             recordDate: log.recordDate
-          })
+          }
+          onLogExport(logEntry)
         }
       })
 
-      // 恢复预览状态
-      setIsCapturing(false)
-
+      // 记录分享卡片导出事件
       trackEvent('share_card_export', {
-        export_method: fallbackResult.method,
-        export_success: fallbackResult.success
+        export_method: result.method,
+        export_success: result.success
       })
 
       toast.dismiss('export')
 
-      if (fallbackResult.success) {
+      if (result.success) {
         toast.success('图片已保存')
         onClose()
       } else {
-        const errorMessage = formatErrorForUser(fallbackResult, navigator.userAgent)
+        const errorMessage = formatErrorForUser(result, navigator.userAgent)
         toast.error(errorMessage)
       }
-
     } catch (error) {
-      setIsCapturing(false)
+      // 记录失败
       trackEvent('share_card_export', {
         export_method: 'error',
         export_success: false
       })
       toast.dismiss('export')
       toast.error('导出失败，请重试')
-      console.error('导出失败:', error)
+    } finally {
+      // 恢复原始样式
+      element.style.maxHeight = originalMaxHeight
+      element.style.overflow = originalOverflow
     }
   }
 
@@ -998,7 +793,6 @@ function ShareCardModal({
 
   const formattedDate = new Date(record.date).toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '.')
   const durationMinutes = Math.floor(record.duration / 60)
-  const displayNotes = record.notes || "今日练习完成"
 
   return (
     <AnimatePresence>
@@ -1008,25 +802,22 @@ function ShareCardModal({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 backdrop-blur-sm bg-black/15"
+            className="fixed inset-0 bg-black/50 z-40"
+            onClick={onClose}
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-6"
             onClick={onClose}
           >
-            <div
-              className={`flex flex-col w-full max-w-lg p-4 ${
-                isCapturing ? '' : 'max-h-[90vh]'
-              }`}
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Share Card Content (for screenshot) - 可滚动区域 */}
+            <div className="flex flex-col gap-3 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+              {/* Share Card Content (for screenshot) */}
               <div
-                ref={cardRef}
                 id="share-card-content"
-                className={`bg-background rounded-3xl overflow-hidden w-full ring-1 ring-white/10 ${
-                  isCapturing ? '' : 'flex-1 overflow-y-auto min-h-0 max-h-[calc(90vh-8rem)]'
-                }`}
-                style={isCapturing ? { borderRadius: '24px' } : undefined}
-                
+                className="bg-background rounded-3xl shadow-2xl overflow-hidden max-h-[70vh] overflow-y-auto"
               >
                 {/* Header: Hero Duration Design */}
                 <div className="px-5 pt-5 pb-4 border-b border-border">
@@ -1047,11 +838,32 @@ function ShareCardModal({
                   )}
                 </div>
 
-                {/* Reflection Text - 只读显示，无高度限制 */}
+                {/* Reflection Text - 只读显示 */}
                 <div className="px-5 py-6">
-                  <p className="text-sm text-foreground font-serif leading-relaxed whitespace-pre-wrap break-words">
-                    {displayNotes}
+                  <p className={`text-sm text-foreground font-serif leading-relaxed whitespace-pre-wrap break-words ${
+                    isCapturing ? 'max-h-none' : 'max-h-[50vh] overflow-y-auto'
+                  }`}>
+                    {record.notes || "今日练习完成"}
                   </p>
+
+                  {/* 照片展示 - 与文案区同宽，垂直排列，一行一张 */}
+                  {record.photos && record.photos.length > 0 && (
+                    <div className="mt-4 mx-auto w-[90%] space-y-3">
+                      {record.photos.map((url, index) => (
+                        <div
+                          key={index}
+                          className="relative rounded-lg overflow-hidden"
+                        >
+                          <img
+                            src={url}
+                            alt={`练习照片 ${index + 1}`}
+                            className="w-full h-auto object-cover"
+                            loading="lazy"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* Footer: Stats & Identity Zone */}
@@ -1102,28 +914,32 @@ function ShareCardModal({
                 </div>
               </div>
 
-              {/* 悬浮按钮组 - 始终固定在底部 */}
-              <div
-                className="flex flex-col gap-2 mt-3 shrink-0"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="flex gap-3">
+              {/* Actions (outside screenshot area, but inside stopPropagation div) */}
+              <div className="flex gap-3" onClick={(e) => e.stopPropagation()}>
                 <button
                   type="button"
-                  onClick={onClose}
+                  onMouseDown={(e) => {
+                    e.stopPropagation()
+                    e.preventDefault()
+                    onClose()
+                  }}
                   className="flex-1 py-3 rounded-full bg-secondary text-foreground font-serif transition-all hover:bg-secondary/80 active:scale-[0.98]"
                 >
                   返回
                 </button>
                 <button
                   type="button"
-                  onClick={handleExportImage}
+                  onMouseDown={(e) => {
+                    console.log('💾 保存按钮')
+                    e.stopPropagation()
+                    e.preventDefault()
+                    handleExportImage()
+                  }}
                   className="flex-1 py-3 rounded-full green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white font-serif transition-all hover:opacity-90 active:scale-[0.98] flex items-center justify-center gap-2"
                 >
                   <Share2 className="w-4 h-4" />
                   保存图片
                 </button>
-                </div>
               </div>
             </div>
           </motion.div>
@@ -1377,16 +1193,11 @@ function TypeSelectorModal({
 }) {
   // 处理按钮点击
   const handleOptionTap = (option: PracticeOption) => {
-    if (option.id === "custom") {
-      // 点击自定义按钮，通知父组件
-      onClose("__custom__")
-    } else {
-      // 点击普通按钮，返回 label + notes 组合以区分同名选项
-      const typeValue = option.notes
-        ? `${option.label} ${option.notes}`
-        : option.label
-      onClose(typeValue)
-    }
+    // 返回 label + notes 组合以区分同名选项
+    const typeValue = option.notes
+      ? `${option.label} ${option.notes}`
+      : option.label
+    onClose(typeValue)
   }
 
   return (
@@ -1424,7 +1235,9 @@ function TypeSelectorModal({
             {/* 3列网格 - 可滚动 */}
             <div className="flex-1 overflow-y-auto px-6 py-6">
               <div className="grid grid-cols-3 gap-3">
-                {practiceOptions.map((option) => {
+                {practiceOptions
+                  .filter(option => option.id !== "custom")
+                  .map((option) => {
                   // 显示逻辑：label（名称）+ notes（备注）
                   const displayName = option.label || ''
                   const displayNotes = option.notes || ''
@@ -1434,7 +1247,6 @@ function TypeSelectorModal({
                     ? `${displayName} ${displayNotes}`
                     : displayName
                   const isSelected = selectedType === optionTypeValue
-                  const isCustomButton = option.id === "custom"
 
                   return (
                     <motion.button
@@ -1447,15 +1259,12 @@ function TypeSelectorModal({
                         ${
                           isSelected
                             ? "green-gradient text-primary-foreground backdrop-blur-[16px] border border-white/30 shadow-[0_8px_24px_rgba(45,90,39,0.3)]"
-                            : isCustomButton
-                              ? "bg-background text-muted-foreground border-2 border-dashed border-muted-foreground/30 shadow-[0_2px_12px_rgba(0,0,0,0.03)]"
-                              : "bg-card text-foreground shadow-[0_4px_16px_rgba(0,0,0,0.06)]"
+                            : "bg-card text-foreground shadow-[0_4px_16px_rgba(0,0,0,0.06)]"
                         }
                       `}
                     >
-                      <span className="text-[14px] leading-snug break-words w-full line-clamp-2 flex items-center justify-center gap-1">
+                      <span className="text-[14px] leading-snug break-words w-full">
                         {displayName}
-                        {option.is_preset && <Volume className="w-4 h-4" style={{ color: isSelected ? 'white' : 'rgba(74, 122, 68)' }} />}
                       </span>
                       {displayNotes && (
                         <span className={`
@@ -1483,75 +1292,102 @@ function TypeSelectorModal({
   )
 }
 
-// Add Practice Modal (添加练习) - 使用DatePickerModal和TypeSelectorModal
+// Add Practice Modal (添加练习) - 使用 PracticeForm
 function AddPracticeModal({
   isOpen,
   onClose,
   onSave,
+  addRecord,
+  updateRecord,
+  deleteRecord,
   practiceOptions,
   practiceHistory = [],
-  onAddOption,
   onChildModalOpen,
   onOpenVoiceFakeDoor,
   onOpenPhotoFakeDoor,
+  user,
+  userProfile,
 }: {
   isOpen: boolean
   onClose: () => void
-  onSave: (record: Omit<PracticeRecord, 'id' | 'created_at' | 'photos'>) => void
+  onSave: (record: Omit<PracticeRecord, 'id' | 'created_at' | 'updated_at' | 'photos'>) => void
+  addRecord: (record: Omit<PracticeRecord, 'id' | 'created_at' | 'updated_at' | 'photos'>) => PracticeRecord
+  updateRecord: (id: string, data: Partial<PracticeRecord>) => void
+  deleteRecord: (id: string) => void
   practiceOptions: PracticeOption[]
   practiceHistory?: PracticeRecord[]
-  onAddOption?: (name: string, notes: string) => void
   onChildModalOpen?: (open: boolean) => void
   onOpenVoiceFakeDoor?: () => void
   onOpenPhotoFakeDoor?: () => void
+  user?: { email?: string | null } | null
+  userProfile?: UserProfile | null
 }) {
-  const [date, setDate] = useState(() => getLocalDateStr())
-  const [type, setType] = useState("")
-  const [duration, setDuration] = useState(60)
-  const [notes, setNotes] = useState("")
-  const [breakthroughEnabled, setBreakthroughEnabled] = useState(false)
-  const [breakthroughText, setBreakthroughText] = useState("")
+  // 表单数据状态（用于 PracticeForm）
+  const [formData, setFormData] = useState({
+    date: getLocalDateStr(),
+    type: '',
+    duration: 60,
+    notes: '',
+    breakthrough: undefined as string | undefined,
+  })
 
   // 子模态框状态
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [showTypeSelector, setShowTypeSelector] = useState(false)
-  const [showCustomModal, setShowCustomModal] = useState(false)
 
-  // 日期显示格式化
-  const formatDateDisplay = (dateStr: string) => {
-    if (!dateStr) return "选择日期"
-    const date = new Date(dateStr)
-    return `${date.getMonth() + 1}月${date.getDate()}日`
-  }
+  // 草稿记录（用于照片上传）
+  const [draftRecord, setDraftRecord] = useState<PracticeRecord | null>(null)
 
-  const typeOptions = useMemo(() => {
-    return practiceOptions
-      .filter(o => o.id !== "custom")
-      .map(o => ({ value: o.label, label: o.label }))
-  }, [practiceOptions])
-
-  // 处理自定义练习确认
-  const handleCustomPracticeConfirm = (name: string, notes: string) => {
-    console.log('handleCustomPracticeConfirm called with:', name, notes)
-    console.log('onAddOption function:', onAddOption)
-    // 调用父组件的 addOption 方法保存到 localStorage
-    if (onAddOption) {
-      console.log('calling onAddOption...')
-      onAddOption(name, notes)
-      console.log('onAddOption called')
-      // 设置选中的类型
-      setType(name)
-      // 延迟关闭弹窗，确保用户看到toast提示和选项保存完成
-      setTimeout(() => {
-        setShowCustomModal(false)
-        onChildModalOpen?.(false)
-      }, 800)
-    } else {
-      console.log('onAddOption is undefined!')
-      setType(name)
-      setShowCustomModal(false)
-      onChildModalOpen?.(false)
+  // 当弹窗打开时，预创建草稿记录
+  useEffect(() => {
+    if (isOpen) {
+      // 创建草稿记录用于照片上传
+      const draft = addRecord({
+        date: getLocalDateStr(),
+        type: '草稿', // 临时类型，不显示在时光轴
+        duration: 60,
+        notes: '',
+      })
+      setDraftRecord(draft)
+    } else if (draftRecord) {
+      // 弹窗关闭时删除草稿（用户取消）
+      deleteRecord(draftRecord.id, true) // true = 跳过确认
+      setDraftRecord(null)
     }
+  }, [isOpen])
+
+  // 清理函数：组件卸载时也删除草稿
+  useEffect(() => {
+    return () => {
+      if (draftRecord) {
+        deleteRecord(draftRecord.id, true) // true = 跳过确认
+      }
+    }
+  }, [])
+
+  const handleSave = (data: PracticeFormData) => {
+    if (draftRecord) {
+      // 更新草稿为正式记录
+      updateRecord(draftRecord.id, {
+        date: data.date,
+        type: data.type,
+        duration: data.duration * 60, // 转换为秒
+        notes: data.notes || "今日练习完成",
+        breakthrough: data.breakthrough,
+        photos: data.photos, // ⭐ 保存时包含照片
+      })
+      toast.success('补卡成功！')
+    }
+    // 重置表单
+    setFormData({
+      date: getLocalDateStr(),
+      type: '',
+      duration: 60,
+      notes: '',
+      breakthrough: undefined,
+    })
+    setDraftRecord(null)
+    onClose()
   }
 
   const handleDatePickerToggle = (open: boolean) => {
@@ -1564,33 +1400,7 @@ function AddPracticeModal({
     onChildModalOpen?.(open)
   }
 
-  const handleCustomModalToggle = (open: boolean) => {
-    setShowCustomModal(open)
-    onChildModalOpen?.(open)
-  }
-
-  const handleSave = () => {
-    if (date && type) {
-      onSave({
-        date,
-        type,
-        duration: duration * 60, // Convert to seconds
-        notes: notes || "今日练习完成",
-        breakthrough: breakthroughEnabled ? breakthroughText : undefined,
-      })
-      // Reset form
-      setDate(getLocalDateStr())
-      setType("")
-      setDuration(60)
-      setNotes("")
-      setBreakthroughEnabled(false)
-      setBreakthroughText("")
-      onClose()
-    }
-  }
-
   return (
-    <>
     <AnimatePresence>
       {isOpen && (
         <>
@@ -1615,166 +1425,55 @@ function AddPracticeModal({
               </button>
             </div>
 
-            <div className="space-y-5">
-              {/* Date & Type - 使用按钮触发模态框 */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-serif text-muted-foreground mb-1.5">日期</label>
-                  <button
-                    onClick={() => handleDatePickerToggle(true)}
-                    className="w-full px-3 py-2.5 rounded-xl bg-secondary text-foreground font-serif text-left transition-all hover:bg-secondary/80 active:scale-[0.98] text-sm"
-                  >
-                    {formatDateDisplay(date)}
-                  </button>
-                </div>
-                <div>
-                  <label className="block text-xs font-serif text-muted-foreground mb-1.5">练习类型</label>
-                  <button
-                    onClick={() => handleTypeSelectorToggle(true)}
-                    className={`
-                      w-full px-3 py-2.5 rounded-xl font-serif text-left transition-all active:scale-[0.98] text-sm
-                      ${type
-                        ? 'green-gradient-light text-primary border border-primary/20'
-                        : 'bg-secondary text-muted-foreground hover:bg-secondary/80'
-                      }
-                    `}
-                  >
-                    {type ? type.split(' ')[0] : "选择类型"}
-                  </button>
-                </div>
-              </div>
-
-              {/* Duration & Breakthrough Toggle */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-serif text-muted-foreground mb-1.5">练习时长 (分钟)</label>
-                  <input
-                    type="number"
-                    value={duration || ''}
-                    onChange={(e) => setDuration(e.target.value === '' ? 0 : Number(e.target.value))}
-                    placeholder="输入时长"
-                    className="w-full px-3 py-2.5 rounded-xl bg-secondary text-foreground font-serif focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-serif text-muted-foreground mb-1.5 opacity-0">突破时刻</label>
-                  <button
-                    onClick={() => setBreakthroughEnabled(!breakthroughEnabled)}
-                    className={`w-full flex items-center justify-start gap-1.5 px-3 py-2.5 rounded-xl border transition-all ${
-                      breakthroughEnabled
-                        ? 'bg-orange-50 border-orange-200 text-orange-600 shadow-sm'
-                        : 'bg-secondary border-transparent text-muted-foreground'
-                    }`}
-                  >
-                    <Sparkles className={`w-3.5 h-3.5 ${breakthroughEnabled ? 'text-orange-500' : 'text-muted-foreground'}`} />
-                    <span className="text-sm font-serif">解锁/突破</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Breakthrough Input - Expandable */}
-              <AnimatePresence>
-                {breakthroughEnabled && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    className="overflow-hidden"
-                  >
-                    <div className="pt-1">
-                      <label className="block text-xs font-serif text-muted-foreground mb-1.5">突破内容</label>
-                      <input
-                        type="text"
-                        value={breakthroughText}
-                        onChange={(e) => setBreakthroughText(e.target.value)}
-                        placeholder="记录今天的里程碑..."
-                        maxLength={20}
-                        className="w-full px-3 py-2.5 rounded-xl bg-gradient-to-br from-orange-50/80 to-orange-50/40 text-foreground placeholder:text-orange-300/70 font-serif focus:outline-none focus:ring-2 focus:ring-orange-300/50 focus:border-orange-300 border border-orange-200/60 transition-all duration-200 text-sm shadow-sm shadow-orange-100/50"
-                      />
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {/* Notes */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-xs font-serif text-muted-foreground">
-                    觉察/笔记
-                  </label>
-                  <span className="text-xs text-muted-foreground/60">{notes.length}/2000</span>
-                </div>
-                <div className="relative">
-                  <textarea
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value.slice(0, 2000))}
-                    placeholder="今天练习感受如何？有什么觉察？可以尝试右下方的语音输入，轻松地说出你的当下想法，留下更多真实的痕迹。"
-                    rows={5}
-                    className="w-full px-4 py-3 pr-12 rounded-2xl bg-secondary text-foreground placeholder:text-muted-foreground font-serif focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-none text-sm"
-                  />
-                  {/* Voice Input + Photo Upload（假门测试） */}
-                  <div className="absolute bottom-3 right-3 flex items-center gap-2">
-                    <PhotoUploadButton
-                      onClick={() => onOpenPhotoFakeDoor?.()}
-                    />
-                    <VoiceButton
-                      onClick={() => onOpenVoiceFakeDoor?.()}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <button
-                onClick={handleSave}
-                disabled={!date || !type}
-                className="w-full py-4 rounded-full green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white font-serif transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-50"
-              >
-                保存练习
-              </button>
-            </div>
+            <PracticeForm
+              initialData={formData}
+              recordId={draftRecord?.id}
+              user={{ email: user?.email, is_pro: userProfile?.is_pro }} // ⭐ 传入用户信息
+              date={formData.date}
+              type={formData.type}
+              onDateChange={(d) => setFormData(prev => ({ ...prev, date: d }))}
+              onTypeChange={(t) => setFormData(prev => ({ ...prev, type: t }))}
+              dateEditable={true}
+              typeEditable={true}
+              durationEditable={true}
+              showDelete={false}
+              showPhotoUpload={true}
+              practiceOptions={practiceOptions}
+              onSave={handleSave}
+              onDatePickerOpen={() => handleDatePickerToggle(true)}
+              onTypeSelectorOpen={() => handleTypeSelectorToggle(true)}
+              onChildModalOpen={onChildModalOpen}
+            />
           </motion.div>
+
+          {/* DatePicker Modal */}
+          <DatePickerModal
+            isOpen={showDatePicker}
+            onClose={(selectedDate) => {
+              if (selectedDate) {
+                setFormData(prev => ({ ...prev, date: selectedDate }))
+              }
+              handleDatePickerToggle(false)
+            }}
+            maxDate={getLocalDateStr()}
+            practiceHistory={practiceHistory}
+          />
+
+          {/* TypeSelector Modal */}
+          <TypeSelectorModal
+            isOpen={showTypeSelector}
+            onClose={(selectedType) => {
+              if (selectedType) {
+                setFormData(prev => ({ ...prev, type: selectedType }))
+              }
+              handleTypeSelectorToggle(false)
+            }}
+            practiceOptions={practiceOptions}
+            selectedType={formData.type}
+          />
         </>
       )}
     </AnimatePresence>
-
-    {/* 子模态框：日期选择器 - z-[80] */}
-  <DatePickerModal
-    isOpen={showDatePicker}
-    onClose={(selectedDate) => {
-      if (selectedDate) {
-        setDate(selectedDate)
-      }
-      handleDatePickerToggle(false)
-    }}
-    maxDate={getLocalDateStr()}
-    practiceHistory={practiceHistory}
-  />
-
-  {/* 子模态框：类型选择器 - z-[80] */}
-  <TypeSelectorModal
-    isOpen={showTypeSelector}
-    onClose={(selectedType) => {
-      if (selectedType === "__custom__") {
-        // 点击自定义按钮，清空当前选择
-        setType("")
-        handleCustomModalToggle(true)
-      } else if (selectedType) {
-        setType(selectedType)
-      }
-      handleTypeSelectorToggle(false)
-    }}
-    practiceOptions={practiceOptions}
-    selectedType={type}
-  />
-
-  {/* Custom Practice Modal - 自定义练习弹窗 */}
-  <CustomPracticeModal
-    isOpen={showCustomModal}
-    onClose={() => handleCustomModalToggle(false)}
-    onConfirm={handleCustomPracticeConfirm}
-    isFull={false}
-  />
-  </>
   )
 }
 
@@ -2365,31 +2064,113 @@ function ConfirmEndDialog({
   )
 }
 
-// Completion Sheet
+// Completion Sheet - 使用 PracticeForm
 function CompletionSheet({
   isOpen,
   practiceType,
   duration,
   onSave,
+  onClose,
+  addRecord,
+  updateRecord,
+  deleteRecord,
+  autoSync,
   onOpenVoiceFakeDoor,
   onOpenPhotoFakeDoor,
+  user,
+  userProfile,
 }: {
   isOpen: boolean
   practiceType: string
   duration: string
   onSave: (notes: string, photos: string[], breakthrough?: string) => void
+  onClose?: () => void
+  addRecord: (record: Omit<PracticeRecord, 'id' | 'created_at' | 'updated_at' | 'photos'>) => PracticeRecord
+  updateRecord: (id: string, data: Partial<PracticeRecord>) => void
+  deleteRecord: (id: string, skipConfirm?: boolean) => void
+  autoSync?: () => Promise<void>
   onOpenVoiceFakeDoor?: () => void
   onOpenPhotoFakeDoor?: () => void
+  user?: { email?: string | null } | null
+  userProfile?: UserProfile | null
 }) {
-  const [notes, setNotes] = useState("")
-  const [breakthroughEnabled, setBreakthroughEnabled] = useState(false)
-  const [breakthroughText, setBreakthroughText] = useState("")
+  // 表单数据状态（用于 PracticeForm）
+  const [formData, setFormData] = useState({
+    date: getLocalDateStr(),
+    type: practiceType,
+    duration: parseInt(duration) || 0,
+    notes: '',
+    breakthrough: undefined as string | undefined,
+  })
 
-  const handleSave = () => {
-    onSave(notes, [], breakthroughEnabled ? breakthroughText : undefined)
-    setNotes("")
-    setBreakthroughEnabled(false)
-    setBreakthroughText("")
+  // 草稿记录（用于照片上传）
+  const [draftRecord, setDraftRecord] = useState<PracticeRecord | null>(null)
+
+  // 当弹窗打开时，预创建草稿记录并同步数据
+  useEffect(() => {
+    if (isOpen) {
+      // 创建草稿记录用于照片上传（使用实际类型，不是'草稿'）
+      const draft = addRecord({
+        date: getLocalDateStr(),
+        type: practiceType,
+        duration: parseInt(duration) * 60 || 0,
+        notes: '',
+      })
+      setDraftRecord(draft)
+      setFormData({
+        date: getLocalDateStr(),
+        type: practiceType,
+        duration: parseInt(duration) || 0,
+        notes: '',
+        breakthrough: undefined,
+      })
+
+      // ⭐ 延迟 500ms 同步，确保 localStorage 已完全更新
+      // 只有绑定邮箱的用户才同步到云端
+      if (user?.email && autoSync) {
+        console.log('[CompletionSheet] 草稿创建完成，准备同步')
+        setTimeout(() => {
+          autoSync()
+        }, 500)
+      }
+    } else if (draftRecord) {
+      // 弹窗关闭时删除草稿（用户取消）
+      deleteRecord(draftRecord.id, true) // true = 跳过确认
+      setDraftRecord(null)
+    }
+  }, [isOpen, practiceType, duration])
+
+  // 清理函数：组件卸载时也删除草稿
+  useEffect(() => {
+    return () => {
+      if (draftRecord) {
+        deleteRecord(draftRecord.id, true) // true = 跳过确认
+      }
+    }
+  }, [])
+
+  const handleSave = (data: PracticeFormData) => {
+    if (draftRecord) {
+      // 更新草稿为正式记录（包含照片）
+      updateRecord(draftRecord.id, {
+        notes: data.notes || "今日练习完成",
+        breakthrough: data.breakthrough,
+        photos: data.photos, // ⭐ 保存时包含照片
+      })
+      toast.success('记录已保存！')
+
+      // ⭐ 关闭弹窗
+      onClose?.()
+    }
+    // 重置表单
+    setFormData({
+      date: getLocalDateStr(),
+      type: practiceType,
+      duration: parseInt(duration) || 0,
+      notes: '',
+      breakthrough: undefined,
+    })
+    setDraftRecord(null)
   }
 
   return (
@@ -2411,91 +2192,22 @@ function CompletionSheet({
           >
             <h2 className="text-xl font-serif text-foreground text-center mb-6">练习完成</h2>
 
-            <div className="space-y-5">
-              <div className="flex gap-4">
-                <div className="flex-1">
-                  <label className="block text-xs font-serif text-muted-foreground mb-1.5">类型</label>
-                  <div className="px-4 py-3 rounded-2xl bg-secondary text-foreground font-serif">{practiceType}</div>
-                </div>
-                <div className="flex-1">
-                  <label className="block text-xs font-serif text-muted-foreground mb-1.5">时长</label>
-                  <div className="px-4 py-3 rounded-2xl bg-secondary text-foreground font-serif">{duration} 分钟</div>
-                </div>
-              </div>
-
-              {/* Breakthrough Toggle */}
-              <div>
-                <button
-                  onClick={() => setBreakthroughEnabled(!breakthroughEnabled)}
-                  className={`w-full flex items-center justify-start gap-1.5 px-3 py-2.5 rounded-xl border transition-all ${
-                    breakthroughEnabled
-                      ? 'bg-orange-50 border-orange-200 text-orange-600 shadow-sm'
-                      : 'bg-secondary border-transparent text-muted-foreground'
-                  }`}
-                >
-                  <Sparkles className={`w-3.5 h-3.5 ${breakthroughEnabled ? 'text-orange-500' : 'text-muted-foreground'}`} />
-                  <span className="text-sm font-serif">解锁/突破</span>
-                </button>
-
-                {/* Conditional Breakthrough Input */}
-                <AnimatePresence>
-                  {breakthroughEnabled && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      className="overflow-hidden"
-                    >
-                      <div className="pt-1">
-                        <label className="block text-xs font-serif text-muted-foreground mb-1.5">觉察/笔记</label>
-                        <input
-                          type="text"
-                          value={breakthroughText}
-                          onChange={(e) => setBreakthroughText(e.target.value)}
-                          placeholder="记录今天的里程碑..."
-                          maxLength={20}
-                          className="w-full px-3 py-2.5 rounded-xl bg-gradient-to-br from-orange-50/80 to-orange-50/40 text-foreground placeholder:text-orange-300/70 font-serif focus:outline-none focus:ring-2 focus:ring-orange-300/50 focus:border-orange-300 border border-orange-200/60 transition-all duration-200 text-sm shadow-sm shadow-orange-100/50"
-                        />
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-xs font-serif text-muted-foreground">
-                    觉察/笔记
-                  </label>
-                  <span className="text-xs text-muted-foreground/60">{notes.length}/2000</span>
-                </div>
-                <div className="relative">
-                  <textarea
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value.slice(0, 2000))}
-                    placeholder="今天练习感受如何？有什么觉察？可以尝试右下方的语音输入，轻松地说出你的当下想法，留下更多真实的痕迹。"
-                    rows={5}
-                    className="w-full px-4 py-3 pr-12 rounded-2xl bg-secondary text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-none font-serif"
-                  />
-                  {/* Voice Input + Photo Upload - 浮动在输入框右下角（假门测试） */}
-                  <div className="absolute bottom-3 right-3 flex items-center gap-2">
-                    <PhotoUploadButton
-                      onClick={() => onOpenPhotoFakeDoor?.()}
-                    />
-                    <VoiceButton
-                      onClick={() => onOpenVoiceFakeDoor?.()}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <button
-                onClick={handleSave}
-                className="w-full py-4 rounded-full green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white font-serif transition-all hover:opacity-90 active:scale-[0.98]"
-              >
-                保存练习
-              </button>
-            </div>
+            <PracticeForm
+              initialData={formData}
+              recordId={draftRecord?.id}
+              user={{ email: user?.email, is_pro: userProfile?.is_pro }} // ⭐ 传入用户信息
+              date={formData.date}
+              type={formData.type}
+              onDateChange={() => {}} // 只读，不处理
+              onTypeChange={() => {}} // 只读，不处理
+              dateEditable={false}
+              typeEditable={false}
+              durationEditable={false}
+              showDelete={false}
+              showPhotoUpload={true}
+              practiceOptions={[]}
+              onSave={handleSave}
+            />
           </motion.div>
         </>
       )}
@@ -2808,7 +2520,7 @@ function JournalTab({
   profile: UserProfile
   onEditRecord: (id: string, data: Partial<PracticeRecord>) => void
   onDeleteRecord: (id: string) => void
-  onAddRecord: (record: Omit<PracticeRecord, 'id' | 'created_at' | 'photos'>) => void
+  onAddRecord: (record: Omit<PracticeRecord, 'id' | 'created_at' | 'updated_at' | 'photos'>) => void
   onOpenFakeDoor: () => void
   onOpenVoiceFakeDoor?: () => void
   onOpenPhotoFakeDoor?: () => void
@@ -2826,6 +2538,7 @@ function JournalTab({
   const [childModalOpen, setChildModalOpen] = useState(false)
   const [showBackToTop, setShowBackToTop] = useState(false)
   const [highlightedDate, setHighlightedDate] = useState<string | null>(null)
+  const [previewImage, setPreviewImage] = useState<string | null>(null) // ⭐ 图片预览状态
   const recordRefs = useRef<Record<string, HTMLDivElement | null>>({})
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
@@ -2880,7 +2593,7 @@ function JournalTab({
     const currentYear = today.getFullYear()
     return practiceHistory.filter(r => {
       const d = new Date(r.date)
-      return d.getMonth() === currentMonth && d.getFullYear() === currentYear && r.duration > 0
+      return d.getMonth() === currentMonth && d.getFullYear() === currentYear && r.duration > 0 && r.type !== '草稿'
     }).length
   }, [practiceHistory, today])
   const totalHours = useMemo(() => {
@@ -2948,7 +2661,10 @@ function JournalTab({
       
       {/* Timeline - continuous, split click zones */}
       <div className="px-2 pb-10">
-        {practiceHistory.map((practice, index) => (
+        {practiceHistory
+          .filter(r => r.type !== '草稿')
+          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+          .map((practice, index) => (
           <motion.div
             key={practice.id}
             ref={(el) => { recordRefs.current[practice.id] = el }}
@@ -2999,7 +2715,7 @@ function JournalTab({
               </div>
 
               {/* Right Column: Content - Left-aligned with matching breathing room */}
-              <div className="flex-1 pl-3 pr-6 pb-1">
+              <div className="flex-1 pl-3 pr-8 pb-1">
                 {/* First line: Breakthrough OR Notes - must align with Date */}
                 {practice.breakthrough ? (
                   <div className="flex items-start gap-1 leading-snug mb-1 mt-[3px]">
@@ -3013,9 +2729,44 @@ function JournalTab({
                   className="w-full text-left hover:bg-secondary/30 rounded-lg transition-colors overflow-hidden"
                   style={{ borderRadius: '0 0.5rem 0.5rem 0' }}
                 >
-                  <p className="text-sm text-foreground font-serif leading-snug whitespace-pre-wrap break-words w-full">
+                  <p className="text-sm text-foreground font-serif leading-snug whitespace-pre-wrap break-words w-full text-justify">
                     {practice.notes}
                   </p>
+                  {/* ⭐ 照片展示 - 时光轴 */}
+                  {practice.photos && practice.photos.length > 0 && (
+                    <div className={cn(
+                      "mt-2",
+                      practice.photos.length === 1
+                        ? "w-[90%]" // 1张大图：觉察文案宽度的90%
+                        : "grid grid-cols-3 gap-1" // 2张以上：九宫格
+                    )}>
+                      {practice.photos.map((url, idx) => (
+                        <div
+                          key={idx}
+                          className={cn(
+                            "rounded-md overflow-hidden border border-border/50 cursor-pointer",
+                            practice.photos.length === 1
+                              ? "w-full" // 1张：宽度100%（容器已限制90%），高度自适应
+                              : "aspect-square w-full" // 多张：正方形
+                          )}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setPreviewImage(url);
+                          }}
+                        >
+                          <img
+                            src={url}
+                            alt={`照片 ${idx + 1}`}
+                            className={cn(
+                              "w-full",
+                              practice.photos.length === 1 ? "h-auto" : "h-full object-cover"
+                            )}
+                            loading="lazy"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </button>
               </div>
             </div>
@@ -3034,6 +2785,8 @@ function JournalTab({
         onChildModalOpen={(open) => setChildModalOpen(open)}
         onOpenVoiceFakeDoor={onOpenVoiceFakeDoor}
         onOpenPhotoFakeDoor={onOpenPhotoFakeDoor}
+        user={user}
+        userProfile={profile}
       />
 
       <ShareCardModal
@@ -3046,8 +2799,6 @@ function JournalTab({
         totalHours={totalHours}
         onEditRecord={handleShareCardEdit}
         onLogExport={onLogExport}
-        onOpenVoiceFakeDoor={onOpenVoiceFakeDoor}
-        onOpenPhotoFakeDoor={onOpenPhotoFakeDoor}
         syncStatus={syncStatus}
       />
 
@@ -3055,12 +2806,16 @@ function JournalTab({
         isOpen={showAddModal}
         onClose={() => onSetShowAddModal(false)}
         onSave={onAddRecord}
+        addRecord={onAddRecord}
+        updateRecord={onEditRecord}
+        deleteRecord={onDeleteRecord}
         practiceOptions={practiceOptions}
         practiceHistory={practiceHistory}
-        onAddOption={onAddOption}
         onChildModalOpen={(open) => setChildModalOpen(open)}
         onOpenVoiceFakeDoor={onOpenVoiceFakeDoor}
         onOpenPhotoFakeDoor={onOpenPhotoFakeDoor}
+        user={user}
+        userProfile={profile}
       />
 
 {/* Back to Top Button - Floating, Jade Glassmorphism */}
@@ -3076,6 +2831,46 @@ function JournalTab({
           >
             <ChevronUp className="w-6 h-6" />
           </motion.button>
+        )}
+      </AnimatePresence>
+
+      {/* ⭐ 图片预览 Modal */}
+      <AnimatePresence>
+        {previewImage && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60]"
+              onClick={() => setPreviewImage(null)}
+            />
+            {/* 关闭按钮 */}
+            <motion.button
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed top-4 right-4 z-[80] w-10 h-10 rounded-full flex items-center justify-center bg-black/60 hover:bg-black/80 text-white transition-colors shadow-lg"
+              onClick={() => setPreviewImage(null)}
+            >
+              <X className="w-6 h-6" />
+            </motion.button>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="fixed inset-0 z-[70] flex items-center justify-center p-4 overflow-y-auto"
+              onClick={() => setPreviewImage(null)}
+            >
+              <img
+                src={previewImage}
+                alt="预览"
+                className="w-[90%] max-w-[900px] h-auto object-contain rounded-2xl my-auto"
+                onClick={(e) => e.stopPropagation()}
+                draggable={false}
+              />
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
     </div>
@@ -3095,7 +2890,6 @@ function ProBadge({ isPro }: { isPro: boolean }) {
   )
 }
 
-// Stats Tab Component with Profile and Heatmap - Removed title, added PRO badge
 function StatsTab({
   practiceHistory,
   profile,
@@ -3106,6 +2900,7 @@ function StatsTab({
   hasNewXhsMessage,
   user,
   setReadInviteVersion,
+  showPWAInstallTutorial,
   setShowPWAInstallTutorial,
 }: {
   practiceHistory: PracticeRecord[]
@@ -3116,8 +2911,9 @@ function StatsTab({
   setShowXiaohongshuModal: (value: boolean) => void
   hasNewXhsMessage: boolean
   user?: any
-  setReadInviteVersion: (version: string) => void
+  showPWAInstallTutorial: boolean
   setShowPWAInstallTutorial: (value: boolean) => void
+  setReadInviteVersion: (version: string) => void
 }) {
   // 隐藏邮箱的辅助函数
   const maskEmail = (email: string): string => {
@@ -3139,14 +2935,7 @@ function StatsTab({
 
   const { isInstallable, promptInstall } = usePWAInstall()
 
-  const [viewMode, setViewMode] = useState<'quarter' | 'half' | 'year'>('quarter')
-  const [dateOffset, setDateOffset] = useState(0)
-  const [hasVotedPro] = useLocalStorage('has_voted_pro', false)
-
-  const today = new Date()
-  const todayStr = getLocalDateStr()
-
-  const handleInstallClick = async () => {
+    const handleInstallClick = async () => {
     // 检查是否已经安装到主屏幕
     const isInstalled = window.matchMedia('(display-mode: standalone)').matches
 
@@ -3162,10 +2951,18 @@ function StatsTab({
     if (installed) {
       toast.success('✅ 已安装到主屏幕！现在可以从主屏幕打开了')
     } else {
-      // 显示图片教程弹窗
+      // 无法自动弹出安装提示，显示图片教程弹窗
       setShowPWAInstallTutorial(true)
     }
   }
+  const [viewMode, setViewMode] = useState<'quarter' | 'half' | 'year'>('quarter')
+  const [dateOffset, setDateOffset] = useState(0)
+  const [hasVotedPro] = useLocalStorage('has_voted_pro', false)
+
+  const today = new Date()
+  const todayStr = getLocalDateStr()
+
+  // Generate heatmap data for the year
   const heatmapData = useMemo(() => {
     const data: Record<string, boolean> = {}
     practiceHistory.forEach((p) => {
@@ -3284,7 +3081,11 @@ function StatsTab({
       </div>
 
       {/* PWA Install Banner */}
-      <PWAInstallBanner onShowTutorial={() => setShowPWAInstallTutorial(true)} />
+      <PWAInstallBanner />
+<PWAInstallTutorialModal
+        isOpen={showPWAInstallTutorial}
+        onClose={() => setShowPWAInstallTutorial(false)}
+      />
 
       <div className="px-6 pb-48">
         {/* Profile Section with PRO Badge - NOW FIRST */}
@@ -3427,6 +3228,21 @@ function BreathingRipples({ isPaused }: { isPaused: boolean }) {
   )
 }
 
+function clean_html(text: string): string {
+  if (!text) return ''
+  // 移除 HTML 标签
+  text = text.replace(/<[^>]*>/g, '')
+  // 解码 HTML 实体
+  text = text.replace(/&nbsp;/g, ' ')
+  text = text.replace(/&lt;/g, '<')
+  text = text.replace(/&gt;/g, '>')
+  text = text.replace(/&amp;/g, '&')
+  text = text.replace(/&quot;/g, '"')
+  // 移除多余空行（保留单个换行）
+  text = text.replace(/\n{3,}/g, '\n\n')
+  return text.trim()
+}
+
 export default function AshtangaTracker() {
   const {
     records: practiceHistory,
@@ -3456,8 +3272,8 @@ export default function AshtangaTracker() {
   const [pauseStartTime, setPauseStartTime] = useLocalStorage<number | null>('ashtanga_pause_start_time', null)
   const [totalPausedTime, setTotalPausedTime] = useLocalStorage<number>('ashtanga_total_paused_time', 0)
   const [elapsedTime, setElapsedTime] = useState(0)
-  const [showCustomModal, setShowCustomModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
+  const [showCustomModal, setShowCustomModal] = useState(false)
   const [editingOption, setEditingOption] = useState<PracticeOption | null>(null)
   const [editingRecord, setEditingRecord] = useState<PracticeRecord | null>(null)
   const [showAddModal, setShowAddModal] = useState(false)
@@ -3478,6 +3294,7 @@ export default function AshtangaTracker() {
 
   // Auth Modal 状态
   const [showAuthModal, setShowAuthModal] = useState(false)
+  const [showPWAInstallTutorial, setShowPWAInstallTutorial] = useState(false)
   const [authMode, setAuthMode] = useState<'login' | 'register' | 'forgot-password'>('login')
 
   // 数据冲突处理状态
@@ -3494,12 +3311,12 @@ export default function AshtangaTracker() {
   // 音频播放器状态
   const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null)
   const [audioProgress, setAudioProgress] = useState(0)  // 0-100
-  const [audioDuration, setAudioDuration] = useLocalStorage<number>('ashtanga_audio_duration', 0)  // 总时长（秒）- 持久化
-  const [audioCurrentTime, setAudioCurrentTime] = useLocalStorage<number>('ashtanga_audio_time', 0)  // 当前时间（秒）- 持久化
-  const [isAudioLoaded, setIsAudioLoaded] = useLocalStorage<boolean>('ashtanga_audio_loaded', false)  // 是否已加载 - 持久化
-  const [isAudioLoading, setIsAudioLoading] = useState(false)  // 加载中状态（不持久化，刷新后重新加载）
+  const [audioDuration, setAudioDuration] = useState(0)  // 总时长（秒）
+  const [audioCurrentTime, setAudioCurrentTime] = useState(0)  // 当前时间（秒）
+  const [isAudioLoaded, setIsAudioLoaded] = useState(false)
+  const [isAudioLoading, setIsAudioLoading] = useState(false)  // 加载中状态
   const [audioError, setAudioError] = useState<string | null>(null)  // 加载错误
-  const [seekStep, setSeekStep] = useLocalStorage<number>('ashtanga_audio_seek_step', 15)  // 快进/后退步长 - 持久化
+  const [seekStep, setSeekStep] = useState<number>(15)  // 快进/后退步长（默认15秒）
   const [audioDownloadProgress, setAudioDownloadProgress] = useState<number>(0)  // 下载进度（0-100）
   const [isUsingCache, setIsUsingCache] = useState<boolean>(false)  // 是否使用缓存
 
@@ -3518,9 +3335,6 @@ export default function AshtangaTracker() {
 
   // 小红书群邀请弹窗状态
   const [showXiaohongshuModal, setShowXiaohongshuModal] = useState(false)
-
-  // PWA 安装教程弹窗状态
-  const [showPWAInstallTutorial, setShowPWAInstallTutorial] = useState(false)
 
   // 已读版本号（localStorage持久化）
   const [readInviteVersion, setReadInviteVersion] = useLocalStorage('xhs_invite_version', '')
@@ -3612,7 +3426,6 @@ export default function AshtangaTracker() {
   // 派生状态：判断是否有需要隐藏导航栏的弹窗打开
   const hasAnyModalOpen = useMemo(() => {
     return (
-      showCustomModal ||
       showEditModal ||
       editingOption !== null ||
       showAddModal ||
@@ -3623,7 +3436,7 @@ export default function AshtangaTracker() {
       showCompletion    // 完成练习弹窗
     )
   }, [
-    showCustomModal,
+    showEditModal,
     showEditModal,
     editingOption,
     showAddModal,
@@ -3650,8 +3463,7 @@ export default function AshtangaTracker() {
         notes: GUIDED_AUDIO_OPTION.notes,
         isCustom: false,
         is_preset: true,
-        can_edit: false,
-        icon: GUIDED_AUDIO_OPTION.icon
+        can_edit: false
       }]),
       ...regularOptions.map(o => ({
         id: o.id,
@@ -3692,18 +3504,11 @@ export default function AshtangaTracker() {
   }, [isPracticing])
 
   // Timer logic - Timestamp based for background/lock screen support
-  // 口令跟练模式下，计时跟随音频进度
   useInterval(() => {
     if (isPracticing && !isPaused && startTime) {
-      // 口令跟练模式：使用音频时间
-      if (selectedOption === 'guided_audio' && audioCurrentTime > 0) {
-        setElapsedTime(Math.floor(audioCurrentTime))
-      } else {
-        // 普通模式：使用系统时间
-        const now = Date.now()
-        const diff = Math.floor((now - startTime - (totalPausedTime || 0)) / 1000)
-        setElapsedTime(Math.max(0, diff))
-      }
+      const now = Date.now()
+      const diff = Math.floor((now - startTime - (totalPausedTime || 0)) / 1000)
+      setElapsedTime(Math.max(0, diff))
     }
   }, isPracticing && !isPaused ? 1000 : null)
 
@@ -3715,12 +3520,6 @@ export default function AshtangaTracker() {
       const currentTotalPaused = (totalPausedTime || 0) + (isPaused ? (now - (pauseStartTime || now)) : 0)
       const diff = Math.floor((pausedAt - startTime - (totalPausedTime || 0)) / 1000)
       setElapsedTime(Math.max(0, diff))
-
-      // ⭐ 恢复音频状态：如果正在口令跟练且音频之前已加载，重新初始化音频
-      if (selectedOption === 'guided_audio' && isAudioLoaded) {
-        console.log('[Page Reload] 检测到口令跟练模式，正在恢复音频...')
-        reinitializeAudio(audioCurrentTime)
-      }
     }
   }, [])
 
@@ -3737,7 +3536,7 @@ export default function AshtangaTracker() {
         setEditingOption(option)
         setShowEditModal(true)
       } else if (option.is_preset || option.can_edit === false) {
-        toast('预设选项暂不可以修改')
+        toast('预设按钮暂不支持编辑')
       }
       return
     }
@@ -3745,37 +3544,14 @@ export default function AshtangaTracker() {
     // Single tap
     lastTapRef.current = { id: option.id, time: now }
 
-    // Handle custom option
-    if (option.id === "custom") {
-      setShowCustomModal(true)
-      return
-    }
-
     // Select the option
-    setSelectedOption(option.id)
-    setCustomPracticeName("")
-  }
-
-  const handleCustomConfirm = (name: string, notes: string) => {
-    // Check if we can add more options (max 9, excluding the "custom" button itself)
-    const nonCustomOptions = practiceOptions.filter(o => o.id !== "custom")
-    if (nonCustomOptions.length >= 8) {
-      // Options are full, just start practice without saving
-      setSelectedOption("custom-temp")
-      setCustomPracticeName(name)
-      setShowCustomModal(false)
-      return
+    if (option.id === "custom") {
+      // 点击自定义按钮，打开自定义弹窗
+      setShowCustomModal(true)
+    } else {
+      setSelectedOption(option.id)
+      setCustomPracticeName("")
     }
-
-    // Create a new permanent custom option and save to localStorage
-    // 修复：直接使用 addOption(name, name, notes) 避免竞态条件
-    addOption(name, name, notes)
-
-    // Update local state will be handled by useEffect when practiceOptionsData changes
-    setCustomPracticeName(name)
-    setShowCustomModal(false)
-
-    toast.success('已添加自定义选项')
   }
 
   const handleEditSave = (id: string, name: string, notes: string) => {
@@ -3835,6 +3611,27 @@ export default function AshtangaTracker() {
     }
   }
 
+  const handleCustomConfirm = (name: string, notes: string) => {
+    // Check if we can add more options (max 8, excluding the "custom" button itself)
+    const nonCustomOptions = practiceOptions.filter(o => o.id !== "custom")
+    if (nonCustomOptions.length >= 8) {
+      // Options are full, just start practice without saving
+      setSelectedOption("custom-temp")
+      setCustomPracticeName(name)
+      setShowCustomModal(false)
+      return
+    }
+
+    // Create a new permanent custom option and save to localStorage
+    addOption(name, name, notes)
+
+    // Update local state will be handled by useEffect when practiceOptionsData changes
+    setCustomPracticeName(name)
+    setShowCustomModal(false)
+
+    toast.success('已添加自定义选项')
+  }
+
   const handleEditRecord = (id: string, data: Partial<PracticeRecord>) => {
     updateRecord(id, data, () => {
       // 编辑后触发同步
@@ -3845,9 +3642,9 @@ export default function AshtangaTracker() {
     toast.success('更新成功')
   }
 
-  const handleDeleteRecord = async (id: string) => {
-    // Confirm before deleting
-    if (!confirm('确定要删除这条记录吗？')) return
+  const handleDeleteRecord = async (id: string, skipConfirm = false) => {
+    // Confirm before deleting (skip for draft records)
+    if (!skipConfirm && !confirm('确定要删除这条记录吗？')) return
 
     // 1. 从本地状态移除
     deleteRecord(id)
@@ -3855,7 +3652,10 @@ export default function AshtangaTracker() {
     // 2. 软删除 Supabase 中的记录（设置 deleted_at）
     const success = await deletePracticeRecord(id)
     if (success) {
-      toast.success('已删除记录')
+      // 只有正式记录才显示删除成功提示（草稿记录静默删除）
+      if (!skipConfirm) {
+        toast.success('已删除记录')
+      }
       // 3. 触发同步（如果用户已登录）
       if (user) {
         autoSync()
@@ -3865,8 +3665,8 @@ export default function AshtangaTracker() {
     }
   }
 
-  const handleAddRecord = (record: Omit<PracticeRecord, 'id' | 'created_at' | 'photos'>) => {
-    addRecord(record)
+  const handleAddRecord = (record: Omit<PracticeRecord, 'id' | 'created_at' | 'updated_at' | 'photos'>) => {
+    const newRecord = addRecord(record)
     trackEvent('add_record', {
       type: record.type,
       duration: record.duration,
@@ -3904,13 +3704,18 @@ export default function AshtangaTracker() {
       }
     }, 100)
 
-    toast.success('补卡成功！')
+    // 只有非草稿记录才显示 toast
+    if (record.type !== '草稿') {
+      toast.success('补卡成功！')
+    }
     // 延迟 500ms 同步，确保 localStorage 已完全更新
-    if (user) {
+    // ⭐ 只有绑定邮箱的用户才同步到云端
+    if (user?.email) {
       setTimeout(() => {
         autoSync()
       }, 500)
     }
+    return newRecord
   }
 
   const handleAddOption = async (name: string, notes: string) => {
@@ -4057,19 +3862,20 @@ export default function AshtangaTracker() {
     }
 
     // ===== 5. 应用数据状态 =====
+    const nonDraftRecords = practiceHistory.filter(r => r.type !== '草稿')
     const appState = {
       records: {
-        totalCount: practiceHistory.length,
-        withPhotos: practiceHistory.filter(r => r.photos?.length > 0).length,
-        withNotes: practiceHistory.filter(r => r.notes?.trim()).length,
-        withBreakthrough: practiceHistory.filter(r => r.breakthrough).length,
-        totalDuration: practiceHistory.reduce((sum, r) => sum + (r.duration || 0), 0),
-        averageDuration: practiceHistory.length > 0
-          ? Math.round(practiceHistory.reduce((sum, r) => sum + (r.duration || 0), 0) / practiceHistory.length)
+        totalCount: nonDraftRecords.length,
+        withPhotos: nonDraftRecords.filter(r => r.photos?.length > 0).length,
+        withNotes: nonDraftRecords.filter(r => r.notes?.trim()).length,
+        withBreakthrough: nonDraftRecords.filter(r => r.breakthrough).length,
+        totalDuration: nonDraftRecords.reduce((sum, r) => sum + (r.duration || 0), 0),
+        averageDuration: nonDraftRecords.length > 0
+          ? Math.round(nonDraftRecords.reduce((sum, r) => sum + (r.duration || 0), 0) / nonDraftRecords.length)
           : 0,
-        dateRange: practiceHistory.length > 0 ? {
-          earliest: practiceHistory[practiceHistory.length - 1]?.date,
-          latest: practiceHistory[0]?.date
+        dateRange: nonDraftRecords.length > 0 ? {
+          earliest: nonDraftRecords[nonDraftRecords.length - 1]?.date,
+          latest: nonDraftRecords[0]?.date
         } : null
       },
       options: {
@@ -4115,17 +3921,17 @@ export default function AshtangaTracker() {
     }
 
     // ===== 7. 最近的练习记录（最近10条） =====
+    // 注意：隐藏具体觉察内容，只保留是否有内容的标记，保护用户隐私
     const recentRecords = practiceHistory.slice(0, 10).map(r => ({
       id: r.id,
       date: r.date,
       type: r.type?.substring(0, 30),
       duration: r.duration,
       hasNotes: !!r.notes,
-      notesPreview: r.notes?.substring(0, 50) || null,
+      notesLength: r.notes?.length || 0, // 只显示字数，不显示内容
       hasPhotos: !!r.photos?.length,
       photosCount: r.photos?.length || 0,
       hasBreakthrough: !!r.breakthrough,
-      breakthroughPreview: r.breakthrough?.substring(0, 50) || null,
       createdAt: r.created_at
     }))
 
@@ -4193,7 +3999,6 @@ export default function AshtangaTracker() {
       },
       // 弹窗状态
       modals: {
-        showCustomModal: showCustomModal,
         showImportModal: showImportModal,
         showExportModal: showExportModal,
         showDebugLogModal: showDebugLogModal,
@@ -4219,10 +4024,26 @@ export default function AshtangaTracker() {
       syncLogs = [{ action: '读取同步日志失败', error: String(e), timestamp: new Date().toISOString() }]
     }
 
+    // ===== 13. 照片操作日志 =====
+    let photoLogs: any[] = []
+    try {
+      const { getPhotoLogs, getPhotoErrorLogs } = await import('@/lib/photo-logger')
+      photoLogs = {
+        all: getPhotoLogs().slice(0, 50),
+        errors: getPhotoErrorLogs().slice(0, 20),
+        summary: {
+          total: getPhotoLogs().length,
+          errors: getPhotoErrorLogs().length,
+        }
+      }
+    } catch (e) {
+      photoLogs = { error: '读取照片日志失败', details: String(e) }
+    }
+
     // 生成完整日志
     const debugLog = {
       _meta: {
-        version: '2.2',
+        version: '2.3',
         exportTime: new Date().toISOString(),
         description: '熬汤日记调试日志 - 用于问题排查',
         gitVersion: getVersionInfo()
@@ -4240,7 +4061,8 @@ export default function AshtangaTracker() {
       errorHistory,
       performanceInfo,
       currentAppState,
-      syncLogs
+      syncLogs,
+      photoLogs
     }
 
     // 转换为JSON字符串并显示在弹窗中
@@ -4390,80 +4212,6 @@ export default function AshtangaTracker() {
     }
   }
 
-  // ⭐ 页面刷新后重新初始化音频（恢复播放状态）
-  const reinitializeAudio = async (restoreTime: number = 0) => {
-    if (!GUIDED_AUDIO_OPTION.audio_src) return
-
-    setIsAudioLoading(true)
-    setAudioError(null)
-
-    try {
-      // 检查是否有缓存
-      const hasCache = await audioCache.isCacheValid()
-
-      if (hasCache) {
-        console.log('[音频恢复] 使用本地缓存')
-        setIsUsingCache(true)
-        const audioBuffer = await audioCache.getAudioBuffer()
-
-        if (audioBuffer) {
-          const blob = new Blob([audioBuffer], { type: 'audio/mp4' })
-          const url = URL.createObjectURL(blob)
-
-          const audio = new Audio()
-          audio.src = url
-
-          // 恢复到之前的时间点
-          if (restoreTime > 0) {
-            audio.currentTime = restoreTime
-          }
-
-          audio.addEventListener('loadedmetadata', () => {
-            setAudioDuration(audio.duration)
-            setIsAudioLoaded(true)
-            setIsAudioLoading(false)
-            // 如果之前是暂停状态，保持暂停；否则自动播放
-            if (!isPaused) {
-              audio.play()
-            }
-          })
-
-          audio.addEventListener('timeupdate', () => {
-            setAudioCurrentTime(audio.currentTime)
-            setAudioProgress((audio.currentTime / audio.duration) * 100)
-          })
-
-          audio.addEventListener('ended', () => {
-            handleEndRequest()
-          })
-
-          audio.addEventListener('error', (e) => {
-            console.error('[音频恢复] 播放失败:', e)
-            audioCache.clearCache()
-            setAudioError('音频恢复失败，请刷新页面重试')
-            setIsAudioLoading(false)
-          })
-
-          setAudioElement(audio)
-        } else {
-          throw new Error('缓存数据无效')
-        }
-      } else {
-        // 没有缓存，显示错误（刷新后应该已经有缓存）
-        console.error('[音频恢复] 没有本地缓存')
-        setAudioError('音频缓存已失效，请重新开始练习')
-        setIsAudioLoading(false)
-        // 重置音频状态
-        setIsAudioLoaded(false)
-        setAudioCurrentTime(0)
-      }
-    } catch (err) {
-      console.error('[音频恢复] 失败:', err)
-      setAudioError('音频恢复失败')
-      setIsAudioLoading(false)
-    }
-  }
-
   const handlePauseResume = () => {
     const now = Date.now()
     if (!isPaused) {
@@ -4543,12 +4291,11 @@ export default function AshtangaTracker() {
       audioElement.pause()
       audioElement.src = ''
       setAudioElement(null)
+      setIsAudioLoaded(false)
+      setAudioProgress(0)
+      setAudioCurrentTime(0)
+      setAudioDuration(0)
     }
-    // ⭐ 清理音频持久化状态
-    setIsAudioLoaded(false)
-    setAudioProgress(0)
-    setAudioCurrentTime(0)
-    setAudioDuration(0)
   }
 
   const handleSavePractice = useCallback((notes: string, photos: string[], breakthrough?: string) => {
@@ -4634,6 +4381,19 @@ export default function AshtangaTracker() {
         duration: 2000,
         position: 'top-center'
       })
+
+      // ⭐ 延迟 500ms 同步，确保 localStorage 已完全更新
+      // 只有绑定邮箱的用户才同步到云端
+      console.log('[handleSavePractice] 准备同步，user:', user?.email || '未登录')
+      if (user?.email) {
+        console.log('[handleSavePractice] 用户已绑定邮箱，启动同步')
+        setTimeout(() => {
+          console.log('[handleSavePractice] 执行 autoSync')
+          autoSync()
+        }, 500)
+      } else {
+        console.log('[handleSavePractice] 用户未绑定邮箱，跳过同步')
+      }
     } catch (error) {
       console.error('保存失败:', error)
       toast.error('❌ 保存失败，请重试', {
@@ -4644,7 +4404,7 @@ export default function AshtangaTracker() {
       setIsSaving(false)
       console.log('setIsSaving(false) called')
     }
-  }, [elapsedTime, getSelectedLabel, addRecord, isSaving])
+  }, [elapsedTime, getSelectedLabel, addRecord, isSaving, autoSync, user])
 
   // Full-screen Timer View with Hero Transition
   if (isPracticing) {
@@ -4728,6 +4488,61 @@ export default function AshtangaTracker() {
 
         {/* Control buttons - moved up 30% to avoid clipping on mobile */}
         <div className="px-6 pb-32">
+          {/* 音频加载状态 - 仅在口令跟练模式显示，替代暂停/结束按钮 */}
+          {selectedOption === 'guided_audio' && isAudioLoading && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex flex-col items-center justify-center py-3"
+            >
+              <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              <p className="text-sm text-muted-foreground mt-4 font-serif">
+                {isUsingCache ? '从缓存读取...' : audioDownloadProgress > 0 ? `下载中 ${audioDownloadProgress}%` : '加载音频中...'}
+              </p>
+              {/* 下载进度条 */}
+              {!isUsingCache && audioDownloadProgress > 0 && (
+                <div className="w-48 h-1 bg-muted rounded-full mt-2 overflow-hidden">
+                  <div
+                    className="h-full bg-primary rounded-full transition-all duration-300"
+                    style={{ width: `${audioDownloadProgress}%` }}
+                  />
+                </div>
+              )}
+              {/* 第一次下载提示 */}
+              {!isUsingCache && audioDownloadProgress > 0 && (
+                <p className="text-xs text-muted-foreground/70 mt-3 font-serif text-center">
+                  💡 首次下载需要一点时间，之后就能快速打开啦
+                </p>
+              )}
+            </motion.div>
+          )}
+
+          {/* 音频错误状态 - 仅在口令跟练模式显示 */}
+          {selectedOption === 'guided_audio' && audioError && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex flex-col items-center justify-center py-6"
+            >
+              <AlertCircle className="w-12 h-12 text-destructive mb-3" />
+              <p className="text-sm text-destructive font-serif text-center">
+                {audioError}
+              </p>
+              <button
+                onClick={() => {
+                  setAudioError(null)
+                  loadAudioAndStart()
+                }}
+                className="mt-4 px-6 py-2 rounded-full green-gradient text-white text-sm font-serif"
+              >
+                重试
+              </button>
+            </motion.div>
+          )}
+
+          {/* 暂停/结束按钮 - 音频加载完成后显示 */}
+          {(!selectedOption || selectedOption !== 'guided_audio' || (isAudioLoaded && !isAudioLoading && !audioError)) && (
+          <>
           {/* 暂停/结束按钮 - 恢复原始样式 */}
           <div className="flex gap-4 justify-center">
             <motion.button
@@ -4758,26 +4573,27 @@ export default function AshtangaTracker() {
 
           {/* 步长选择器 + 前进/后退按钮 - 仅在口令跟练模式显示 */}
           {selectedOption === 'guided_audio' && isAudioLoaded && !isAudioLoading && !audioError && (
-            <div className="flex items-center justify-center gap-4 mt-4">
+            <div className="flex items-center justify-center gap-3 mt-4">
               {/* 后退按钮 */}
               <motion.button
                 whileTap={{ scale: 0.9 }}
+                whileHover={{ scale: 1.05 }}
                 onClick={() => handleAudioSeek('backward')}
-                className="w-10 h-10 rounded-full bg-muted/80 flex items-center justify-center flex-shrink-0"
+                className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-stone-400 hover:text-stone-600 transition-all active:green-gradient active:text-white"
               >
-                <SkipBack className="w-4 h-4" />
+                <SkipBack className="w-3.5 h-3.5" />
               </motion.button>
 
               {/* 步长选择器 */}
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
                 {SEEK_STEP_OPTIONS.map((step) => (
                   <button
                     key={step}
                     onClick={() => setSeekStep(step)}
-                    className={`px-4 py-2 rounded-full text-sm font-serif transition-all ${
+                    className={`px-2 py-1 rounded-full text-xs font-mono transition-all ${
                       seekStep === step
                         ? 'green-gradient text-white shadow-sm'
-                        : 'text-stone-400 hover:text-stone-600 bg-muted/50'
+                        : 'text-stone-400 hover:text-stone-600'
                     }`}
                   >
                     {step}秒
@@ -4788,94 +4604,17 @@ export default function AshtangaTracker() {
               {/* 前进按钮 */}
               <motion.button
                 whileTap={{ scale: 0.9 }}
+                whileHover={{ scale: 1.05 }}
                 onClick={() => handleAudioSeek('forward')}
-                className="w-10 h-10 rounded-full bg-muted/80 flex items-center justify-center flex-shrink-0"
+                className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-stone-400 hover:text-stone-600 transition-all active:green-gradient active:text-white"
               >
-                <SkipForward className="w-4 h-4" />
+                <SkipForward className="w-3.5 h-3.5" />
               </motion.button>
             </div>
           )}
+          </>
+          )}
         </div>
-
-        {/* 音频播放器 - 仅在口令跟练模式显示（加载状态和错误状态） */}
-        {selectedOption === 'guided_audio' && (
-          <motion.div
-            className="w-full max-w-sm mx-auto mt-4 px-6"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            {/* 加载中状态 */}
-            {isAudioLoading && (
-              <div className="flex flex-col items-center justify-center py-6">
-                <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                <p className="text-sm text-muted-foreground mt-4 font-serif">
-                  {isUsingCache ? '从缓存读取...' : audioDownloadProgress > 0 ? `下载中 ${audioDownloadProgress}%` : '加载音频中...'}
-                </p>
-                {/* 下载进度条 */}
-                {!isUsingCache && audioDownloadProgress > 0 && (
-                  <div className="w-48 h-1 bg-muted rounded-full mt-2 overflow-hidden">
-                    <div
-                      className="h-full bg-primary rounded-full transition-all duration-300"
-                      style={{ width: `${audioDownloadProgress}%` }}
-                    />
-                  </div>
-                )}
-                {/* 第一次下载提示 */}
-                {!isUsingCache && audioDownloadProgress > 0 && (
-                  <p className="text-xs text-muted-foreground/70 mt-3 font-serif text-center">
-                    💡 首次下载需要一点时间，之后就能快速打开啦
-                  </p>
-                )}
-              </div>
-            )}
-
-            {/* 加载错误状态 */}
-            {audioError && (
-              <div className="flex flex-col items-center justify-center py-6">
-                <AlertCircle className="w-12 h-12 text-destructive" />
-                <p className="text-sm text-destructive mt-4 font-serif text-center">{audioError}</p>
-                <div className="flex gap-3 mt-4">
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => {
-                      // 清除缓存后重试
-                      audioCache.clearCache().then(() => {
-                        setAudioError(null)
-                        setIsAudioLoading(true)
-                        setAudioDownloadProgress(0)
-                        // 触发重新加载
-                        handleStartPractice()
-                      })
-                    }}
-                    className="px-6 py-2 rounded-full bg-primary text-primary-foreground text-sm font-serif"
-                  >
-                    重试
-                  </motion.button>
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => {
-                      // 返回首页
-                      setIsPracticing(false)
-                      setSelectedOption(null)
-                      // 清理音频资源
-                      if (audioElement) {
-                        audioElement.pause()
-                        audioElement.src = ''
-                        setAudioElement(null)
-                      }
-                      setIsAudioLoaded(false)
-                      setAudioError(null)
-                    }}
-                    className="px-6 py-2 rounded-full bg-muted text-sm font-serif"
-                  >
-                    返回首页
-                  </motion.button>
-                </div>
-              </div>
-            )}
-
-          </motion.div>
-        )}
 
         <ConfirmEndDialog isOpen={showConfirmEnd} onClose={() => setShowConfirmEnd(false)} onConfirm={handleConfirmEnd} />
 
@@ -4884,8 +4623,22 @@ export default function AshtangaTracker() {
           practiceType={getSelectedLabel()}
           duration={finalDuration}
           onSave={handleSavePractice}
+          onClose={() => {
+            setShowCompletion(false)
+            setSelectedOption(null)
+            setCustomPracticeName("")
+            setElapsedTime(0)
+            setIsPaused(false)
+            setActiveTab('journal')
+          }}
+          addRecord={addRecord}
+          updateRecord={updateRecord}
+          deleteRecord={deleteRecord}
+          autoSync={autoSync}
           onOpenVoiceFakeDoor={() => setShowFakeDoor({ type: 'voice', isOpen: true })}
           onOpenPhotoFakeDoor={() => setShowFakeDoor({ type: 'photo', isOpen: true })}
+          user={user}
+          userProfile={userProfile}
         />
       </motion.div>
     )
@@ -5037,12 +4790,12 @@ export default function AshtangaTracker() {
           hasNewXhsMessage={hasNewXhsMessage}
           user={user}
           setReadInviteVersion={setReadInviteVersion}
+          showPWAInstallTutorial={showPWAInstallTutorial}
           setShowPWAInstallTutorial={setShowPWAInstallTutorial}
         />
       )}
-
-      {/* Fixed Bottom Navigation */}
       <AnimatePresence>
+
         {!hasAnyModalOpen && (
           <motion.nav
             initial={{ y: 0, opacity: 1 }}
@@ -5377,8 +5130,22 @@ export default function AshtangaTracker() {
         practiceType={getSelectedLabel()}
         duration={finalDuration}
         onSave={handleSavePractice}
+        onClose={() => {
+          setShowCompletion(false)
+          setSelectedOption(null)
+          setCustomPracticeName("")
+          setElapsedTime(0)
+          setIsPaused(false)
+          setActiveTab('journal')
+        }}
+        addRecord={addRecord}
+        updateRecord={updateRecord}
+        deleteRecord={deleteRecord}
+        autoSync={autoSync}
         onOpenVoiceFakeDoor={() => setShowFakeDoor({ type: 'voice', isOpen: true })}
         onOpenPhotoFakeDoor={() => setShowFakeDoor({ type: 'photo', isOpen: true })}
+        user={user}
+        userProfile={userProfile}
       />
 
       {/* Fake Door Modal */}
@@ -5397,12 +5164,6 @@ export default function AshtangaTracker() {
           // 关闭时再次确保标记为已读（双重保险）
           setReadInviteVersion(INVITE_VERSION)
         }}
-      />
-
-      {/* PWA 安装教程弹窗 */}
-      <PWAInstallTutorialModal
-        isOpen={showPWAInstallTutorial}
-        onClose={() => setShowPWAInstallTutorial(false)}
       />
 
       {/* Auth Modal - 登录/注册/忘记密码 */}

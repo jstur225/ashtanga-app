@@ -1,0 +1,6 @@
+name: ship
+description: |
+  gstack skill: ship
+
+command: |
+  Read "{{skill_dir}}/SKILL.md"

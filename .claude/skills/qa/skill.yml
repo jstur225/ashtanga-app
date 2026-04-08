@@ -1,0 +1,6 @@
+name: qa
+description: |
+  gstack skill: qa
+
+command: |
+  Read "{{skill_dir}}/SKILL.md"

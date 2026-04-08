@@ -305,3 +305,14 @@
 .animate-highlight-flash {
   animation: highlight-flash 1.5s ease-in-out;
 }
+
+/* Loading spinner */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}

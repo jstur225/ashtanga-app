@@ -31,11 +31,11 @@ export function PWAInstallTutorialModal({ isOpen, onClose }: PWAInstallTutorialM
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               transition={{ duration: 0.2 }}
-              className="bg-card rounded-[24px] shadow-[0_8px_32px_rgba(45,90,39,0.3)] w-full max-w-lg overflow-hidden"
+              className="bg-card rounded-[24px] shadow-[0_8px_32px_rgba(45,90,39,0.3)] w-full max-w-lg max-h-[80vh] flex flex-col overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
-              {/* 标题栏 */}
-              <div className="flex items-center justify-between p-4 border-b border-border">
+              {/* 标题栏 - 固定在顶部 */}
+              <div className="flex items-center justify-between p-4 border-b border-border flex-shrink-0">
                 <h2 className="text-lg font-serif text-foreground">📱 安装到主屏幕教程</h2>
                 <button
                   onClick={onClose}
@@ -45,14 +45,14 @@ export function PWAInstallTutorialModal({ isOpen, onClose }: PWAInstallTutorialM
                 </button>
               </div>
 
-              {/* 图片 */}
-              <div className="p-4">
+              {/* 图片区域 - 可滚动 */}
+              <div className="p-4 overflow-y-auto flex-1">
                 <div className="rounded-xl overflow-hidden border border-border bg-secondary">
                   <Image
                     src="/pwa-install.png"
                     alt="PWA 安装教程"
                     width={600}
-                    height={400}
+                    height={2400}
                     className="w-full h-auto"
                     priority
                   />

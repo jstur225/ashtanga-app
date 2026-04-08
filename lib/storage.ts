@@ -1,5 +1,20 @@
 import { supabase } from './supabase'
 
+/**
+ * ⚠️ DEPRECATED ⚠️
+ * 本文件已废弃，请使用 lib/oss.ts 中的 OSS 上传功能
+ *
+ * 原因：
+ * - Supabase Storage 在国内访问速度较慢
+ * - 大文件上传可能触发 Vercel Serverless Function 10s 超时
+ * - 已迁移至阿里云 OSS 预签名 URL 方案
+ *
+ * 替代方案：
+ * - import { uploadPhoto, deletePhoto, validatePhotoFile } from '@/lib/oss'
+ *
+ * 删除时间：2026-04-01 之后
+ */
+
 // Storage bucket name
 const BUCKET_NAME = 'practice-photos'
 

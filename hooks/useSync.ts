@@ -413,6 +413,10 @@ export function useSync(
             options: remoteData.options || [],
             profile: mergedProfile
           })
+          // ⭐ 关键修复：直接保存到 localStorage（不依赖回调）
+          localStorage.setItem('ashtanga_records', JSON.stringify(mergedRecords))
+          localStorage.setItem('ashtanga_options', JSON.stringify(remoteData.options || []))
+          console.error('✅ [autoSync] records 和 options 已保存到 localStorage')
           setSyncStatus('success')
           setLastSyncStatus('success')
           setLastSyncTime(Date.now())
@@ -474,6 +478,10 @@ export function useSync(
           options: remoteData.options || [],
           profile: cloudProfile
         })
+        // ⭐ 关键修复：直接保存到 localStorage
+        localStorage.setItem('ashtanga_records', JSON.stringify(remoteRecordsToUse))
+        localStorage.setItem('ashtanga_options', JSON.stringify(remoteData.options || []))
+        console.error('✅ [autoSync] 云端数据已保存到 localStorage')
         setSyncStatus('success')
         setLastSyncStatus('success')
         setLastSyncTime(Date.now())
@@ -557,11 +565,15 @@ export function useSync(
     if (remoteOnly.length > 0) {
       // 云端有新数据，下载到本地
       addLog(`下载${remoteOnly.length}条云端记录`, 'success')
+      const mergedRecords = [...freshLocalData.records, ...remoteOnly]
       onSyncComplete({
-        records: [...freshLocalData.records, ...remoteOnly],
+        records: mergedRecords,
         options: remoteData.options || [],
         profile: mergedProfile // ⭐ 添加 profile
       })
+      // ⭐ 关键修复：直接保存到 localStorage
+      localStorage.setItem('ashtanga_records', JSON.stringify(mergedRecords))
+      localStorage.setItem('ashtanga_options', JSON.stringify(remoteData.options || []))
     }
 
     if (localOnly.length > 0) {
@@ -725,36 +737,78 @@ export function useSync(
     const failedIds: string[] = []
 
     const recordsToUpload = recordsToSync.map(r => ({
-      id: r.id, // ⭐ 使用原始 ID，不生成新的
+      id: r.id,
       user_id: userId,
       date: r.date,
       type: r.type,
-      duration: r.duration,
+      duration: Number(r.duration) || 0, // ⭐ 确保是数字
       notes: r.notes || '',
-      photos: null, // ⚠️ 照片暂不同步
+      photos: r.photos && r.photos.length > 0 ? r.photos : null,
       breakthrough: r.breakthrough || null,
-      start_time: r.start_time || null, // ⭐ 练习开始时间
-      updated_at: r.updated_at || r.created_at || new Date().toISOString(), // ⭐ 添加更新时间
+      start_time: r.start_time || null,
+      updated_at: r.updated_at || r.created_at || new Date().toISOString(),
     }))
 
-    const { error } = await supabase
-      .from(TABLES.PRACTICE_RECORDS)
-      .upsert(recordsToUpload, { onConflict: 'id' })
+    // ⭐ 显示排查日志到页面
+    addLog(`准备上传 ${recordsToUpload.length} 条记录`, 'success')
 
-    if (error) {
-      records.forEach(r => failedIds.push(r.id))
-      addLog('批量上传失败', 'error', undefined, error.message, {
-        requestInfo: `records: ${recordsToUpload.length}, table: ${TABLES.PRACTICE_RECORDS}`
-      })
-    } else {
-      addLog(`批量上传${recordsToSync.length}条记录成功`, 'success')
+    // ⭐ 检查数据格式
+    const firstRecord = recordsToUpload[0]
+    addLog(`首条记录ID: ${firstRecord?.id?.slice(0,8)}...`, 'success')
+    addLog(`首条日期: ${firstRecord?.date}`, 'success')
+    addLog(`照片字段类型: ${typeof firstRecord?.photos}`, 'success')
+
+    // ⭐ 分批上传：每批50条
+    const BATCH_SIZE = 50
+    let successCount = 0
+    let lastError: any = null
+
+    for (let i = 0; i < recordsToUpload.length; i += BATCH_SIZE) {
+      const batch = recordsToUpload.slice(i, i + BATCH_SIZE)
+      const batchNum = Math.floor(i/BATCH_SIZE) + 1
+      const totalBatches = Math.ceil(recordsToUpload.length/BATCH_SIZE)
+
+      addLog(`上传第 ${batchNum}/${totalBatches} 批 (${batch.length}条)`, 'success')
+
+      const { error } = await supabase
+        .from(TABLES.PRACTICE_RECORDS)
+        .upsert(batch, { onConflict: 'id' })
+
+      if (error) {
+        lastError = error
+        addLog(`第 ${batchNum} 批失败`, 'error')
+        addLog(`错误消息: ${error.message || '无消息'}`, 'error')
+        addLog(`错误代码: ${error.code || '无代码'}`, 'error')
+        addLog(`错误详情: ${JSON.stringify(error).slice(0, 300)}`, 'error')
+
+        // ⭐ 尝试解析 Supabase 错误详情
+        if (error.message && error.message.includes('400')) {
+          addLog('400 错误: 请求格式不正确', 'error')
+          // 打印第一条记录的数据格式
+          const sampleRecord = batch[0]
+          addLog(`样本记录ID: ${sampleRecord.id}`, 'error')
+          addLog(`样本日期: ${sampleRecord.date}`, 'error')
+          addLog(`样本类型: ${sampleRecord.type}`, 'error')
+          addLog(`样本时长: ${sampleRecord.duration} (类型: ${typeof sampleRecord.duration})`, 'error')
+          addLog(`照片类型: ${typeof sampleRecord.photos}`, 'error')
+          addLog(`更新时间: ${sampleRecord.updated_at}`, 'error')
+        }
+
+        // 记录失败的ID
+        batch.forEach(r => failedIds.push(r.id))
+      } else {
+        successCount += batch.length
+        addLog(`第 ${batchNum} 批成功`, 'success')
+      }
     }
 
     if (failedIds.length > 0) {
+      addLog(`失败 ${failedIds.length} 条，成功 ${successCount} 条`, 'error')
       setFailedSyncIds(failedIds)
       setLastSyncStatus('error')
       return { success: false, localOnlyCount }
     } else {
+      addLog(`全部上传成功: ${successCount} 条`, 'success')
       setFailedSyncIds([])
       setLastSyncStatus('success')
       return { success: true, localOnlyCount }
@@ -830,12 +884,12 @@ export function useSync(
           user_id: userId,
           date: r.date,
           type: r.type,
-          duration: r.duration,
+          duration: Number(r.duration) || 0, // ⭐ 确保是数字
           notes: r.notes || '',
-          photos: r.photos && r.photos.length > 0 ? JSON.stringify(r.photos) : null, // ⚠️ 转换为 JSON 字符串
+          photos: r.photos && r.photos.length > 0 ? r.photos : null, // ⭐ 直接传数组，不 stringify
           breakthrough: r.breakthrough || null,
-          start_time: r.start_time || null, // ⭐ 练习开始时间
-          updated_at: r.updated_at || r.created_at || new Date().toISOString(), // ⭐ 添加更新时间
+          start_time: r.start_time || null,
+          updated_at: r.updated_at || r.created_at || new Date().toISOString(),
         }))
 
         console.error(`📤 [uploadLocalData] 准备上传${recordsToUpload.length}条记录`)
@@ -859,36 +913,29 @@ export function useSync(
         }
       }
 
-      // 3. 批量上传练习选项（只同步自定义选项，默认选项不上传）
+      // 3. 批量上传练习选项（只同步自定义选项）
       if (options.length > 0) {
-        // ⭐ 只上传自定义选项（is_custom: true），默认选项不上传
-        const customOptions = options.filter(o => o.is_custom)
-        
-        if (customOptions.length > 0) {
-          const optionsToUpload = customOptions.map(o => ({
-            id: o.id,
-            user_id: userId,
-            label: o.label || '',
-            notes: o.notes || null,
-            is_custom: o.is_custom || false,
-          }))
+        const optionsToUpload = options.filter(o => o.is_custom).map(o => ({
+          id: o.id,
+          user_id: userId,
+          label: o.label || '',
+          notes: o.notes || null,
+          is_custom: o.is_custom || false,
+        }))
 
-          const { error: optionsError } = await supabase
-            .from(TABLES.PRACTICE_OPTIONS)
-            .upsert(optionsToUpload, {
-              onConflict: 'id'
-            })
+        const { error: optionsError } = await supabase
+          .from(TABLES.PRACTICE_OPTIONS)
+          .upsert(optionsToUpload, {
+            onConflict: 'id'
+          })
 
-          if (optionsError) {
-            console.error('❌ 批量上传选项失败:', optionsError)
-            console.error('   错误详情:', JSON.stringify(optionsError, null, 2))
-            console.error('   上传的数据:', JSON.stringify(optionsToUpload, null, 2))
-            addLog('批量上传选项', 'error', undefined, optionsError.message)
-          } else {
-            addLog(`批量上传${customOptions.length}个自定义选项`, 'success')
-          }
+        if (optionsError) {
+          console.error('❌ 批量上传选项失败:', optionsError)
+          console.error('   错误详情:', JSON.stringify(optionsError, null, 2))
+          console.error('   上传的数据:', JSON.stringify(optionsToUpload, null, 2))
+          addLog('批量上传选项', 'error', undefined, optionsError.message)
         } else {
-          console.error('ℹ️ [uploadLocalData] 没有自定义选项需要上传')
+          addLog(`批量上传${options.length}个选项`, 'success')
         }
       }
 
@@ -971,6 +1018,9 @@ export function useSync(
             options: remoteData.options || [],
             profile: remoteProfile
           })
+          // ⭐ 关键修复：直接保存到 localStorage
+          localStorage.setItem('ashtanga_records', JSON.stringify(remoteData.records))
+          localStorage.setItem('ashtanga_options', JSON.stringify(remoteData.options || []))
           break
 
         case 'local':

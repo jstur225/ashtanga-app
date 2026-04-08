@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { X, Copy, Check, Bug } from 'lucide-react'
+import { X, Copy, Check, Bug, Download } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface DebugLogModalProps {
@@ -21,6 +21,23 @@ export function DebugLogModal({ isOpen, onClose, logContent }: DebugLogModalProp
       setTimeout(() => setCopied(false), 2000)
     } catch (err) {
       toast.error('复制失败，请手动复制')
+    }
+  }
+
+  const handleDownload = () => {
+    try {
+      const blob = new Blob([logContent], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `ashtanga-debug-log-${new Date().toISOString().split('T')[0]}.json`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+      toast.success('✅ 日志文件已下载')
+    } catch (err) {
+      toast.error('下载失败，请重试')
     }
   }
 
@@ -55,7 +72,7 @@ export function DebugLogModal({ isOpen, onClose, logContent }: DebugLogModalProp
               <div>
                 <h2 className="text-lg font-serif text-foreground">运行日志</h2>
                 <p className="text-xs text-muted-foreground font-serif mt-0.5">
-                  如遇问题，请复制本日志发给开发者
+                  如遇问题，请导出日志发给开发者
                 </p>
               </div>
             </div>
@@ -66,7 +83,7 @@ export function DebugLogModal({ isOpen, onClose, logContent }: DebugLogModalProp
             {/* 提示信息 */}
             <div className="p-3 rounded-xl bg-amber-50 border border-amber-100 mb-4">
               <p className="text-xs text-amber-700 font-serif leading-relaxed">
-                💡 点击下方按钮复制，或手动选择文本复制
+                💡 点击"导出JSON文件"下载日志，或"复制日志"到剪贴板
               </p>
             </div>
 
@@ -85,10 +102,17 @@ export function DebugLogModal({ isOpen, onClose, logContent }: DebugLogModalProp
           </div>
 
           {/* 固定底部按钮 */}
-          <div className="flex-shrink-0 p-6 pt-0">
+          <div className="flex-shrink-0 p-6 pt-0 flex gap-3">
+            <button
+              onClick={handleDownload}
+              className="flex-1 flex items-center justify-center gap-2 p-3 rounded-xl font-serif transition-all bg-secondary text-foreground hover:bg-secondary/80"
+            >
+              <Download className="w-4 h-4" />
+              <span className="text-sm">导出JSON文件</span>
+            </button>
             <button
               onClick={handleCopy}
-              className={`w-full flex items-center justify-center gap-2 p-3 rounded-xl font-serif transition-all ${
+              className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl font-serif transition-all ${
                 copied
                   ? 'bg-green-500 text-white'
                   : 'bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] text-white hover:opacity-90'

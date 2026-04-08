@@ -44,16 +44,15 @@ export interface UserProfile {
 }
 
 // 口令跟练预设选项
-export const GUIDED_AUDIO_OPTION: PracticeOption & { icon?: string } = {
+export const GUIDED_AUDIO_OPTION: PracticeOption = {
   id: 'guided_audio',
   created_at: '2026-01-01T00:00:00.000Z',
   label: '一序列',
-  notes: '老掌门人口令',
+  notes: '老掌门人版口令',
   is_custom: false,
   is_preset: true,
   audio_src: '/audio/guruji-led-primary.m4a',
-  can_edit: false,
-  icon: '🔊'
+  can_edit: false
 };
 
 const DEFAULT_OPTIONS: PracticeOption[] = [
@@ -121,6 +120,39 @@ export const usePracticeData = () => {
       }
     }
 
+    // ⭐ 数据迁移：确保记录中的 photos 字段是数组格式（处理从云端同步下来的 JSON 字符串）
+    try {
+      const storedRecords = localStorage.getItem('ashtanga_records');
+      if (storedRecords && storedRecords !== '[]') {
+        const parsedRecords: PracticeRecord[] = JSON.parse(storedRecords);
+        let needsMigration = false;
+        const migratedRecords = parsedRecords.map(r => {
+          // 如果 photos 是字符串，解析为数组
+          if (r.photos && typeof r.photos === 'string') {
+            try {
+              needsMigration = true;
+              return { ...r, photos: JSON.parse(r.photos) };
+            } catch (e) {
+              console.error('[数据迁移] 解析 photos 失败:', r.photos);
+              return { ...r, photos: [] };
+            }
+          }
+          // 如果 photos 未定义或为 null，设置为空数组
+          if (!r.photos) {
+            needsMigration = true;
+            return { ...r, photos: [] };
+          }
+          return r;
+        });
+        if (needsMigration) {
+          console.log('🔄 [数据迁移] 修复 records 中的 photos 字段格式');
+          setRecords(migratedRecords);
+        }
+      }
+    } catch (e) {
+      console.error('❌ [数据迁移] 处理 records 失败:', e);
+    }
+
     // 为首次用户添加教程记录
     const storedRecords = localStorage.getItem('ashtanga_records');
     if (!storedRecords || storedRecords === '[]') {
@@ -136,12 +168,49 @@ export const usePracticeData = () => {
           notes: `🔴特别提醒
 👈点击左侧日期区域，可编辑或删除记录
 
-🌟Mysore，让我们找回到自我的锚点🌟`,
+🌟Mysore，让我们找回到自我的锚点`,
           photos: []
         }
       ];
 
       setRecords(tutorialRecords);
+    }
+
+    // ⭐ 清理残留的草稿记录并确保排序（用户刷新页面或关闭浏览器导致草稿未被删除）
+    try {
+      const storedRecords = localStorage.getItem('ashtanga_records');
+      if (storedRecords && storedRecords !== '[]') {
+        const parsedRecords: PracticeRecord[] = JSON.parse(storedRecords);
+
+        // 步骤1：清理草稿记录
+        const cleanedRecords = parsedRecords.filter(r => r.type !== '草稿');
+        const draftRecordsCount = parsedRecords.length - cleanedRecords.length;
+
+        if (draftRecordsCount > 0) {
+          console.log(`🧹 [清理草稿] 发现 ${draftRecordsCount} 条残留的草稿记录，正在清理...`);
+        }
+
+        // 步骤2：确保记录按日期倒序排序（最新的在最前面）
+        // 注意：使用 [...cleanedRecords] 创建副本，避免原地排序
+        const sortedRecords = [...cleanedRecords].sort((a, b) => {
+          return new Date(b.date).getTime() - new Date(a.date).getTime();
+        });
+
+        // 步骤3：检查是否有变化（草稿被清理或顺序需要调整）
+        const hasOrderChanges = cleanedRecords.some((r, i) => r.id !== sortedRecords[i]?.id);
+        const needsUpdate = draftRecordsCount > 0 || hasOrderChanges;
+
+        if (needsUpdate) {
+          if (hasOrderChanges) {
+            console.log('🔄 [排序] 记录未按日期排序，重新排序...');
+          }
+          localStorage.setItem('ashtanga_records', JSON.stringify(sortedRecords));
+          setRecords(sortedRecords);
+          console.log('✅ [初始化] 记录已清理草稿并排序');
+        }
+      }
+    } catch (e) {
+      console.error('❌ [初始化] 清理草稿或排序失败:', e);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // 只在组件挂载时执行一次
@@ -308,8 +377,10 @@ export const usePracticeData = () => {
   const exportData = () => {
     // 移除头像，避免 base64 数据过大导致无法复制
     const { avatar, ...profileWithoutAvatar } = profile;
+    // ⭐ 过滤掉草稿记录，只导出正式记录
+    const nonDraftRecords = (records || []).filter(r => r.type !== '草稿');
     const data = {
-      records,
+      records: nonDraftRecords,
       options,
       profile: profileWithoutAvatar,
       export_at: new Date().toISOString(),

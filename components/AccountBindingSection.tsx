@@ -57,7 +57,7 @@ export function AccountBindingSection({
   const { user: authUser, signOut } = useAuth()
   // 优先使用 prop 传递的 user，如果没有则使用 useAuth 获取的
   const user = propUser || authUser
-  const { syncStatus, lastSyncTime, lastSyncStatus, uploadLocalData, autoSync, syncStats, resetSyncStatus } = useSync(
+  const { syncStatus, lastSyncTime, lastSyncStatus, uploadLocalData, autoSync, syncStats, syncLogs, resetSyncStatus } = useSync(
     user,
     { ...localData, profile },
     onSyncComplete
@@ -237,7 +237,7 @@ export function AccountBindingSection({
         <div className="space-y-3">
           <button
             onClick={onOpenRegisterModal}
-            className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl hover:from-orange-600 hover:to-amber-600 transition-all font-medium font-serif backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)]"
+            className="w-full flex items-center justify-center gap-2 px-6 py-3 green-gradient backdrop-blur-md text-white rounded-xl border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] hover:opacity-90 transition-all font-medium font-serif"
           >
             <Mail className="w-5 h-5" />
             去绑定邮箱
@@ -270,7 +270,7 @@ export function AccountBindingSection({
               <div className="flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0" />
                 <p className="text-xs text-muted-foreground font-serif">
-                  上限提醒：已同步接近1000条，<span className="font-medium">{syncStats.localOnlyCount}</span> 条新记录仅保存在本地
+                  本地记录共 {syncStats?.totalLocalRecords} 条，云端最多存储 1000 条，<span className="font-medium">{syncStats.localOnlyCount}</span> 条仅保存在本地
                 </p>
               </div>
             </div>
@@ -325,7 +325,7 @@ export function AccountBindingSection({
 
           {/* Modal - 居中显示 */}
           <div className="fixed inset-0 flex items-center justify-center z-[110] p-4 pointer-events-none">
-            <div className="bg-card rounded-[24px] shadow-[0_8px_32px_rgba(0,0,0,0.12)] w-full max-w-md pointer-events-auto">
+            <div className="bg-card rounded-[24px] shadow-[0_8px_32px_rgba(0,0,0,0.12)] w-full max-w-md pointer-events-auto max-h-[calc(100vh-2rem)] overflow-y-auto">
               <div className="p-6 pb-10">
                 <div className="flex items-center justify-between mb-2">
                   <h2 className="text-lg font-serif text-foreground">退出选项</h2>
@@ -608,7 +608,7 @@ export function AccountBindingSection({
                           console.log('   用户邮箱:', user?.email)
 
                           const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-                            email: user?.email || '',
+                            email: propUser?.email || authUser?.email || '',
                             password: oldPassword
                           })
 
