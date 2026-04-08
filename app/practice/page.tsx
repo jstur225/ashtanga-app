@@ -2246,21 +2246,21 @@ function MonthlyStatsCard({
   }, [practiceHistory, year, month])
 
   return (
-    <div className="bg-white rounded-xl p-4 border border-stone-200 shadow-sm">
+    <div className="bg-white rounded-[20px] shadow-md border border-stone-200 overflow-hidden p-4">
       <div className="flex items-center justify-between">
         <div className="text-center flex-1">
-          <div className="text-2xl font-serif font-bold text-green-700">{stats.practiceDays}</div>
-          <div className="text-xs text-muted-foreground font-serif mt-0.5">熬汤天数</div>
+          <div className="text-2xl font-serif text-primary">{stats.practiceDays}</div>
+          <div className="text-xs text-muted-foreground font-serif mt-1">熬汤天数</div>
         </div>
         <div className="w-px h-10 bg-stone-200" />
         <div className="text-center flex-1">
-          <div className="text-2xl font-serif font-bold text-green-700">{stats.totalMinutes}</div>
-          <div className="text-xs text-muted-foreground font-serif mt-0.5">熬汤时长(分钟)</div>
+          <div className="text-2xl font-serif text-primary">{stats.totalMinutes}</div>
+          <div className="text-xs text-muted-foreground font-serif mt-1">熬汤时长(分钟)</div>
         </div>
         <div className="w-px h-10 bg-stone-200" />
         <div className="text-center flex-1">
-          <div className="text-2xl font-serif font-bold text-green-700">{stats.avgMinutes}</div>
-          <div className="text-xs text-muted-foreground font-serif mt-0.5">平均时长</div>
+          <div className="text-2xl font-serif text-primary">{stats.avgMinutes}</div>
+          <div className="text-xs text-muted-foreground font-serif mt-1">平均时长</div>
         </div>
       </div>
     </div>
