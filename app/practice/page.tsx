@@ -2729,7 +2729,7 @@ function JournalTab({
       </div>
 
       {/* Timeline - continuous, split click zones */}
-      <div className="px-2 pb-10 mt-6">
+      <div className="px-2 pb-10 mt-3">
         {practiceHistory
           .filter(r => {
             if (r.type === '草稿') return false
