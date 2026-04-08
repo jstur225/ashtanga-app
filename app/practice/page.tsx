@@ -7,7 +7,7 @@ import { usePracticeData, type PracticeRecord, type PracticeOption, type UserPro
 import { usePWAInstall } from "@/hooks/usePWAInstall"
 import { useAuth } from "@/hooks/useAuth"
 import { useSync } from "@/hooks/useSync"
-import { BookOpen, BarChart3, Calendar, X, Camera, Pause, Play, Trash2, User, Settings, ChevronLeft, ChevronRight, ChevronUp, Cloud, Download, Upload, Plus, Minus, Share2, Sparkles, Check, Copy, ClipboardPaste, MessageCircle, Bug, AlertCircle, SkipBack, SkipForward, Volume } from "lucide-react"
+import { BookOpen, BarChart3, Calendar, X, Camera, Pause, Play, Trash2, User, Settings, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Cloud, Download, Upload, Plus, Minus, Share2, Sparkles, Check, Copy, ClipboardPaste, MessageCircle, Bug, AlertCircle, SkipBack, SkipForward, Volume } from "lucide-react"
 import { cn } from '@/lib/utils'
 import { FakeDoorModal } from "@/components/FakeDoorModal"
 import { VoiceButton } from "@/components/VoiceButton"
@@ -2216,6 +2216,57 @@ function CompletionSheet({
 }
 
 // Color Block Fullscreen Viewer (simulates photo viewer)
+// Monthly Stats Card Component
+function MonthlyStatsCard({
+  practiceHistory,
+  year,
+  month,
+}: {
+  practiceHistory: PracticeRecord[]
+  year: number
+  month: number
+}) {
+  // 计算本月统计数据
+  const stats = useMemo(() => {
+    const monthRecords = practiceHistory.filter(r => {
+      const d = new Date(r.date)
+      return d.getFullYear() === year && d.getMonth() === month && r.duration > 0 && r.type !== '草稿'
+    })
+
+    const practiceDays = monthRecords.length
+    const totalSeconds = monthRecords.reduce((acc, r) => acc + r.duration, 0)
+    const totalMinutes = Math.round(totalSeconds / 60)
+    const avgMinutes = practiceDays > 0 ? Math.round(totalMinutes / practiceDays) : 0
+
+    return {
+      practiceDays,
+      totalMinutes,
+      avgMinutes,
+    }
+  }, [practiceHistory, year, month])
+
+  return (
+    <div className="bg-white rounded-[20px] shadow-md border border-stone-200 overflow-hidden p-3">
+      <div className="flex items-center justify-between">
+        <div className="text-center flex-1">
+          <div className="text-2xl font-serif text-primary">{stats.practiceDays}</div>
+          <div className="text-xs text-muted-foreground font-serif mt-1">熬汤天数</div>
+        </div>
+        <div className="w-px h-8 bg-stone-200" />
+        <div className="text-center flex-1">
+          <div className="text-2xl font-serif text-primary">{stats.totalMinutes}</div>
+          <div className="text-xs text-muted-foreground font-serif mt-1">熬汤时长(分钟)</div>
+        </div>
+        <div className="w-px h-8 bg-stone-200" />
+        <div className="text-center flex-1">
+          <div className="text-2xl font-serif text-primary">{stats.avgMinutes}</div>
+          <div className="text-xs text-muted-foreground font-serif mt-1">平均时长</div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // Monthly Heatmap for Journal - Now with CIRCLES instead of squares
 function MonthlyHeatmap({
   practiceHistory,
@@ -2224,7 +2275,8 @@ function MonthlyHeatmap({
   onAddRecord,
   votedCloud,
   syncStatus,
-  user
+  user,
+  onMonthChange,
 }: {
   practiceHistory: PracticeRecord[]
   onDayClick: (dateStr: string) => void
@@ -2233,6 +2285,7 @@ function MonthlyHeatmap({
   votedCloud: boolean
   syncStatus: 'idle' | 'syncing' | 'success' | 'error'
   user: any
+  onMonthChange?: (date: Date) => void
 }) {
   const today = new Date()
   const todayStr = getLocalDateStr()
@@ -2292,12 +2345,15 @@ function MonthlyHeatmap({
   const weekDays = ['日', '一', '二', '三', '四', '五', '六']
 
   const goToPreviousMonth = () => {
-    setViewDate(new Date(currentYear, currentMonth - 1, 1))
+    const newDate = new Date(currentYear, currentMonth - 1, 1)
+    setViewDate(newDate)
+    onMonthChange?.(newDate)
   }
 
   const goToNextMonth = () => {
     const nextMonth = new Date(currentYear, currentMonth + 1, 1)
     setViewDate(nextMonth)
+    onMonthChange?.(nextMonth)
   }
 
   const canGoNext = true
@@ -2542,6 +2598,30 @@ function JournalTab({
   const recordRefs = useRef<Record<string, HTMLDivElement | null>>({})
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
+  // ⭐ 已加载的月份列表（无限滚动）
+  const [loadedMonths, setLoadedMonths] = useState<Date[]>([new Date()])
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
+
+  // ⭐ 计算最早有记录的月份
+  const earliestRecordMonth = useMemo(() => {
+    if (practiceHistory.length === 0) return null
+    const validRecords = practiceHistory.filter(r => r.type !== '草稿' && r.duration > 0)
+    if (validRecords.length === 0) return null
+
+    const earliestDate = validRecords.reduce((earliest, r) => {
+      return new Date(r.date) < new Date(earliest.date) ? r : earliest
+    }, validRecords[0])
+
+    const d = new Date(earliestDate.date)
+    return new Date(d.getFullYear(), d.getMonth(), 1)
+  }, [practiceHistory])
+
+  // ⭐ 检查是否已经到达最早月份
+  const hasReachedEarliest = earliestRecordMonth && loadedMonths.some(month =>
+    month.getFullYear() === earliestRecordMonth.getFullYear() &&
+    month.getMonth() === earliestRecordMonth.getMonth()
+  )
+
   // 月相Map
   const moonPhaseMap = useMemo(() => getMoonPhaseMap(), [])
 
@@ -2568,18 +2648,42 @@ function JournalTab({
     return type.split(/\s+|-\s*/)[0]
   }
 
-  // Handle scroll to show/hide back-to-top button (threshold: 400px)
+  // Handle scroll to show/hide back-to-top button and infinite scroll
   useEffect(() => {
     const container = scrollContainerRef.current
     if (!container) return
 
     const handleScroll = () => {
       setShowBackToTop(container.scrollTop > 400)
+
+      // ⭐ 无限滚动：接近底部时加载上一个月
+      const { scrollTop, scrollHeight, clientHeight } = container
+      const isNearBottom = scrollHeight - scrollTop - clientHeight < 100
+
+      if (isNearBottom && !isLoadingMore) {
+        const lastMonth = loadedMonths[loadedMonths.length - 1]
+        const prevMonth = new Date(lastMonth.getFullYear(), lastMonth.getMonth() - 1, 1)
+
+        // 检查是否已有记录在这个月份，有才加载
+        const hasRecordsInPrevMonth = practiceHistory.some(r => {
+          const d = new Date(r.date)
+          return d.getFullYear() === prevMonth.getFullYear() &&
+                 d.getMonth() === prevMonth.getMonth() &&
+                 r.type !== '草稿' &&
+                 r.duration > 0
+        })
+
+        if (hasRecordsInPrevMonth) {
+          setIsLoadingMore(true)
+          setLoadedMonths(prev => [...prev, prevMonth])
+          setTimeout(() => setIsLoadingMore(false), 300)
+        }
+      }
     }
 
     container.addEventListener('scroll', handleScroll, { passive: true })
     return () => container.removeEventListener('scroll', handleScroll)
-  }, [])
+  }, [loadedMonths, isLoadingMore, practiceHistory])
 
   const scrollToTop = () => {
     scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
@@ -2656,13 +2760,33 @@ function JournalTab({
           votedCloud={votedCloud}
           syncStatus={syncStatus}
           user={user}
+          onMonthChange={(date) => {
+            // ⭐ 切换月份时重置加载的月份列表
+            setLoadedMonths([date])
+          }}
         />
       </div>
-      
+
+      {/* Monthly Stats Card - 独立的统计卡片 */}
+      <div className="px-6 mt-3">
+        <MonthlyStatsCard
+          practiceHistory={practiceHistory}
+          year={loadedMonths[0].getFullYear()}
+          month={loadedMonths[0].getMonth()}
+        />
+      </div>
+
       {/* Timeline - continuous, split click zones */}
-      <div className="px-2 pb-10">
+      <div className="px-2 pb-10 mt-3">
         {practiceHistory
-          .filter(r => r.type !== '草稿')
+          .filter(r => {
+            if (r.type === '草稿') return false
+            // ⭐ 筛选所有已加载月份的记录
+            const d = new Date(r.date)
+            return loadedMonths.some(month =>
+              d.getFullYear() === month.getFullYear() && d.getMonth() === month.getMonth()
+            )
+          })
           .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
           .map((practice, index) => (
           <motion.div
@@ -2772,6 +2896,35 @@ function JournalTab({
             </div>
           </motion.div>
         ))}
+
+        {/* ⭐ 加载提示 */}
+        {isLoadingMore && (
+          <div className="flex items-center justify-center py-4">
+            <div className="w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+            <span className="ml-2 text-sm text-muted-foreground font-serif">加载中...</span>
+          </div>
+        )}
+
+        {/* ⭐ 底部状态提示 */}
+        {!isLoadingMore && (
+          <div className="flex items-center justify-center py-4">
+            {hasReachedEarliest ? (
+              <span className="text-sm text-muted-foreground font-serif">已经到底啦~</span>
+            ) : (
+              <button
+                onClick={() => {
+                  const lastMonth = loadedMonths[loadedMonths.length - 1]
+                  const prevMonth = new Date(lastMonth.getFullYear(), lastMonth.getMonth() - 1, 1)
+                  setLoadedMonths(prev => [...prev, prevMonth])
+                }}
+                className="text-sm text-muted-foreground font-serif hover:text-foreground transition-colors flex items-center gap-1"
+              >
+                <span>查看更多</span>
+                <ChevronDown className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       <EditRecordModal
@@ -3136,7 +3289,7 @@ function StatsTab({
           </div>
           <div className="bg-white rounded-[20px] p-4 text-center shadow-md border border-stone-200">
             <div className="text-2xl font-serif text-primary">{totalStats.totalHours}</div>
-            <div className="text-xs text-muted-foreground font-serif mt-1">总熬汤时长</div>
+            <div className="text-xs text-muted-foreground font-serif mt-1">总熬汤时长（小时）</div>
           </div>
           <div className="bg-white rounded-[20px] p-4 text-center shadow-md border border-stone-200">
             <div className="text-2xl font-serif text-primary">{totalStats.avgMinutes}</div>

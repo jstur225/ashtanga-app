@@ -1,5 +1,290 @@
 # 待处理问题
 
+## 2026-04-08 - 练习选项同步重构（固定槽位系统）🚧 评审完成
+
+### ✅ 架构评审结论
+
+| 决策项 | 选择 | 说明 |
+|--------|------|------|
+| 数据库迁移 | 两步迁移 | ① 先添加 nullable 字段 ② 迁移数据 ③ 添加约束 |
+| 部署策略 | 分阶段 | 阶段1改上传（所有实际槽位），阶段2改下载，降低风险 |
+| 超量处理 | 需处理 | 现有用户可能有4-7个选项，迁移时分配到 slot 1-10 |
+| 类型复用 | 从 supabase 导入 | PracticeOption 类型统一从 lib/supabase.ts 导出 |
+| Pro降级 | 保留可编辑 | 超出的槽位可正常使用，删除后不可恢复超出部分 |
+
+### 🔧 常量定义
+
+```typescript
+// lib/constants.ts
+export const SLOT_CONFIG = {
+  DEFAULT_VISIBLE: 3,      // 默认可见：一序列Mysore/Led、半序列
+  DEFAULT_HIDDEN: 1,       // 默认1个隐藏空槽（给用户自定义）
+  MAX_FREE: 4,             // 普通用户上限
+  MAX_PRO: 10,             // Pro用户上限
+  TOTAL_DEFAULT_SLOTS: 4,  // 新用户自动创建的槽位数
+} as const;
+```
+
+**说明：**
+- 普通用户最多 4 个槽位（3个默认可见 + 1个空槽）
+- Pro 用户可解锁到 10 个槽位
+- 现有用户可能已经创建 4-7 个选项（因为之前限制是 7 个），迁移时需分配到 slot 1-10
+- 迁移时不足 4 个的用户，补全到 4 槽（3默认 + 1空槽）
+- **注意：** "新用户注册" = "游客绑定邮箱"，两者是同一流程
+
+### 📋 执行步骤（评审后）
+
+#### Step 1: 数据库迁移 ⏳ 待执行
+
+**迁移脚本（分两步）：**
+
+```sql
+-- 第1步：添加 nullable 字段
+ALTER TABLE practice_options
+  ADD COLUMN slot_index INTEGER,
+  ADD COLUMN visible BOOLEAN DEFAULT true,
+  ADD COLUMN is_default BOOLEAN DEFAULT false,
+  ADD COLUMN updated_at TIMESTAMP WITH TIME ZONE;
+
+-- 第2步：迁移现有数据（为每个用户分配 slot_index 1-10）
+-- 按 user_id 分组，按 created_at 排序分配槽位
+-- 现有用户可能有 4-7 个选项，全部分配到 1-10
+
+-- 第3步：为没有选项的用户创建4个默认槽位
+
+-- 第4步：添加约束（数据迁移完成后）
+ALTER TABLE practice_options
+  ALTER COLUMN slot_index SET NOT NULL;
+
+CREATE UNIQUE INDEX idx_user_slot ON practice_options(user_id, slot_index);
+```
+
+**注意事项：**
+- 现有用户可能已经创建 4-7 个选项（之前限制 7 个），迁移时需分配 slot_index 1-10
+- Pro 用户最多支持到 10 槽，普通用户 4 槽（但现有超出的保留）
+- 迁移时需为每个用户的现有选项分配槽位，不足 4 个的补全到 4 个默认槽
+
+#### Step 2: 阶段1 - 修改上传逻辑 ⏳ 待执行
+
+**目标：** 上传时发送所有实际槽位（4-10个，含 visible=false 的）
+
+**修改文件：** `hooks/useSync.ts`
+
+```typescript
+// 当前代码（第918-924行）
+const optionsToUpload = options.filter(o => o.is_custom).map(...)
+
+// 新逻辑
+// 1. 上传所有本地选项（含 slot_index）
+// 2. 使用 onConflict: 'user_id,slot_index'
+const optionsToUpload = options.map((o) => ({
+  user_id: userId,
+  slot_index: o.slot_index,  // 必须已分配
+  label: o.label || '',
+  notes: o.notes || null,
+  visible: o.visible !== false,  // 默认为 true
+  is_default: o.is_default || false,
+  updated_at: new Date().toISOString(),
+}));
+
+// 确保有 slot_index（迁移后的数据应该都有）
+const validOptions = optionsToUpload.filter(o => o.slot_index > 0);
+
+await supabase
+  .from(TABLES.PRACTICE_OPTIONS)
+  .upsert(validOptions, {
+    onConflict: 'user_id,slot_index'  // 改为复合唯一键
+  });
+```
+
+**验证：** 部署后检查 Supabase 日志，确认上传了所有槽位（4-10条）
+
+#### Step 3: 阶段2 - 修改下载逻辑 ⏳ 待执行
+
+**目标：** 下载时接收云端所有槽位，按 slot_index 排序
+
+**修改文件：** `hooks/useSync.ts` - `downloadRemoteData`
+
+```typescript
+// 下载云端选项（已按 slot_index 排序）
+const { data: optionsData } = await supabase
+  .from(TABLES.PRACTICE_OPTIONS)
+  .select('*')
+  .eq('user_id', userId)
+  .order('slot_index', { ascending: true });
+
+// 云端返回的是用户的所有槽位（4-10个）
+// 如果为空（旧用户未迁移），返回空数组让本地逻辑处理
+const slots = optionsData || [];
+```
+
+**验证：** 新设备登录后，检查本地 storage 中有正确数量的选项
+
+#### Step 4: 本地逻辑修改 ⏳ 待执行
+
+**修改文件：** `hooks/usePracticeData.ts`
+
+1. **删除本地 PracticeOption 接口定义**，改为从 supabase.ts 导入
+2. **DEFAULT_OPTIONS** 改为4个默认槽位
+3. **addOption**：找第一个 visible=false 的槽位复用
+4. **deleteOption**：标记 visible=false
+
+#### Step 5: 注册/绑定流程（游客→登录用户）⏳ 待执行
+
+**场景：** 游客用户绑定邮箱完成注册/登录，需要将本地选项迁移到云端
+
+**注意：** "新用户注册"和"游客绑定邮箱"是同一流程，都需要处理本地数据迁移
+
+**修改文件：** `app/api/auth/callback/route.ts`
+
+**流程：**
+1. 用户绑定邮箱，Supabase 创建用户账户
+2. **检查云端是否已有槽位数据**
+   - 如果有：以云端为准（正常同步流程）
+   - 如果没有：执行迁移逻辑
+3. **迁移逻辑：**
+   - 本地默认3个选项 → slot 1-3
+   - 本地自定义选项 → slot 4-N（按 created_at 排序）
+   - 不足4槽的，创建空槽补全
+
+```typescript
+// 在创建 user_profiles 后，检查并创建 practice_options
+const migrateOptionsToCloud = async (userId: string, localOptions: PracticeOption[]) => {
+  // 1. 检查云端是否已有数据
+  const { data: cloudOptions } = await supabase
+    .from('practice_options')
+    .select('*')
+    .eq('user_id', userId)
+    .order('slot_index', { ascending: true });
+
+  // 2. 云端已有数据，跳过
+  if (cloudOptions && cloudOptions.length > 0) {
+    return cloudOptions;
+  }
+
+  // 3. 云端没有数据，迁移本地选项
+  const defaultLabels = ['一序列 Mysore', '一序列 Led class', '半序列 站立+休息'];
+  const visibleOptions = localOptions.filter(o => o.visible);
+  const customOptions = visibleOptions.filter(o =>
+    !defaultLabels.includes(`${o.label} ${o.notes}`)
+  );
+
+  // 构建槽位数据
+  const slotsToCreate = [
+    { slot_index: 1, label: '一序列', notes: 'Mysore', visible: true, is_default: true },
+    { slot_index: 2, label: '一序列', notes: 'Led class', visible: true, is_default: true },
+    { slot_index: 3, label: '半序列', notes: '站立+休息', visible: true, is_default: true },
+    // 自定义选项
+    ...customOptions.map((opt, idx) => ({
+      slot_index: 4 + idx,
+      label: opt.label,
+      notes: opt.notes,
+      visible: true,
+      is_default: false,
+    })),
+  ];
+
+  // 补全到4槽
+  while (slotsToCreate.length < 4) {
+    slotsToCreate.push({
+      slot_index: slotsToCreate.length + 1,
+      label: '',
+      notes: '',
+      visible: false,
+      is_default: false,
+    });
+  }
+
+  // 插入云端（限制最多10槽）
+  const slotsToInsert = slotsToCreate.slice(0, 10).map(slot => ({
+    user_id: userId,
+    ...slot,
+    is_custom: !slot.is_default,
+  }));
+
+  await supabase.from('practice_options').insert(slotsToInsert);
+  return slotsToCreate;
+};
+```
+
+#### Step 6: 前端渲染逻辑 ⏳ 待执行
+
+**修改文件：** `app/practice/page.tsx`
+
+```typescript
+// 渲染时只显示 visible=true 的选项
+const visibleOptions = practiceOptions.filter(o => o.visible);
+
+// ⭐ 按 slot_index 排序显示（固定槽位顺序）
+visibleOptions.sort((a, b) => a.slot_index - b.slot_index);
+```
+
+**说明：**
+- 删除选项后再新建，会复用被删除的 slot_index
+- 例如：删除 slot 2，新建选项占用 slot 2，显示顺序为 1,3,4,2
+- 这是预期行为，新建选项排在后面（视觉上靠后）可接受
+
+#### Step 7: 验证清单 ⏳ 待执行
+
+- [ ] **数据库迁移：** slot_index 字段添加成功，现有数据已分配槽位
+- [ ] **新用户注册/绑定：** 游客绑定邮箱后，本地选项正确迁移到云端槽位（3默认+自定义→slot 1-N）
+- [ ] **添加选项：** 复用空槽，普通用户最多4个，Pro用户最多10个
+- [ ] **删除选项：** 标记为 visible=false，不物理删除，可复用
+- [ ] **同步验证：** 上传所有槽位（4-10个），下载完整覆盖
+- [ ] **新设备登录：** 能看到完整的3个默认选项（一序列Mysore/Led、半序列）+ 1个空槽
+- [ ] **降级场景：** Pro用户降级后，仍上传全部槽位（保留数据），但前端限制不能新建超出4槽
+
+#### Step 8: 数据迁移脚本（一次性）⏳ 待执行
+
+```typescript
+// scripts/migrate-to-slots.ts
+// 1. 查询所有有选项的用户
+// 2. 按 user_id 分组，按 created_at 排序分配 slot_index 1-10
+//    - 现有用户可能有 4-7 个选项（之前限制7个），全部分配到 1-10
+//    - 超出10个的（理论上不可能，但做兜底）：只保留前10个
+// 3. 不足4个的，补全到4槽（3个默认 + 1个空槽）
+// 4. 更新所有记录的 visible=true, is_default=!is_custom
+```
+
+**迁移策略：**
+- **目标：** 已有云端账户的老用户（部署前已注册用户）
+- **普通用户（4-7个选项）**：全部分配 slot 1-N（N=实际数量），全部 visible=true
+- **Pro用户（可能4-10个）**：同上，最多到 slot 10
+- **新用户（注册后）**：已在 Step 5 处理（注册/绑定流程自动创建）
+
+### ❌ 不做（NOT in Scope）
+
+| 功能 | 不做原因 |
+|------|---------|
+| 超过10槽（如18槽高级会员） | 当前Pro只到10，后续再扩展 |
+| 槽位拖拽排序 | 复杂度较高，当前按 created_at 足够 |
+| 选项分类/分组 | 超出当前需求 |
+| 迁移脚本UI | 一次性脚本，命令行足够 |
+
+### 📁 涉及文件
+
+- `lib/supabase.ts` - 更新 PracticeOption 接口
+- `lib/constants.ts` - 新增 SLOT_CONFIG 常量
+- `hooks/usePracticeData.ts` - 修改 addOption/deleteOption，删除重复类型定义
+- `hooks/useSync.ts` - 修改上传/下载逻辑（分阶段部署）
+- `app/api/auth/callback/route.ts` - 注册/绑定流程：创建槽位并迁移本地选项
+- `app/practice/page.tsx` - 渲染时过滤 visible=true
+- `scripts/migrate-to-slots.ts` - 一次性数据迁移脚本
+
+### 🚨 部署顺序
+
+1. **Day 1：** 执行数据库迁移（添加 nullable 字段）
+2. **Day 2：** 运行数据迁移脚本（为已有云端账户的老用户分配槽位 1-10）
+3. **Day 3：** 部署阶段1（修改上传逻辑，上传所有实际槽位）
+4. **Day 4：** 验证上传正常，部署阶段2（修改下载逻辑 + 注册/绑定流程创建槽位）
+5. **Day 5：** 验证新设备同步和游客绑定迁移正常，完成
+
+**状态：** ✅ 评审完成，等待执行
+
+---
+
+---
+
 ## 2026-04-02 - 照片上传功能修复 ✅ 已完成
 
 ### ✅ 已完成：照片上传 RECORD_NOT_FOUND 修复
@@ -98,27 +383,33 @@
 
 ---
 
-### 📌 待开发：日历下方增加本月统计卡片
+### ✅ 已完成：日历下方增加本月统计卡片
 
-**需求描述：**
-- 在 Tab2 觉察日记页面，日历下方增加本月统计卡片
-- 显示本月练习天数、总时长、平均时长等维度
+**完成时间：** 2026-04-08
+
+**实现内容：**
+- 在 JournalTab 中添加 `MonthlyStatsCard` 组件，显示本月练习天数、总时长、平均时长
+- 统计卡片与日历为**两个独立卡片**，中间有 mt-3 间距
+- 样式：浅绿色背景卡片，三列等分布局，中间有分隔线
 - 与现有统计页面形成互补（统计页显示累计，卡片显示本月）
 
 **涉及文件：**
-- `app/practice/page.tsx`（StatsTab 或 JournalTab 区域）
+- `app/practice/page.tsx` - 新增 `MonthlyStatsCard` 组件
 
 ---
 
-### 📌 待开发：日历切换月份时同步筛选记录列表
+### ✅ 已完成：日历切换月份时同步筛选记录列表
 
-**需求描述：**
-- 日历左右切换月份时，下方记录列表同步筛选显示当月记录
-- 排序方式：倒序（最晚的练习在最上方）
-- 例如：切换到2月份时，显示2月28日→2月1日的记录
+**完成时间：** 2026-04-08
+
+**实现内容：**
+- MonthlyHeatmap 添加 `onMonthChange` 回调，切换月份时通知父组件
+- JournalTab 添加 `viewMonth` 状态，跟踪当前查看的月份
+- 记录列表根据 `viewMonth` 筛选当月记录
+- 排序方式保持倒序（最晚的练习在最上方）
 
 **涉及文件：**
-- `app/practice/page.tsx`（JournalTab 组件）
+- `app/practice/page.tsx` - JournalTab 和 MonthlyHeatmap 组件
 
 ---
 

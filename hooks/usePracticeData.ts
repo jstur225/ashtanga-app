@@ -23,9 +23,13 @@ export interface PracticeOption {
   label: string;
   notes?: string;
   is_custom: boolean;
-  is_preset?: boolean;      // 新增：是否预设特殊选项
-  audio_src?: string;       // 新增：音频文件路径
-  can_edit?: boolean;       // 新增：是否可编辑（默认true）
+  is_preset?: boolean;      // 是否预设特殊选项
+  audio_src?: string;       // 音频文件路径
+  can_edit?: boolean;       // 是否可编辑（默认true）
+  // ⭐ 固定槽位系统新增字段
+  slot_index: number;       // 槽位索引 1-4（普通用户）/ 1-10（Pro用户）
+  visible: boolean;         // 是否可见（删除只是标记隐藏）
+  is_default: boolean;      // 是否系统默认选项
 }
 
 export interface UserProfile {
@@ -43,6 +47,10 @@ export interface UserProfile {
   historical_avg_minutes?: number;    // 历史平均每次时长（分钟）
 }
 
+// ⭐ 槽位系统常量
+export const MAX_SLOTS_FREE = 4;
+export const MAX_SLOTS_PRO = 10;
+
 // 口令跟练预设选项
 export const GUIDED_AUDIO_OPTION: PracticeOption = {
   id: 'guided_audio',
@@ -52,15 +60,17 @@ export const GUIDED_AUDIO_OPTION: PracticeOption = {
   is_custom: false,
   is_preset: true,
   audio_src: '/audio/guruji-led-primary.m4a',
-  can_edit: false
+  can_edit: false,
+  slot_index: 0, // 预设选项不在槽位系统中
+  visible: true,
+  is_default: true,
 };
 
-const DEFAULT_OPTIONS: PracticeOption[] = [
-  { id: '1', created_at: new Date().toISOString(), label: '一序列', notes: 'Mysore', is_custom: false },
-  { id: '2', created_at: new Date().toISOString(), label: '一序列', notes: 'Led class', is_custom: false },
-  { id: '3', created_at: new Date().toISOString(), label: '二序列', notes: 'Mysore', is_custom: false },
-  { id: '4', created_at: new Date().toISOString(), label: '二序列', notes: 'Led class', is_custom: false },
-  { id: '5', created_at: new Date().toISOString(), label: '半序列', notes: '站立+休息', is_custom: false },
+// ⭐ 固定槽位默认选项（新用户注册时自动创建）
+export const DEFAULT_OPTIONS: PracticeOption[] = [
+  { id: uuidv4(), created_at: new Date().toISOString(), label: '一序列', notes: 'Mysore', is_custom: false, slot_index: 1, visible: true, is_default: true },
+  { id: uuidv4(), created_at: new Date().toISOString(), label: '一序列', notes: 'Led class', is_custom: false, slot_index: 2, visible: true, is_default: true },
+  { id: uuidv4(), created_at: new Date().toISOString(), label: '半序列', notes: '站立+休息', is_custom: false, slot_index: 3, visible: true, is_default: true },
 ];
 
 export const usePracticeData = () => {
@@ -156,13 +166,16 @@ export const usePracticeData = () => {
     // 为首次用户添加教程记录
     const storedRecords = localStorage.getItem('ashtanga_records');
     if (!storedRecords || storedRecords === '[]') {
-      const now = new Date().toISOString();
+      const now = new Date();
+      // ⭐ 教程记录日期为本月1号
+      const firstDayOfMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+      const nowStr = now.toISOString();
 
       const tutorialRecords: PracticeRecord[] = [
         {
           id: `tutorial-${Date.now()}-1`,
-          created_at: now,
-          date: '2026-01-11',
+          created_at: nowStr,
+          date: firstDayOfMonth,
           type: '一序列 Mysore',
           duration: 5400,
           notes: `🔴特别提醒
@@ -323,20 +336,61 @@ export const usePracticeData = () => {
     return updatedProfile;
   };
 
+  // ⭐ 获取用户最大槽位数
+  const getMaxSlots = (profile: UserProfile | null) => {
+    return profile?.is_pro ? MAX_SLOTS_PRO : MAX_SLOTS_FREE;
+  };
+
   const addOption = (
     label: string,
     label_zh?: string,
     notes?: string,
     onSync?: () => void // ⭐ 新增：同步回调
   ) => {
-    const newOption: PracticeOption = {
-      id: uuidv4(),
-      created_at: new Date().toISOString(),
-      label: label_zh || label,
-      notes,
-      is_custom: true,
-    };
-    setOptions([...(options || []), newOption]);
+    // ⭐ 槽位系统：找第一个不可见的槽位复用
+    const existingOptions = options || [];
+    const emptySlot = existingOptions.find(o => !o.visible);
+
+    if (!emptySlot) {
+      // 没有空槽，检查是否达到上限
+      const maxSlots = getMaxSlots(profile);
+      const visibleCount = existingOptions.filter(o => o.visible).length;
+      if (visibleCount >= maxSlots) {
+        console.error(`[addOption] 选项已满，最多${maxSlots}个`);
+        return null;
+      }
+    }
+
+    const now = new Date().toISOString();
+    let newOption: PracticeOption;
+
+    if (emptySlot) {
+      // ⭐ 复用隐藏槽位
+      newOption = {
+        ...emptySlot,
+        label: label_zh || label,
+        notes,
+        visible: true,
+        created_at: now,
+        updated_at: now,
+      };
+      setOptions(existingOptions.map(o => o.id === emptySlot.id ? newOption : o));
+    } else {
+      // 不应该走到这里（因为有空槽检查），但作为兜底
+      const nextSlotIndex = existingOptions.filter(o => o.visible).length + 1;
+      newOption = {
+        id: uuidv4(),
+        created_at: now,
+        updated_at: now,
+        label: label_zh || label,
+        notes,
+        is_custom: true,
+        slot_index: nextSlotIndex,
+        visible: true,
+        is_default: false,
+      };
+      setOptions([...existingOptions, newOption]);
+    }
 
     // ⭐ 触发同步回调（延迟执行，确保状态已更新）
     setTimeout(() => {
@@ -366,7 +420,11 @@ export const usePracticeData = () => {
     id: string,
     onSync?: () => void // ⭐ 新增：同步回调
   ) => {
-    setOptions((options || []).filter(o => o.id !== id));
+    // ⭐ 槽位系统：标记为隐藏而不是删除
+    const now = new Date().toISOString();
+    setOptions((options || []).map(o =>
+      o.id === id ? { ...o, visible: false, updated_at: now } : o
+    ));
 
     // ⭐ 触发同步回调（延迟执行，确保状态已更新）
     setTimeout(() => {
