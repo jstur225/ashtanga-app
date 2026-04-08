@@ -388,13 +388,13 @@ visibleOptions.sort((a, b) => a.slot_index - b.slot_index);
 **完成时间：** 2026-04-08
 
 **实现内容：**
-- 在 MonthlyHeatmap 组件中添加 `MonthlyStatsCard` 子组件
-- 显示本月练习天数、总时长(分钟)、平均时长三个维度
+- 在 JournalTab 中添加 `MonthlyStatsCard` 组件，显示本月练习天数、总时长、平均时长
+- 统计卡片与日历为**两个独立卡片**，中间有 mt-3 间距
 - 样式：浅绿色背景卡片，三列等分布局，中间有分隔线
 - 与现有统计页面形成互补（统计页显示累计，卡片显示本月）
 
 **涉及文件：**
-- `app/practice/page.tsx` - 新增 `MonthlyStatsCard` 组件，在日历下方渲染
+- `app/practice/page.tsx` - 新增 `MonthlyStatsCard` 组件
 
 ---
 
