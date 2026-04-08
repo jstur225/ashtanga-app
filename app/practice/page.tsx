@@ -2216,6 +2216,57 @@ function CompletionSheet({
 }
 
 // Color Block Fullscreen Viewer (simulates photo viewer)
+// Monthly Stats Card Component
+function MonthlyStatsCard({
+  practiceHistory,
+  year,
+  month,
+}: {
+  practiceHistory: PracticeRecord[]
+  year: number
+  month: number
+}) {
+  // 计算本月统计数据
+  const stats = useMemo(() => {
+    const monthRecords = practiceHistory.filter(r => {
+      const d = new Date(r.date)
+      return d.getFullYear() === year && d.getMonth() === month && r.duration > 0 && r.type !== '草稿'
+    })
+
+    const practiceDays = monthRecords.length
+    const totalSeconds = monthRecords.reduce((acc, r) => acc + r.duration, 0)
+    const totalMinutes = Math.round(totalSeconds / 60)
+    const avgMinutes = practiceDays > 0 ? Math.round(totalMinutes / practiceDays) : 0
+
+    return {
+      practiceDays,
+      totalMinutes,
+      avgMinutes,
+    }
+  }, [practiceHistory, year, month])
+
+  return (
+    <div className="bg-lime-50/50 rounded-xl p-4 border border-lime-100">
+      <div className="flex items-center justify-between">
+        <div className="text-center flex-1">
+          <div className="text-2xl font-serif font-bold text-foreground">{stats.practiceDays}</div>
+          <div className="text-xs text-muted-foreground font-serif mt-0.5">练习天数</div>
+        </div>
+        <div className="w-px h-10 bg-lime-200" />
+        <div className="text-center flex-1">
+          <div className="text-2xl font-serif font-bold text-foreground">{stats.totalMinutes}</div>
+          <div className="text-xs text-muted-foreground font-serif mt-0.5">总时长(分钟)</div>
+        </div>
+        <div className="w-px h-10 bg-lime-200" />
+        <div className="text-center flex-1">
+          <div className="text-2xl font-serif font-bold text-foreground">{stats.avgMinutes}</div>
+          <div className="text-xs text-muted-foreground font-serif mt-0.5">平均时长</div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // Monthly Heatmap for Journal - Now with CIRCLES instead of squares
 function MonthlyHeatmap({
   practiceHistory,
@@ -2224,7 +2275,8 @@ function MonthlyHeatmap({
   onAddRecord,
   votedCloud,
   syncStatus,
-  user
+  user,
+  onMonthChange,
 }: {
   practiceHistory: PracticeRecord[]
   onDayClick: (dateStr: string) => void
@@ -2233,6 +2285,7 @@ function MonthlyHeatmap({
   votedCloud: boolean
   syncStatus: 'idle' | 'syncing' | 'success' | 'error'
   user: any
+  onMonthChange?: (date: Date) => void
 }) {
   const today = new Date()
   const todayStr = getLocalDateStr()
@@ -2292,12 +2345,15 @@ function MonthlyHeatmap({
   const weekDays = ['日', '一', '二', '三', '四', '五', '六']
 
   const goToPreviousMonth = () => {
-    setViewDate(new Date(currentYear, currentMonth - 1, 1))
+    const newDate = new Date(currentYear, currentMonth - 1, 1)
+    setViewDate(newDate)
+    onMonthChange?.(newDate)
   }
 
   const goToNextMonth = () => {
     const nextMonth = new Date(currentYear, currentMonth + 1, 1)
     setViewDate(nextMonth)
+    onMonthChange?.(nextMonth)
   }
 
   const canGoNext = true
@@ -2542,6 +2598,9 @@ function JournalTab({
   const recordRefs = useRef<Record<string, HTMLDivElement | null>>({})
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
+  // ⭐ 当前查看的月份（用于筛选记录列表）
+  const [viewMonth, setViewMonth] = useState<Date>(new Date())
+
   // 月相Map
   const moonPhaseMap = useMemo(() => getMoonPhaseMap(), [])
 
@@ -2656,13 +2715,28 @@ function JournalTab({
           votedCloud={votedCloud}
           syncStatus={syncStatus}
           user={user}
+          onMonthChange={setViewMonth}
         />
       </div>
-      
+
+      {/* Monthly Stats Card - 独立的统计卡片 */}
+      <div className="px-6 mt-3">
+        <MonthlyStatsCard
+          practiceHistory={practiceHistory}
+          year={viewMonth.getFullYear()}
+          month={viewMonth.getMonth()}
+        />
+      </div>
+
       {/* Timeline - continuous, split click zones */}
       <div className="px-2 pb-10">
         {practiceHistory
-          .filter(r => r.type !== '草稿')
+          .filter(r => {
+            if (r.type === '草稿') return false
+            // ⭐ 筛选当月记录
+            const d = new Date(r.date)
+            return d.getFullYear() === viewMonth.getFullYear() && d.getMonth() === viewMonth.getMonth()
+          })
           .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
           .map((practice, index) => (
           <motion.div
