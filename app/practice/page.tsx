@@ -2612,7 +2612,8 @@ function JournalTab({
       return new Date(r.date) < new Date(earliest.date) ? r : earliest
     }, validRecords[0])
 
-    return new Date(earliestDate.date.getFullYear(), earliestDate.date.getMonth(), 1)
+    const d = new Date(earliestDate.date)
+    return new Date(d.getFullYear(), d.getMonth(), 1)
   }, [practiceHistory])
 
   // ⭐ 检查是否已经到达最早月份
