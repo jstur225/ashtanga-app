@@ -2252,12 +2252,10 @@ function MonthlyStatsCard({
           <div className="text-2xl font-serif text-primary">{stats.practiceDays}</div>
           <div className="text-xs text-muted-foreground font-serif mt-1">熬汤天数</div>
         </div>
-        <div className="w-px h-8 bg-stone-200" />
         <div className="text-center flex-1">
           <div className="text-2xl font-serif text-primary">{stats.totalMinutes}</div>
           <div className="text-xs text-muted-foreground font-serif mt-1">熬汤时长(分钟)</div>
         </div>
-        <div className="w-px h-8 bg-stone-200" />
         <div className="text-center flex-1">
           <div className="text-2xl font-serif text-primary">{stats.avgMinutes}</div>
           <div className="text-xs text-muted-foreground font-serif mt-1">平均时长</div>
