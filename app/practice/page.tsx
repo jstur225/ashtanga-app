@@ -3289,8 +3289,7 @@ function StatsTab({
           </div>
           <div className="bg-white rounded-[20px] p-4 text-center shadow-md border border-stone-200">
             <div className="text-2xl font-serif text-primary">{totalStats.totalHours}</div>
-            <div className="text-xs text-muted-foreground font-serif mt-1">总熬汤时长</div>
-            <div className="text-[10px] text-muted-foreground/60 font-serif">(小时)</div>
+            <div className="text-xs text-muted-foreground font-serif mt-1">总熬汤时长（小时）</div>
           </div>
           <div className="bg-white rounded-[20px] p-4 text-center shadow-md border border-stone-200">
             <div className="text-2xl font-serif text-primary">{totalStats.avgMinutes}</div>
