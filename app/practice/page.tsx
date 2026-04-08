@@ -2602,6 +2602,25 @@ function JournalTab({
   const [loadedMonths, setLoadedMonths] = useState<Date[]>([new Date()])
   const [isLoadingMore, setIsLoadingMore] = useState(false)
 
+  // ⭐ 计算最早有记录的月份
+  const earliestRecordMonth = useMemo(() => {
+    if (practiceHistory.length === 0) return null
+    const validRecords = practiceHistory.filter(r => r.type !== '草稿' && r.duration > 0)
+    if (validRecords.length === 0) return null
+
+    const earliestDate = validRecords.reduce((earliest, r) => {
+      return new Date(r.date) < new Date(earliest.date) ? r : earliest
+    }, validRecords[0])
+
+    return new Date(earliestDate.date.getFullYear(), earliestDate.date.getMonth(), 1)
+  }, [practiceHistory])
+
+  // ⭐ 检查是否已经到达最早月份
+  const hasReachedEarliest = earliestRecordMonth && loadedMonths.some(month =>
+    month.getFullYear() === earliestRecordMonth.getFullYear() &&
+    month.getMonth() === earliestRecordMonth.getMonth()
+  )
+
   // 月相Map
   const moonPhaseMap = useMemo(() => getMoonPhaseMap(), [])
 
@@ -2885,20 +2904,24 @@ function JournalTab({
           </div>
         )}
 
-        {/* ⭐ 手动加载更多按钮（兜底） */}
-        {!isLoadingMore && loadedMonths.length < 12 && (
+        {/* ⭐ 底部状态提示 */}
+        {!isLoadingMore && (
           <div className="flex items-center justify-center py-4">
-            <button
-              onClick={() => {
-                const lastMonth = loadedMonths[loadedMonths.length - 1]
-                const prevMonth = new Date(lastMonth.getFullYear(), lastMonth.getMonth() - 1, 1)
-                setLoadedMonths(prev => [...prev, prevMonth])
-              }}
-              className="text-sm text-muted-foreground font-serif hover:text-foreground transition-colors flex items-center gap-1"
-            >
-              <span>查看更多</span>
-              <ChevronDown className="w-4 h-4" />
-            </button>
+            {hasReachedEarliest ? (
+              <span className="text-sm text-muted-foreground font-serif">已经到底啦~</span>
+            ) : (
+              <button
+                onClick={() => {
+                  const lastMonth = loadedMonths[loadedMonths.length - 1]
+                  const prevMonth = new Date(lastMonth.getFullYear(), lastMonth.getMonth() - 1, 1)
+                  setLoadedMonths(prev => [...prev, prevMonth])
+                }}
+                className="text-sm text-muted-foreground font-serif hover:text-foreground transition-colors flex items-center gap-1"
+              >
+                <span>查看更多</span>
+                <ChevronDown className="w-4 h-4" />
+              </button>
+            )}
           </div>
         )}
       </div>
