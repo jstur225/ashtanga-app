@@ -122,17 +122,27 @@ function useRecordPhotos(recordId: string | undefined, initialPhotoUrls?: string
         const result = await getRecordPhotos(recordId)
         if (result.success && result.photos) {
           console.log('[useRecordPhotos] 数据库照片:', result.photos.length)
-          setPhotos(result.photos)
+          // ⭐ 修复：如果数据库返回空但有本地照片URL，使用本地照片
+          if (result.photos.length === 0 && initialPhotoUrls && initialPhotoUrls.length > 0) {
+            console.log('[useRecordPhotos] 数据库为空，使用本地照片:', initialPhotoUrls.length)
+            setPhotos(convertUrlsToPhotos(initialPhotoUrls))
+          } else {
+            setPhotos(result.photos)
+          }
         }
       } catch (error) {
         console.error('[useRecordPhotos] 查询照片失败:', error)
+        // ⭐ 出错时使用本地照片
+        if (initialPhotoUrls && initialPhotoUrls.length > 0) {
+          setPhotos(convertUrlsToPhotos(initialPhotoUrls))
+        }
       } finally {
         setLoading(false)
       }
     }
 
     fetchPhotosFromDB()
-  }, [recordId])
+  }, [recordId, initialPhotoUrls])
 
   // 删除照片 - 改为本地标记，保存时批量删除
   const deletePhoto = useCallback((photoId: string) => {
