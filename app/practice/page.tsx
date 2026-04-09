@@ -2550,18 +2550,32 @@ function MonthlyStatsShareModal({
               </div>
             </div>
 
-            {/* Actions */}
-              <div className="flex gap-3" onClick={(e) => e.stopPropagation()}>
-                <button
-                  type="button"
-                  onMouseDown={(e) => {
-                    e.stopPropagation()
-                    e.preventDefault()
-                    onClose()
-                  }}
-                  className="flex-1 py-3 rounded-full bg-stone-700 text-stone-200 font-serif transition-all hover:bg-stone-600 active:scale-[0.98]"
-                >
-                  返回
+            {/* Actions - 与分享卡片同风格 */}
+            <div className="flex gap-3" onClick={(e) => e.stopPropagation()}>
+              <button
+                type="button"
+                onMouseDown={(e) => {
+                  e.stopPropagation()
+                  e.preventDefault()
+                  onClose()
+                }}
+                className="flex-1 py-3.5 rounded-2xl bg-white text-stone-600 font-serif shadow-lg border border-stone-200 transition-all hover:bg-stone-50 active:scale-[0.98]"
+              >
+                返回
+              </button>
+              <button
+                type="button"
+                onMouseDown={(e) => {
+                  e.stopPropagation()
+                  e.preventDefault()
+                  handleExportImage()
+                }}
+                className="flex-1 py-3.5 rounded-2xl bg-emerald-600 text-white font-serif shadow-lg shadow-emerald-200 transition-all hover:bg-emerald-500 active:scale-[0.98] flex items-center justify-center gap-2"
+              >
+                <Share2 className="w-4 h-4" />
+                保存图片
+              </button>
+            </div>
                 </button>
                 <button
                   type="button"
