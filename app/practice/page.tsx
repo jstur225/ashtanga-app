@@ -3767,7 +3767,7 @@ export default function AshtangaTracker() {
     const nonCustomOptions = practiceOptions.filter(o => o.id !== "custom" && o.visible !== false)
     if (nonCustomOptions.length >= MAX_SLOTS_FREE) {
       // Options are full, show toast and start practice without saving
-      toast.error(`最多只能添加${MAX_SLOTS_FREE}个练习选项`)
+      toast.error(`当前版本只能添加${MAX_SLOTS_FREE}个练习选项`)
       setSelectedOption("custom-temp")
       setCustomPracticeName(name)
       setShowCustomModal(false)
@@ -3878,7 +3878,7 @@ export default function AshtangaTracker() {
     // Check if we can add more options
     const visibleOptions = practiceOptions.filter(o => o.id !== "custom" && o.id !== "guided_audio" && o.visible !== false)
     if (visibleOptions.length >= MAX_SLOTS_FREE) {
-      toast.error(`最多只能添加${MAX_SLOTS_FREE}个练习选项`)
+      toast.error(`当前版本只能添加${MAX_SLOTS_FREE}个练习选项`)
       return
     }
 
