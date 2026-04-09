@@ -2575,6 +2575,7 @@ function MonthlyStatsShareModal({
                 保存图片
               </button>
             </div>
+          </div>
           </motion.div>
         </>
       )}
