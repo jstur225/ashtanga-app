@@ -2413,7 +2413,7 @@ function MonthlyStatsShareModal({
                             item.day === null
                               ? ''
                               : item.practiced
-                              ? 'bg-gradient-to-br from-emerald-400 to-emerald-700'
+                              ? 'green-gradient-deep border border-white/20 shadow-[0_2px_8px_rgba(45,90,39,0.3)]'
                               : 'bg-stone-200'
                           }`}
                         />
@@ -2488,7 +2488,7 @@ function MonthlyStatsShareModal({
                           item.day === null
                             ? ''
                             : item.practiced
-                            ? 'bg-gradient-to-br from-emerald-400 to-emerald-700'
+                            ? 'green-gradient-deep border border-white/20 shadow-[0_2px_8px_rgba(45,90,39,0.3)]'
                             : 'bg-stone-200'
                         }`}
                       />
@@ -2548,10 +2548,9 @@ function MonthlyStatsShareModal({
                   </div>
                 </div>
               </div>
-            </div>
 
-            {/* Actions - 与分享卡片同风格 */}
-            <div className="flex gap-3" onClick={(e) => e.stopPropagation()}>
+              {/* Actions - 与分享卡片同风格 */}
+              <div className="flex gap-3" onClick={(e) => e.stopPropagation()}>
               <button
                 type="button"
                 onMouseDown={(e) => {
