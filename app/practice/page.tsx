@@ -2452,8 +2452,8 @@ function MonthlyStatsShareModal({
                     </div>
                   </div>
 
-                  {/* 底部 - 熬汤日记灰色，与签名底部对齐 */}
-                  <div className="flex items-end justify-between py-3">
+                  {/* 底部 - 熬汤日记灰色，与签名底部对齐，增加底部空间 */}
+                  <div className="flex items-end justify-between pt-3 pb-6">
                     <div className="flex items-end gap-2">
                       {profile.avatar ? (
                         <img src={profile.avatar} alt="头像" className="w-8 h-8 rounded-full object-cover border border-stone-200" />
