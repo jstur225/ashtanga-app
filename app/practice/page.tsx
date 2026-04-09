@@ -2405,45 +2405,65 @@ function MonthlyStatsShareModal({
                 </div>
 
                 {/* 主内容区域 */}
-                <div className="px-6 py-4">
-                  {/* 月份标题 */}
-                  <div className="text-center mb-6">
-                    <div className="text-emerald-300/70 text-sm font-serif">{year}年 {monthNames[month]}</div>
+                <div className="px-6 py-6">
+                  {/* 顶部大标题 */}
+                  <div className="mb-6">
+                    <div className="text-emerald-300/50 text-xs font-serif mb-1">已累计熬汤</div>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-6xl font-serif font-bold text-white">{stats.totalHours}</span>
+                      <span className="text-emerald-300/60 text-lg font-serif">小时</span>
+                    </div>
                   </div>
 
-                  {/* 日历网格 - 简单圆圈 */}
-                  <div className="mb-8">
-                    <div className="grid grid-cols-7 gap-2 justify-items-center">
-                      {/* 星期标题 */}
-                      {['日', '一', '二', '三', '四', '五', '六'].map((w) => (
-                        <div key={w} className="text-[10px] text-emerald-500/40 font-serif mb-1">
-                          {w}
-                        </div>
-                      ))}
-                      {/* 日期圆圈 */}
+                  {/* 日历网格 - 占主要空间 */}
+                  <div className="mb-6">
+                    <div className="grid grid-cols-7 gap-1.5 justify-items-center">
+                      {/* 日期圆圈 - 简化，不显示星期标题 */}
                       {calendarDays.map((item, idx) => (
                         <div
                           key={idx}
-                          className={`w-6 h-6 rounded-full flex items-center justify-center ${
+                          className={`w-5 h-5 rounded-full flex items-center justify-center ${
                             item.day === null
                               ? '' // 空位
                               : item.practiced
-                              ? 'bg-emerald-500' // 练习天 - 绿色实心
-                              : 'border border-emerald-500/20' // 未练习天 - 绿色边框
+                              ? 'bg-emerald-400' // 练习天 - 亮绿色实心
+                              : 'bg-emerald-800/30' // 未练习天 - 暗绿色
                           }`}
                         >
-                          {item.day !== null && (
-                            <span className={`text-[10px] font-serif ${item.practiced ? 'text-emerald-950' : 'text-emerald-500/40'}`}>
-                              {item.day}
-                            </span>
-                          )}
+                          {/* 不显示数字，只显示圆点 */}
                         </div>
                       ))}
                     </div>
                   </div>
 
-                  {/* 第一层级：时间 */}
-                  <div className="text-center mb-8">
+                  {/* 底部左右两栏 */}
+                  <div className="flex items-end justify-between">
+                    {/* 左边：呼吸 */}
+                    <div>
+                      <div className="text-emerald-300/50 text-xs font-serif mb-1">相当于</div>
+                      <div className="text-3xl font-serif font-bold text-emerald-200">
+                        {formatNumber(stats.breathCount)}
+                      </div>
+                      <div className="text-emerald-300/60 text-xs font-serif">次深呼吸</div>
+                    </div>
+
+                    {/* 右边：光合作用 */}
+                    <div className="text-right">
+                      <div className="flex items-center justify-end gap-1 mb-1">
+                        {/* 树图标 */}
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-orange-400">
+                          <path d="M12 2L4 10h4v4h8v-4h4L12 2z" fill="currentColor" opacity="0.8"/>
+                          <path d="M12 6L6 12h3v6h6v-6h3L12 6z" fill="currentColor" opacity="0.6"/>
+                        </svg>
+                        <span className="text-orange-300/50 text-xs font-serif">像一棵树</span>
+                      </div>
+                      <div className="text-3xl font-serif font-bold text-orange-400">
+                        {formatNumber(stats.photosynthesisCount)}
+                      </div>
+                      <div className="text-orange-300/60 text-xs font-serif">次光合作用</div>
+                    </div>
+                  </div>
+                </div>
                     <div className="text-emerald-100/50 text-xs font-serif mb-2">已累计熬汤</div>
                     <div className="text-5xl font-serif font-bold text-emerald-50">
                       {stats.totalHours}
