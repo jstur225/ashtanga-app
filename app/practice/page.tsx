@@ -2464,45 +2464,6 @@ function MonthlyStatsShareModal({
                     </div>
                   </div>
                 </div>
-                    <div className="text-emerald-100/50 text-xs font-serif mb-2">已累计熬汤</div>
-                    <div className="text-5xl font-serif font-bold text-emerald-50">
-                      {stats.totalHours}
-                    </div>
-                    <div className="text-emerald-300/60 text-sm font-serif mt-1">小时</div>
-                  </div>
-
-                  {/* 分隔线 */}
-                  <div className="w-12 h-px bg-emerald-500/30 mx-auto mb-8" />
-
-                  {/* 第二层级：呼吸 */}
-                  <div className="text-center mb-8">
-                    <div className="text-emerald-100/50 text-xs font-serif mb-2">相当于</div>
-                    <div className="text-3xl font-serif font-bold text-emerald-200">
-                      {formatNumber(stats.breathCount)}
-                    </div>
-                    <div className="text-emerald-300/60 text-sm font-serif mt-1">次 深呼吸</div>
-                  </div>
-
-                  {/* 分隔线 */}
-                  <div className="w-12 h-px bg-emerald-500/30 mx-auto mb-8" />
-
-                  {/* 第三层级：光合作用（树） */}
-                  <div className="text-center mb-6">
-                    <div className="flex items-center justify-center gap-2 mb-2">
-                      {/* 树的图标 */}
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="text-emerald-400">
-                        <path d="M12 2L4 10h4v4h8v-4h4L12 2z" fill="currentColor" opacity="0.8"/>
-                        <path d="M12 6L6 12h3v6h6v-6h3L12 6z" fill="currentColor" opacity="0.6"/>
-                        <rect x="11" y="14" width="2" height="6" fill="currentColor" opacity="0.4"/>
-                      </svg>
-                      <span className="text-emerald-100/50 text-xs font-serif">像一棵树</span>
-                    </div>
-                    <div className="text-4xl font-serif font-bold text-orange-400">
-                      {formatNumber(stats.photosynthesisCount)}
-                    </div>
-                    <div className="text-emerald-300/60 text-sm font-serif mt-1">次 光合作用</div>
-                  </div>
-                </div>
 
                 {/* 底部用户信息 */}
                 <div className="px-6 pb-6">
