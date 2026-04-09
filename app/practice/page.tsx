@@ -2394,14 +2394,14 @@ function MonthlyStatsShareModal({
               <div className="relative w-full aspect-[3/4] rounded-3xl shadow-2xl overflow-hidden bg-white">
                 {/* 实际显示用缩小版内容 */}
                 <div className="absolute inset-0 flex flex-col p-6">
-                  {/* 顶部：左边年份月份 - 2026年（统一字号），4（大）月（小） */}
+                  {/* 顶部：左边年份月份，右边累计熬汤 */}
                   <div className="flex items-start justify-between mb-3">
                     {/* 左边：年份月份 */}
-                    <div className="flex flex-col items-start">
-                      <span className="text-lg font-serif font-bold text-emerald-800">{year}年</span>
-                      <div className="flex items-baseline gap-0.5">
-                        <span className="text-3xl font-serif font-bold text-emerald-800">{month + 1}</span>
-                        <span className="text-sm font-serif text-emerald-800">月</span>
+                    <div className="flex flex-col">
+                      <span className="text-xs font-serif text-emerald-800">{year}年</span>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-4xl font-serif font-bold text-emerald-800">{month + 1}</span>
+                        <span className="text-base font-serif text-emerald-800">月</span>
                       </div>
                     </div>
                     {/* 右边：已累计熬汤 */}
