@@ -2389,14 +2389,86 @@ function MonthlyStatsShareModal({
             className="fixed inset-0 z-50 flex items-center justify-center p-6"
             onClick={onClose}
           >
-            <div className="flex flex-col gap-3 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
-              {/* Share Card Content (for screenshot) - 810x1080 but scaled down for display */}
-              <div className="overflow-hidden rounded-3xl shadow-2xl" style={{ width: '324px', height: '432px' }}>
-                <div
-                  id="monthly-stats-share-content"
-                  className="bg-white w-[810px] h-[1080px] flex flex-col p-16 origin-top-left"
-                  style={{ transform: 'scale(0.4)', transformOrigin: 'top left' }}
-                >
+            <div className="flex flex-col gap-3 w-[90vw] max-w-[320px]" onClick={(e) => e.stopPropagation()}>
+              {/* Share Card Preview (for display) - 响应式 3:4 比例 */}
+              <div className="relative w-full aspect-[3/4] rounded-3xl shadow-2xl overflow-hidden bg-white">
+                {/* 实际显示用缩小版内容 */}
+                <div className="absolute inset-0 flex flex-col p-6">
+                  {/* 顶部：已累计熬汤 */}
+                  <div className="mb-3">
+                    <div className="text-stone-500 text-xs font-serif mb-1">已累计熬汤</div>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-4xl font-serif font-bold text-emerald-700">{stats.totalHours}</span>
+                      <span className="text-stone-500 text-base font-serif">小时</span>
+                    </div>
+                  </div>
+
+                  {/* 日历网格 - 圆点样式 */}
+                  <div className="flex-1 flex flex-col justify-center">
+                    <div className="grid grid-cols-7 gap-1 justify-items-center">
+                      {calendarDays.map((item, idx) => (
+                        <div
+                          key={idx}
+                          className={`w-8 h-8 rounded-full ${
+                            item.day === null
+                              ? ''
+                              : item.practiced
+                              ? 'bg-gradient-to-br from-emerald-400 to-emerald-700'
+                              : 'bg-stone-200'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 统计数据 - 无分割线 */}
+                  <div className="flex items-end justify-between py-3">
+                    <div>
+                      <div className="text-stone-500 text-[10px] font-serif mb-0.5">相当于</div>
+                      <div className="text-xl font-serif font-bold text-emerald-700">{formatNumber(stats.breathCount)}</div>
+                      <div className="text-stone-500 text-[10px] font-serif">次深呼吸</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="flex items-center justify-end gap-1 mb-0.5">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="text-orange-500">
+                          <path d="M12 2L4 10h4v4h8v-4h4L12 2z" fill="currentColor" opacity="0.8"/>
+                          <path d="M12 6L6 12h3v6h6v-6h3L12 6z" fill="currentColor" opacity="0.6"/>
+                        </svg>
+                        <span className="text-stone-500 text-[10px] font-serif">像一棵树</span>
+                      </div>
+                      <div className="text-xl font-serif font-bold text-orange-500">{formatNumber(stats.photosynthesisCount)}</div>
+                      <div className="text-stone-500 text-[10px] font-serif">次光合作用</div>
+                    </div>
+                  </div>
+
+                  {/* 底部 - 无分割线 */}
+                  <div className="flex items-center justify-between py-3">
+                    <div className="flex items-center gap-2">
+                      {profile.avatar ? (
+                        <img src={profile.avatar} alt="头像" className="w-8 h-8 rounded-full object-cover border border-stone-200" />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
+                          <User className="w-4 h-4 text-emerald-600" />
+                        </div>
+                      )}
+                      <div className="flex flex-col">
+                        <span className="text-xs font-serif font-medium text-stone-800">{profile.name}</span>
+                        <span className="text-[10px] font-serif text-stone-400">{profile.signature}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-serif text-stone-400">熬汤日记</span>
+                      <img src="/icon.png" alt="熬汤日记" className="w-5 h-5 rounded-md object-cover" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Hidden High-Res Version (for export) */}
+              <div
+                id="monthly-stats-share-content"
+                className="fixed -left-[9999px] bg-white w-[810px] h-[1080px] flex flex-col p-16"
+              >
                 {/* 顶部：已累计熬汤 */}
                 <div className="mb-6">
                   <div className="text-stone-500 text-3xl font-serif mb-3">已累计熬汤</div>
@@ -2408,34 +2480,29 @@ function MonthlyStatsShareModal({
 
                 {/* 日历网格 - 圆点样式 */}
                 <div className="flex-1 flex flex-col justify-center">
-                  <div className="grid grid-cols-7 gap-x-8 gap-y-6 justify-items-center">
+                  <div className="grid grid-cols-7 gap-1 justify-items-center">
                     {calendarDays.map((item, idx) => (
                       <div
                         key={idx}
-                        className={`w-16 h-16 rounded-full ${
+                        className={`w-24 h-24 rounded-full ${
                           item.day === null
-                            ? '' // 空位
+                            ? ''
                             : item.practiced
-                            ? 'bg-emerald-600' // 练习天 - 绿色实心圆
-                            : 'bg-stone-200' // 未练习天 - 浅灰色
+                            ? 'bg-gradient-to-br from-emerald-400 to-emerald-700'
+                            : 'bg-stone-200'
                         }`}
                       />
                     ))}
                   </div>
                 </div>
 
-                {/* 统计数据 */}
-                <div className="flex items-end justify-between py-10 border-t-2 border-stone-100">
-                  {/* 左边：深呼吸 */}
+                {/* 统计数据 - 无分割线 */}
+                <div className="flex items-end justify-between py-10">
                   <div>
                     <div className="text-stone-500 text-2xl font-serif mb-3">相当于</div>
-                    <div className="text-6xl font-serif font-bold text-emerald-700">
-                      {formatNumber(stats.breathCount)}
-                    </div>
+                    <div className="text-6xl font-serif font-bold text-emerald-700">{formatNumber(stats.breathCount)}</div>
                     <div className="text-stone-500 text-2xl font-serif mt-2">次深呼吸</div>
                   </div>
-
-                  {/* 右边：光合作用 */}
                   <div className="text-right">
                     <div className="flex items-center justify-end gap-3 mb-3">
                       <svg width="32" height="32" viewBox="0 0 24 24" fill="none" className="text-orange-500">
@@ -2444,15 +2511,13 @@ function MonthlyStatsShareModal({
                       </svg>
                       <span className="text-stone-500 text-2xl font-serif">像一棵树</span>
                     </div>
-                    <div className="text-6xl font-serif font-bold text-orange-500">
-                      {formatNumber(stats.photosynthesisCount)}
-                    </div>
+                    <div className="text-6xl font-serif font-bold text-orange-500">{formatNumber(stats.photosynthesisCount)}</div>
                     <div className="text-stone-500 text-2xl font-serif mt-2">次光合作用</div>
                   </div>
                 </div>
 
-                {/* 底部：左边用户信息，右边APP标识 */}
-                <div className="flex items-center justify-between pt-8 border-t-2 border-stone-100">
+                {/* 底部 - 无分割线 */}
+                <div className="flex items-center justify-between py-8">
                   {/* 左边：头像 + 名字 + 签名 */}
                   <div className="flex items-center gap-5">
                     {profile.avatar ? (
