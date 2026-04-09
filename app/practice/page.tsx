@@ -2394,12 +2394,18 @@ function MonthlyStatsShareModal({
               <div className="relative w-full aspect-[3/4] rounded-3xl shadow-2xl overflow-hidden bg-white">
                 {/* 实际显示用缩小版内容 */}
                 <div className="absolute inset-0 flex flex-col p-6">
-                  {/* 顶部：左边年份月份，右边累计熬汤 - 全部深绿色 */}
+                  {/* 顶部：左边年份月份 - 2026年（年小），4月（4大月小） */}
                   <div className="flex items-start justify-between mb-3">
-                    {/* 左边：年份月份 - 等宽对齐 */}
+                    {/* 左边：年份月份 */}
                     <div className="flex flex-col items-start">
-                      <span className="text-sm font-serif text-emerald-800">{year}</span>
-                      <span className="text-3xl font-serif font-bold text-emerald-800">{month + 1}月</span>
+                      <div className="flex items-baseline gap-0.5">
+                        <span className="text-3xl font-serif font-bold text-emerald-800">{year}</span>
+                        <span className="text-sm font-serif text-emerald-800">年</span>
+                      </div>
+                      <div className="flex items-baseline gap-0.5">
+                        <span className="text-3xl font-serif font-bold text-emerald-800">{month + 1}</span>
+                        <span className="text-sm font-serif text-emerald-800">月</span>
+                      </div>
                     </div>
                     {/* 右边：已累计熬汤 */}
                     <div className="text-right">
@@ -2429,7 +2435,7 @@ function MonthlyStatsShareModal({
                     </div>
                   </div>
 
-                  {/* 统计数据 - 文案全深绿色，只有数字有颜色 */}
+                  {/* 统计数据 - 像一棵树后面加"进行了" */}
                   <div className="flex items-end justify-between py-4">
                     <div className="text-left">
                       <div className="text-emerald-800 text-xs font-serif mb-1">相当于</div>
@@ -2442,16 +2448,16 @@ function MonthlyStatsShareModal({
                           <path d="M12 2L4 10h4v4h8v-4h4L12 2z" fill="currentColor"/>
                           <path d="M12 6L6 12h3v6h6v-6h3L12 6z" fill="currentColor"/>
                         </svg>
-                        <span className="text-emerald-800 text-xs font-serif">像一棵树</span>
+                        <span className="text-emerald-800 text-xs font-serif">像一棵树进行了</span>
                       </div>
                       <div className="text-2xl font-serif font-bold text-orange-500">{formatNumber(stats.photosynthesisCount)}</div>
                       <div className="text-emerald-800 text-xs font-serif">次光合作用</div>
                     </div>
                   </div>
 
-                  {/* 底部 - 去掉logo，熬汤日记右对齐 */}
+                  {/* 底部 - 熬汤日记灰色，与签名底部对齐 */}
                   <div className="flex items-end justify-between py-3">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-end gap-2">
                       {profile.avatar ? (
                         <img src={profile.avatar} alt="头像" className="w-8 h-8 rounded-full object-cover border border-stone-200" />
                       ) : (
@@ -2461,10 +2467,10 @@ function MonthlyStatsShareModal({
                       )}
                       <div className="flex flex-col">
                         <span className="text-xs font-serif font-medium text-stone-800">{profile.name}</span>
-                        <span className="text-[10px] font-serif text-stone-400 leading-none">{profile.signature}</span>
+                        <span className="text-[10px] font-serif text-stone-400">{profile.signature}</span>
                       </div>
                     </div>
-                    <span className="text-[10px] font-serif text-emerald-800 leading-none">熬汤日记</span>
+                    <span className="text-[10px] font-serif text-stone-400">熬汤日记</span>
                   </div>
                 </div>
               </div>
