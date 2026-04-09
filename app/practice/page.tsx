@@ -2390,11 +2390,13 @@ function MonthlyStatsShareModal({
             onClick={onClose}
           >
             <div className="flex flex-col gap-3 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
-              {/* Share Card Content (for screenshot) */}
-              <div
-                id="monthly-stats-share-content"
-                className="rounded-3xl shadow-2xl overflow-hidden bg-white w-[810px] h-[1080px] flex flex-col p-16"
-              >
+              {/* Share Card Content (for screenshot) - 810x1080 but scaled down for display */}
+              <div className="overflow-hidden rounded-3xl shadow-2xl" style={{ width: '324px', height: '432px' }}>
+                <div
+                  id="monthly-stats-share-content"
+                  className="bg-white w-[810px] h-[1080px] flex flex-col p-16 origin-top-left"
+                  style={{ transform: 'scale(0.4)', transformOrigin: 'top left' }}
+                >
                 {/* 顶部：已累计熬汤 */}
                 <div className="mb-6">
                   <div className="text-stone-500 text-3xl font-serif mb-3">已累计熬汤</div>
