@@ -328,7 +328,7 @@ function CustomPracticeModal({
             {isFull ? (
               <div className="text-center py-8">
                 <p className="text-foreground font-serif mb-2">选项已满（当前版本最多4个）</p>
-                <p className="text-muted-foreground text-sm font-serif">请长按删除旧选项后再添加</p>
+                <p className="text-muted-foreground text-sm font-serif">请双击删除旧选项后再添加</p>
               </div>
             ) : (
               <div className="space-y-4">
