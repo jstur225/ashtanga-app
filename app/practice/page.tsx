@@ -2483,8 +2483,9 @@ function MonthlyStatsShareModal({
                   </div>
                 </div>
               </div>
+            </div>
 
-              {/* Actions */}
+            {/* Actions */}
               <div className="flex gap-3" onClick={(e) => e.stopPropagation()}>
                 <button
                   type="button"
