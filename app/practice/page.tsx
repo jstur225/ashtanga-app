@@ -2286,24 +2286,29 @@ function MonthlyStatsShareModal({
   month: number
   profile: UserProfile
 }) {
-  // 计算本月统计数据
+  // 计算统计数据
   const stats = useMemo(() => {
     const monthRecords = practiceHistory.filter(r => {
       const d = new Date(r.date)
       return d.getFullYear() === year && d.getMonth() === month && r.duration > 0 && r.type !== '草稿'
     })
 
-    const practiceDays = monthRecords.length
     const totalSeconds = monthRecords.reduce((acc, r) => acc + r.duration, 0)
-    const totalMinutes = Math.round(totalSeconds / 60)
-    const avgMinutes = practiceDays > 0 ? Math.round(totalMinutes / practiceDays) : 0
+    const totalHours = Math.round(totalSeconds / 3600)
+    const breathCount = Math.round(totalSeconds / 6) // 6秒一次深呼吸
+    const photosynthesisCount = breathCount * 144 // 1:144 比例
 
     return {
-      practiceDays,
-      totalMinutes,
-      avgMinutes,
+      totalHours,
+      breathCount,
+      photosynthesisCount,
     }
   }, [practiceHistory, year, month])
+
+  // 格式化大数字（如 1,234,567）
+  const formatNumber = (num: number) => {
+    return num.toLocaleString('zh-CN')
+  }
 
   // 图片导出功能
   const handleExportImage = async () => {
@@ -2318,7 +2323,7 @@ function MonthlyStatsShareModal({
 
       const result = await captureWithFallback(element, {
         scale: 2,
-        backgroundColor: '#ffffff',
+        backgroundColor: '#0c1915', // 深绿色背景
         filename: `ashtanga-monthly-${year}-${String(month + 1).padStart(2, '0')}.png`,
       })
 
@@ -2362,41 +2367,77 @@ function MonthlyStatsShareModal({
               {/* Share Card Content (for screenshot) */}
               <div
                 id="monthly-stats-share-content"
-                className="bg-background rounded-3xl shadow-2xl overflow-hidden"
+                className="rounded-3xl shadow-2xl overflow-hidden"
+                style={{ background: 'linear-gradient(180deg, #0c1915 0%, #142820 50%, #1a3328 100%)' }}
               >
-                {/* TODO: 月度统计分享卡片样式占位 */}
-                <div className="p-6 min-h-[300px] flex flex-col items-center justify-center bg-gradient-to-b from-primary/5 to-background">
+                {/* 顶部 Logo */}
+                <div className="pt-6 px-6 flex justify-between items-center">
+                  <div className="text-emerald-400/60 text-xs font-serif">熬汤日记</div>
+                  <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                    <span className="text-emerald-300 text-lg">ॐ</span>
+                  </div>
+                </div>
+
+                {/* 主内容区域 */}
+                <div className="px-6 py-4">
+                  {/* 月份标题 */}
+                  <div className="text-center mb-8">
+                    <div className="text-emerald-300/70 text-sm font-serif">{year}年 {monthNames[month]}</div>
+                  </div>
+
+                  {/* 第一层级：时间 */}
+                  <div className="text-center mb-8">
+                    <div className="text-emerald-100/50 text-xs font-serif mb-2">已累计熬汤</div>
+                    <div className="text-5xl font-serif font-bold text-emerald-50">
+                      {stats.totalHours}
+                    </div>
+                    <div className="text-emerald-300/60 text-sm font-serif mt-1">小时</div>
+                  </div>
+
+                  {/* 分隔线 */}
+                  <div className="w-12 h-px bg-emerald-500/30 mx-auto mb-8" />
+
+                  {/* 第二层级：呼吸 */}
+                  <div className="text-center mb-8">
+                    <div className="text-emerald-100/50 text-xs font-serif mb-2">相当于</div>
+                    <div className="text-3xl font-serif font-bold text-emerald-200">
+                      {formatNumber(stats.breathCount)}
+                    </div>
+                    <div className="text-emerald-300/60 text-sm font-serif mt-1">次 深呼吸</div>
+                  </div>
+
+                  {/* 分隔线 */}
+                  <div className="w-12 h-px bg-emerald-500/30 mx-auto mb-8" />
+
+                  {/* 第三层级：光合作用（树） */}
                   <div className="text-center mb-6">
-                    <div className="text-sm text-muted-foreground font-serif mb-2">{year}年 {monthNames[month]}</div>
-                    <div className="text-lg font-serif text-foreground">月度练习统计</div>
+                    <div className="flex items-center justify-center gap-2 mb-2">
+                      {/* 树的图标 */}
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="text-emerald-400">
+                        <path d="M12 2L4 10h4v4h8v-4h4L12 2z" fill="currentColor" opacity="0.8"/>
+                        <path d="M12 6L6 12h3v6h6v-6h3L12 6z" fill="currentColor" opacity="0.6"/>
+                        <rect x="11" y="14" width="2" height="6" fill="currentColor" opacity="0.4"/>
+                      </svg>
+                      <span className="text-emerald-100/50 text-xs font-serif">像一棵树</span>
+                    </div>
+                    <div className="text-4xl font-serif font-bold text-orange-400">
+                      {formatNumber(stats.photosynthesisCount)}
+                    </div>
+                    <div className="text-emerald-300/60 text-sm font-serif mt-1">次 光合作用</div>
                   </div>
+                </div>
 
-                  {/* 占位统计区域 */}
-                  <div className="grid grid-cols-3 gap-4 w-full">
-                    <div className="text-center p-4 bg-white rounded-2xl shadow-sm">
-                      <div className="text-3xl font-serif font-bold text-primary">{stats.practiceDays}</div>
-                      <div className="text-xs text-muted-foreground font-serif mt-1">熬汤天数</div>
-                    </div>
-                    <div className="text-center p-4 bg-white rounded-2xl shadow-sm">
-                      <div className="text-3xl font-serif font-bold text-primary">{stats.totalMinutes}</div>
-                      <div className="text-xs text-muted-foreground font-serif mt-1">熬汤时长</div>
-                    </div>
-                    <div className="text-center p-4 bg-white rounded-2xl shadow-sm">
-                      <div className="text-3xl font-serif font-bold text-primary">{stats.avgMinutes}</div>
-                      <div className="text-xs text-muted-foreground font-serif mt-1">平均时长</div>
-                    </div>
-                  </div>
-
-                  {/* 底部用户信息占位 */}
-                  <div className="mt-6 flex items-center gap-2">
+                {/* 底部用户信息 */}
+                <div className="px-6 pb-6">
+                  <div className="flex items-center justify-center gap-2 pt-4 border-t border-emerald-500/20">
                     {profile.avatar ? (
-                      <img src={profile.avatar} alt="头像" className="w-6 h-6 rounded-full object-cover" />
+                      <img src={profile.avatar} alt="头像" className="w-5 h-5 rounded-full object-cover border border-emerald-400/30" />
                     ) : (
-                      <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center">
-                        <User className="w-3 h-3 text-primary" />
+                      <div className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center border border-emerald-400/30">
+                        <User className="w-2.5 h-2.5 text-emerald-300" />
                       </div>
                     )}
-                    <span className="text-sm font-serif text-muted-foreground">{profile.name}</span>
+                    <span className="text-xs font-serif text-emerald-200/60">{profile.name}</span>
                   </div>
                 </div>
               </div>
@@ -2410,7 +2451,7 @@ function MonthlyStatsShareModal({
                     e.preventDefault()
                     onClose()
                   }}
-                  className="flex-1 py-3 rounded-full bg-secondary text-foreground font-serif transition-all hover:bg-secondary/80 active:scale-[0.98]"
+                  className="flex-1 py-3 rounded-full bg-stone-700 text-stone-200 font-serif transition-all hover:bg-stone-600 active:scale-[0.98]"
                 >
                   返回
                 </button>
@@ -2421,7 +2462,7 @@ function MonthlyStatsShareModal({
                     e.preventDefault()
                     handleExportImage()
                   }}
-                  className="flex-1 py-3 rounded-full green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white font-serif transition-all hover:opacity-90 active:scale-[0.98] flex items-center justify-center gap-2"
+                  className="flex-1 py-3 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white font-serif transition-all active:scale-[0.98] flex items-center justify-center gap-2"
                 >
                   <Share2 className="w-4 h-4" />
                   保存图片
