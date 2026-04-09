@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { useLocalStorage, useInterval } from 'react-use';
 import { motion, AnimatePresence } from "framer-motion"
-import { usePracticeData, type PracticeRecord, type PracticeOption, type UserProfile, GUIDED_AUDIO_OPTION } from "@/hooks/usePracticeData"
+import { usePracticeData, type PracticeRecord, type PracticeOption, type UserProfile, GUIDED_AUDIO_OPTION, MAX_SLOTS_FREE } from "@/hooks/usePracticeData"
 import { usePWAInstall } from "@/hooks/usePWAInstall"
 import { useAuth } from "@/hooks/useAuth"
 import { useSync } from "@/hooks/useSync"
@@ -3763,10 +3763,11 @@ export default function AshtangaTracker() {
   }
 
   const handleCustomConfirm = (name: string, notes: string) => {
-    // Check if we can add more options (max 8, excluding the "custom" button itself)
-    const nonCustomOptions = practiceOptions.filter(o => o.id !== "custom")
-    if (nonCustomOptions.length >= 8) {
-      // Options are full, just start practice without saving
+    // Check if we can add more options (max 4 for free users, excluding the "custom" button itself)
+    const nonCustomOptions = practiceOptions.filter(o => o.id !== "custom" && o.visible !== false)
+    if (nonCustomOptions.length >= MAX_SLOTS_FREE) {
+      // Options are full, show toast and start practice without saving
+      toast.error(`最多只能添加${MAX_SLOTS_FREE}个练习选项`)
       setSelectedOption("custom-temp")
       setCustomPracticeName(name)
       setShowCustomModal(false)
@@ -3774,7 +3775,11 @@ export default function AshtangaTracker() {
     }
 
     // Create a new permanent custom option and save to localStorage
-    addOption(name, name, notes)
+    const result = addOption(name, name, notes)
+    if (!result) {
+      toast.error('添加选项失败，可能已达到上限')
+      return
+    }
 
     // Update local state will be handled by useEffect when practiceOptionsData changes
     setCustomPracticeName(name)
@@ -3870,7 +3875,19 @@ export default function AshtangaTracker() {
   }
 
   const handleAddOption = async (name: string, notes: string) => {
-    addOption(name, name, notes)
+    // Check if we can add more options
+    const visibleOptions = practiceOptions.filter(o => o.id !== "custom" && o.id !== "guided_audio" && o.visible !== false)
+    if (visibleOptions.length >= MAX_SLOTS_FREE) {
+      toast.error(`最多只能添加${MAX_SLOTS_FREE}个练习选项`)
+      return
+    }
+
+    const result = addOption(name, name, notes)
+    if (!result) {
+      toast.error('添加选项失败，可能已达到上限')
+      return
+    }
+
     toast.success('已添加自定义选项')
     // 如果已登录，自动同步到云端
     if (user) {
