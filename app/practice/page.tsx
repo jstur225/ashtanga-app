@@ -2349,7 +2349,7 @@ function MonthlyStatsShareModal({
 
       const result = await captureWithFallback(element, {
         scale: 2,
-        backgroundColor: '#0c1915', // 深绿色背景
+        backgroundColor: '#ffffff',
         filename: `ashtanga-monthly-${year}-${String(month + 1).padStart(2, '0')}.png`,
       })
 
@@ -2393,25 +2393,48 @@ function MonthlyStatsShareModal({
               {/* Share Card Content (for screenshot) */}
               <div
                 id="monthly-stats-share-content"
-                className="rounded-3xl shadow-2xl overflow-hidden"
-                style={{ background: 'linear-gradient(180deg, #0c1915 0%, #142820 50%, #1a3328 100%)' }}
+                className="rounded-3xl shadow-2xl overflow-hidden bg-white"
               >
-                {/* 顶部 Logo */}
-                <div className="pt-6 px-6 flex justify-between items-center">
-                  <div className="text-emerald-400/60 text-xs font-serif">熬汤日记</div>
-                  <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                    <span className="text-emerald-300 text-lg">ॐ</span>
+                {/* 顶部：左上角用户信息，右上角Logo */}
+                <div className="pt-5 px-5 flex justify-between items-start">
+                  {/* 左上角：头像 + 名字 + 签名 */}
+                  <div className="flex items-center gap-2">
+                    {profile.avatar ? (
+                      <img
+                        src={profile.avatar}
+                        alt="头像"
+                        className="w-10 h-10 rounded-full object-cover border border-stone-200"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center border border-stone-200">
+                        <User className="w-5 h-5 text-emerald-600" />
+                      </div>
+                    )}
+                    <div className="flex flex-col">
+                      <span className="text-sm font-serif font-medium text-stone-800">{profile.name}</span>
+                      <span className="text-[10px] font-serif text-stone-400 italic truncate max-w-[100px]">
+                        {profile.signature}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* 右上角：Logo */}
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs font-serif text-stone-400">熬汤日记</span>
+                    <div className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center">
+                      <span className="text-white text-xs">ॐ</span>
+                    </div>
                   </div>
                 </div>
 
                 {/* 主内容区域 */}
-                <div className="px-6 py-6">
+                <div className="px-5 py-4">
                   {/* 顶部大标题 */}
                   <div className="mb-6">
-                    <div className="text-emerald-300/50 text-xs font-serif mb-1">已累计熬汤</div>
+                    <div className="text-stone-400 text-xs font-serif mb-1">已累计熬汤</div>
                     <div className="flex items-baseline gap-2">
-                      <span className="text-6xl font-serif font-bold text-white">{stats.totalHours}</span>
-                      <span className="text-emerald-300/60 text-lg font-serif">小时</span>
+                      <span className="text-5xl font-serif font-bold text-stone-800">{stats.totalHours}</span>
+                      <span className="text-stone-500 text-lg font-serif">小时</span>
                     </div>
                   </div>
 
@@ -2426,8 +2449,8 @@ function MonthlyStatsShareModal({
                             item.day === null
                               ? '' // 空位
                               : item.practiced
-                              ? 'bg-emerald-400' // 练习天 - 亮绿色实心
-                              : 'bg-emerald-800/30' // 未练习天 - 暗绿色
+                              ? 'bg-emerald-500' // 练习天 - 绿色实心
+                              : 'bg-stone-200' // 未练习天 - 浅灰色
                           }`}
                         >
                           {/* 不显示数字，只显示圆点 */}
@@ -2437,30 +2460,30 @@ function MonthlyStatsShareModal({
                   </div>
 
                   {/* 底部左右两栏 */}
-                  <div className="flex items-end justify-between">
+                  <div className="flex items-end justify-between pt-4 border-t border-stone-200">
                     {/* 左边：呼吸 */}
                     <div>
-                      <div className="text-emerald-300/50 text-xs font-serif mb-1">相当于</div>
-                      <div className="text-3xl font-serif font-bold text-emerald-200">
+                      <div className="text-stone-400 text-xs font-serif mb-1">相当于</div>
+                      <div className="text-2xl font-serif font-bold text-emerald-600">
                         {formatNumber(stats.breathCount)}
                       </div>
-                      <div className="text-emerald-300/60 text-xs font-serif">次深呼吸</div>
+                      <div className="text-stone-500 text-xs font-serif">次深呼吸</div>
                     </div>
 
                     {/* 右边：光合作用 */}
                     <div className="text-right">
                       <div className="flex items-center justify-end gap-1 mb-1">
                         {/* 树图标 */}
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-orange-400">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-orange-500">
                           <path d="M12 2L4 10h4v4h8v-4h4L12 2z" fill="currentColor" opacity="0.8"/>
                           <path d="M12 6L6 12h3v6h6v-6h3L12 6z" fill="currentColor" opacity="0.6"/>
                         </svg>
-                        <span className="text-orange-300/50 text-xs font-serif">像一棵树</span>
+                        <span className="text-stone-500 text-xs font-serif">像一棵树</span>
                       </div>
-                      <div className="text-3xl font-serif font-bold text-orange-400">
+                      <div className="text-2xl font-serif font-bold text-orange-500">
                         {formatNumber(stats.photosynthesisCount)}
                       </div>
-                      <div className="text-orange-300/60 text-xs font-serif">次光合作用</div>
+                      <div className="text-stone-500 text-xs font-serif">次光合作用</div>
                     </div>
                   </div>
                 </div>
