@@ -2576,21 +2576,6 @@ function MonthlyStatsShareModal({
                 保存图片
               </button>
             </div>
-                </button>
-                <button
-                  type="button"
-                  onMouseDown={(e) => {
-                    e.stopPropagation()
-                    e.preventDefault()
-                    handleExportImage()
-                  }}
-                  className="flex-1 py-3 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white font-serif transition-all active:scale-[0.98] flex items-center justify-center gap-2"
-                >
-                  <Share2 className="w-4 h-4" />
-                  保存图片
-                </button>
-              </div>
-            </div>
           </motion.div>
         </>
       )}
