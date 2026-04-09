@@ -2396,10 +2396,10 @@ function MonthlyStatsShareModal({
                 <div className="absolute inset-0 flex flex-col p-6">
                   {/* 顶部：左边年份月份，右边累计熬汤 */}
                   <div className="flex items-start justify-between mb-3">
-                    {/* 左边：年份月份 */}
+                    {/* 左边：年份月份 - 年份小，月份大 */}
                     <div className="flex flex-col">
-                      <span className="text-3xl font-serif font-bold text-stone-800">{year}</span>
-                      <span className="text-lg font-serif text-stone-500">{month + 1}月</span>
+                      <span className="text-sm font-serif text-stone-500">{year}</span>
+                      <span className="text-3xl font-serif font-bold text-stone-800">{month + 1}月</span>
                     </div>
                     {/* 右边：已累计熬汤 */}
                     <div className="text-right">
@@ -2429,28 +2429,28 @@ function MonthlyStatsShareModal({
                     </div>
                   </div>
 
-                  {/* 统计数据 - 无分割线，字体变大 */}
+                  {/* 统计数据 - 标题和数字字号统一 */}
                   <div className="flex items-end justify-between py-4">
-                    <div>
-                      <div className="text-stone-500 text-sm font-serif mb-1">相当于</div>
-                      <div className="text-3xl font-serif font-bold text-emerald-700">{formatNumber(stats.breathCount)}</div>
-                      <div className="text-stone-500 text-sm font-serif">次深呼吸</div>
+                    <div className="text-left">
+                      <div className="text-stone-500 text-xs font-serif mb-1">相当于</div>
+                      <div className="text-2xl font-serif font-bold text-emerald-700">{formatNumber(stats.breathCount)}</div>
+                      <div className="text-stone-500 text-xs font-serif">次深呼吸</div>
                     </div>
                     <div className="text-right">
                       <div className="flex items-center justify-end gap-1 mb-1">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="text-orange-500">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="text-orange-500">
                           <path d="M12 2L4 10h4v4h8v-4h4L12 2z" fill="currentColor" opacity="0.8"/>
                           <path d="M12 6L6 12h3v6h6v-6h3L12 6z" fill="currentColor" opacity="0.6"/>
                         </svg>
-                        <span className="text-stone-500 text-sm font-serif">像一棵树</span>
+                        <span className="text-stone-500 text-xs font-serif">像一棵树</span>
                       </div>
-                      <div className="text-3xl font-serif font-bold text-orange-500">{formatNumber(stats.photosynthesisCount)}</div>
-                      <div className="text-stone-500 text-sm font-serif">次光合作用</div>
+                      <div className="text-2xl font-serif font-bold text-orange-500">{formatNumber(stats.photosynthesisCount)}</div>
+                      <div className="text-stone-500 text-xs font-serif">次光合作用</div>
                     </div>
                   </div>
 
-                  {/* 底部 - 无分割线，对齐调整 */}
-                  <div className="flex items-center justify-between py-3">
+                  {/* 底部 - 签名和熬汤日记底部对平 */}
+                  <div className="flex items-end justify-between py-3">
                     <div className="flex items-center gap-2">
                       {profile.avatar ? (
                         <img src={profile.avatar} alt="头像" className="w-8 h-8 rounded-full object-cover border border-stone-200" />
@@ -2461,11 +2461,11 @@ function MonthlyStatsShareModal({
                       )}
                       <div className="flex flex-col">
                         <span className="text-xs font-serif font-medium text-stone-800">{profile.name}</span>
-                        <span className="text-[10px] font-serif text-stone-400">{profile.signature}</span>
+                        <span className="text-[10px] font-serif text-stone-400 leading-none">{profile.signature}</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <span className="text-[10px] font-serif text-stone-400">熬汤日记</span>
+                      <span className="text-[10px] font-serif text-stone-400 leading-none">熬汤日记</span>
                       <img src="/icon.png" alt="熬汤日记" className="w-5 h-5 rounded-md object-cover" />
                     </div>
                   </div>
@@ -2565,32 +2565,32 @@ function MonthlyStatsShareModal({
                 </div>
               </div>
 
-              {/* Actions - 与分享卡片同风格 */}
+              {/* Actions - 与时光轴分享卡片同风格 */}
               <div className="flex gap-3" onClick={(e) => e.stopPropagation()}>
-              <button
-                type="button"
-                onMouseDown={(e) => {
-                  e.stopPropagation()
-                  e.preventDefault()
-                  onClose()
-                }}
-                className="flex-1 py-3.5 rounded-2xl bg-white text-stone-600 font-serif shadow-lg border border-stone-200 transition-all hover:bg-stone-50 active:scale-[0.98]"
-              >
-                返回
-              </button>
-              <button
-                type="button"
-                onMouseDown={(e) => {
-                  e.stopPropagation()
-                  e.preventDefault()
-                  handleExportImage()
-                }}
-                className="flex-1 py-3.5 rounded-2xl bg-emerald-600 text-white font-serif shadow-lg shadow-emerald-200 transition-all hover:bg-emerald-500 active:scale-[0.98] flex items-center justify-center gap-2"
-              >
-                <Share2 className="w-4 h-4" />
-                保存图片
-              </button>
-            </div>
+                <button
+                  type="button"
+                  onMouseDown={(e) => {
+                    e.stopPropagation()
+                    e.preventDefault()
+                    onClose()
+                  }}
+                  className="flex-1 py-3 rounded-full bg-secondary text-foreground font-serif transition-all hover:bg-secondary/80 active:scale-[0.98]"
+                >
+                  返回
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => {
+                    e.stopPropagation()
+                    e.preventDefault()
+                    handleExportImage()
+                  }}
+                  className="flex-1 py-3 rounded-full green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white font-serif transition-all hover:opacity-90 active:scale-[0.98] flex items-center justify-center gap-2"
+                >
+                  <Share2 className="w-4 h-4" />
+                  保存图片
+                </button>
+              </div>
           </div>
           </motion.div>
         </>
