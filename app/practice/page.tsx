@@ -2393,7 +2393,7 @@ function MonthlyStatsShareModal({
               {/* Share Card Content (for screenshot) */}
               <div
                 id="monthly-stats-share-content"
-                className="rounded-3xl shadow-2xl overflow-hidden bg-white aspect-[3/4] flex flex-col"
+                className="rounded-3xl shadow-2xl overflow-hidden bg-white w-[320px] h-[427px] flex flex-col"
               >
                 {/* 顶部：左上角用户信息 */}
                 <div className="pt-5 px-5 flex justify-between items-start">
@@ -2420,37 +2420,37 @@ function MonthlyStatsShareModal({
                 </div>
 
                 {/* 主内容区域 */}
-                <div className="px-5 py-4 flex-1 flex flex-col">
+                <div className="px-5 pt-2 pb-4 flex-1 flex flex-col">
                   {/* 顶部大标题 */}
-                  <div className="mb-6">
+                  <div className="mb-4">
                     <div className="text-stone-400 text-xs font-serif mb-1">已累计熬汤</div>
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-5xl font-serif font-bold text-stone-800">{stats.totalHours}</span>
-                      <span className="text-stone-500 text-lg font-serif">小时</span>
+                    <div className="flex items-baseline gap-1.5">
+                      <span className="text-4xl font-serif font-bold text-stone-800">{stats.totalHours}</span>
+                      <span className="text-stone-500 text-base font-serif">小时</span>
                     </div>
                   </div>
 
-                  {/* 日历网格 - 占主要空间 */}
-                  <div className="mb-6">
+                  {/* 日历网格 */}
+                  <div className="mb-4">
                     {/* 星期标题 */}
-                    <div className="grid grid-cols-7 gap-1.5 justify-items-center mb-2">
+                    <div className="grid grid-cols-7 gap-2 justify-items-center mb-2">
                       {['日', '一', '二', '三', '四', '五', '六'].map((day) => (
-                        <div key={day} className="w-7 h-7 flex items-center justify-center text-[10px] font-serif text-stone-400">
+                        <div key={day} className="w-8 h-5 flex items-center justify-center text-[11px] font-serif text-stone-400">
                           {day}
                         </div>
                       ))}
                     </div>
                     {/* 日期格子 */}
-                    <div className="grid grid-cols-7 gap-1.5 justify-items-center">
+                    <div className="grid grid-cols-7 gap-2 justify-items-center">
                       {calendarDays.map((item, idx) => (
                         <div
                           key={idx}
-                          className={`w-7 h-7 aspect-square rounded-full flex items-center justify-center text-[10px] font-serif ${
+                          className={`w-8 h-8 aspect-square rounded-lg flex items-center justify-center text-[12px] font-serif ${
                             item.day === null
                               ? '' // 空位
                               : item.practiced
-                              ? 'green-gradient-deep border border-white/20 shadow-[0_2px_8px_rgba(45,90,39,0.3)] text-white' // 练习天 - 绿色渐变 + 白色数字
-                              : 'bg-stone-100 text-stone-400' // 未练习天 - 浅灰色背景
+                              ? 'green-gradient-deep border border-white/20 shadow-[0_2px_8px_rgba(45,90,39,0.3)] text-white' // 练习天
+                              : 'bg-stone-100 text-stone-500' // 未练习天
                           }`}
                         >
                           {item.day !== null && item.day}
@@ -2460,40 +2460,40 @@ function MonthlyStatsShareModal({
                   </div>
 
                   {/* 底部左右两栏 */}
-                  <div className="flex items-end justify-between pt-4 border-t border-stone-200">
+                  <div className="flex items-end justify-between pt-3 border-t border-stone-100">
                     {/* 左边：呼吸 */}
                     <div>
-                      <div className="text-stone-400 text-xs font-serif mb-1">相当于</div>
-                      <div className="text-2xl font-serif font-bold text-emerald-600">
+                      <div className="text-stone-400 text-[11px] font-serif mb-0.5">相当于</div>
+                      <div className="text-xl font-serif font-bold text-emerald-600">
                         {formatNumber(stats.breathCount)}
                       </div>
-                      <div className="text-stone-500 text-xs font-serif">次深呼吸</div>
+                      <div className="text-stone-400 text-[11px] font-serif">次深呼吸</div>
                     </div>
 
                     {/* 右边：光合作用 */}
                     <div className="text-right">
-                      <div className="flex items-center justify-end gap-1 mb-1">
+                      <div className="flex items-center justify-end gap-1 mb-0.5">
                         {/* 树图标 */}
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-orange-500">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="text-orange-500">
                           <path d="M12 2L4 10h4v4h8v-4h4L12 2z" fill="currentColor" opacity="0.8"/>
                           <path d="M12 6L6 12h3v6h6v-6h3L12 6z" fill="currentColor" opacity="0.6"/>
                         </svg>
-                        <span className="text-stone-500 text-xs font-serif">像一棵树</span>
+                        <span className="text-stone-400 text-[11px] font-serif">像一棵树</span>
                       </div>
-                      <div className="text-2xl font-serif font-bold text-orange-500">
+                      <div className="text-xl font-serif font-bold text-orange-500">
                         {formatNumber(stats.photosynthesisCount)}
                       </div>
-                      <div className="text-stone-500 text-xs font-serif">次光合作用</div>
+                      <div className="text-stone-400 text-[11px] font-serif">次光合作用</div>
                     </div>
                   </div>
 
                   {/* 底部Logo */}
-                  <div className="flex items-center justify-center gap-2 mt-auto pt-6">
-                    <span className="text-xs font-serif text-stone-400">熬汤日记</span>
+                  <div className="flex items-center justify-center gap-2 mt-auto pt-4 pb-1">
+                    <span className="text-[11px] font-serif text-stone-400">熬汤日记</span>
                     <img
                       src="/icon.png"
                       alt="熬汤日记"
-                      className="w-6 h-6 rounded-lg shadow-sm object-cover"
+                      className="w-5 h-5 rounded-md shadow-sm object-cover"
                     />
                   </div>
                 </div>
