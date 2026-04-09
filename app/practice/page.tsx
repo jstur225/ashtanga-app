@@ -2221,10 +2221,12 @@ function MonthlyStatsCard({
   practiceHistory,
   year,
   month,
+  onClick,
 }: {
   practiceHistory: PracticeRecord[]
   year: number
   month: number
+  onClick?: () => void
 }) {
   // 计算本月统计数据
   const stats = useMemo(() => {
@@ -2246,7 +2248,10 @@ function MonthlyStatsCard({
   }, [practiceHistory, year, month])
 
   return (
-    <div className="bg-white rounded-[20px] shadow-md border border-stone-200 overflow-hidden p-3">
+    <div
+      onClick={onClick}
+      className={`bg-white rounded-[20px] shadow-md border border-stone-200 overflow-hidden p-3 ${onClick ? 'cursor-pointer active:scale-[0.98] transition-transform' : ''}`}
+    >
       <div className="flex items-center justify-between">
         <div className="text-center flex-1">
           <div className="text-2xl font-serif text-primary">{stats.practiceDays}</div>
@@ -2262,6 +2267,171 @@ function MonthlyStatsCard({
         </div>
       </div>
     </div>
+  )
+}
+
+// Monthly Stats Share Modal
+function MonthlyStatsShareModal({
+  isOpen,
+  onClose,
+  practiceHistory,
+  year,
+  month,
+  profile,
+}: {
+  isOpen: boolean
+  onClose: () => void
+  practiceHistory: PracticeRecord[]
+  year: number
+  month: number
+  profile: UserProfile
+}) {
+  // 计算本月统计数据
+  const stats = useMemo(() => {
+    const monthRecords = practiceHistory.filter(r => {
+      const d = new Date(r.date)
+      return d.getFullYear() === year && d.getMonth() === month && r.duration > 0 && r.type !== '草稿'
+    })
+
+    const practiceDays = monthRecords.length
+    const totalSeconds = monthRecords.reduce((acc, r) => acc + r.duration, 0)
+    const totalMinutes = Math.round(totalSeconds / 60)
+    const avgMinutes = practiceDays > 0 ? Math.round(totalMinutes / practiceDays) : 0
+
+    return {
+      practiceDays,
+      totalMinutes,
+      avgMinutes,
+    }
+  }, [practiceHistory, year, month])
+
+  // 图片导出功能
+  const handleExportImage = async () => {
+    const element = document.getElementById('monthly-stats-share-content')
+    if (!element) {
+      toast.error('未找到分享卡片内容')
+      return
+    }
+
+    try {
+      toast.loading('正在生成图片...', { id: 'export-monthly' })
+
+      const result = await captureWithFallback(element, {
+        scale: 2,
+        backgroundColor: '#ffffff',
+        filename: `ashtanga-monthly-${year}-${String(month + 1).padStart(2, '0')}.png`,
+      })
+
+      toast.dismiss('export-monthly')
+
+      if (result.success) {
+        toast.success('图片已保存')
+        onClose()
+      } else {
+        const errorMessage = formatErrorForUser(result, navigator.userAgent)
+        toast.error(errorMessage)
+      }
+    } catch (error) {
+      toast.dismiss('export-monthly')
+      toast.error('导出失败，请重试')
+    }
+  }
+
+  const monthNames = ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月']
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 z-40"
+            onClick={onClose}
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-6"
+            onClick={onClose}
+          >
+            <div className="flex flex-col gap-3 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+              {/* Share Card Content (for screenshot) */}
+              <div
+                id="monthly-stats-share-content"
+                className="bg-background rounded-3xl shadow-2xl overflow-hidden"
+              >
+                {/* TODO: 月度统计分享卡片样式占位 */}
+                <div className="p-6 min-h-[300px] flex flex-col items-center justify-center bg-gradient-to-b from-primary/5 to-background">
+                  <div className="text-center mb-6">
+                    <div className="text-sm text-muted-foreground font-serif mb-2">{year}年 {monthNames[month]}</div>
+                    <div className="text-lg font-serif text-foreground">月度练习统计</div>
+                  </div>
+
+                  {/* 占位统计区域 */}
+                  <div className="grid grid-cols-3 gap-4 w-full">
+                    <div className="text-center p-4 bg-white rounded-2xl shadow-sm">
+                      <div className="text-3xl font-serif font-bold text-primary">{stats.practiceDays}</div>
+                      <div className="text-xs text-muted-foreground font-serif mt-1">熬汤天数</div>
+                    </div>
+                    <div className="text-center p-4 bg-white rounded-2xl shadow-sm">
+                      <div className="text-3xl font-serif font-bold text-primary">{stats.totalMinutes}</div>
+                      <div className="text-xs text-muted-foreground font-serif mt-1">熬汤时长</div>
+                    </div>
+                    <div className="text-center p-4 bg-white rounded-2xl shadow-sm">
+                      <div className="text-3xl font-serif font-bold text-primary">{stats.avgMinutes}</div>
+                      <div className="text-xs text-muted-foreground font-serif mt-1">平均时长</div>
+                    </div>
+                  </div>
+
+                  {/* 底部用户信息占位 */}
+                  <div className="mt-6 flex items-center gap-2">
+                    {profile.avatar ? (
+                      <img src={profile.avatar} alt="头像" className="w-6 h-6 rounded-full object-cover" />
+                    ) : (
+                      <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center">
+                        <User className="w-3 h-3 text-primary" />
+                      </div>
+                    )}
+                    <span className="text-sm font-serif text-muted-foreground">{profile.name}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-3" onClick={(e) => e.stopPropagation()}>
+                <button
+                  type="button"
+                  onMouseDown={(e) => {
+                    e.stopPropagation()
+                    e.preventDefault()
+                    onClose()
+                  }}
+                  className="flex-1 py-3 rounded-full bg-secondary text-foreground font-serif transition-all hover:bg-secondary/80 active:scale-[0.98]"
+                >
+                  返回
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => {
+                    e.stopPropagation()
+                    e.preventDefault()
+                    handleExportImage()
+                  }}
+                  className="flex-1 py-3 rounded-full green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white font-serif transition-all hover:opacity-90 active:scale-[0.98] flex items-center justify-center gap-2"
+                >
+                  <Share2 className="w-4 h-4" />
+                  保存图片
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
   )
 }
 
@@ -2593,6 +2763,7 @@ function JournalTab({
   const [showBackToTop, setShowBackToTop] = useState(false)
   const [highlightedDate, setHighlightedDate] = useState<string | null>(null)
   const [previewImage, setPreviewImage] = useState<string | null>(null) // ⭐ 图片预览状态
+  const [showStatsShare, setShowStatsShare] = useState(false) // ⭐ 月度统计分享弹窗状态
   const recordRefs = useRef<Record<string, HTMLDivElement | null>>({})
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
@@ -2771,6 +2942,7 @@ function JournalTab({
           practiceHistory={practiceHistory}
           year={loadedMonths[0].getFullYear()}
           month={loadedMonths[0].getMonth()}
+          onClick={() => setShowStatsShare(true)}
         />
       </div>
 
@@ -2967,6 +3139,16 @@ function JournalTab({
         onOpenPhotoFakeDoor={onOpenPhotoFakeDoor}
         user={user}
         userProfile={profile}
+      />
+
+      {/* ⭐ 月度统计分享弹窗 */}
+      <MonthlyStatsShareModal
+        isOpen={showStatsShare}
+        onClose={() => setShowStatsShare(false)}
+        practiceHistory={practiceHistory}
+        year={loadedMonths[0]?.getFullYear() || new Date().getFullYear()}
+        month={loadedMonths[0]?.getMonth() || new Date().getMonth()}
+        profile={profile}
       />
 
 {/* Back to Top Button - Floating, Jade Glassmorphism */}
