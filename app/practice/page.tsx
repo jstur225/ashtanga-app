@@ -2393,24 +2393,24 @@ function MonthlyStatsShareModal({
               {/* Share Card Content (for screenshot) */}
               <div
                 id="monthly-stats-share-content"
-                className="rounded-3xl shadow-2xl overflow-hidden bg-white w-[320px] h-[427px] flex flex-col p-6"
+                className="rounded-3xl shadow-2xl overflow-hidden bg-white w-[810px] h-[1080px] flex flex-col p-16"
               >
                 {/* 顶部：已累计熬汤 */}
-                <div className="mb-2">
-                  <div className="text-stone-500 text-sm font-serif mb-1">已累计熬汤</div>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-5xl font-serif font-bold text-emerald-700">{stats.totalHours}</span>
-                    <span className="text-stone-500 text-lg font-serif">小时</span>
+                <div className="mb-6">
+                  <div className="text-stone-500 text-3xl font-serif mb-3">已累计熬汤</div>
+                  <div className="flex items-baseline gap-3">
+                    <span className="text-[120px] font-serif font-bold text-emerald-700 leading-none">{stats.totalHours}</span>
+                    <span className="text-stone-500 text-4xl font-serif">小时</span>
                   </div>
                 </div>
 
                 {/* 日历网格 - 圆点样式 */}
                 <div className="flex-1 flex flex-col justify-center">
-                  <div className="grid grid-cols-7 gap-x-3 gap-y-2 justify-items-center">
+                  <div className="grid grid-cols-7 gap-x-8 gap-y-6 justify-items-center">
                     {calendarDays.map((item, idx) => (
                       <div
                         key={idx}
-                        className={`w-6 h-6 rounded-full ${
+                        className={`w-16 h-16 rounded-full ${
                           item.day === null
                             ? '' // 空位
                             : item.practiced
@@ -2423,60 +2423,60 @@ function MonthlyStatsShareModal({
                 </div>
 
                 {/* 统计数据 */}
-                <div className="flex items-end justify-between py-4 border-t border-stone-100">
+                <div className="flex items-end justify-between py-10 border-t-2 border-stone-100">
                   {/* 左边：深呼吸 */}
                   <div>
-                    <div className="text-stone-500 text-xs font-serif mb-1">相当于</div>
-                    <div className="text-2xl font-serif font-bold text-emerald-700">
+                    <div className="text-stone-500 text-2xl font-serif mb-3">相当于</div>
+                    <div className="text-6xl font-serif font-bold text-emerald-700">
                       {formatNumber(stats.breathCount)}
                     </div>
-                    <div className="text-stone-500 text-xs font-serif">次深呼吸</div>
+                    <div className="text-stone-500 text-2xl font-serif mt-2">次深呼吸</div>
                   </div>
 
                   {/* 右边：光合作用 */}
                   <div className="text-right">
-                    <div className="flex items-center justify-end gap-1 mb-1">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-orange-500">
+                    <div className="flex items-center justify-end gap-3 mb-3">
+                      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" className="text-orange-500">
                         <path d="M12 2L4 10h4v4h8v-4h4L12 2z" fill="currentColor" opacity="0.8"/>
                         <path d="M12 6L6 12h3v6h6v-6h3L12 6z" fill="currentColor" opacity="0.6"/>
                       </svg>
-                      <span className="text-stone-500 text-xs font-serif">像一棵树</span>
+                      <span className="text-stone-500 text-2xl font-serif">像一棵树</span>
                     </div>
-                    <div className="text-2xl font-serif font-bold text-orange-500">
+                    <div className="text-6xl font-serif font-bold text-orange-500">
                       {formatNumber(stats.photosynthesisCount)}
                     </div>
-                    <div className="text-stone-500 text-xs font-serif">次光合作用</div>
+                    <div className="text-stone-500 text-2xl font-serif mt-2">次光合作用</div>
                   </div>
                 </div>
 
                 {/* 底部：左边用户信息，右边APP标识 */}
-                <div className="flex items-center justify-between pt-4 border-t border-stone-100">
+                <div className="flex items-center justify-between pt-8 border-t-2 border-stone-100">
                   {/* 左边：头像 + 名字 + 签名 */}
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-5">
                     {profile.avatar ? (
                       <img
                         src={profile.avatar}
                         alt="头像"
-                        className="w-8 h-8 rounded-full object-cover border border-stone-200"
+                        className="w-20 h-20 rounded-full object-cover border-2 border-stone-200"
                       />
                     ) : (
-                      <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center border border-stone-200">
-                        <User className="w-4 h-4 text-emerald-600" />
+                      <div className="w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center border-2 border-stone-200">
+                        <User className="w-10 h-10 text-emerald-600" />
                       </div>
                     )}
                     <div className="flex flex-col">
-                      <span className="text-xs font-serif font-medium text-stone-800">{profile.name}</span>
-                      <span className="text-[10px] font-serif text-stone-400">{profile.signature}</span>
+                      <span className="text-2xl font-serif font-medium text-stone-800">{profile.name}</span>
+                      <span className="text-xl font-serif text-stone-400">{profile.signature}</span>
                     </div>
                   </div>
 
                   {/* 右边：APP名字 + Logo */}
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-serif text-stone-400">熬汤日记</span>
+                  <div className="flex items-center gap-4">
+                    <span className="text-2xl font-serif text-stone-400">熬汤日记</span>
                     <img
                       src="/icon.png"
                       alt="熬汤日记"
-                      className="w-5 h-5 rounded-md object-cover"
+                      className="w-12 h-12 rounded-xl object-cover"
                     />
                   </div>
                 </div>
