@@ -3600,8 +3600,8 @@ export default function AshtangaTracker() {
 
   // Initialize practice options from hook data
   useEffect(() => {
-    // 先过滤掉id为"custom"和"guided_audio"的选项（如果存在）
-    const regularOptions = practiceOptionsData.filter(o => o.id !== "custom" && o.id !== "guided_audio")
+    // 先过滤掉id为"custom"和"guided_audio"的选项（如果存在），以及visible=false的选项
+    const regularOptions = practiceOptionsData.filter(o => o.id !== "custom" && o.id !== "guided_audio" && o.visible !== false)
 
     // 检查是否已存在口令跟练选项
     const hasGuidedAudio = practiceOptionsData.some(o => o.id === "guided_audio")
