@@ -2394,12 +2394,20 @@ function MonthlyStatsShareModal({
               <div className="relative w-full aspect-[3/4] rounded-3xl shadow-2xl overflow-hidden bg-white">
                 {/* 实际显示用缩小版内容 */}
                 <div className="absolute inset-0 flex flex-col p-6">
-                  {/* 顶部：已累计熬汤 */}
-                  <div className="mb-3">
-                    <div className="text-stone-500 text-xs font-serif mb-1">已累计熬汤</div>
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-4xl font-serif font-bold text-emerald-700">{stats.totalHours}</span>
-                      <span className="text-stone-500 text-base font-serif">小时</span>
+                  {/* 顶部：左边年份月份，右边累计熬汤 */}
+                  <div className="flex items-start justify-between mb-3">
+                    {/* 左边：年份月份 */}
+                    <div className="flex flex-col">
+                      <span className="text-3xl font-serif font-bold text-stone-800">{year}</span>
+                      <span className="text-lg font-serif text-stone-500">{month + 1}月</span>
+                    </div>
+                    {/* 右边：已累计熬汤 */}
+                    <div className="text-right">
+                      <div className="text-stone-500 text-xs font-serif mb-1">已累计熬汤</div>
+                      <div className="flex items-baseline gap-1 justify-end">
+                        <span className="text-4xl font-serif font-bold text-emerald-700">{stats.totalHours}</span>
+                        <span className="text-stone-500 text-base font-serif">小时</span>
+                      </div>
                     </div>
                   </div>
 
@@ -2421,27 +2429,27 @@ function MonthlyStatsShareModal({
                     </div>
                   </div>
 
-                  {/* 统计数据 - 无分割线 */}
-                  <div className="flex items-end justify-between py-3">
+                  {/* 统计数据 - 无分割线，字体变大 */}
+                  <div className="flex items-end justify-between py-4">
                     <div>
-                      <div className="text-stone-500 text-[10px] font-serif mb-0.5">相当于</div>
-                      <div className="text-xl font-serif font-bold text-emerald-700">{formatNumber(stats.breathCount)}</div>
-                      <div className="text-stone-500 text-[10px] font-serif">次深呼吸</div>
+                      <div className="text-stone-500 text-sm font-serif mb-1">相当于</div>
+                      <div className="text-3xl font-serif font-bold text-emerald-700">{formatNumber(stats.breathCount)}</div>
+                      <div className="text-stone-500 text-sm font-serif">次深呼吸</div>
                     </div>
                     <div className="text-right">
-                      <div className="flex items-center justify-end gap-1 mb-0.5">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="text-orange-500">
+                      <div className="flex items-center justify-end gap-1 mb-1">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="text-orange-500">
                           <path d="M12 2L4 10h4v4h8v-4h4L12 2z" fill="currentColor" opacity="0.8"/>
                           <path d="M12 6L6 12h3v6h6v-6h3L12 6z" fill="currentColor" opacity="0.6"/>
                         </svg>
-                        <span className="text-stone-500 text-[10px] font-serif">像一棵树</span>
+                        <span className="text-stone-500 text-sm font-serif">像一棵树</span>
                       </div>
-                      <div className="text-xl font-serif font-bold text-orange-500">{formatNumber(stats.photosynthesisCount)}</div>
-                      <div className="text-stone-500 text-[10px] font-serif">次光合作用</div>
+                      <div className="text-3xl font-serif font-bold text-orange-500">{formatNumber(stats.photosynthesisCount)}</div>
+                      <div className="text-stone-500 text-sm font-serif">次光合作用</div>
                     </div>
                   </div>
 
-                  {/* 底部 - 无分割线 */}
+                  {/* 底部 - 无分割线，对齐调整 */}
                   <div className="flex items-center justify-between py-3">
                     <div className="flex items-center gap-2">
                       {profile.avatar ? (
@@ -2457,7 +2465,7 @@ function MonthlyStatsShareModal({
                       </div>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <span className="text-xs font-serif text-stone-400">熬汤日记</span>
+                      <span className="text-[10px] font-serif text-stone-400">熬汤日记</span>
                       <img src="/icon.png" alt="熬汤日记" className="w-5 h-5 rounded-md object-cover" />
                     </div>
                   </div>
@@ -2469,12 +2477,20 @@ function MonthlyStatsShareModal({
                 id="monthly-stats-share-content"
                 className="fixed -left-[9999px] bg-white w-[810px] h-[1080px] flex flex-col p-16"
               >
-                {/* 顶部：已累计熬汤 */}
-                <div className="mb-6">
-                  <div className="text-stone-500 text-3xl font-serif mb-3">已累计熬汤</div>
-                  <div className="flex items-baseline gap-3">
-                    <span className="text-[120px] font-serif font-bold text-emerald-700 leading-none">{stats.totalHours}</span>
-                    <span className="text-stone-500 text-4xl font-serif">小时</span>
+                {/* 顶部：左边年份月份，右边累计熬汤 */}
+                <div className="flex items-start justify-between mb-6">
+                  {/* 左边：年份月份 */}
+                  <div className="flex flex-col">
+                    <span className="text-7xl font-serif font-bold text-stone-800">{year}</span>
+                    <span className="text-4xl font-serif text-stone-500">{month + 1}月</span>
+                  </div>
+                  {/* 右边：已累计熬汤 */}
+                  <div className="text-right">
+                    <div className="text-stone-500 text-3xl font-serif mb-3">已累计熬汤</div>
+                    <div className="flex items-baseline gap-3 justify-end">
+                      <span className="text-[120px] font-serif font-bold text-emerald-700 leading-none">{stats.totalHours}</span>
+                      <span className="text-stone-500 text-4xl font-serif">小时</span>
+                    </div>
                   </div>
                 </div>
 
@@ -2496,27 +2512,27 @@ function MonthlyStatsShareModal({
                   </div>
                 </div>
 
-                {/* 统计数据 - 无分割线 */}
-                <div className="flex items-end justify-between py-10">
+                {/* 统计数据 - 无分割线，字体变大 */}
+                <div className="flex items-end justify-between py-12">
                   <div>
-                    <div className="text-stone-500 text-2xl font-serif mb-3">相当于</div>
-                    <div className="text-6xl font-serif font-bold text-emerald-700">{formatNumber(stats.breathCount)}</div>
-                    <div className="text-stone-500 text-2xl font-serif mt-2">次深呼吸</div>
+                    <div className="text-stone-500 text-3xl font-serif mb-4">相当于</div>
+                    <div className="text-7xl font-serif font-bold text-emerald-700">{formatNumber(stats.breathCount)}</div>
+                    <div className="text-stone-500 text-3xl font-serif mt-3">次深呼吸</div>
                   </div>
                   <div className="text-right">
-                    <div className="flex items-center justify-end gap-3 mb-3">
-                      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" className="text-orange-500">
+                    <div className="flex items-center justify-end gap-4 mb-4">
+                      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" className="text-orange-500">
                         <path d="M12 2L4 10h4v4h8v-4h4L12 2z" fill="currentColor" opacity="0.8"/>
                         <path d="M12 6L6 12h3v6h6v-6h3L12 6z" fill="currentColor" opacity="0.6"/>
                       </svg>
-                      <span className="text-stone-500 text-2xl font-serif">像一棵树</span>
+                      <span className="text-stone-500 text-3xl font-serif">像一棵树</span>
                     </div>
-                    <div className="text-6xl font-serif font-bold text-orange-500">{formatNumber(stats.photosynthesisCount)}</div>
-                    <div className="text-stone-500 text-2xl font-serif mt-2">次光合作用</div>
+                    <div className="text-7xl font-serif font-bold text-orange-500">{formatNumber(stats.photosynthesisCount)}</div>
+                    <div className="text-stone-500 text-3xl font-serif mt-3">次光合作用</div>
                   </div>
                 </div>
 
-                {/* 底部 - 无分割线 */}
+                {/* 底部 - 无分割线，对齐调整 */}
                 <div className="flex items-center justify-between py-8">
                   {/* 左边：头像 + 名字 + 签名 */}
                   <div className="flex items-center gap-5">
@@ -2539,7 +2555,7 @@ function MonthlyStatsShareModal({
 
                   {/* 右边：APP名字 + Logo */}
                   <div className="flex items-center gap-4">
-                    <span className="text-2xl font-serif text-stone-400">熬汤日记</span>
+                    <span className="text-xl font-serif text-stone-400">熬汤日记</span>
                     <img
                       src="/icon.png"
                       alt="熬汤日记"
