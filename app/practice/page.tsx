@@ -2424,28 +2424,28 @@ function MonthlyStatsShareModal({
 
                 {/* 统计数据 */}
                 <div className="flex items-end justify-between py-4 border-t border-stone-100">
-                  {/* 左边：呼吸 */}
+                  {/* 左边：深呼吸 */}
                   <div>
-                    <div className="text-stone-500 text-xs font-serif mb-0.5">相当于</div>
-                    <div className="text-stone-600 text-xs font-serif mb-1">完成了核心精进课程</div>
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-2xl font-serif font-bold text-emerald-700">{Math.round(stats.breathCount / 1000)}</span>
-                      <span className="text-stone-500 text-sm font-serif">次</span>
+                    <div className="text-stone-500 text-xs font-serif mb-1">相当于</div>
+                    <div className="text-2xl font-serif font-bold text-emerald-700">
+                      {formatNumber(stats.breathCount)}
                     </div>
+                    <div className="text-stone-500 text-xs font-serif">次深呼吸</div>
                   </div>
 
                   {/* 右边：光合作用 */}
                   <div className="text-right">
                     <div className="flex items-center justify-end gap-1 mb-1">
-                      <span className="text-stone-500 text-xs font-serif">身心之旅 from</span>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="text-emerald-600">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-orange-500">
                         <path d="M12 2L4 10h4v4h8v-4h4L12 2z" fill="currentColor" opacity="0.8"/>
                         <path d="M12 6L6 12h3v6h6v-6h3L12 6z" fill="currentColor" opacity="0.6"/>
                       </svg>
+                      <span className="text-stone-500 text-xs font-serif">像一棵树</span>
                     </div>
-                    <div className="text-emerald-700 text-sm font-serif">
-                      基础 → 冥想大师
+                    <div className="text-2xl font-serif font-bold text-orange-500">
+                      {formatNumber(stats.photosynthesisCount)}
                     </div>
+                    <div className="text-stone-500 text-xs font-serif">次光合作用</div>
                   </div>
                 </div>
 
