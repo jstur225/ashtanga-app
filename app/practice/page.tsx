@@ -2393,107 +2393,90 @@ function MonthlyStatsShareModal({
               {/* Share Card Content (for screenshot) */}
               <div
                 id="monthly-stats-share-content"
-                className="rounded-3xl shadow-2xl overflow-hidden bg-white w-[320px] h-[427px] flex flex-col"
+                className="rounded-3xl shadow-2xl overflow-hidden bg-white w-[320px] h-[427px] flex flex-col p-6"
               >
-                {/* 顶部：左上角用户信息 */}
-                <div className="pt-5 px-5 flex justify-between items-start">
-                  {/* 左上角：头像 + 名字 + 签名 */}
+                {/* 顶部：已累计熬汤 */}
+                <div className="mb-2">
+                  <div className="text-stone-500 text-sm font-serif mb-1">已累计熬汤</div>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-5xl font-serif font-bold text-emerald-700">{stats.totalHours}</span>
+                    <span className="text-stone-500 text-lg font-serif">小时</span>
+                  </div>
+                </div>
+
+                {/* 日历网格 - 圆点样式 */}
+                <div className="flex-1 flex flex-col justify-center">
+                  <div className="grid grid-cols-7 gap-x-3 gap-y-2 justify-items-center">
+                    {calendarDays.map((item, idx) => (
+                      <div
+                        key={idx}
+                        className={`w-6 h-6 rounded-full ${
+                          item.day === null
+                            ? '' // 空位
+                            : item.practiced
+                            ? 'bg-emerald-600' // 练习天 - 绿色实心圆
+                            : 'bg-stone-200' // 未练习天 - 浅灰色
+                        }`}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                {/* 统计数据 */}
+                <div className="flex items-end justify-between py-4 border-t border-stone-100">
+                  {/* 左边：呼吸 */}
+                  <div>
+                    <div className="text-stone-500 text-xs font-serif mb-0.5">相当于</div>
+                    <div className="text-stone-600 text-xs font-serif mb-1">完成了核心精进课程</div>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-2xl font-serif font-bold text-emerald-700">{Math.round(stats.breathCount / 1000)}</span>
+                      <span className="text-stone-500 text-sm font-serif">次</span>
+                    </div>
+                  </div>
+
+                  {/* 右边：光合作用 */}
+                  <div className="text-right">
+                    <div className="flex items-center justify-end gap-1 mb-1">
+                      <span className="text-stone-500 text-xs font-serif">身心之旅 from</span>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="text-emerald-600">
+                        <path d="M12 2L4 10h4v4h8v-4h4L12 2z" fill="currentColor" opacity="0.8"/>
+                        <path d="M12 6L6 12h3v6h6v-6h3L12 6z" fill="currentColor" opacity="0.6"/>
+                      </svg>
+                    </div>
+                    <div className="text-emerald-700 text-sm font-serif">
+                      基础 → 冥想大师
+                    </div>
+                  </div>
+                </div>
+
+                {/* 底部：左边用户信息，右边APP标识 */}
+                <div className="flex items-center justify-between pt-4 border-t border-stone-100">
+                  {/* 左边：头像 + 名字 + 签名 */}
                   <div className="flex items-center gap-2">
                     {profile.avatar ? (
                       <img
                         src={profile.avatar}
                         alt="头像"
-                        className="w-10 h-10 rounded-full object-cover border border-stone-200"
+                        className="w-8 h-8 rounded-full object-cover border border-stone-200"
                       />
                     ) : (
-                      <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center border border-stone-200">
-                        <User className="w-5 h-5 text-emerald-600" />
+                      <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center border border-stone-200">
+                        <User className="w-4 h-4 text-emerald-600" />
                       </div>
                     )}
                     <div className="flex flex-col">
-                      <span className="text-sm font-serif font-medium text-stone-800">{profile.name}</span>
-                      <span className="text-[10px] font-serif text-stone-400 italic">
-                        {profile.signature}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 主内容区域 */}
-                <div className="px-5 pt-2 pb-4 flex-1 flex flex-col">
-                  {/* 顶部大标题 */}
-                  <div className="mb-4">
-                    <div className="text-stone-400 text-xs font-serif mb-1">已累计熬汤</div>
-                    <div className="flex items-baseline gap-1.5">
-                      <span className="text-4xl font-serif font-bold text-stone-800">{stats.totalHours}</span>
-                      <span className="text-stone-500 text-base font-serif">小时</span>
+                      <span className="text-xs font-serif font-medium text-stone-800">{profile.name}</span>
+                      <span className="text-[10px] font-serif text-stone-400">{profile.signature}</span>
                     </div>
                   </div>
 
-                  {/* 日历网格 */}
-                  <div className="mb-4">
-                    {/* 星期标题 */}
-                    <div className="grid grid-cols-7 gap-2 justify-items-center mb-2">
-                      {['日', '一', '二', '三', '四', '五', '六'].map((day) => (
-                        <div key={day} className="w-8 h-5 flex items-center justify-center text-[11px] font-serif text-stone-400">
-                          {day}
-                        </div>
-                      ))}
-                    </div>
-                    {/* 日期格子 */}
-                    <div className="grid grid-cols-7 gap-2 justify-items-center">
-                      {calendarDays.map((item, idx) => (
-                        <div
-                          key={idx}
-                          className={`w-8 h-8 aspect-square rounded-lg flex items-center justify-center text-[12px] font-serif ${
-                            item.day === null
-                              ? '' // 空位
-                              : item.practiced
-                              ? 'green-gradient-deep border border-white/20 shadow-[0_2px_8px_rgba(45,90,39,0.3)] text-white' // 练习天
-                              : 'bg-stone-100 text-stone-500' // 未练习天
-                          }`}
-                        >
-                          {item.day !== null && item.day}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* 底部左右两栏 */}
-                  <div className="flex items-end justify-between pt-3 border-t border-stone-100">
-                    {/* 左边：呼吸 */}
-                    <div>
-                      <div className="text-stone-400 text-[11px] font-serif mb-0.5">相当于</div>
-                      <div className="text-xl font-serif font-bold text-emerald-600">
-                        {formatNumber(stats.breathCount)}
-                      </div>
-                      <div className="text-stone-400 text-[11px] font-serif">次深呼吸</div>
-                    </div>
-
-                    {/* 右边：光合作用 */}
-                    <div className="text-right">
-                      <div className="flex items-center justify-end gap-1 mb-0.5">
-                        {/* 树图标 */}
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="text-orange-500">
-                          <path d="M12 2L4 10h4v4h8v-4h4L12 2z" fill="currentColor" opacity="0.8"/>
-                          <path d="M12 6L6 12h3v6h6v-6h3L12 6z" fill="currentColor" opacity="0.6"/>
-                        </svg>
-                        <span className="text-stone-400 text-[11px] font-serif">像一棵树</span>
-                      </div>
-                      <div className="text-xl font-serif font-bold text-orange-500">
-                        {formatNumber(stats.photosynthesisCount)}
-                      </div>
-                      <div className="text-stone-400 text-[11px] font-serif">次光合作用</div>
-                    </div>
-                  </div>
-
-                  {/* 底部Logo */}
-                  <div className="flex items-center justify-center gap-2 mt-auto pt-4 pb-1">
-                    <span className="text-[11px] font-serif text-stone-400">熬汤日记</span>
+                  {/* 右边：APP名字 + Logo */}
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-serif text-stone-400">熬汤日记</span>
                     <img
                       src="/icon.png"
                       alt="熬汤日记"
-                      className="w-5 h-5 rounded-md shadow-sm object-cover"
+                      className="w-5 h-5 rounded-md object-cover"
                     />
                   </div>
                 </div>
