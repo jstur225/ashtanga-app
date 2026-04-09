@@ -2286,8 +2286,8 @@ function MonthlyStatsShareModal({
   month: number
   profile: UserProfile
 }) {
-  // 计算统计数据
-  const stats = useMemo(() => {
+  // 计算统计数据和日历数据
+  const { stats, calendarDays, hasPractice } = useMemo(() => {
     const monthRecords = practiceHistory.filter(r => {
       const d = new Date(r.date)
       return d.getFullYear() === year && d.getMonth() === month && r.duration > 0 && r.type !== '草稿'
@@ -2295,13 +2295,39 @@ function MonthlyStatsShareModal({
 
     const totalSeconds = monthRecords.reduce((acc, r) => acc + r.duration, 0)
     const totalHours = Math.round(totalSeconds / 3600)
-    const breathCount = Math.round(totalSeconds / 6) // 6秒一次深呼吸
-    const photosynthesisCount = breathCount * 144 // 1:144 比例
+    const breathCount = Math.round(totalSeconds / 6)
+    const photosynthesisCount = breathCount * 144
+
+    // 生成日历数据
+    const firstDay = new Date(year, month, 1)
+    const lastDay = new Date(year, month + 1, 0)
+    const daysInMonth = lastDay.getDate()
+    const startDayOfWeek = firstDay.getDay() // 0 = Sunday
+
+    // 创建日期到练习状态的映射
+    const practiceMap: Record<number, boolean> = {}
+    monthRecords.forEach(r => {
+      const day = new Date(r.date).getDate()
+      practiceMap[day] = true
+    })
+
+    // 生成日历网格（7列，6行最大）
+    const days: { day: number | null; practiced: boolean }[] = []
+
+    // 前置空位
+    for (let i = 0; i < startDayOfWeek; i++) {
+      days.push({ day: null, practiced: false })
+    }
+
+    // 当月日期
+    for (let day = 1; day <= daysInMonth; day++) {
+      days.push({ day, practiced: !!practiceMap[day] })
+    }
 
     return {
-      totalHours,
-      breathCount,
-      photosynthesisCount,
+      stats: { totalHours, breathCount, photosynthesisCount },
+      calendarDays: days,
+      hasPractice: (day: number) => !!practiceMap[day],
     }
   }, [practiceHistory, year, month])
 
@@ -2381,8 +2407,39 @@ function MonthlyStatsShareModal({
                 {/* 主内容区域 */}
                 <div className="px-6 py-4">
                   {/* 月份标题 */}
-                  <div className="text-center mb-8">
+                  <div className="text-center mb-6">
                     <div className="text-emerald-300/70 text-sm font-serif">{year}年 {monthNames[month]}</div>
+                  </div>
+
+                  {/* 日历网格 - 简单圆圈 */}
+                  <div className="mb-8">
+                    <div className="grid grid-cols-7 gap-2 justify-items-center">
+                      {/* 星期标题 */}
+                      {['日', '一', '二', '三', '四', '五', '六'].map((w) => (
+                        <div key={w} className="text-[10px] text-emerald-500/40 font-serif mb-1">
+                          {w}
+                        </div>
+                      ))}
+                      {/* 日期圆圈 */}
+                      {calendarDays.map((item, idx) => (
+                        <div
+                          key={idx}
+                          className={`w-6 h-6 rounded-full flex items-center justify-center ${
+                            item.day === null
+                              ? '' // 空位
+                              : item.practiced
+                              ? 'bg-emerald-500' // 练习天 - 绿色实心
+                              : 'border border-emerald-500/20' // 未练习天 - 绿色边框
+                          }`}
+                        >
+                          {item.day !== null && (
+                            <span className={`text-[10px] font-serif ${item.practiced ? 'text-emerald-950' : 'text-emerald-500/40'}`}>
+                              {item.day}
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
 
                   {/* 第一层级：时间 */}
