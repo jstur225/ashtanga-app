@@ -2393,9 +2393,9 @@ function MonthlyStatsShareModal({
               {/* Share Card Content (for screenshot) */}
               <div
                 id="monthly-stats-share-content"
-                className="rounded-3xl shadow-2xl overflow-hidden bg-white"
+                className="rounded-3xl shadow-2xl overflow-hidden bg-white aspect-[3/4] flex flex-col"
               >
-                {/* 顶部：左上角用户信息，右上角Logo */}
+                {/* 顶部：左上角用户信息 */}
                 <div className="pt-5 px-5 flex justify-between items-start">
                   {/* 左上角：头像 + 名字 + 签名 */}
                   <div className="flex items-center gap-2">
@@ -2412,23 +2412,15 @@ function MonthlyStatsShareModal({
                     )}
                     <div className="flex flex-col">
                       <span className="text-sm font-serif font-medium text-stone-800">{profile.name}</span>
-                      <span className="text-[10px] font-serif text-stone-400 italic truncate max-w-[100px]">
+                      <span className="text-[10px] font-serif text-stone-400 italic">
                         {profile.signature}
                       </span>
-                    </div>
-                  </div>
-
-                  {/* 右上角：Logo */}
-                  <div className="flex items-center gap-1">
-                    <span className="text-xs font-serif text-stone-400">熬汤日记</span>
-                    <div className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center">
-                      <span className="text-white text-xs">ॐ</span>
                     </div>
                   </div>
                 </div>
 
                 {/* 主内容区域 */}
-                <div className="px-5 py-4">
+                <div className="px-5 py-4 flex-1 flex flex-col">
                   {/* 顶部大标题 */}
                   <div className="mb-6">
                     <div className="text-stone-400 text-xs font-serif mb-1">已累计熬汤</div>
@@ -2440,20 +2432,28 @@ function MonthlyStatsShareModal({
 
                   {/* 日历网格 - 占主要空间 */}
                   <div className="mb-6">
+                    {/* 星期标题 */}
+                    <div className="grid grid-cols-7 gap-1.5 justify-items-center mb-2">
+                      {['日', '一', '二', '三', '四', '五', '六'].map((day) => (
+                        <div key={day} className="w-7 h-7 flex items-center justify-center text-[10px] font-serif text-stone-400">
+                          {day}
+                        </div>
+                      ))}
+                    </div>
+                    {/* 日期格子 */}
                     <div className="grid grid-cols-7 gap-1.5 justify-items-center">
-                      {/* 日期圆圈 - 简化，不显示星期标题 */}
                       {calendarDays.map((item, idx) => (
                         <div
                           key={idx}
-                          className={`w-5 h-5 rounded-full flex items-center justify-center ${
+                          className={`w-7 h-7 aspect-square rounded-full flex items-center justify-center text-[10px] font-serif ${
                             item.day === null
                               ? '' // 空位
                               : item.practiced
-                              ? 'bg-emerald-500' // 练习天 - 绿色实心
-                              : 'bg-stone-200' // 未练习天 - 浅灰色
+                              ? 'green-gradient-deep border border-white/20 shadow-[0_2px_8px_rgba(45,90,39,0.3)] text-white' // 练习天 - 绿色渐变 + 白色数字
+                              : 'bg-stone-100 text-stone-400' // 未练习天 - 浅灰色背景
                           }`}
                         >
-                          {/* 不显示数字，只显示圆点 */}
+                          {item.day !== null && item.day}
                         </div>
                       ))}
                     </div>
@@ -2486,19 +2486,15 @@ function MonthlyStatsShareModal({
                       <div className="text-stone-500 text-xs font-serif">次光合作用</div>
                     </div>
                   </div>
-                </div>
 
-                {/* 底部用户信息 */}
-                <div className="px-6 pb-6">
-                  <div className="flex items-center justify-center gap-2 pt-4 border-t border-emerald-500/20">
-                    {profile.avatar ? (
-                      <img src={profile.avatar} alt="头像" className="w-5 h-5 rounded-full object-cover border border-emerald-400/30" />
-                    ) : (
-                      <div className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center border border-emerald-400/30">
-                        <User className="w-2.5 h-2.5 text-emerald-300" />
-                      </div>
-                    )}
-                    <span className="text-xs font-serif text-emerald-200/60">{profile.name}</span>
+                  {/* 底部Logo */}
+                  <div className="flex items-center justify-center gap-2 mt-auto pt-6">
+                    <span className="text-xs font-serif text-stone-400">熬汤日记</span>
+                    <img
+                      src="/icon.png"
+                      alt="熬汤日记"
+                      className="w-6 h-6 rounded-lg shadow-sm object-cover"
+                    />
                   </div>
                 </div>
               </div>
