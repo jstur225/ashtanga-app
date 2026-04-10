@@ -2395,7 +2395,7 @@ function MonthlyStatsShareModal({
                 {/* 实际显示内容 */}
                 <div className="flex flex-col p-6">
                   {/* 顶部：左边年份月份，右边累计熬汤 */}
-                  <div className="flex items-end justify-between">
+                  <div className="flex items-end justify-between mb-4">
                     {/* 左边：年份月份 */}
                     <div className="flex flex-col">
                       <span className="text-xs font-serif mb-1" style={{ color: '#2d5a27' }}>{year}年</span>
@@ -2415,7 +2415,7 @@ function MonthlyStatsShareModal({
                   </div>
 
                   {/* 日历网格 - 圆点样式 */}
-                  <div className="flex-1 flex flex-col justify-center my-4">
+                  <div className="flex-1 flex flex-col justify-center mb-4">
                     <div className="grid grid-cols-7 gap-1 justify-items-center">
                       {calendarDays.map((item, idx) => (
                         <div
@@ -2433,7 +2433,7 @@ function MonthlyStatsShareModal({
                   </div>
 
                   {/* 统计数据 - 像一棵树后面加"进行了" */}
-                  <div className="flex items-end justify-between py-4">
+                  <div className="flex items-end justify-between pt-4">
                     <div className="text-left">
                       <div className="text-xs font-serif mb-1" style={{ color: '#2d5a27' }}>相当于</div>
                       <div className="text-2xl font-serif font-bold" style={{ color: '#2d5a27' }}>{formatNumber(stats.breathCount)}</div>
