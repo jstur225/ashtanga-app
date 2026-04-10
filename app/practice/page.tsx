@@ -2425,7 +2425,7 @@ function MonthlyStatsShareModal({
                               ? ''
                               : item.practiced
                               ? 'green-gradient-deep border border-white/20 shadow-[0_2px_8px_rgba(45,90,39,0.3)]'
-                              : 'bg-stone-200 border border-stone-300/30'
+                              : 'bg-stone-200'
                           }`}
                         />
                       ))}
@@ -2453,7 +2453,7 @@ function MonthlyStatsShareModal({
                   </div>
 
                   {/* 底部 - 熬汤日记灰色，与签名底部对齐，增加底部空间 */}
-                  <div className="flex items-end justify-between pt-3 pb-3">
+                  <div className="flex items-end justify-between pt-3 pb-2">
                     <div className="flex items-end gap-2">
                       {profile.avatar ? (
                         <img src={profile.avatar} alt="头像" className="w-8 h-8 rounded-full object-cover border border-stone-200" />
