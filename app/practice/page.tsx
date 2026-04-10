@@ -2395,7 +2395,7 @@ function MonthlyStatsShareModal({
                 {/* 实际显示内容 */}
                 <div className="absolute inset-0 flex flex-col p-6">
                   {/* 顶部：左边年份月份，右边累计熬汤 */}
-                  <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-end justify-between mb-3">
                     {/* 左边：年份月份 */}
                     <div className="flex flex-col">
                       <span className="text-xs font-serif text-emerald-800">{year}年</span>
