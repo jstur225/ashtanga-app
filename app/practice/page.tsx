@@ -2389,9 +2389,9 @@ function MonthlyStatsShareModal({
             className="fixed inset-0 z-50 flex items-center justify-center p-6"
             onClick={onClose}
           >
-            <div className="flex flex-col gap-3 w-[90vw] max-w-[320px]" onClick={(e) => e.stopPropagation()}>
-              {/* Share Card (for display & export) - 响应式 3:4 比例 */}
-              <div id="monthly-stats-share-content" className="relative w-full aspect-[3/4] rounded-3xl shadow-2xl overflow-hidden bg-white">
+            <div className="flex flex-col gap-3 items-center" onClick={(e) => e.stopPropagation()}>
+              {/* Share Card (for display & export) - 固定高度 */}
+              <div id="monthly-stats-share-content" className="relative w-[320px] h-[427px] rounded-3xl shadow-2xl overflow-hidden bg-white">
                 {/* 实际显示内容 */}
                 <div className="absolute inset-0 flex flex-col p-6">
                   {/* 顶部：左边年份月份，右边累计熬汤 */}
@@ -2473,7 +2473,7 @@ function MonthlyStatsShareModal({
               </div>
 
               {/* Actions - 与时光轴分享卡片同风格 */}
-              <div className="flex gap-3" onClick={(e) => e.stopPropagation()}>
+              <div className="flex gap-3 w-[320px]" onClick={(e) => e.stopPropagation()}>
                 <button
                   type="button"
                   onMouseDown={(e) => {
