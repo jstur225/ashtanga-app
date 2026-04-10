@@ -2395,7 +2395,7 @@ function MonthlyStatsShareModal({
                 {/* 实际显示内容 */}
                 <div className="flex flex-col p-6">
                   {/* 顶部：左边年份月份，右边累计熬汤 */}
-                  <div className="flex items-end justify-between mb-3">
+                  <div className="flex items-end justify-between">
                     {/* 左边：年份月份 */}
                     <div className="flex flex-col">
                       <span className="text-xs font-serif" style={{ color: '#2d5a27' }}>{year}年</span>
@@ -2453,7 +2453,7 @@ function MonthlyStatsShareModal({
                   </div>
 
                   {/* 底部 - 熬汤日记灰色，与签名底部对齐，增加底部空间 */}
-                  <div className="flex items-end justify-between pt-3 pb-2">
+                  <div className="flex items-end justify-between pt-3">
                     <div className="flex items-end gap-2">
                       {profile.avatar ? (
                         <img src={profile.avatar} alt="头像" className="w-8 h-8 rounded-full object-cover border border-stone-200" />
