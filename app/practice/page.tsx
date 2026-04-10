@@ -2398,18 +2398,18 @@ function MonthlyStatsShareModal({
                   <div className="flex items-end justify-between mb-3">
                     {/* 左边：年份月份 */}
                     <div className="flex flex-col">
-                      <span className="text-xs font-serif text-emerald-800">{year}年</span>
+                      <span className="text-xs font-serif" style={{ color: '#2d5a27' }}>{year}年</span>
                       <div className="flex items-baseline gap-1">
-                        <span className="text-4xl font-serif font-bold text-emerald-800">{month + 1}</span>
-                        <span className="text-base font-serif text-emerald-800">月</span>
+                        <span className="text-4xl font-serif font-bold" style={{ color: '#2d5a27' }}>{month + 1}</span>
+                        <span className="text-base font-serif" style={{ color: '#2d5a27' }}>月</span>
                       </div>
                     </div>
                     {/* 右边：已累计熬汤 */}
                     <div className="text-right">
-                      <div className="text-emerald-800 text-xs font-serif mb-1">已累计熬汤</div>
+                      <div className="text-xs font-serif mb-1" style={{ color: '#2d5a27' }}>已累计熬汤</div>
                       <div className="flex items-baseline gap-1 justify-end">
-                        <span className="text-4xl font-serif font-bold text-emerald-800">{stats.totalHours}</span>
-                        <span className="text-emerald-800 text-base font-serif">小时</span>
+                        <span className="text-4xl font-serif font-bold" style={{ color: '#2d5a27' }}>{stats.totalHours}</span>
+                        <span className="text-base font-serif" style={{ color: '#2d5a27' }}>小时</span>
                       </div>
                     </div>
                   </div>
@@ -2435,25 +2435,25 @@ function MonthlyStatsShareModal({
                   {/* 统计数据 - 像一棵树后面加"进行了" */}
                   <div className="flex items-end justify-between py-4">
                     <div className="text-left">
-                      <div className="text-emerald-800 text-xs font-serif mb-1">相当于</div>
-                      <div className="text-2xl font-serif font-bold text-emerald-800">{formatNumber(stats.breathCount)}</div>
-                      <div className="text-emerald-800 text-xs font-serif">次深呼吸</div>
+                      <div className="text-xs font-serif mb-1" style={{ color: '#2d5a27' }}>相当于</div>
+                      <div className="text-2xl font-serif font-bold" style={{ color: '#2d5a27' }}>{formatNumber(stats.breathCount)}</div>
+                      <div className="text-xs font-serif" style={{ color: '#2d5a27' }}>次深呼吸</div>
                     </div>
                     <div className="text-right">
                       <div className="flex items-center justify-end gap-1 mb-1">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="text-emerald-800">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" style={{ color: '#2d5a27' }}>
                           <path d="M12 2L4 10h4v4h8v-4h4L12 2z" fill="currentColor"/>
                           <path d="M12 6L6 12h3v6h6v-6h3L12 6z" fill="currentColor"/>
                         </svg>
-                        <span className="text-emerald-800 text-xs font-serif">像一棵树进行了</span>
+                        <span className="text-xs font-serif" style={{ color: '#2d5a27' }}>像一棵树进行了</span>
                       </div>
                       <div className="text-2xl font-serif font-bold text-orange-500">{formatNumber(stats.photosynthesisCount)}</div>
-                      <div className="text-emerald-800 text-xs font-serif">次光合作用</div>
+                      <div className="text-xs font-serif" style={{ color: '#2d5a27' }}>次光合作用</div>
                     </div>
                   </div>
 
                   {/* 底部 - 熬汤日记灰色，与签名底部对齐，增加底部空间 */}
-                  <div className="flex items-end justify-between pt-3 pb-6">
+                  <div className="flex items-end justify-between pt-3 pb-3">
                     <div className="flex items-end gap-2">
                       {profile.avatar ? (
                         <img src={profile.avatar} alt="头像" className="w-8 h-8 rounded-full object-cover border border-stone-200" />
