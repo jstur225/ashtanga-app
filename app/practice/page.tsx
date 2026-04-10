@@ -2425,7 +2425,7 @@ function MonthlyStatsShareModal({
                               ? ''
                               : item.practiced
                               ? 'green-gradient-deep border border-white/20 shadow-[0_2px_8px_rgba(45,90,39,0.3)]'
-                              : 'bg-stone-200'
+                              : 'bg-stone-200 border border-stone-300/30'
                           }`}
                         />
                       ))}
