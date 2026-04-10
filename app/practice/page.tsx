@@ -2240,10 +2240,43 @@ function MonthlyStatsCard({
     const totalMinutes = Math.round(totalSeconds / 60)
     const avgMinutes = practiceDays > 0 ? Math.round(totalMinutes / practiceDays) : 0
 
+    // 计算连续练习周数
+    const practiceDates = practiceHistory
+      .filter(r => r.duration > 0 && r.type !== '草稿')
+      .map(r => r.date)
+      .filter((date, idx, arr) => arr.indexOf(date) === idx)
+      .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())
+
+    let consecutiveWeeks = 0
+    if (practiceDates.length > 0) {
+      const today = new Date()
+      const currentWeekEnd = new Date(today)
+      currentWeekEnd.setHours(23, 59, 59, 999)
+
+      while (true) {
+        const weekStart = new Date(currentWeekEnd)
+        weekStart.setDate(weekStart.getDate() - 6)
+        weekStart.setHours(0, 0, 0, 0)
+
+        const hasPracticeThisWeek = practiceDates.some(dateStr => {
+          const d = new Date(dateStr)
+          return d >= weekStart && d <= currentWeekEnd
+        })
+
+        if (hasPracticeThisWeek) {
+          consecutiveWeeks++
+          currentWeekEnd.setDate(currentWeekEnd.getDate() - 7)
+        } else {
+          break
+        }
+      }
+    }
+
     return {
       practiceDays,
       totalMinutes,
       avgMinutes,
+      consecutiveWeeks,
     }
   }, [practiceHistory, year, month])
 
@@ -2264,6 +2297,10 @@ function MonthlyStatsCard({
         <div className="text-center flex-1">
           <div className="text-2xl font-serif text-primary">{stats.avgMinutes}</div>
           <div className="text-xs text-muted-foreground font-serif mt-1">平均时长</div>
+        </div>
+        <div className="text-center flex-1">
+          <div className="text-2xl font-serif text-orange-500">{stats.consecutiveWeeks}</div>
+          <div className="text-xs text-muted-foreground font-serif mt-1">连续熬汤(周)</div>
         </div>
       </div>
     </div>
