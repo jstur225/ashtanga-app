@@ -2453,15 +2453,15 @@ function MonthlyStatsShareModal({
 
                   {/* 日历网格 - 圆点样式 */}
                   <div className="flex-1 flex flex-col justify-center">
-                    <div className="grid grid-cols-7 gap-1 justify-items-center">
+                    <div className="grid grid-cols-7 gap-[2px] w-[224px] mx-auto">
                       {calendarDays.map((item, idx) => (
                         <div
                           key={idx}
-                          className={`w-8 h-8 rounded-full ${
+                          className={`w-7 h-7 shrink-0 rounded-full ${
                             item.day === null
                               ? ''
                               : item.practiced
-                              ? 'green-gradient-deep border border-white/20 shadow-[0_2px_8px_rgba(45,90,39,0.3)]'
+                              ? 'green-gradient-deep border border-white/20'
                               : 'bg-stone-200'
                           }`}
                         />
