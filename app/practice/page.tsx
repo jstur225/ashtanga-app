@@ -2390,9 +2390,9 @@ function MonthlyStatsShareModal({
             onClick={onClose}
           >
             <div className="flex flex-col gap-3 w-[90vw] max-w-[320px]" onClick={(e) => e.stopPropagation()}>
-              {/* Share Card Preview (for display) - 响应式 3:4 比例 */}
-              <div className="relative w-full aspect-[3/4] rounded-3xl shadow-2xl overflow-hidden bg-white">
-                {/* 实际显示用缩小版内容 */}
+              {/* Share Card (for display & export) - 响应式 3:4 比例 */}
+              <div id="monthly-stats-share-content" className="relative w-full aspect-[3/4] rounded-3xl shadow-2xl overflow-hidden bg-white">
+                {/* 实际显示内容 */}
                 <div className="absolute inset-0 flex flex-col p-6">
                   {/* 顶部：左边年份月份，右边累计熬汤 */}
                   <div className="flex items-start justify-between mb-3">
@@ -2468,99 +2468,6 @@ function MonthlyStatsShareModal({
                       </div>
                     </div>
                     <span className="text-[10px] font-serif text-stone-400">熬汤日记</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Hidden High-Res Version (for export) */}
-              <div
-                id="monthly-stats-share-content"
-                className="fixed -left-[9999px] bg-white w-[810px] h-[1080px] flex flex-col p-16"
-              >
-                {/* 顶部：左边年份月份，右边累计熬汤 */}
-                <div className="flex items-start justify-between mb-6">
-                  {/* 左边：年份月份 */}
-                  <div className="flex flex-col">
-                    <span className="text-7xl font-serif font-bold text-stone-800">{year}</span>
-                    <span className="text-4xl font-serif text-stone-500">{month + 1}月</span>
-                  </div>
-                  {/* 右边：已累计熬汤 */}
-                  <div className="text-right">
-                    <div className="text-stone-500 text-3xl font-serif mb-3">已累计熬汤</div>
-                    <div className="flex items-baseline gap-3 justify-end">
-                      <span className="text-[120px] font-serif font-bold text-emerald-700 leading-none">{stats.totalHours}</span>
-                      <span className="text-stone-500 text-4xl font-serif">小时</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 日历网格 - 圆点样式 */}
-                <div className="flex-1 flex flex-col justify-center">
-                  <div className="grid grid-cols-7 gap-1 justify-items-center">
-                    {calendarDays.map((item, idx) => (
-                      <div
-                        key={idx}
-                        className={`w-24 h-24 rounded-full ${
-                          item.day === null
-                            ? ''
-                            : item.practiced
-                            ? 'green-gradient-deep border border-white/20 shadow-[0_2px_8px_rgba(45,90,39,0.3)]'
-                            : 'bg-stone-200'
-                        }`}
-                      />
-                    ))}
-                  </div>
-                </div>
-
-                {/* 统计数据 - 无分割线，字体变大 */}
-                <div className="flex items-end justify-between py-12">
-                  <div>
-                    <div className="text-stone-500 text-3xl font-serif mb-4">相当于</div>
-                    <div className="text-7xl font-serif font-bold text-emerald-700">{formatNumber(stats.breathCount)}</div>
-                    <div className="text-stone-500 text-3xl font-serif mt-3">次深呼吸</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="flex items-center justify-end gap-4 mb-4">
-                      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" className="text-orange-500">
-                        <path d="M12 2L4 10h4v4h8v-4h4L12 2z" fill="currentColor" opacity="0.8"/>
-                        <path d="M12 6L6 12h3v6h6v-6h3L12 6z" fill="currentColor" opacity="0.6"/>
-                      </svg>
-                      <span className="text-stone-500 text-3xl font-serif">像一棵树</span>
-                    </div>
-                    <div className="text-7xl font-serif font-bold text-orange-500">{formatNumber(stats.photosynthesisCount)}</div>
-                    <div className="text-stone-500 text-3xl font-serif mt-3">次光合作用</div>
-                  </div>
-                </div>
-
-                {/* 底部 - 无分割线，对齐调整 */}
-                <div className="flex items-center justify-between py-8">
-                  {/* 左边：头像 + 名字 + 签名 */}
-                  <div className="flex items-center gap-5">
-                    {profile.avatar ? (
-                      <img
-                        src={profile.avatar}
-                        alt="头像"
-                        className="w-20 h-20 rounded-full object-cover border-2 border-stone-200"
-                      />
-                    ) : (
-                      <div className="w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center border-2 border-stone-200">
-                        <User className="w-10 h-10 text-emerald-600" />
-                      </div>
-                    )}
-                    <div className="flex flex-col">
-                      <span className="text-2xl font-serif font-medium text-stone-800">{profile.name}</span>
-                      <span className="text-xl font-serif text-stone-400">{profile.signature}</span>
-                    </div>
-                  </div>
-
-                  {/* 右边：APP名字 + Logo */}
-                  <div className="flex items-center gap-4">
-                    <span className="text-xl font-serif text-stone-400">熬汤日记</span>
-                    <img
-                      src="/icon.png"
-                      alt="熬汤日记"
-                      className="w-12 h-12 rounded-xl object-cover"
-                    />
                   </div>
                 </div>
               </div>
