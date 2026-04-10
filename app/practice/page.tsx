@@ -2398,7 +2398,7 @@ function MonthlyStatsShareModal({
                   <div className="flex items-end justify-between">
                     {/* 左边：年份月份 */}
                     <div className="flex flex-col">
-                      <span className="text-xs font-serif" style={{ color: '#2d5a27' }}>{year}年</span>
+                      <span className="text-xs font-serif mb-1" style={{ color: '#2d5a27' }}>{year}年</span>
                       <div className="flex items-baseline gap-1">
                         <span className="text-4xl font-serif font-bold" style={{ color: '#2d5a27' }}>{month + 1}</span>
                         <span className="text-base font-serif" style={{ color: '#2d5a27' }}>月</span>
