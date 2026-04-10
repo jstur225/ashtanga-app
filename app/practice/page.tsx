@@ -2415,7 +2415,7 @@ function MonthlyStatsShareModal({
                   </div>
 
                   {/* 日历网格 - 圆点样式 */}
-                  <div className="flex-1 flex flex-col justify-center mb-4">
+                  <div className="flex-1 flex flex-col justify-center">
                     <div className="grid grid-cols-7 gap-1 justify-items-center">
                       {calendarDays.map((item, idx) => (
                         <div
