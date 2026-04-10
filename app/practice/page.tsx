@@ -2390,10 +2390,10 @@ function MonthlyStatsShareModal({
             onClick={onClose}
           >
             <div className="flex flex-col gap-3 items-center" onClick={(e) => e.stopPropagation()}>
-              {/* Share Card (for display & export) - 固定高度 */}
-              <div id="monthly-stats-share-content" className="relative w-[320px] h-[427px] rounded-3xl shadow-2xl overflow-hidden bg-white">
+              {/* Share Card (for display & export) - 固定宽度，高度自适应 */}
+              <div id="monthly-stats-share-content" className="relative w-[320px] rounded-3xl shadow-2xl overflow-hidden bg-white">
                 {/* 实际显示内容 */}
-                <div className="absolute inset-0 flex flex-col p-6">
+                <div className="flex flex-col p-6">
                   {/* 顶部：左边年份月份，右边累计熬汤 */}
                   <div className="flex items-end justify-between mb-3">
                     {/* 左边：年份月份 */}
