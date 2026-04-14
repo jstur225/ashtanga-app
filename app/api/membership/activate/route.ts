@@ -159,15 +159,16 @@ export async function POST(request: NextRequest) {
     const { data: existingProfile } = await supabase
       .from('user_profiles')
       .select('id')
-      .eq('user_id', user.id)  // 使用 user_id 字段查询
+      .eq('user_id', user.id)
       .maybeSingle()
+
+    let profileId: string
 
     if (!existingProfile) {
       console.log('[Membership API] 创建用户 profile:', user.id)
-      const { error: profileError } = await supabase
+      const { data: newProfile, error: profileError } = await supabase
         .from('user_profiles')
         .insert({
-          id: user.id,
           user_id: user.id,
           name: user.email?.split('@')[0] || '用户',
           signature: '',
@@ -175,14 +176,19 @@ export async function POST(request: NextRequest) {
           created_at: now.toISOString(),
           updated_at: now.toISOString(),
         })
+        .select('id')
+        .single()
 
-      if (profileError) {
+      if (profileError || !newProfile) {
         console.error('[Membership API] 创建 profile 失败:', profileError)
         return NextResponse.json(
-          { success: false, error: 'DATABASE_ERROR', details: '创建用户资料失败: ' + profileError.message },
+          { success: false, error: 'DATABASE_ERROR', details: '创建用户资料失败: ' + (profileError?.message || '未知错误') },
           { status: 500 }
         )
       }
+      profileId = newProfile.id
+    } else {
+      profileId = existingProfile.id
     }
 
     let newExpiresAt: Date
@@ -203,7 +209,7 @@ export async function POST(request: NextRequest) {
     const { error: membershipError } = await supabase
       .from('user_memberships')
       .insert({
-        user_id: user.id,
+        user_id: profileId,  // 使用 profile 的 id，不是 auth.users.id
         type: activationCode.type,
         started_at: now.toISOString(),
         expires_at: newExpiresAt.toISOString(),
