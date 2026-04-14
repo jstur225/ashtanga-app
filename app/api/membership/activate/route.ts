@@ -154,6 +154,37 @@ export async function POST(request: NextRequest) {
     }
 
     const now = new Date()
+
+    // ⭐ 确保用户有 profile 记录
+    const { data: existingProfile } = await supabase
+      .from('user_profiles')
+      .select('id')
+      .eq('id', user.id)
+      .single()
+
+    if (!existingProfile) {
+      console.log('[Membership API] 创建用户 profile:', user.id)
+      const { error: profileError } = await supabase
+        .from('user_profiles')
+        .insert({
+          id: user.id,
+          user_id: user.id,
+          name: user.email?.split('@')[0] || '用户',
+          signature: '',
+          is_pro: false,
+          created_at: now.toISOString(),
+          updated_at: now.toISOString(),
+        })
+
+      if (profileError) {
+        console.error('[Membership API] 创建 profile 失败:', profileError)
+        return NextResponse.json(
+          { success: false, error: 'DATABASE_ERROR', details: '创建用户资料失败: ' + profileError.message },
+          { status: 500 }
+        )
+      }
+    }
+
     let newExpiresAt: Date
     let isNewMembership = false
 
