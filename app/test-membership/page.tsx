@@ -77,9 +77,15 @@ export default function TestPage() {
       </div>
 
       {result && (
-        <pre className="bg-gray-100 p-4 rounded overflow-auto max-h-96 text-sm">
-          {JSON.stringify(result, null, 2)}
-        </pre>
+        <div className="space-y-2">
+          <label className="text-sm font-medium">测试结果（可复制）:</label>
+          <textarea
+            readOnly
+            value={JSON.stringify(result, null, 2)}
+            className="w-full h-64 p-4 bg-gray-100 rounded text-sm font-mono"
+            onClick={(e) => (e.target as HTMLTextAreaElement).select()}
+          />
+        </div>
       )}
     </div>
   )

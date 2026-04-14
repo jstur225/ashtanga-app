@@ -159,8 +159,8 @@ export async function POST(request: NextRequest) {
     const { data: existingProfile } = await supabase
       .from('user_profiles')
       .select('id')
-      .eq('id', user.id)
-      .single()
+      .eq('user_id', user.id)  // 使用 user_id 字段查询
+      .maybeSingle()
 
     if (!existingProfile) {
       console.log('[Membership API] 创建用户 profile:', user.id)
