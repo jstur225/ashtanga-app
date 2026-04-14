@@ -65,7 +65,7 @@ export default function SettingsPage() {
       <header className="sticky top-0 z-10 bg-[#F5F5F0]/95 backdrop-blur-sm border-b border-[#E8E8E3]">
         <div className="max-w-lg mx-auto px-4 h-14 flex items-center">
           <button
-            onClick={() => router.push('/practice')}
+            onClick={() => router.push('/practice?tab=stats')}
             className="flex items-center text-[#2D3A2D] hover:opacity-70 transition-opacity"
           >
             <ChevronLeft className="w-5 h-5 mr-1" />

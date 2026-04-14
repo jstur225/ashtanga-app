@@ -124,7 +124,7 @@ export function ActivateModal({ isOpen, onClose, onSuccess }: ActivateModalProps
         {/* 关闭按钮 */}
         <button
           onClick={handleClose}
-          className="absolute right-4 top-4 p-1 text-gray-400 hover:text-gray-600 transition-colors"
+          className="absolute right-4 top-4 p-1 text-[#8B7355] hover:text-[#6B5A47] transition-colors"
         >
           <X className="w-5 h-5" />
         </button>
@@ -133,31 +133,31 @@ export function ActivateModal({ isOpen, onClose, onSuccess }: ActivateModalProps
         {success ? (
           <div className="p-6 text-center">
             <div className="mb-4">
-              <div className="w-16 h-16 mx-auto bg-green-100 rounded-full flex items-center justify-center">
-                <CheckCircle className="w-8 h-8 text-green-600" />
+              <div className="w-16 h-16 mx-auto bg-gradient-to-br from-[#C1A268]/20 to-[#D4AF37]/20 rounded-full flex items-center justify-center">
+                <CheckCircle className="w-8 h-8 text-[#C1A268]" />
               </div>
             </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">
+            <h3 className="text-xl font-bold text-[#2D3A2D] mb-2 font-serif">
               {success.is_new ? '激活成功！' : '续费成功！'}
             </h3>
-            <p className="text-gray-600 mb-4">
+            <p className="text-[#8B7355] mb-4 font-serif">
               {success.is_new ? '您已成功开通 Pro 会员' : '您的会员时长已延长'}
             </p>
-            <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl p-4 mb-6">
-              <div className="flex items-center justify-center gap-2 text-amber-700 mb-1">
+            <div className="bg-gradient-to-br from-[#F9F7F2] to-[#F5F0E8] rounded-[20px] p-4 mb-6 border border-[#C1A268]/20">
+              <div className="flex items-center justify-center gap-2 text-[#C1A268] mb-1">
                 <Crown className="w-5 h-5" />
-                <span className="font-medium">Pro 会员</span>
+                <span className="font-medium font-serif">Pro 会员</span>
               </div>
-              <div className="text-2xl font-bold text-amber-800">
+              <div className="text-2xl font-bold text-[#6B5A47] font-serif">
                 有效期至 {success.expires_at_formatted}
               </div>
-              <div className="text-sm text-amber-600 mt-1">
+              <div className="text-sm text-[#8B7355] mt-1 font-serif">
                 {success.type === 'quarter' ? '季卡 (90天)' : '年卡 (365天)'}
               </div>
             </div>
             <button
               onClick={handleClose}
-              className="w-full py-3 px-4 bg-amber-600 hover:bg-amber-700 text-white font-medium rounded-xl transition-colors"
+              className="w-full py-3 px-4 bg-gradient-to-br from-[#C1A268] to-[#D4AF37] hover:opacity-90 text-white font-medium rounded-xl transition-opacity font-serif"
             >
               开始使用
             </button>
@@ -167,19 +167,19 @@ export function ActivateModal({ isOpen, onClose, onSuccess }: ActivateModalProps
             {/* 头部 */}
             <div className="p-6 pb-4">
               <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl flex items-center justify-center">
+                <div className="w-10 h-10 bg-gradient-to-br from-[#C1A268] to-[#D4AF37] rounded-xl flex items-center justify-center">
                   <Crown className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-gray-900">激活 Pro 会员</h3>
-                  <p className="text-sm text-gray-500">解锁更多专属功能</p>
+                  <h3 className="text-lg font-bold text-[#2D3A2D] font-serif">激活 Pro 会员</h3>
+                  <p className="text-sm text-[#8B7355] font-serif">解锁更多专属功能</p>
                 </div>
               </div>
             </div>
 
             {/* 输入区域 */}
             <div className="px-6 pb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-[#6B5A47] mb-2 font-serif">
                 激活码
               </label>
               <div className="relative">
@@ -191,10 +191,10 @@ export function ActivateModal({ isOpen, onClose, onSuccess }: ActivateModalProps
                   placeholder="XXXX-XXXX-XXXX"
                   maxLength={14}
                   disabled={loading}
-                  className="w-full px-4 py-3 text-center text-lg tracking-widest font-mono bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all disabled:opacity-50"
+                  className="w-full px-4 py-3 text-center text-lg tracking-widest font-mono bg-[#F9F7F2] border border-[#E8E8E3] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C1A268]/50 focus:border-[#C1A268] transition-all disabled:opacity-50"
                 />
               </div>
-              <p className="mt-2 text-xs text-gray-500 text-center">
+              <p className="mt-2 text-xs text-[#8B7355] text-center font-serif">
                 请输入 12 位激活码，格式如: X7B9-K2M4-P5Q8
               </p>
 
@@ -203,7 +203,7 @@ export function ActivateModal({ isOpen, onClose, onSuccess }: ActivateModalProps
                 <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-xl">
                   <div className="flex items-center gap-2 text-red-600">
                     <AlertCircle className="w-5 h-5 flex-shrink-0" />
-                    <span className="text-sm font-medium">{error}</span>
+                    <span className="text-sm font-medium font-serif">{error}</span>
                   </div>
                 </div>
               )}
@@ -212,7 +212,7 @@ export function ActivateModal({ isOpen, onClose, onSuccess }: ActivateModalProps
               <button
                 onClick={handleActivate}
                 disabled={loading || !isCodeComplete}
-                className="w-full mt-4 py-3 px-4 bg-amber-600 hover:bg-amber-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium rounded-xl transition-colors flex items-center justify-center gap-2"
+                className="w-full mt-4 py-3 px-4 bg-gradient-to-br from-[#C1A268] to-[#D4AF37] hover:opacity-90 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium rounded-xl transition-opacity flex items-center justify-center gap-2 font-serif"
               >
                 {loading ? (
                   <>
@@ -226,14 +226,14 @@ export function ActivateModal({ isOpen, onClose, onSuccess }: ActivateModalProps
 
               {/* 购买提示 */}
               <div className="mt-4 text-center">
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-[#8B7355] font-serif">
                   还没有激活码？
                   <button
                     onClick={() => {
                       // TODO: 跳转到购买页面
                       alert('购买功能即将上线')
                     }}
-                    className="ml-1 text-amber-600 hover:text-amber-700 font-medium"
+                    className="ml-1 text-[#C1A268] hover:text-[#D4AF37] font-medium"
                   >
                     去购买
                   </button>

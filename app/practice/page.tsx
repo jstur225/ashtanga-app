@@ -29,7 +29,7 @@ import { captureWithFallback, formatErrorForUser } from '@/lib/screenshot'
 import { MOON_DAYS_2026 } from '@/lib/moon-phase-data'
 import { supabase } from '@/lib/supabase'
 import { deletePracticeRecord } from '@/lib/database'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { getVersionInfo } from '@/lib/version'
 import { audioCache } from '@/lib/audioCache'
 
@@ -3383,6 +3383,19 @@ function StatsTab({
 
   const { isInstallable, promptInstall } = usePWAInstall()
   const router = useRouter()
+  const searchParams = useSearchParams()
+
+  // ⭐ 读取 URL 参数，切换 Tab
+  useEffect(() => {
+    const tab = searchParams.get('tab')
+    if (tab === 'stats') {
+      setActiveTab('stats')
+    } else if (tab === 'journal') {
+      setActiveTab('journal')
+    } else if (tab === 'practice') {
+      setActiveTab('practice')
+    }
+  }, [searchParams])
 
     const handleInstallClick = async () => {
     // 检查是否已经安装到主屏幕
