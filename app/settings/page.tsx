@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Crown, ChevronLeft, Loader2, CrownIcon, Sparkles } from 'lucide-react'
+import { Crown, ChevronLeft, Loader2, CrownIcon, Sparkles, Ticket, ChevronRight } from 'lucide-react'
 import { ActivateModal } from '@/components/Membership/ActivateModal'
 import { supabase } from '@/lib/supabase'
 
@@ -78,97 +78,98 @@ export default function SettingsPage() {
 
       {/* 内容 */}
       <main className="max-w-lg mx-auto px-4 py-6 space-y-6">
-        {/* 会员卡片 */}
-        <section className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl p-5 border border-amber-100">
+        {/* 会员卡片 — 遵循设计规范 */}
+        <section className="bg-gradient-to-br from-[#F9F7F2] to-[#F5F0E8] rounded-[20px] p-5 border border-[#C1A268]/20">
           <div className="flex items-start justify-between">
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 bg-gradient-to-br from-amber-400 to-orange-500 rounded-lg flex items-center justify-center">
+                <div className="w-8 h-8 bg-gradient-to-br from-[#C1A268] to-[#D4AF37] rounded-lg flex items-center justify-center">
                   <Crown className="w-4 h-4 text-white" />
                 </div>
-                <h2 className="font-serif text-lg text-amber-900">Pro 会员</h2>
+                <h2 className="font-serif text-lg text-[#8B7355]">Pro 会员</h2>
               </div>
 
               {loading ? (
-                <div className="flex items-center gap-2 text-amber-700">
+                <div className="flex items-center gap-2 text-[#8B7355]">
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <span className="text-sm">加载中...</span>
+                  <span className="text-sm font-serif">加载中...</span>
                 </div>
               ) : membership?.is_active ? (
                 <div>
-                  <p className="text-amber-800 font-medium">
+                  <p className="text-[#6B5A47] font-serif font-medium">
                     有效期至 {membership.expires_at_formatted}
                   </p>
-                  <p className="text-amber-600 text-sm mt-1">
+                  <p className="text-[#8B7355] text-sm mt-1 font-serif">
                     还剩 {membership.days_remaining} 天
                     {membership.type === 'quarter' ? ' · 季卡' : membership.type === 'year' ? ' · 年卡' : ''}
                   </p>
                 </div>
               ) : (
-                <p className="text-amber-700 text-sm">
+                <p className="text-[#8B7355] text-sm font-serif">
                   免费用户 · 解锁更多专属功能
                 </p>
               )}
             </div>
 
             {!membership?.is_active && !loading && (
-              <Sparkles className="w-6 h-6 text-amber-400" />
+              <Sparkles className="w-6 h-6 text-[#C1A268]" />
             )}
           </div>
 
           {/* Pro 功能预览 */}
-          <div className="mt-4 pt-4 border-t border-amber-200/50">
-            <p className="text-xs text-amber-700/70 mb-3">Pro 会员权益</p>
+          <div className="mt-4 pt-4 border-t border-[#C1A268]/20">
+            <p className="text-xs text-[#8B7355] mb-3 font-serif">Pro 会员权益</p>
             <div className="grid grid-cols-3 gap-2">
               <div className="text-center">
-                <div className="text-lg font-bold text-amber-800">9 张</div>
-                <div className="text-xs text-amber-600">照片上传</div>
+                <div className="text-lg font-bold text-[#6B5A47]">9 张</div>
+                <div className="text-xs text-[#8B7355] font-serif">照片上传</div>
               </div>
               <div className="text-center">
-                <div className="text-lg font-bold text-amber-800">10 个</div>
-                <div className="text-xs text-amber-600">自定义选项</div>
+                <div className="text-lg font-bold text-[#6B5A47]">10 个</div>
+                <div className="text-xs text-[#8B7355] font-serif">自定义选项</div>
               </div>
               <div className="text-center">
-                <div className="text-lg font-bold text-amber-800">9 种</div>
-                <div className="text-xs text-amber-600">日历标注</div>
+                <div className="text-lg font-bold text-[#6B5A47]">9 种</div>
+                <div className="text-xs text-[#8B7355] font-serif">日历标注</div>
               </div>
             </div>
           </div>
         </section>
 
-        {/* 操作按钮 */}
+        {/* 操作按钮 — 遵循设计规范 */}
         <section className="space-y-3">
           <button
             onClick={() => alert('购买功能即将上线')}
-            className="w-full flex items-center justify-between p-4 bg-white rounded-xl border border-[#E8E8E3] hover:border-amber-300 transition-colors group"
+            className="w-full flex items-center justify-between p-4 bg-white rounded-[20px] border border-[#E8E8E3] hover:border-[#C1A268]/50 transition-colors group shadow-sm"
           >
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl flex items-center justify-center">
+              <div className="w-10 h-10 bg-gradient-to-br from-[#C1A268] to-[#D4AF37] rounded-xl flex items-center justify-center">
                 <CrownIcon className="w-5 h-5 text-white" />
               </div>
               <div className="text-left">
-                <p className="font-medium text-[#2D3A2D]">购买会员</p>
-                <p className="text-sm text-gray-500">开通 Pro 解锁全部功能</p>
+                <p className="font-medium text-[#2D3A2D] font-serif">购买会员</p>
+                <p className="text-sm text-[#8B7355] font-serif">开通 Pro 解锁全部功能</p>
               </div>
             </div>
-            <span className="text-amber-600 text-sm font-medium group-hover:translate-x-1 transition-transform">
+            <span className="text-[#C1A268] text-sm font-medium group-hover:translate-x-1 transition-transform">
               去购买 →
             </span>
           </button>
 
           <button
             onClick={() => setShowActivateModal(true)}
-            className="w-full flex items-center justify-between p-4 bg-white rounded-xl border border-[#E8E8E3] hover:border-amber-300 transition-colors"
+            className="w-full flex items-center justify-between p-4 bg-white rounded-[20px] border border-[#E8E8E3] hover:border-[#C1A268]/50 transition-colors shadow-sm"
           >
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center">
-                <span className="text-xl">🎫</span>
+              <div className="w-10 h-10 bg-[#F5F0E8] rounded-xl flex items-center justify-center">
+                <Ticket className="w-5 h-5 text-[#C1A268]" />
               </div>
               <div className="text-left">
-                <p className="font-medium text-[#2D3A2D]">激活会员</p>
-                <p className="text-sm text-gray-500">使用激活码开通或续费</p>
+                <p className="font-medium text-[#2D3A2D] font-serif">激活会员</p>
+                <p className="text-sm text-[#8B7355] font-serif">使用激活码开通或续费</p>
               </div>
             </div>
+            <ChevronRight className="w-5 h-5 text-[#C1A268]" />
           </button>
         </section>
 

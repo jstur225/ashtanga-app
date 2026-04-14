@@ -3319,18 +3319,18 @@ function JournalTab({
   )
 }
 
-// PRO Badge Component
+// PRO Badge Component — 遵循设计规范
 function ProBadge({ isPro, daysRemaining }: { isPro: boolean; daysRemaining?: number }) {
   if (!isPro) {
     return (
-      <span className="ml-2 px-2 py-0.5 text-[10px] font-serif rounded bg-gray-200 text-gray-500">
+      <span className="ml-2 px-2 py-0.5 text-[10px] font-serif rounded-full bg-[#E8EDE7] text-[#6B7280] border border-[#E5E5E5]">
         FREE
       </span>
     )
   }
 
   return (
-    <span className="ml-2 px-2 py-0.5 text-[10px] font-serif rounded bg-gradient-to-r from-amber-400 to-orange-500 text-white shadow-sm">
+    <span className="ml-2 px-2 py-0.5 text-[10px] font-serif rounded-full bg-gradient-to-r from-[#C1A268] to-[#D4AF37] text-white shadow-sm">
       PRO
     </span>
   )
@@ -3568,29 +3568,29 @@ function StatsTab({
             </button>
           </div>
           <div className="flex items-center gap-2">
-            <h2 className="text-xl font-serif text-[#e67e22]">{profile.name}</h2>
+            <h2 className="text-xl font-serif text-[#2D5A27]">{profile.name}</h2>
             <ProBadge isPro={membership?.is_active ?? false} daysRemaining={membership?.days_remaining} />
           </div>
 
-          {/* 会员状态显示 - 优化样式 */}
+          {/* 会员状态显示 — 遵循设计规范 */}
           {membership?.is_active ? (
-            <div className="mt-2 flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-amber-50 to-orange-50 rounded-full border border-amber-200">
-              <span className="text-sm">👑</span>
-              <span className="text-xs text-amber-700 font-medium">
-                Pro 会员有效期至 {membership.expires_at_formatted}
+            <div className="mt-2 flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#F9F7F2] to-[#F5F0E8] rounded-full border border-[#C1A268]/30">
+              <Crown className="w-4 h-4 text-[#C1A268]" />
+              <span className="text-xs text-[#8B7355] font-serif">
+                Pro 有效期至 {membership.expires_at_formatted}
               </span>
-              <span className="text-[10px] text-amber-500">
-                ({membership.days_remaining}天)
+              <span className="text-[10px] text-[#C1A268]">
+                · {membership.days_remaining}天
               </span>
             </div>
           ) : (
             <button
               onClick={() => router.push('/settings')}
-              className="mt-2 flex items-center gap-1 px-3 py-1.5 text-xs text-amber-600 hover:text-amber-700 font-medium bg-amber-50 hover:bg-amber-100 rounded-full border border-amber-200 transition-colors"
+              className="mt-2 flex items-center gap-2 px-4 py-2 text-xs text-[#8B7355] hover:text-[#6B5A47] font-serif bg-[#F9F7F2] hover:bg-[#F5F0E8] rounded-full border border-[#C1A268]/30 transition-colors"
             >
-              <span>⭐</span>
+              <Sparkles className="w-3.5 h-3.5 text-[#C1A268]" />
               <span>升级 Pro 解锁更多功能</span>
-              <span>→</span>
+              <ChevronRight className="w-3.5 h-3.5" />
             </button>
           )}
           <p className="text-[10px] font-mono text-gray-400 mt-1">
