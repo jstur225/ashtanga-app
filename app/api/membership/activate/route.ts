@@ -209,7 +209,8 @@ export async function POST(request: NextRequest) {
     const { error: membershipError } = await supabase
       .from('user_memberships')
       .insert({
-        user_id: profileId,  // 使用 profile 的 id，不是 auth.users.id
+        user_id: profileId,
+        email: user.email,  // 保存邮箱方便查询
         type: activationCode.type,
         started_at: now.toISOString(),
         expires_at: newExpiresAt.toISOString(),
