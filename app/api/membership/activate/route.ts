@@ -134,11 +134,24 @@ export async function POST(request: NextRequest) {
     }
 
     // 7. 查询用户当前会员状态
-    const { data: currentMembership } = await supabase
-      .from('user_membership_status')
-      .select('is_active, expires_at')
-      .eq('user_id', user.id)
-      .single()
+    let currentMembership: { is_active: boolean; expires_at: string | null } | null = null
+    try {
+      const { data, error } = await supabase
+        .from('user_membership_status')
+        .select('is_active, expires_at')
+        .eq('user_id', user.id)
+        .single()
+
+      if (error) {
+        console.error('[Membership API] 查询会员状态失败:', error)
+        // 不阻止流程，按新会员处理
+      } else {
+        currentMembership = data
+      }
+    } catch (err: any) {
+      console.error('[Membership API] 查询会员状态异常:', err)
+      // 不阻止流程，按新会员处理
+    }
 
     const now = new Date()
     let newExpiresAt: Date
