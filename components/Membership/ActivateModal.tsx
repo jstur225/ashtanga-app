@@ -31,10 +31,10 @@ export function ActivateModal({ isOpen, onClose, onSuccess }: ActivateModalProps
   // 格式化输入的激活码
   const formatCode = useCallback((input: string) => {
     // 移除所有非字母数字字符
-    const clean = input.replace(/[^a-zA-Z0-9]/g, '').toUpperCase()
+    const clean = input.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 12)
     // 每4个字符加连字符
     const parts = []
-    for (let i = 0; i < clean.length && i < 12; i += 4) {
+    for (let i = 0; i < clean.length; i += 4) {
       parts.push(clean.slice(i, i + 4))
     }
     return parts.join('-')
@@ -46,8 +46,11 @@ export function ActivateModal({ isOpen, onClose, onSuccess }: ActivateModalProps
     setError(null)
   }
 
+  // 检查激活码是否完整（12个字母数字）
+  const isCodeComplete = code.replace(/-/g, '').length === 12
+
   const handleActivate = async () => {
-    if (code.length < 14) {
+    if (!isCodeComplete) {
       setError('请输入完整的激活码')
       return
     }
@@ -206,7 +209,7 @@ export function ActivateModal({ isOpen, onClose, onSuccess }: ActivateModalProps
               {/* 激活按钮 */}
               <button
                 onClick={handleActivate}
-                disabled={loading || code.length < 14}
+                disabled={loading || !isCodeComplete}
                 className="w-full mt-4 py-3 px-4 bg-amber-600 hover:bg-amber-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium rounded-xl transition-colors flex items-center justify-center gap-2"
               >
                 {loading ? (
