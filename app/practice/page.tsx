@@ -3320,13 +3320,17 @@ function JournalTab({
 }
 
 // PRO Badge Component
-function ProBadge({ isPro }: { isPro: boolean }) {
+function ProBadge({ isPro, daysRemaining }: { isPro: boolean; daysRemaining?: number }) {
+  if (!isPro) {
+    return (
+      <span className="ml-2 px-2 py-0.5 text-[10px] font-serif rounded bg-gray-200 text-gray-500">
+        FREE
+      </span>
+    )
+  }
+
   return (
-    <span className={`ml-2 px-2 py-0.5 text-[10px] font-serif rounded ${
-      isPro 
-        ? 'green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white' 
-        : 'bg-muted text-muted-foreground'
-    }`}>
+    <span className="ml-2 px-2 py-0.5 text-[10px] font-serif rounded bg-gradient-to-r from-amber-400 to-orange-500 text-white shadow-sm">
       PRO
     </span>
   )
@@ -3565,19 +3569,28 @@ function StatsTab({
           </div>
           <div className="flex items-center gap-2">
             <h2 className="text-xl font-serif text-[#e67e22]">{profile.name}</h2>
-            <ProBadge isPro={membership?.is_active ?? false} />
+            <ProBadge isPro={membership?.is_active ?? false} daysRemaining={membership?.days_remaining} />
           </div>
-          {/* 会员状态显示 */}
+
+          {/* 会员状态显示 - 优化样式 */}
           {membership?.is_active ? (
-            <p className="text-xs text-amber-600 font-medium mt-1">
-              Pro 有效期至 {membership.expires_at_formatted}
-            </p>
+            <div className="mt-2 flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-amber-50 to-orange-50 rounded-full border border-amber-200">
+              <span className="text-sm">👑</span>
+              <span className="text-xs text-amber-700 font-medium">
+                Pro 会员有效期至 {membership.expires_at_formatted}
+              </span>
+              <span className="text-[10px] text-amber-500">
+                ({membership.days_remaining}天)
+              </span>
+            </div>
           ) : (
             <button
               onClick={() => router.push('/settings')}
-              className="text-xs text-amber-600 hover:text-amber-700 font-medium mt-1 underline underline-offset-2"
+              className="mt-2 flex items-center gap-1 px-3 py-1.5 text-xs text-amber-600 hover:text-amber-700 font-medium bg-amber-50 hover:bg-amber-100 rounded-full border border-amber-200 transition-colors"
             >
-              升级 Pro 解锁更多功能 →
+              <span>⭐</span>
+              <span>升级 Pro 解锁更多功能</span>
+              <span>→</span>
             </button>
           )}
           <p className="text-[10px] font-mono text-gray-400 mt-1">
@@ -3793,6 +3806,19 @@ export default function AshtangaTracker() {
     userAgent: string
     recordDate?: string
   }[]>('ashtanga_export_logs', [])
+
+  // ⭐ 页面可见性变化时刷新会员状态（从设置页返回时）
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log('[Practice] 页面重新可见，刷新会员状态')
+        refreshMembership()
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, [refreshMembership])
 
   // 小红书群邀请弹窗状态
   const [showXiaohongshuModal, setShowXiaohongshuModal] = useState(false)
