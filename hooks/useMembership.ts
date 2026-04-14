@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { supabase } from '@/lib/supabase'
 
 export interface MembershipStatus {
   is_active: boolean
@@ -16,14 +17,17 @@ export function useMembership() {
   const [error, setError] = useState<string | null>(null)
 
   const fetchMembershipStatus = useCallback(async () => {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
-    if (!token) {
-      setLoading(false)
-      setMembership(null)
-      return
-    }
-
     try {
+      // 从 Supabase 获取当前 session
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+
+      if (!token) {
+        setLoading(false)
+        setMembership(null)
+        return
+      }
+
       setLoading(true)
       const response = await fetch('/api/membership/status', {
         headers: {

@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import { X, Crown, Loader2, CheckCircle, AlertCircle } from 'lucide-react'
+import { supabase } from '@/lib/supabase'
 
 interface ActivateModalProps {
   isOpen: boolean
@@ -55,7 +56,10 @@ export function ActivateModal({ isOpen, onClose, onSuccess }: ActivateModalProps
     setError(null)
 
     try {
-      const token = localStorage.getItem('auth_token')
+      // 从 Supabase 获取当前 session
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+
       if (!token) {
         setError('请先登录')
         setLoading(false)

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Crown, ChevronLeft, Loader2, CrownIcon, Sparkles } from 'lucide-react'
 import { ActivateModal } from '@/components/Membership/ActivateModal'
+import { supabase } from '@/lib/supabase'
 
 interface MembershipStatus {
   is_active: boolean
@@ -21,13 +22,16 @@ export default function SettingsPage() {
 
   // 查询会员状态
   const fetchMembershipStatus = async () => {
-    const token = localStorage.getItem('auth_token')
-    if (!token) {
-      setLoading(false)
-      return
-    }
-
     try {
+      // 从 Supabase 获取当前 session
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+
+      if (!token) {
+        setLoading(false)
+        return
+      }
+
       const response = await fetch('/api/membership/status', {
         headers: {
           'Authorization': `Bearer ${token}`,
