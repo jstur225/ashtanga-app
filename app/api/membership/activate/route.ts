@@ -4,6 +4,15 @@ import { createClient } from '@supabase/supabase-js'
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 
+// 调试：检查环境变量
+if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
+  console.error('[Membership API] 环境变量缺失:', {
+    hasUrl: !!SUPABASE_URL,
+    hasKey: !!SUPABASE_SERVICE_KEY,
+    envKeys: Object.keys(process.env).filter(k => k.includes('SUPABASE'))
+  })
+}
+
 /**
  * 会员激活 API
  * POST /api/membership/activate
@@ -133,7 +142,7 @@ export async function POST(request: NextRequest) {
     if (membershipError) {
       console.error('[Membership API] 创建会员记录失败:', membershipError)
       return NextResponse.json(
-        { success: false, error: 'DATABASE_ERROR' },
+        { success: false, error: 'DATABASE_ERROR', details: membershipError.message },
         { status: 500 }
       )
     }
