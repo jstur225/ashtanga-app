@@ -2,11 +2,18 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import { createClient } from '@supabase/supabase-js'
 
-// 创建 Service Role 客户端（用于查询用户列表）
-const supabaseServiceRole = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+// Service Role 客户端延迟初始化
+let supabaseServiceRole: ReturnType<typeof createClient> | null = null
+
+function getServiceRoleClient() {
+  if (!supabaseServiceRole) {
+    supabaseServiceRole = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+  }
+  return supabaseServiceRole
+}
 
 // 生成6位随机验证码
 function generateVerificationCode(): string {
@@ -204,7 +211,7 @@ export async function POST(request: NextRequest) {
 
     // 检查邮箱是否已注册（仅在 email_verification 类型时检查）
     if (type === 'email_verification') {
-      const { data: existingUser, error: userCheckError } = await supabaseServiceRole
+      const { data: existingUser, error: userCheckError } = await getServiceRoleClient()
         .auth
         .admin
         .listUsers()

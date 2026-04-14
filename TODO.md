@@ -1,5 +1,325 @@
 # 待处理问题
 
+## 2026-04-13 - 会员系统开发计划 ⏳ 待开发
+
+### 定价方案
+
+| 选项 | 价格 | 备注 |
+|------|------|------|
+| 季度会员 | ¥19.8 | 一杯奶茶钱 |
+| 年度会员 | ¥68.8 | 比季度省¥10.4 |
+
+### 购买流程（激活码模式）
+
+1. **APP内入口**：设置页显示「激活会员」按钮
+2. **跳转购买**：点击后显示小红书/闲鱼购买链接
+3. **手动发货**：用户拍下付款 → 你手动私信发送激活码
+4. **回APP激活**：用户输入激活码 → 校验通过 → 解锁Pro功能
+
+### 免费版 vs Pro版功能对比
+
+| 功能 | 免费版 | Pro版 |
+|------|--------|-------|
+| 历史记录查看 | ✅ 全部 | ✅ 全部 |
+| 打卡计时 | ✅ 可用 | ✅ 可用 |
+| 数据导出 | ✅ 可用 | ✅ 可用 |
+| 照片上传 | 1张/条 | 9张/条 |
+| 日历自定义标注 | 1个类型 | 9个类型 |
+| 自定义练习选项 | 4个 | 10个 |
+
+### 激活码规则
+
+- **格式**：字母+数字混合（较复杂，防破解）
+- **有效期**：生成后30天内有效（未使用）
+- **码类型**：季卡码 / 年卡码（分开生成）
+- **售后**：虚拟商品，激活前可协商，激活后不退
+
+### 会员标识
+
+- **激活成功**：弹窗显示「激活成功，有效期至：2026.07.13」
+- **常驻显示**：头像下方显示「Pro 有效期至：YYYY.MM.DD」
+- **到期处理**：到期后自动降级为免费版，数据保留但功能受限
+
+### 开发任务清单
+
+#### Phase 1: 激活码系统
+- [ ] 数据库表设计（activation_codes）
+- [ ] 激活码生成脚本（批量生成季卡/年卡码）
+- [ ] 激活码校验API
+- [ ] 用户会员状态表扩展
+
+#### Phase 2: 前端功能
+- [ ] 设置页「激活会员」入口
+- [ ] 激活码输入弹窗
+- [ ] 激活成功/失败提示
+- [ ] 头像下方会员有效期显示
+- [ ] Pro功能限制提示（用到限制功能时）
+
+#### Phase 3: 免费版限制
+- [ ] 照片上传限制（1张/条）
+- [ ] 日历标注限制（1个类型）
+- [ ] 自定义选项限制（4个）
+
+#### Phase 4: 运营准备
+- [ ] 小红书/闲鱼商品上架
+- [ ] 商品详情页文案
+- [ ] 激活码管理后台（可选）
+
+### 预计开发时间
+
+1周（激活码系统+前端入口），第二周联调测试
+
+---
+
+## 2026-04-14 - 会员系统开发计划（确认版）✅ 进行中
+
+**状态**：方案已确认，准备开发
+
+### 技术方案确认（方案 B：独立会员表）
+
+| 决策项 | 选择 | 说明 |
+|--------|------|------|
+| **前端入口** | 设置页两个按钮 | ①「购买会员」（跳转小红书/闲鱼）②「激活会员」（输入激活码） |
+| **数据表** | 独立会员表（方案 B） | 新建 `activation_codes` + `user_memberships` 表，**不保留 `is_pro` 冗余** |
+| **到期降级** | 查询时实时判断 + 登录时清理 | 不设置定时任务，降低复杂度 |
+| **续费逻辑** | 从原到期日顺延 | 未到期再激活，新会员期从原到期日开始累加 |
+| **测试要求** | API 单元测试 | 激活、状态查询、续费逻辑、降级场景 |
+| **激活码规则** | 一码一用，支持续费 | 未到期可再激活延期 |
+| **生成方式** | Node 脚本 | 命令行生成，手动复制发给用户 |
+| **现有用户** | 全部免费版 | 不自动赠送Pro |
+| **购买链接** | 占位符 | 设置页「购买会员」先放占位链接，后续自行修改 |
+| **到期提醒** | 不做 | 用户自己看设置页有效期，不主动提醒 |
+| **测试策略** | TEST 码 | 生成 TEST-XXXX-XXXX 格式测试码，上线前删除 |
+
+**数据迁移说明：**
+- 现有 `is_pro = true` 的用户：本次不处理（目前没有付费会员）
+- 上线后：所有用户默认免费版，通过激活码升级
+
+### 数据库设计
+
+#### 1. activation_codes 表（激活码池）
+```sql
+CREATE TABLE activation_codes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  code VARCHAR(32) UNIQUE NOT NULL,      -- 激活码（如：X7B9-K2M4-P5Q8）
+  type VARCHAR(20) NOT NULL,             -- quarter(季卡) / year(年卡)
+  duration_days INTEGER NOT NULL,        -- 90(季卡) / 365(年卡)
+  used BOOLEAN DEFAULT FALSE,
+  used_by UUID REFERENCES user_profiles(id),
+  used_at TIMESTAMP WITH TIME ZONE,
+  expires_at TIMESTAMP WITH TIME ZONE,   -- 码本身有效期（未使用）
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+```
+
+#### 2. user_memberships 表（会员记录表）
+```sql
+CREATE TABLE user_memberships (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES user_profiles(id),
+  type VARCHAR(20) NOT NULL,             -- quarter / year
+  started_at TIMESTAMP WITH TIME ZONE NOT NULL,   -- 本次会员开始时间
+  expires_at TIMESTAMP WITH TIME ZONE NOT NULL,   -- 到期时间
+  activated_by_code_id UUID REFERENCES activation_codes(id),  -- 关联激活码
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 索引：快速查询用户当前会员
+CREATE INDEX idx_user_memberships_user_id ON user_memberships(user_id);
+CREATE INDEX idx_user_memberships_expires ON user_memberships(expires_at);
+```
+
+**说明：**
+- `user_memberships` 记录每次开通的完整历史
+- 查询时通过视图 `user_membership_status` 判断是否为 Pro（`is_active = expires_at > NOW()`）
+- **不保留 `is_pro` 冗余字段**，避免数据不一致
+- 到期处理：查询时实时判断，登录时批量清理已到期记录
+
+**续费逻辑：**
+```typescript
+// 激活新码时，如果已有有效会员，从原到期日顺延
+const existing = await getLatestMembership(userId);
+const newStartDate = existing?.expires_at > NOW() ? existing.expires_at : NOW();
+const newExpiresAt = newStartDate + durationDays; // +90天或+365天
+```
+
+#### 3. 查询会员状态（视图）
+```sql
+-- 创建视图方便查询用户当前会员状态
+CREATE VIEW user_membership_status AS
+SELECT
+  up.id as user_id,
+  um.type as membership_type,
+  um.expires_at,
+  um.expires_at > NOW() as is_active,
+  CASE
+    WHEN um.expires_at > NOW() THEN EXTRACT(DAY FROM um.expires_at - NOW())::INTEGER
+    ELSE 0
+  END as days_remaining
+FROM user_profiles up
+LEFT JOIN LATERAL (
+  SELECT * FROM user_memberships
+  WHERE user_id = up.id
+  ORDER BY expires_at DESC
+  LIMIT 1
+) um ON true;
+```
+
+**使用示例：**
+```typescript
+const { data: status } = await supabase
+  .from('user_membership_status')
+  .select('*')
+  .eq('user_id', user.id)
+  .single()
+
+const isPro = status?.is_active ?? false
+const daysRemaining = status?.days_remaining ?? 0
+```
+
+### 开发任务清单
+
+#### Phase 1: 数据库 & 脚本
+- [ ] **Bug 修复**：`app/api/photos/route.ts` 第50行表名错误，`'profiles'` 改为 `'user_profiles'`
+- [ ] 创建 activation_codes 表（Supabase SQL）
+- [ ] 创建 user_memberships 表（Supabase SQL）
+- [ ] 创建视图 user_membership_status
+- [ ] 修改照片 API（使用视图判断 `is_active`）
+- [ ] 创建激活码生成脚本（Node CLI）
+- [ ] 创建激活码查询脚本（导出未使用码）
+
+#### Phase 2: API 接口
+- [ ] POST /api/membership/activate - 激活码校验 & 激活
+- [ ] GET /api/membership/status - 查询会员状态
+- [ ] （可选）POST /api/membership/renew - 续费检查
+
+#### Phase 3: 前端功能
+- [ ] 设置页添加「购买会员」入口（跳转外部链接）
+- [ ] 设置页添加「激活会员」入口
+- [ ] 激活码输入弹窗组件
+- [ ] 激活成功/失败提示（Toast + 弹窗）
+- [ ] 会员状态显示（头像下方「Pro 有效期至：YYYY.MM.DD」）
+
+#### Phase 4: Pro 功能限制
+- [ ] 照片上传：免费1张，Pro9张（通过 `user_membership_status` 视图判断 `is_active`）
+- [ ] 自定义选项：免费4个，Pro10个
+- [ ] 日历标注：免费1类型，Pro9类型（标注功能开发时接入）
+- [ ] 限制提示：达到上限时引导「升级Pro」
+
+#### Phase 5: 运营准备
+- [ ] 小红书/闲鱼商品上架
+- [ ] 商品详情页文案
+- [ ] 激活码管理：生成首批码（10个季卡 + 10个年卡测试）
+
+#### Phase 6: 测试
+- [ ] API 测试：激活码校验（有效、已使用、过期、无效）
+- [ ] API 测试：续费逻辑（未到期再激活，到期时间累加）
+- [ ] API 测试：照片限制（免费1张、Pro9张、到期后降级）
+- [ ] 并发测试：同一激活码被多个用户同时使用
+
+### 激活码生成脚本用法
+
+```bash
+# 生成10个季卡码
+node scripts/generate-codes.js --type=quarter --count=10
+
+# 生成10个年卡码
+node scripts/generate-codes.js --type=year --count=10
+
+# 导出未使用码到文本
+node scripts/export-codes.js --status=unused --format=text
+```
+
+### 接口设计
+
+#### POST /api/membership/activate
+请求：
+```json
+{
+  "code": "X7B9-K2M4-P5Q8"
+}
+```
+响应：
+```json
+{
+  "success": true,
+  "type": "quarter",
+  "expires_at": "2026-07-14T00:00:00Z",
+  "message": "激活成功，有效期至：2026.07.14"
+}
+```
+
+错误码：
+- `INVALID_CODE` - 激活码不存在
+- `CODE_USED` - 激活码已被使用
+- `CODE_EXPIRED` - 激活码已过期（未使用）
+
+#### GET /api/membership/status
+响应：
+```json
+{
+  "membership_type": "pro",
+  "is_active": true,
+  "expires_at": "2026-07-14T00:00:00Z",
+  "days_remaining": 90
+}
+```
+
+#### 现有代码修改点
+
+**照片上传限制 (`app/api/photos/route.ts`)：**
+```typescript
+// 新方案：通过视图查询会员状态
+const { data: status } = await supabase
+  .from('user_membership_status')
+  .select('is_active')
+  .eq('user_id', user.id)
+  .single()
+
+const isPro = status?.is_active ?? false
+const maxPhotos = isPro ? 9 : 1
+```
+
+**注意：** 不再保留 `user_profiles.is_pro` 冗余字段，所有 Pro 判断统一走视图。
+
+### 常量定义
+
+```typescript
+// lib/constants.ts
+export const MEMBERSHIP = {
+  FREE: {
+    PHOTO_LIMIT: 1,
+    OPTION_LIMIT: 4,
+    CALENDAR_MARK_LIMIT: 1,
+  },
+  PRO: {
+    PHOTO_LIMIT: 9,
+    OPTION_LIMIT: 10,
+    CALENDAR_MARK_LIMIT: 9,
+  },
+  PRICING: {
+    QUARTER: 19.8,
+    YEAR: 68.8,
+  },
+  DURATION: {
+    QUARTER: 90,   // 天数
+    YEAR: 365,
+  },
+} as const;
+```
+
+### 预计开发时间
+
+- **Day 1**：数据库表 + 生成脚本
+- **Day 2**：API 接口
+- **Day 3**：前端入口 + 激活弹窗
+- **Day 4**：会员状态显示 + 功能限制
+- **Day 5**：联调测试
+
+**总计**：1 周
+
+---
+
 ## 2026-04-08 - 练习选项同步重构（固定槽位系统）⏳ 待推进
 
 **状态变更：** 2026-04-09 - 采用方案C（手动修复），槽位系统暂缓推进，后续条件成熟时再实施。
@@ -691,29 +1011,6 @@ Supabase 尝试连接 smtp.resend.com:466
 - `lib/supabase.ts` - Supabase 客户端配置（120秒超时）
 - `hooks/useAuth.ts` - 注册逻辑（60秒超时）
 - `components/AuthModal.tsx` - 注册 UI（已修复语法错误）
-
----
-
-## 2026-01-27
-
-### 📌 待办：准备突破日圆点 PNG 图标
-
-**用途**：
-- 突破日的橙色圆点标记（右上角小圆点）
-
-**尺寸要求**：
-- **显示尺寸**：6px × 6px（Tailwind: `w-1.5 h-1.5`）
-- **建议 PNG 尺寸**：**32px × 32px** 或 **64px × 64px**（高清，代码中会自动缩放）
-- **格式**：PNG（支持透明背景）
-- **颜色**：橙色 `#E07724`（或金黄色渐变）
-
-**存放位置**：
-- 文件名：`breakthrough-dot.png`
-- 路径：`public/breakthrough-dot.png`
-
-**参考位置**：
-- 主日历视图（Tab2 觉察日记）
-- 时间线视图（每个记录的圆点标记）
 
 ---
 

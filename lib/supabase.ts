@@ -141,10 +141,31 @@ export interface Photo {
   created_at: string // 创建时间
 }
 
+// ⭐ 新增：会员系统类型
+export interface UserMembership {
+  id: string
+  user_id: string
+  type: 'quarter' | 'year'
+  started_at: string
+  expires_at: string
+  activated_by_code_id: string | null
+  created_at: string
+}
+
+export interface UserMembershipStatus {
+  user_id: string
+  membership_type: 'quarter' | 'year' | null
+  expires_at: string | null
+  is_active: boolean
+  days_remaining: number
+}
+
 // Tables
 export const TABLES = {
   PRACTICE_RECORDS: 'practice_records',
   PRACTICE_OPTIONS: 'practice_options',
   USER_PROFILES: 'user_profiles',
   PHOTOS: 'photos', // ⭐ 新增：照片表
+  USER_MEMBERSHIPS: 'user_memberships',
+  ACTIVATION_CODES: 'activation_codes',
 } as const

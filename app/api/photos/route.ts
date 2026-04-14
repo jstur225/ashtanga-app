@@ -45,19 +45,19 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 2.2 获取用户 profile 检查 is_pro 状态
-    const { data: userProfile, error: profileError } = await supabase
-      .from('profiles')
-      .select('is_pro')
-      .eq('id', user.id)
+    // 2.2 获取用户会员状态
+    const { data: membershipStatus, error: membershipError } = await supabase
+      .from('user_membership_status')
+      .select('is_active')
+      .eq('user_id', user.id)
       .single()
 
-    if (profileError) {
-      console.error('[Photos API] 获取用户资料失败:', profileError)
+    if (membershipError) {
+      console.error('[Photos API] 获取会员状态失败:', membershipError)
     }
 
     // 普通用户最多1张，会员最多9张
-    const isPro = userProfile?.is_pro ?? false
+    const isPro = membershipStatus?.is_active ?? false
     const maxPhotos = isPro ? 9 : 1
 
     // 2. 解析请求体

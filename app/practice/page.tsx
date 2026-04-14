@@ -4,10 +4,11 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { useLocalStorage, useInterval } from 'react-use';
 import { motion, AnimatePresence } from "framer-motion"
 import { usePracticeData, type PracticeRecord, type PracticeOption, type UserProfile, GUIDED_AUDIO_OPTION, MAX_SLOTS_FREE } from "@/hooks/usePracticeData"
+import { useMembership } from "@/hooks/useMembership"
 import { usePWAInstall } from "@/hooks/usePWAInstall"
 import { useAuth } from "@/hooks/useAuth"
 import { useSync } from "@/hooks/useSync"
-import { BookOpen, BarChart3, Calendar, X, Camera, Pause, Play, Trash2, User, Settings, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Cloud, Download, Upload, Plus, Minus, Share2, Sparkles, Check, Copy, ClipboardPaste, MessageCircle, Bug, AlertCircle, SkipBack, SkipForward, Volume } from "lucide-react"
+import { BookOpen, BarChart3, Calendar, X, Camera, Pause, Play, Trash2, User, Settings, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Cloud, Download, Upload, Plus, Minus, Share2, Sparkles, Check, Copy, ClipboardPaste, MessageCircle, Bug, AlertCircle, SkipBack, SkipForward, Volume, Crown } from "lucide-react"
 import { cn } from '@/lib/utils'
 import { FakeDoorModal } from "@/components/FakeDoorModal"
 import { VoiceButton } from "@/components/VoiceButton"
@@ -3334,6 +3335,7 @@ function ProBadge({ isPro }: { isPro: boolean }) {
 function StatsTab({
   practiceHistory,
   profile,
+  membership,
   onOpenSettings,
   onOpenFakeDoor,
   showXiaohongshuModal,
@@ -3346,6 +3348,7 @@ function StatsTab({
 }: {
   practiceHistory: PracticeRecord[]
   profile: UserProfile
+  membership: { is_active: boolean; expires_at_formatted: string | null; days_remaining: number; type: 'quarter' | 'year' | null } | null
   onOpenSettings: () => void
   onOpenFakeDoor: () => void
   showXiaohongshuModal: boolean
@@ -3375,6 +3378,7 @@ function StatsTab({
   }
 
   const { isInstallable, promptInstall } = usePWAInstall()
+  const router = useRouter()
 
     const handleInstallClick = async () => {
     // 检查是否已经安装到主屏幕
@@ -3559,10 +3563,23 @@ function StatsTab({
               )}
             </button>
           </div>
-          <div className="flex items-center">
+          <div className="flex items-center gap-2">
             <h2 className="text-xl font-serif text-[#e67e22]">{profile.name}</h2>
-            <ProBadge isPro={hasVotedPro} />
+            <ProBadge isPro={membership?.is_active ?? false} />
           </div>
+          {/* 会员状态显示 */}
+          {membership?.is_active ? (
+            <p className="text-xs text-amber-600 font-medium mt-1">
+              Pro 有效期至 {membership.expires_at_formatted}
+            </p>
+          ) : (
+            <button
+              onClick={() => router.push('/settings')}
+              className="text-xs text-amber-600 hover:text-amber-700 font-medium mt-1 underline underline-offset-2"
+            >
+              升级 Pro 解锁更多功能 →
+            </button>
+          )}
           <p className="text-[10px] font-mono text-gray-400 mt-1">
             ID: {user?.email ? maskEmail(user.email) : (profile.id?.slice(0, 8) || 'ANONYMOUS')}
           </p>
@@ -3700,6 +3717,9 @@ export default function AshtangaTracker() {
     importData,
     clearAllData
   } = usePracticeData()
+
+  // ==================== 会员状态 ====================
+  const { membership, isPro: membershipIsPro, refresh: refreshMembership } = useMembership()
 
   // ==================== 认证状态 ====================
   const { user, loading: authLoading } = useAuth()
@@ -5241,6 +5261,7 @@ export default function AshtangaTracker() {
         <StatsTab
           practiceHistory={practiceHistory}
           profile={userProfile}
+          membership={membership}
           onOpenSettings={() => setShowSettings(true)}
           onOpenFakeDoor={() => setShowFakeDoor({ type: 'pro', isOpen: true })}
           showXiaohongshuModal={showXiaohongshuModal}
