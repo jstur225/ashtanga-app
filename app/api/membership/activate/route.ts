@@ -177,10 +177,18 @@ export async function POST(request: NextRequest) {
         is_new: isNewMembership,
       },
     })
-  } catch (error) {
+  } catch (error: any) {
     console.error('[Membership API] 服务器错误:', error)
     return NextResponse.json(
-      { success: false, error: 'INTERNAL_ERROR' },
+      {
+        success: false,
+        error: 'INTERNAL_ERROR',
+        message: error.message,
+        envCheck: {
+          hasUrl: !!SUPABASE_URL,
+          hasKey: !!SUPABASE_SERVICE_KEY,
+        }
+      },
       { status: 500 }
     )
   }

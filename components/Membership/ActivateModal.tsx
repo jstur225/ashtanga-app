@@ -88,7 +88,7 @@ export function ActivateModal({ isOpen, onClose, onSuccess }: ActivateModalProps
           CODE_EXPIRED: '该激活码已过期',
           NOT_AUTHENTICATED: '请先登录',
           DATABASE_ERROR: '系统繁忙，请稍后再试',
-          INTERNAL_ERROR: '服务器错误，请稍后再试',
+          INTERNAL_ERROR: '服务器错误: ' + (result.message || '未知错误'),
         }
         console.error('激活失败:', result)
         setError(errorMessages[result.error || ''] || result.error || '激活失败，请重试')
