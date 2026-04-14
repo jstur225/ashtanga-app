@@ -77,13 +77,40 @@ export async function POST(request: NextRequest) {
     }
 
     // 4. 查询激活码
-    const { data: activationCode, error: codeError } = await supabase
-      .from('activation_codes')
-      .select('id, code, type, duration_days, used, used_by, expires_at')
-      .eq('code', formattedCode)
-      .single()
+    let activationCode
+    try {
+      const result = await supabase
+        .from('activation_codes')
+        .select('id, code, type, duration_days, used, used_by, expires_at')
+        .eq('code', formattedCode)
+        .single()
 
-    if (codeError || !activationCode) {
+      if (result.error) {
+        console.error('[Membership API] 查询激活码错误:', result.error)
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'DATABASE_ERROR',
+            details: result.error.message,
+            hint: '检查 activation_codes 表是否存在'
+          },
+          { status: 500 }
+        )
+      }
+      activationCode = result.data
+    } catch (err: any) {
+      console.error('[Membership API] 查询激活码异常:', err)
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'DATABASE_ERROR',
+          details: err.message,
+        },
+        { status: 500 }
+      )
+    }
+
+    if (!activationCode) {
       return NextResponse.json(
         { success: false, error: 'INVALID_CODE' },
         { status: 400 }
