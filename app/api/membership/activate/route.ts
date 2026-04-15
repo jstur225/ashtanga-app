@@ -337,11 +337,11 @@ export async function POST(request: NextRequest) {
     // 10. 标记激活码为已使用
     console.log('[Membership API] 标记激活码为已使用, code:', activationCode.code)
     try {
+      // ⭐ 不保存 used_by 避免外键约束问题
       const result = await supabase
         .from('activation_codes')
         .update({
           used: true,
-          used_by: user.id,
           used_at: now.toISOString(),
         })
         .eq('code', activationCode.code)
