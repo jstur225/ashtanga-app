@@ -8,6 +8,7 @@ import { supabase, type PracticeRecord, type PracticeOption, type Photo } from '
 import { PhotoPreviewList, PhotoPreview } from './PhotoUpload/PhotoPreview'
 import { toast } from 'sonner'
 import { Expand, Camera } from 'lucide-react'
+import { useMembership } from '@/hooks/useMembership'
 
 // 将 URL 数组转换为 Photo 数组的辅助函数
 function convertUrlsToPhotos(urls: string[]): Photo[] {
@@ -46,7 +47,6 @@ export interface PracticeFormProps {
   // 用户信息（用于照片上传权限判断）
   user?: {
     email?: string | null
-    is_pro?: boolean
   } | null
 
   // 受控模式：外部控制 date 和 type
@@ -268,9 +268,10 @@ export function PracticeForm({
   const { photos, loading, uploading, uploadPhoto, deletePhoto, executePendingDeletions } = useRecordPhotos(recordId, initialPhotos)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // ⭐ 照片上传权限和限制
+  // ⭐ 照片上传权限和限制（使用真实会员状态）
+  const { membership } = useMembership()
   const hasEmail = !!user?.email
-  const isPro = user?.is_pro ?? false
+  const isPro = membership?.is_active ?? false
   const maxPhotos = isPro ? 9 : 1
   const canUploadPhotos = hasEmail && showPhotoUpload
 

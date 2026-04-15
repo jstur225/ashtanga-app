@@ -45,12 +45,20 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 2.2 获取用户会员状态
+    // 2.2 获取用户会员状态（先查 profile id，再查会员状态）
+    const { data: userProfile } = await supabase
+      .from('user_profiles')
+      .select('id')
+      .eq('user_id', user.id)
+      .maybeSingle()
+
+    const queryId = userProfile?.id || user.id
+
     const { data: membershipStatus, error: membershipError } = await supabase
       .from('user_membership_status')
       .select('is_active')
-      .eq('user_id', user.id)
-      .single()
+      .eq('user_id', queryId)
+      .maybeSingle()
 
     if (membershipError) {
       console.error('[Photos API] 获取会员状态失败:', membershipError)
