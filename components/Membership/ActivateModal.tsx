@@ -91,7 +91,9 @@ export function ActivateModal({ isOpen, onClose, onSuccess }: ActivateModalProps
           INTERNAL_ERROR: '服务器错误: ' + (result.message || '未知错误'),
         }
         console.error('激活失败:', result)
-        setError(errorMessages[result.error || ''] || result.error || '激活失败，请重试')
+        // ⭐ 显示详细调试信息
+        const debugInfo = result.debug || result.details || ''
+        setError((errorMessages[result.error || ''] || result.error || '激活失败，请重试') + (debugInfo ? `\n\n[调试: ${JSON.stringify(debugInfo)}]` : ''))
       } else {
         setSuccess(result.data || null)
         onSuccess?.()
@@ -201,9 +203,9 @@ export function ActivateModal({ isOpen, onClose, onSuccess }: ActivateModalProps
               {/* 错误提示 */}
               {error && (
                 <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-xl">
-                  <div className="flex items-center gap-2 text-red-600">
-                    <AlertCircle className="w-5 h-5 flex-shrink-0" />
-                    <span className="text-sm font-medium font-serif">{error}</span>
+                  <div className="flex items-start gap-2 text-red-600">
+                    <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                    <div className="text-sm font-medium font-serif whitespace-pre-wrap break-all">{error}</div>
                   </div>
                 </div>
               )}
