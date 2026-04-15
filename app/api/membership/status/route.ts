@@ -16,8 +16,21 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.SUP
 // GET - 查询会员状态
 export async function GET(request: NextRequest) {
   try {
+    console.log('[Membership API] 收到请求')
+
+    // 检查环境变量
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
+      console.error('[Membership API] 环境变量缺失:', { hasUrl: !!SUPABASE_URL, hasKey: !!SUPABASE_SERVICE_KEY })
+      return NextResponse.json(
+        { success: false, error: 'CONFIG_ERROR' },
+        { status: 500 }
+      )
+    }
+
     // 1. 验证用户登录
     const authHeader = request.headers.get('authorization')
+    console.log('[Membership API] authHeader:', authHeader ? '存在' : '不存在')
+
     if (!authHeader) {
       return NextResponse.json(
         { success: false, error: 'NOT_AUTHENTICATED' },
@@ -34,6 +47,8 @@ export async function GET(request: NextRequest) {
     })
 
     const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+    console.log('[Membership API] getUser 结果:', { hasUser: !!user, error: authError?.message })
+
     if (authError || !user) {
       return NextResponse.json(
         { success: false, error: 'NOT_AUTHENTICATED' },
@@ -42,11 +57,14 @@ export async function GET(request: NextRequest) {
     }
 
     // 2. 查询会员状态
+    console.log('[Membership API] 查询会员状态, userId:', user.id)
     const { data: membership, error: membershipError } = await supabase
       .from('user_membership_status')
       .select('is_active, expires_at, days_remaining, membership_type')
       .eq('user_id', user.id)
-      .maybeSingle() // ⭐ 使用 maybeSingle，没有记录时返回 null 而不是报错
+      .maybeSingle()
+
+    console.log('[Membership API] 查询结果:', { hasData: !!membership, error: membershipError?.message })
 
     if (membershipError) {
       console.error('[Membership API] 查询会员状态失败:', membershipError)
