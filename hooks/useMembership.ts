@@ -42,16 +42,16 @@ export function useMembership() {
 
       console.log('[useMembership] Response status:', response.status)
       const result = await response.json()
-      console.log('[useMembership] API 返回:', result)
+      console.log('[useMembership] API 返回完整数据:', JSON.stringify(result, null, 2))
 
       // ⭐ 打印调试信息（用 error 级别确保显示）
-      if (result.debug) {
+      if (result._debug) {
         console.error('[useMembership] ========== 调试信息 ==========')
-        console.error('[useMembership] userId:', result.debug.userId)
-        console.error('[useMembership] profileId:', result.debug.profileId)
-        console.error('[useMembership] queryId:', result.debug.queryId)
-        console.error('[useMembership] hasMembershipData:', result.debug.hasMembershipData)
-        console.error('[useMembership] rawMembership:', result.debug.rawMembership)
+        console.error('[useMembership] userId:', result._debug.userId)
+        console.error('[useMembership] profileId:', result._debug.profileId)
+        console.error('[useMembership] queryId:', result._debug.queryId)
+        console.error('[useMembership] hasMembershipData:', result._debug.hasMembershipData)
+        console.error('[useMembership] rawMembership:', JSON.stringify(result._debug.rawMembership, null, 2))
         console.error('[useMembership] =================================')
       }
 
