@@ -127,9 +127,9 @@ export async function GET(request: NextRequest) {
         days_remaining: membership?.days_remaining ?? 0,
         type: membership?.membership_type ?? null,
       },
-      // ⭐ 调试信息 - 强制返回
+      // ⭐ 调试信息 - 强制返回 v4
       _debug: {
-        v: '3', // 版本号，确保部署更新
+        v: '4',
         timestamp: new Date().toISOString(),
         userId: user.id,
         profileId: userProfile?.id,
