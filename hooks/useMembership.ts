@@ -22,22 +22,40 @@ export function useMembership() {
       const { data: { session } } = await supabase.auth.getSession()
       const token = session?.access_token
 
+      console.log('[useMembership] Session:', session ? 'exists' : 'null')
+      console.log('[useMembership] Token:', token ? `exists (${token.slice(0, 20)}...)` : 'null')
+
       if (!token) {
+        console.log('[useMembership] No token, skipping fetch')
         setLoading(false)
         setMembership(null)
         return
       }
 
       setLoading(true)
+      console.log('[useMembership] Sending request with Authorization header')
       const response = await fetch('/api/membership/status', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
       })
 
+      console.log('[useMembership] Response status:', response.status)
+      const result = await response.json()
+      console.log('[useMembership] API 返回:', result)
+
+      // ⭐ 打印调试信息
+      if (result.debug) {
+        console.log('[useMembership] 调试信息:', {
+          userId: result.debug.userId,
+          profileId: result.debug.profileId,
+          queryId: result.debug.queryId,
+          hasMembershipData: result.debug.hasMembershipData,
+          rawMembership: result.debug.rawMembership,
+        })
+      }
+
       if (response.ok) {
-        const result = await response.json()
-        console.log('[useMembership] API 返回:', result)
         if (result.success) {
           setMembership(result.data)
           setError(null)

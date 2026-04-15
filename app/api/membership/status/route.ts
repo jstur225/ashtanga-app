@@ -29,9 +29,18 @@ export async function GET(request: NextRequest) {
 
     // 1. 验证用户登录
     const authHeader = request.headers.get('authorization')
-    console.log('[Membership API] authHeader:', authHeader ? '存在' : '不存在')
+    console.log('[Membership API] authHeader:', authHeader ? `存在: ${authHeader.slice(0, 30)}...` : '不存在')
 
     if (!authHeader) {
+      console.log('[Membership API] 错误: 没有 Authorization header')
+      return NextResponse.json(
+        { success: false, error: 'NOT_AUTHENTICATED' },
+        { status: 401 }
+      )
+    }
+
+    if (!authHeader.startsWith('Bearer ')) {
+      console.log('[Membership API] 错误: Authorization header 格式不正确:', authHeader.slice(0, 20))
       return NextResponse.json(
         { success: false, error: 'NOT_AUTHENTICATED' },
         { status: 401 }
@@ -39,6 +48,8 @@ export async function GET(request: NextRequest) {
     }
 
     const token = authHeader.replace('Bearer ', '')
+    console.log('[Membership API] Token 长度:', token.length, 'Token 前缀:', token.slice(0, 20))
+
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
       auth: {
         autoRefreshToken: false,
@@ -47,24 +58,50 @@ export async function GET(request: NextRequest) {
     })
 
     const { data: { user }, error: authError } = await supabase.auth.getUser(token)
-    console.log('[Membership API] getUser 结果:', { hasUser: !!user, error: authError?.message })
+    console.log('[Membership API] getUser 结果:', { hasUser: !!user, error: authError?.message, errorName: authError?.name })
 
     if (authError || !user) {
+      console.log('[Membership API] 认证失败:', { error: authError?.message, errorName: authError?.name })
       return NextResponse.json(
-        { success: false, error: 'NOT_AUTHENTICATED' },
+        {
+          success: false,
+          error: 'NOT_AUTHENTICATED',
+          debug: {
+            authError: authError?.message,
+            authErrorName: authError?.name,
+            hasUser: !!user,
+          }
+        },
         { status: 401 }
       )
     }
 
     // 2. 查询会员状态
     console.log('[Membership API] 查询会员状态, userId:', user.id)
-    const { data: membership, error: membershipError } = await supabase
-      .from('user_membership_status')
-      .select('is_active, expires_at, days_remaining, membership_type')
+
+    // ⭐ 首先通过 user_id 查询 user_profiles 获取 profile id
+    const { data: userProfile, error: profileError } = await supabase
+      .from('user_profiles')
+      .select('id')
       .eq('user_id', user.id)
       .maybeSingle()
 
-    console.log('[Membership API] 查询结果:', { hasData: !!membership, error: membershipError?.message })
+    console.log('[Membership API] user_profiles 查询:', { hasProfile: !!userProfile, profileId: userProfile?.id, error: profileError?.message })
+
+    let membershipQuery: any
+
+    // 优先使用 profile id 查询，如果没有 profile 则尝试用 user.id
+    const queryId = userProfile?.id || user.id
+    console.log('[Membership API] 使用 queryId:', queryId)
+
+    // 查询视图（视图中的 user_id 实际上是 user_profiles.id）
+    const { data: membership, error: membershipError } = await supabase
+      .from('user_membership_status')
+      .select('is_active, expires_at, days_remaining, membership_type')
+      .eq('user_id', queryId)
+      .maybeSingle()
+
+    console.log('[Membership API] 查询结果:', { hasData: !!membership, error: membershipError?.message, data: membership })
 
     if (membershipError) {
       console.error('[Membership API] 查询会员状态失败:', membershipError)
@@ -90,7 +127,17 @@ export async function GET(request: NextRequest) {
         days_remaining: membership?.days_remaining ?? 0,
         type: membership?.membership_type ?? null,
       },
+      // ⭐ 调试信息
+      debug: {
+        userId: user.id,
+        profileId: userProfile?.id,
+        queryId: queryId,
+        hasMembershipData: !!membership,
+        rawMembership: membership,
+      },
     }
+
+    console.log('[Membership API] 返回响应:', { isActive: response.data.is_active, hasDebug: true })
 
     return NextResponse.json(response)
   } catch (error) {
