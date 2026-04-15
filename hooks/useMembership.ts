@@ -44,15 +44,15 @@ export function useMembership() {
       const result = await response.json()
       console.log('[useMembership] API 返回:', result)
 
-      // ⭐ 打印调试信息
+      // ⭐ 打印调试信息（用 error 级别确保显示）
       if (result.debug) {
-        console.log('[useMembership] 调试信息:', {
-          userId: result.debug.userId,
-          profileId: result.debug.profileId,
-          queryId: result.debug.queryId,
-          hasMembershipData: result.debug.hasMembershipData,
-          rawMembership: result.debug.rawMembership,
-        })
+        console.error('[useMembership] ========== 调试信息 ==========')
+        console.error('[useMembership] userId:', result.debug.userId)
+        console.error('[useMembership] profileId:', result.debug.profileId)
+        console.error('[useMembership] queryId:', result.debug.queryId)
+        console.error('[useMembership] hasMembershipData:', result.debug.hasMembershipData)
+        console.error('[useMembership] rawMembership:', result.debug.rawMembership)
+        console.error('[useMembership] =================================')
       }
 
       if (response.ok) {
