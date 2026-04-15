@@ -37,6 +37,7 @@ export function useMembership() {
 
       if (response.ok) {
         const result = await response.json()
+        console.log('[useMembership] API 返回:', result)
         if (result.success) {
           setMembership(result.data)
           setError(null)

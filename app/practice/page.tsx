@@ -3680,6 +3680,7 @@ function StatsTab({
           </div>
           <div className="flex items-center gap-2">
             <h2 className="text-xl font-serif text-[#2D5A27]">{profile.name}</h2>
+            {(() => { console.log('[StatsTab] membership:', membership); return null })()}
             <ProBadge isPro={membership?.is_active ?? false} daysRemaining={membership?.days_remaining} />
           </div>
 

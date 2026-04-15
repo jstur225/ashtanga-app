@@ -1,5 +1,70 @@
 # 阿斯汤加打卡app - 项目记录
 
+## 2026-04-14: 会员系统核心功能完成 ✅
+
+**类型**: 新功能开发
+
+**状态**: 核心功能已完成并部署，待修复状态显示 bug
+
+### 完成内容
+
+#### 1. 数据库表结构
+- 创建 `activation_codes` 表（激活码池）
+- 创建 `user_memberships` 表（会员记录）
+- 创建 `user_membership_status` 视图（实时查询会员状态）
+- 添加 `email` 字段到 `user_memberships` 表（方便管理员查询）
+
+#### 2. API 接口
+- `POST /api/membership/activate` - 激活码校验与激活
+- `GET /api/membership/status` - 查询当前会员状态
+- 支持续费逻辑（未到期再激活，从原到期日顺延）
+- 修复外键关联问题（使用 `user_profiles.id` 而非 `auth.users.id`）
+
+#### 3. 前端功能
+- **设置页** (`app/settings/page.tsx`):
+  - 会员卡片显示（Pro 状态、有效期、天数剩余）
+  - 「购买会员」按钮（跳转占位链接）
+  - 「激活会员」按钮（打开激活弹窗）
+  - 样式符合设计规范（金色配色 `#C1A268`、圆角 `20px`、衬线字体）
+  - 返回按钮跳转 Tab3（`?tab=stats`）
+
+- **激活弹窗** (`components/Membership/ActivateModal.tsx`):
+  - 自动格式化输入（XXXX-XXXX-XXXX）
+  - 激活码格式校验
+  - 错误提示（无效码、已使用、过期）
+  - 成功状态显示（有效期、类型、天数）
+  - 样式符合设计规范（金色渐变、米色背景）
+
+- **Tab3 会员显示** (`app/practice/page.tsx`):
+  - 头像下方显示会员状态
+  - Pro 用户：显示「有效期至：YYYY.MM.DD」
+  - 免费用户：显示「升级 Pro」提示
+  - 支持 URL 参数切换 Tab（`?tab=stats`）
+
+### 已知问题
+
+**Bug**: 激活成功后界面仍显示「免费用户」
+- **现象**: 激活码输入成功（返回激活成功），但设置页和 Tab3 仍显示免费状态
+- **可能原因**:
+  1. `useMembership` hook 缓存未刷新
+  2. 激活成功后未立即更新本地状态
+  3. 页面返回时未触发重新查询
+- **修复计划**: 2026-04-15 检查状态刷新逻辑
+
+### 涉及文件
+- `app/api/membership/activate/route.ts`
+- `app/api/membership/status/route.ts`
+- `app/settings/page.tsx`
+- `components/Membership/ActivateModal.tsx`
+- `app/practice/page.tsx`
+- `hooks/useMembership.ts`
+
+### 提交记录
+- `fe69f27` - fix: 激活弹窗样式规范化，设置页返回跳转Tab3
+- `c588f79` - fix: 添加缺失的导入，完善会员系统UI设计规范
+
+---
+
 ## 2026-04-12: 定价策略确定 ✅
 
 **类型**: 商业模式决策
