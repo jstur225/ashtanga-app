@@ -3867,11 +3867,10 @@ export default function AshtangaTracker() {
   const [finalDuration, setFinalDuration] = useState("")
   const [activeTab, setActiveTab] = useState<'practice' | 'journal' | 'stats'>('practice')
 
-  // ⭐ 读取 URL 参数，切换 Tab（客户端 only）
-  const router = useRouter()
-  const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
+  // ⭐ 读取 URL 参数，切换 Tab（客户端 only，只执行一次）
   useEffect(() => {
-    if (!searchParams) return
+    if (typeof window === 'undefined') return
+    const searchParams = new URLSearchParams(window.location.search)
     const tab = searchParams.get('tab')
     if (tab === 'stats') {
       setActiveTab('stats')
@@ -3880,7 +3879,11 @@ export default function AshtangaTracker() {
     } else if (tab === 'practice') {
       setActiveTab('practice')
     }
-  }, [searchParams])
+    // 清除 URL 参数，避免刷新时再次触发
+    if (tab) {
+      window.history.replaceState({}, '', window.location.pathname)
+    }
+  }, []) // 只在组件挂载时执行一次
 
   const [showSettings, setShowSettings] = useState(false)
   const [settingsInitialSection, setSettingsInitialSection] = useState<'profile' | 'membership' | 'account' | 'data'>('profile')
