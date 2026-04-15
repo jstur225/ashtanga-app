@@ -3476,7 +3476,7 @@ function StatsTab({
   setReadInviteVersion: (version: string) => void
 }) {
   // ⭐ StatsTab 内部自己获取会员状态，确保切换Tab时数据最新
-  const { membership } = useMembership()
+  const { membership, loading: membershipLoading } = useMembership()
 
   // 隐藏邮箱的辅助函数
   const maskEmail = (email: string): string => {
@@ -3683,12 +3683,23 @@ function StatsTab({
           </div>
           <div className="flex items-center gap-2">
             <h2 className="text-xl font-serif text-[#2D5A27]">{profile.name}</h2>
-            {(() => { console.log('[StatsTab] membership:', membership); return null })()}
-            <ProBadge isPro={membership?.is_active ?? false} daysRemaining={membership?.days_remaining} />
+            {(() => { console.log('[StatsTab] membership:', membership, 'loading:', membershipLoading); return null })()}
+            {membershipLoading ? (
+              <span className="ml-2 px-2 py-0.5 text-[10px] font-serif rounded-full bg-gray-100 text-gray-400">
+                加载中...
+              </span>
+            ) : (
+              <ProBadge isPro={membership?.is_active ?? false} daysRemaining={membership?.days_remaining} />
+            )}
           </div>
 
           {/* 会员状态显示 — 遵循设计规范 */}
-          {membership?.is_active ? (
+          {membershipLoading ? (
+            <div className="mt-2 flex items-center gap-2 px-4 py-2 text-xs text-gray-400 font-serif">
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              <span>正在加载会员状态...</span>
+            </div>
+          ) : membership?.is_active ? (
             <div className="mt-2 flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#F9F7F2] to-[#F5F0E8] rounded-full border border-[#C1A268]/30">
               <Crown className="w-4 h-4 text-[#C1A268]" />
               <span className="text-xs text-[#8B7355] font-serif">
