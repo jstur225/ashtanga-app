@@ -112,7 +112,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 3. 格式化响应（免费用户返回 is_active: false）
-    const response = {
+    const responseData = {
       success: true,
       data: {
         is_active: membership?.is_active ?? false,
@@ -127,19 +127,21 @@ export async function GET(request: NextRequest) {
         days_remaining: membership?.days_remaining ?? 0,
         type: membership?.membership_type ?? null,
       },
-      // ⭐ 调试信息
-      debug: {
+      // ⭐ 强制返回调试信息
+      _debug: {
+        timestamp: new Date().toISOString(),
         userId: user.id,
         profileId: userProfile?.id,
         queryId: queryId,
         hasMembershipData: !!membership,
         rawMembership: membership,
+        membershipError: membershipError?.message,
       },
     }
 
-    console.log('[Membership API] 返回响应:', { isActive: response.data.is_active, hasDebug: true })
+    console.log('[Membership API] 返回响应:', responseData)
 
-    return NextResponse.json(response)
+    return NextResponse.json(responseData)
   } catch (error) {
     console.error('[Membership API] 服务器错误:', error)
     return NextResponse.json(
