@@ -58,6 +58,19 @@ export function useMembership() {
     fetchMembershipStatus()
   }, [fetchMembershipStatus])
 
+  // ⭐ 监听页面可见性变化，当用户从其他页面返回时刷新会员状态
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log('[useMembership] 页面可见，刷新会员状态')
+        fetchMembershipStatus()
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, [fetchMembershipStatus])
+
   const refresh = useCallback(() => {
     fetchMembershipStatus()
   }, [fetchMembershipStatus])

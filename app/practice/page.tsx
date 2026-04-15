@@ -8,7 +8,7 @@ import { useMembership } from "@/hooks/useMembership"
 import { usePWAInstall } from "@/hooks/usePWAInstall"
 import { useAuth } from "@/hooks/useAuth"
 import { useSync } from "@/hooks/useSync"
-import { BookOpen, BarChart3, Calendar, X, Camera, Pause, Play, Trash2, User, Settings, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Cloud, Download, Upload, Plus, Minus, Share2, Sparkles, Check, Copy, ClipboardPaste, MessageCircle, Bug, AlertCircle, SkipBack, SkipForward, Volume, Crown } from "lucide-react"
+import { BookOpen, BarChart3, Calendar, X, Camera, Pause, Play, Trash2, User, Settings, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Cloud, Download, Upload, Plus, Minus, Share2, Sparkles, Check, Copy, ClipboardPaste, MessageCircle, Bug, AlertCircle, SkipBack, SkipForward, Volume, Crown, Ticket } from "lucide-react"
 import { cn } from '@/lib/utils'
 import { FakeDoorModal } from "@/components/FakeDoorModal"
 import { VoiceButton } from "@/components/VoiceButton"
@@ -27,6 +27,7 @@ import { toast } from 'sonner'
 import { trackEvent, setUserProfile } from '@/lib/analytics'
 import { captureWithFallback, formatErrorForUser } from '@/lib/screenshot'
 import { MOON_DAYS_2026 } from '@/lib/moon-phase-data'
+import { ActivateModal } from '@/components/Membership/ActivateModal'
 import { supabase } from '@/lib/supabase'
 import { deletePracticeRecord } from '@/lib/database'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -1488,13 +1489,16 @@ function SettingsModal({
   onOpenImport,
   onExportLog,
   onClearData,
-  user, // ⭐ 新增：用户信息（用于重置同步状态）
-  practiceHistory, // ⭐ 新增
-  practiceOptionsData, // ⭐ 新增
-  initialSection, // ⭐ 新增：初始标签页（用于从云图标快速打开）
-  onShowClearDataConfirm, // ⭐ 新增：显示清空数据确认弹窗
-  onOpenLoginModal, // ⭐ 新增：打开登录弹窗
-  onOpenRegisterModal, // ⭐ 新增：打开注册弹窗
+  user,
+  practiceHistory,
+  practiceOptionsData,
+  initialSection,
+  onShowClearDataConfirm,
+  onOpenLoginModal,
+  onOpenRegisterModal,
+  membership,
+  onActivateMembership,
+  onUpdateProfile,
 }: {
   isOpen: boolean
   onClose: () => void
@@ -1504,18 +1508,21 @@ function SettingsModal({
   onOpenImport: () => void
   onExportLog?: () => void | Promise<void>
   onClearData?: () => void
-  user?: any // ⭐ 新增
-  practiceHistory?: PracticeRecord[] // ⭐ 新增
-  practiceOptionsData?: PracticeOption[] // ⭐ 新增
-  initialSection?: 'profile' | 'account' | 'data' // ⭐ 新增：初始标签页
-  onShowClearDataConfirm?: () => void // ⭐ 新增
-  onOpenLoginModal?: () => void // ⭐ 新增
-  onOpenRegisterModal?: () => void // ⭐ 新增
+  user?: any
+  practiceHistory?: PracticeRecord[]
+  practiceOptionsData?: PracticeOption[]
+  initialSection?: 'profile' | 'membership' | 'account' | 'data'
+  onShowClearDataConfirm?: () => void
+  onOpenLoginModal?: () => void
+  onOpenRegisterModal?: () => void
+  membership?: { is_active: boolean; expires_at_formatted: string | null; days_remaining: number; type: 'quarter' | 'year' | null } | null
+  onActivateMembership?: () => void
+  onUpdateProfile?: (profile: UserProfile) => void
 }) {
   const [name, setName] = useState(profile.name)
   const [signature, setSignature] = useState(profile.signature)
   const [avatar, setAvatar] = useState<string | null>(profile.avatar)
-  const [activeSection, setActiveSection] = useState<'profile' | 'account' | 'data'>(initialSection || 'profile')
+  const [activeSection, setActiveSection] = useState<'profile' | 'membership' | 'account' | 'data'>(initialSection || 'profile')
   const [isExportingLog, setIsExportingLog] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -1635,7 +1642,7 @@ function SettingsModal({
               </button>
             </div>
 
-            {/* Section Tabs */}
+            {/* Section Tabs - 顺序：个人资料 | 会员 | 账户与同步 | 数据管理 */}
             <div className="flex gap-2 mb-6">
               <button
                 onClick={() => setActiveSection('profile')}
@@ -1646,6 +1653,16 @@ function SettingsModal({
                 }`}
               >
                 个人资料
+              </button>
+              <button
+                onClick={() => setActiveSection('membership')}
+                className={`flex-1 py-2 rounded-full text-sm font-serif transition-all ${
+                  activeSection === 'membership'
+                    ? 'bg-gradient-to-r from-[#C1A268] to-[#D4AF37] shadow-[0_4px_16px_rgba(193,162,104,0.25)] text-white'
+                    : 'bg-secondary text-foreground'
+                }`}
+              >
+                会员
               </button>
               <button
                 onClick={() => setActiveSection('account')}
@@ -1783,6 +1800,99 @@ function SettingsModal({
                 </>
               )}
 
+              {activeSection === 'membership' && (
+                <div className="space-y-4">
+                  {/* 会员状态卡片 */}
+                  <div className="bg-gradient-to-br from-[#F9F7F2] to-[#F5F0E8] rounded-[20px] p-5 border border-[#C1A268]/20">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="w-8 h-8 bg-gradient-to-br from-[#C1A268] to-[#D4AF37] rounded-lg flex items-center justify-center">
+                            <Crown className="w-4 h-4 text-white" />
+                          </div>
+                          <h2 className="font-serif text-lg text-[#8B7355]">Pro 会员</h2>
+                        </div>
+
+                        {membership?.is_active ? (
+                          <div>
+                            <p className="text-[#6B5A47] font-serif font-medium">
+                              有效期至 {membership.expires_at_formatted}
+                            </p>
+                            <p className="text-[#8B7355] text-sm mt-1 font-serif">
+                              还剩 {membership.days_remaining} 天
+                              {membership.type === 'quarter' ? ' · 季卡' : membership.type === 'year' ? ' · 年卡' : ''}
+                            </p>
+                          </div>
+                        ) : (
+                          <p className="text-[#8B7355] text-sm font-serif">
+                            免费用户 · 解锁更多专属功能
+                          </p>
+                        )}
+                      </div>
+
+                      {!membership?.is_active && (
+                        <Sparkles className="w-6 h-6 text-[#C1A268]" />
+                      )}
+                    </div>
+
+                    {/* Pro 功能预览 */}
+                    <div className="mt-4 pt-4 border-t border-[#C1A268]/20">
+                      <p className="text-xs text-[#8B7355] mb-3 font-serif">Pro 会员权益</p>
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className="text-center">
+                          <div className="text-lg font-bold text-[#6B5A47]">9 张</div>
+                          <div className="text-xs text-[#8B7355] font-serif">照片上传</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-lg font-bold text-[#6B5A47]">10 个</div>
+                          <div className="text-xs text-[#8B7355] font-serif">自定义选项</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-lg font-bold text-[#6B5A47]">9 种</div>
+                          <div className="text-xs text-[#8B7355] font-serif">日历标注</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 激活按钮 */}
+                  {!membership?.is_active && (
+                    <button
+                      onClick={onActivateMembership}
+                      className="w-full flex items-center justify-between p-4 bg-white rounded-[20px] border border-[#E8E8E3] hover:border-[#C1A268]/50 transition-colors shadow-sm"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-[#F5F0E8] rounded-xl flex items-center justify-center">
+                          <Ticket className="w-5 h-5 text-[#C1A268]" />
+                        </div>
+                        <div className="text-left">
+                          <p className="font-medium text-[#2D3A2D] font-serif">激活会员</p>
+                          <p className="text-sm text-[#8B7355] font-serif">使用激活码开通或续费</p>
+                        </div>
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-[#C1A268]" />
+                    </button>
+                  )}
+
+                  {/* 购买按钮 */}
+                  <button
+                    onClick={() => alert('购买功能即将上线')}
+                    className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-[#C1A268] to-[#D4AF37] rounded-[20px] text-white shadow-sm hover:opacity-90 transition-opacity"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                        <Crown className="w-5 h-5 text-white" />
+                      </div>
+                      <div className="text-left">
+                        <p className="font-medium font-serif">购买会员</p>
+                        <p className="text-sm text-white/80 font-serif">开通 Pro 解锁全部功能</p>
+                      </div>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-white" />
+                  </button>
+                </div>
+              )}
+
               {activeSection === 'account' && (
                 <AccountBindingSection
                   profile={profile}
@@ -1796,7 +1906,7 @@ function SettingsModal({
                     // ⭐ 更新本地 profile（如果云端有更新）
                     if (data?.profile) {
                       console.log('更新本地 profile:', data.profile)
-                      updateProfile(data.profile)
+                      onUpdateProfile?.(data.profile)
                     }
                   }}
                   onClose={onClose}
@@ -3341,6 +3451,7 @@ function StatsTab({
   profile,
   membership,
   onOpenSettings,
+  onOpenMembership,
   onOpenFakeDoor,
   showXiaohongshuModal,
   setShowXiaohongshuModal,
@@ -3354,6 +3465,7 @@ function StatsTab({
   profile: UserProfile
   membership: { is_active: boolean; expires_at_formatted: string | null; days_remaining: number; type: 'quarter' | 'year' | null } | null
   onOpenSettings: () => void
+  onOpenMembership: () => void
   onOpenFakeDoor: () => void
   showXiaohongshuModal: boolean
   setShowXiaohongshuModal: (value: boolean) => void
@@ -3598,7 +3710,7 @@ function StatsTab({
             </div>
           ) : (
             <button
-              onClick={() => router.push('/settings')}
+              onClick={onOpenMembership}
               className="mt-2 flex items-center gap-2 px-4 py-2 text-xs text-[#8B7355] hover:text-[#6B5A47] font-serif bg-[#F9F7F2] hover:bg-[#F5F0E8] rounded-full border border-[#C1A268]/30 transition-colors"
             >
               <Sparkles className="w-3.5 h-3.5 text-[#C1A268]" />
@@ -3769,8 +3881,9 @@ export default function AshtangaTracker() {
   const [finalDuration, setFinalDuration] = useState("")
   const [activeTab, setActiveTab] = useState<'practice' | 'journal' | 'stats'>('practice')
   const [showSettings, setShowSettings] = useState(false)
-  const [settingsInitialSection, setSettingsInitialSection] = useState<'profile' | 'account' | 'data'>('profile')
+  const [settingsInitialSection, setSettingsInitialSection] = useState<'profile' | 'membership' | 'account' | 'data'>('profile')
   const [showAccountSync, setShowAccountSync] = useState(false)
+  const [showActivateModal, setShowActivateModal] = useState(false)
   const [showFakeDoor, setShowFakeDoor] = useState<{ type: 'cloud' | 'pro' | 'voice' | 'photo', isOpen: boolean }>({ type: 'cloud', isOpen: false })
   const [showImportModal, setShowImportModal] = useState(false)
   const [showDebugLogModal, setShowDebugLogModal] = useState(false)
@@ -5302,6 +5415,10 @@ export default function AshtangaTracker() {
           profile={userProfile}
           membership={membership}
           onOpenSettings={() => setShowSettings(true)}
+          onOpenMembership={() => {
+            setSettingsInitialSection('membership')
+            setShowSettings(true)
+          }}
           onOpenFakeDoor={() => setShowFakeDoor({ type: 'pro', isOpen: true })}
           showXiaohongshuModal={showXiaohongshuModal}
           setShowXiaohongshuModal={setShowXiaohongshuModal}
@@ -5421,6 +5538,21 @@ export default function AshtangaTracker() {
         onOpenRegisterModal={() => {
           setShowAuthModal(true)
           setAuthMode('register')
+        }}
+        membership={membership}
+        onActivateMembership={() => {
+          setShowActivateModal(true)
+        }}
+        onUpdateProfile={updateProfile}
+      />
+
+      {/* Activate Membership Modal */}
+      <ActivateModal
+        isOpen={showActivateModal}
+        onClose={() => setShowActivateModal(false)}
+        onSuccess={() => {
+          setShowActivateModal(false)
+          refreshMembership()
         }}
       />
 
