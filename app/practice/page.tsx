@@ -5567,7 +5567,9 @@ export default function AshtangaTracker() {
         onClose={() => setShowActivateModal(false)}
         onSuccess={() => {
           // ⭐ 刷新会员状态（弹窗会在用户点击后开始使用后才关闭）
+          console.log('[Practice] 激活成功，准备刷新会员状态')
           refreshMembership()
+          console.log('[Practice] refreshMembership 已调用')
         }}
       />
 
