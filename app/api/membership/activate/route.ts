@@ -232,15 +232,16 @@ export async function POST(request: NextRequest) {
     }
 
     // 10. 标记激活码为已使用
-    console.log('[Membership API] 标记激活码为已使用, codeId:', activationCode.id)
-    const { error: updateError } = await supabase
+    console.log('[Membership API] 标记激活码为已使用, code:', activationCode.code, 'id:', activationCode.id)
+    const { data: updateData, error: updateError } = await supabase
       .from('activation_codes')
       .update({
         used: true,
         used_by: user.id,
         used_at: now.toISOString(),
       })
-      .eq('id', activationCode.id)
+      .eq('code', activationCode.code)  // ⭐ 使用 code 字段匹配更可靠
+      .select()  // ⭐ 返回更新后的数据确认
 
     if (updateError) {
       console.error('[Membership API] 更新激活码状态失败:', updateError)
@@ -250,7 +251,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log('[Membership API] 激活码已成功标记为已使用')
+    console.log('[Membership API] 激活码已成功标记为已使用, 更新结果:', updateData)
 
     // 11. 返回成功响应
     return NextResponse.json({
