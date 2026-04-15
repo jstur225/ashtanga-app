@@ -30,7 +30,7 @@ import { MOON_DAYS_2026 } from '@/lib/moon-phase-data'
 import { ActivateModal } from '@/components/Membership/ActivateModal'
 import { supabase } from '@/lib/supabase'
 import { deletePracticeRecord } from '@/lib/database'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { getVersionInfo } from '@/lib/version'
 import { audioCache } from '@/lib/audioCache'
 
@@ -3494,20 +3494,6 @@ function StatsTab({
   }
 
   const { isInstallable, promptInstall } = usePWAInstall()
-  const router = useRouter()
-  const searchParams = useSearchParams()
-
-  // ⭐ 读取 URL 参数，切换 Tab
-  useEffect(() => {
-    const tab = searchParams.get('tab')
-    if (tab === 'stats') {
-      setActiveTab('stats')
-    } else if (tab === 'journal') {
-      setActiveTab('journal')
-    } else if (tab === 'practice') {
-      setActiveTab('practice')
-    }
-  }, [searchParams])
 
     const handleInstallClick = async () => {
     // 检查是否已经安装到主屏幕
@@ -3880,6 +3866,22 @@ export default function AshtangaTracker() {
   const [showCompletion, setShowCompletion] = useState(false)
   const [finalDuration, setFinalDuration] = useState("")
   const [activeTab, setActiveTab] = useState<'practice' | 'journal' | 'stats'>('practice')
+
+  // ⭐ 读取 URL 参数，切换 Tab（客户端 only）
+  const router = useRouter()
+  const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
+  useEffect(() => {
+    if (!searchParams) return
+    const tab = searchParams.get('tab')
+    if (tab === 'stats') {
+      setActiveTab('stats')
+    } else if (tab === 'journal') {
+      setActiveTab('journal')
+    } else if (tab === 'practice') {
+      setActiveTab('practice')
+    }
+  }, [searchParams])
+
   const [showSettings, setShowSettings] = useState(false)
   const [settingsInitialSection, setSettingsInitialSection] = useState<'profile' | 'membership' | 'account' | 'data'>('profile')
   const [showAccountSync, setShowAccountSync] = useState(false)
@@ -3923,8 +3925,6 @@ export default function AshtangaTracker() {
   // ⭐ 用于保存练习开始时间（在 handleConfirmEnd 重置 startTime state 后仍能使用）
   const startTimeRef = useRef<number | null>(null)
 
-  // 路由
-  const router = useRouter()
   const [exportLogs, setExportLogs] = useLocalStorage<{
     timestamp: string
     success: boolean
