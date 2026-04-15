@@ -111,16 +111,16 @@ export function ActivateModal({ isOpen, onClose, onSuccess }: ActivateModalProps
     }
   }
 
-  const handleClose = () => {
+  const handleClose = async () => {
     const wasSuccess = success !== null
     setCode('')
     setError(null)
     setSuccess(null)
-    onClose()
-    // ⭐ 关闭弹窗后才触发刷新（如果激活成功）
+    // ⭐ 如果激活成功，先等待刷新完成再关闭弹窗
     if (wasSuccess) {
-      onSuccess?.()
+      await onSuccess?.()
     }
+    onClose()
   }
 
   if (!isOpen) return null

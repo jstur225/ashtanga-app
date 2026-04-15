@@ -90,8 +90,8 @@ export function useMembership() {
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
   }, [fetchMembershipStatus])
 
-  const refresh = useCallback(() => {
-    fetchMembershipStatus()
+  const refresh = useCallback(async () => {
+    await fetchMembershipStatus()
   }, [fetchMembershipStatus])
 
   return {
