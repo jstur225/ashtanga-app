@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
       .from('user_membership_status')
       .select('is_active, expires_at, days_remaining, membership_type')
       .eq('user_id', user.id)
-      .single()
+      .maybeSingle() // ⭐ 使用 maybeSingle，没有记录时返回 null 而不是报错
 
     if (membershipError) {
       console.error('[Membership API] 查询会员状态失败:', membershipError)
@@ -56,12 +56,12 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // 3. 格式化响应
+    // 3. 格式化响应（免费用户返回 is_active: false）
     const response = {
       success: true,
       data: {
         is_active: membership?.is_active ?? false,
-        expires_at: membership?.expires_at,
+        expires_at: membership?.expires_at ?? null,
         expires_at_formatted: membership?.expires_at
           ? new Date(membership.expires_at).toLocaleDateString('zh-CN', {
               year: 'numeric',
@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
             }).replace(/\//g, '.')
           : null,
         days_remaining: membership?.days_remaining ?? 0,
-        type: membership?.membership_type,
+        type: membership?.membership_type ?? null,
       },
     }
 
