@@ -64,6 +64,7 @@
 - ✅ 分享功能（生成打卡卡片，保存图片）
 - ✅ 口令跟练（一序列梵文口令音频，支持缓存和进度控制）
 - ✅ **照片上传**（支持练习照片记录，OSS存储，Lightbox放大查看）
+- ✅ **会员系统**（激活码开通 Pro，支持季卡/年卡，照片9张、自定义选项10个）
 
 ### 技术实现
 - ✅ Next.js 16 + React 19 + TypeScript
@@ -171,26 +172,34 @@
 Ashtanga_app/
 ├── README.md                        # 项目说明（本文件）
 ├── PROJECT_LOG.md                   # 开发日志（详细记录）
+├── TODO.md                          # 待办事项与开发计划
 ├── 阿斯汤加打卡app设计方案.md        # 完整设计文档
 ├── SUPABASE_SETUP_GUIDE.md          # Supabase配置指南
+├── DESIGN.md                        # UI设计规范
 ├── yoga-app-homepage/               # Next.js项目（源代码）
 │   ├── app/                         # Next.js App Router
+│   │   ├── api/                     # API路由
+│   │   │   ├── membership/          # 会员系统API
+│   │   │   │   ├── activate/        # 激活码激活
+│   │   │   │   └── status/          # 会员状态查询
+│   │   │   └── photos/              # 照片上传API
+│   │   └── practice/                # 主页面
 │   ├── components/                  # React组件
+│   │   ├── Membership/              # 会员相关组件
+│   │   │   └── ActivateModal.tsx    # 激活码弹窗
+│   │   └── PhotoUpload/             # 照片上传组件
+│   ├── hooks/                       # 自定义Hooks
+│   │   └── useMembership.ts         # 会员状态管理
 │   ├── lib/                         # 工具函数
-│   │   ├── database.ts             # 数据库CRUD操作
-│   │   └── supabase.ts             # Supabase连接配置
+│   │   ├── database.ts              # 数据库CRUD操作
+│   │   └── supabase.ts              # Supabase连接配置
 │   └── public/                      # 静态资源
+├── scripts/                         # 脚本工具
+│   ├── generate-codes.js            # 生成激活码
+│   └── export-codes.js              # 导出激活码
 ├── docs/                            # 文档目录
 │   ├── research/                    # 竞品调研文档
-│   │   ├── 全平台竞品对比报告_2026-01-16.md
-│   │   ├── 小红书用户洞察报告_2026-01-16.md
-│   │   ├── 竞品调研总报告_2026-01-16.md
-│   │   ├── Chrome_MCP_竞品调研指南.md
-│   │   ├── 竞品体验指南.md
-│   │   ├── 竞品体验_模板.md
-│   │   └── 竞品体验报告/
 │   └── guides/                      # 开发指南
-│       └── app开发流程指南_非技术人员AI开发.md
 └── screenshots/                     # 截图存放
 ```
 
@@ -363,7 +372,7 @@ vs iOS：
 ---
 
 **创建时间**：2026-01-14
-**最后更新**：2026-03-26
-**当前版本**：v1.1.0（已部署）
+**最后更新**：2026-04-15
+**当前版本**：v1.2.0（会员系统已上线）
 **项目状态**：🎉 云端运行中
-**下一步行动**：用户反馈收集与迭代优化
+**下一步行动**：照片上传会员功能测试验证
