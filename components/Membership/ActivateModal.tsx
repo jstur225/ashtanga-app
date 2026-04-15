@@ -112,10 +112,15 @@ export function ActivateModal({ isOpen, onClose, onSuccess }: ActivateModalProps
   }
 
   const handleClose = () => {
+    const wasSuccess = success !== null
     setCode('')
     setError(null)
     setSuccess(null)
     onClose()
+    // ⭐ 关闭弹窗后才触发刷新（如果激活成功）
+    if (wasSuccess) {
+      onSuccess?.()
+    }
   }
 
   if (!isOpen) return null

@@ -5566,7 +5566,7 @@ export default function AshtangaTracker() {
         isOpen={showActivateModal}
         onClose={() => setShowActivateModal(false)}
         onSuccess={() => {
-          setShowActivateModal(false)
+          // ⭐ 刷新会员状态（弹窗会在用户点击后开始使用后才关闭）
           refreshMembership()
         }}
       />
