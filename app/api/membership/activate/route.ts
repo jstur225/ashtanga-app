@@ -117,8 +117,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    console.log('[Membership API] 查询到激活码:', { id: activationCode.id, used: activationCode.used, type: activationCode.type })
+
     // 5. 检查激活码是否已使用
     if (activationCode.used) {
+      console.log('[Membership API] 激活码已被使用, used_by:', activationCode.used_by)
       return NextResponse.json(
         { success: false, error: 'CODE_USED' },
         { status: 400 }
@@ -229,6 +232,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 10. 标记激活码为已使用
+    console.log('[Membership API] 标记激活码为已使用, codeId:', activationCode.id)
     const { error: updateError } = await supabase
       .from('activation_codes')
       .update({
@@ -240,8 +244,13 @@ export async function POST(request: NextRequest) {
 
     if (updateError) {
       console.error('[Membership API] 更新激活码状态失败:', updateError)
-      // 不影响激活成功,记录错误即可
+      return NextResponse.json(
+        { success: false, error: 'DATABASE_ERROR', details: '激活码状态更新失败: ' + updateError.message },
+        { status: 500 }
+      )
     }
+
+    console.log('[Membership API] 激活码已成功标记为已使用')
 
     // 11. 返回成功响应
     return NextResponse.json({
