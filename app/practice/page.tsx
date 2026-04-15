@@ -5443,21 +5443,30 @@ export default function AshtangaTracker() {
           >
             <div className="flex justify-around items-center">
               <button
-                onClick={() => setActiveTab('practice')}
+                onClick={() => {
+                  console.log('[Tab] 点击今日练习, 当前:', activeTab)
+                  setActiveTab('practice')
+                }}
                 className={`flex flex-col items-center gap-1.5 transition-colors ${activeTab === 'practice' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}
               >
                 <Calendar className="w-5 h-5" />
                 <span className="text-xs font-serif">今日练习</span>
               </button>
               <button
-                onClick={() => setActiveTab('journal')}
+                onClick={() => {
+                  console.log('[Tab] 点击觉察日记, 当前:', activeTab)
+                  setActiveTab('journal')
+                }}
                 className={`flex flex-col items-center gap-1.5 transition-colors ${activeTab === 'journal' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}
               >
                 <BookOpen className="w-5 h-5" />
                 <span className="text-xs font-serif">觉察日记</span>
               </button>
               <button
-                onClick={() => setActiveTab('stats')}
+                onClick={() => {
+                  console.log('[Tab] 点击我的数据, 当前:', activeTab)
+                  setActiveTab('stats')
+                }}
                 className={`flex flex-col items-center gap-1.5 transition-colors ${activeTab === 'stats' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}
               >
                 <BarChart3 className="w-5 h-5" />
