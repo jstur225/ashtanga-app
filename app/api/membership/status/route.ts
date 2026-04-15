@@ -126,17 +126,13 @@ export async function GET(request: NextRequest) {
           : null,
         days_remaining: membership?.days_remaining ?? 0,
         type: membership?.membership_type ?? null,
-      },
-      // ⭐ 调试信息 - 强制返回 v4
-      _debug: {
-        v: '4',
-        timestamp: new Date().toISOString(),
-        userId: user.id,
-        profileId: userProfile?.id,
-        queryId: queryId,
-        hasMembershipData: !!membership,
-        rawMembership: membership,
-        membershipError: membershipError?.message,
+        // ⭐ 把调试信息放 data 里确保能看到
+        _test: {
+          v: '5',
+          hasMembership: !!membership,
+          profileId: userProfile?.id,
+          queryId: queryId,
+        },
       },
     }
 
