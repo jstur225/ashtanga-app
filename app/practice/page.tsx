@@ -1855,24 +1855,26 @@ function SettingsModal({
                     </div>
                   </div>
 
-                  {/* 激活按钮 */}
-                  {!membership?.is_active && (
-                    <button
-                      onClick={onActivateMembership}
-                      className="w-full flex items-center justify-between p-4 bg-white rounded-[20px] border border-[#E8E8E3] hover:border-[#C1A268]/50 transition-colors shadow-sm"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-[#F5F0E8] rounded-xl flex items-center justify-center">
-                          <Ticket className="w-5 h-5 text-[#C1A268]" />
-                        </div>
-                        <div className="text-left">
-                          <p className="font-medium text-[#2D3A2D] font-serif">激活会员</p>
-                          <p className="text-sm text-[#8B7355] font-serif">使用激活码开通或续费</p>
-                        </div>
+                  {/* 激活/续费按钮 - 始终显示 */}
+                  <button
+                    onClick={onActivateMembership}
+                    className="w-full flex items-center justify-between p-4 bg-white rounded-[20px] border border-[#E8E8E3] hover:border-[#C1A268]/50 transition-colors shadow-sm"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-[#F5F0E8] rounded-xl flex items-center justify-center">
+                        <Ticket className="w-5 h-5 text-[#C1A268]" />
                       </div>
-                      <ChevronRight className="w-5 h-5 text-[#C1A268]" />
-                    </button>
-                  )}
+                      <div className="text-left">
+                        <p className="font-medium text-[#2D3A2D] font-serif">
+                          {membership?.is_active ? '续费会员' : '激活会员'}
+                        </p>
+                        <p className="text-sm text-[#8B7355] font-serif">
+                          {membership?.is_active ? '使用激活码延长会员时长' : '使用激活码开通或续费'}
+                        </p>
+                      </div>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-[#C1A268]" />
+                  </button>
 
                   {/* 购买按钮 */}
                   <button
