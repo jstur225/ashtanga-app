@@ -22,13 +22,13 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  // SWC压缩已是Next.js 16默认选项
-  compiler: {
-    removeConsole: process.env.NODE_ENV === 'production', // 生产环境移除console
-  },
   // 实验性功能
   experimental: {
     optimizePackageImports: ['@radix-ui', 'lucide-react', 'framer-motion'], // 优化导入
+  },
+  // ⭐ 保留 console 日志（用于调试）
+  compiler: {
+    removeConsole: false,
   },
   // 注入 Git 版本信息到环境变量
   env: {
