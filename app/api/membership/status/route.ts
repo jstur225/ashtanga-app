@@ -129,7 +129,7 @@ export async function GET(request: NextRequest) {
       },
       // ⭐ 调试信息 - 强制返回
       _debug: {
-        v: '2', // 版本号，确保部署更新
+        v: '3', // 版本号，确保部署更新
         timestamp: new Date().toISOString(),
         userId: user.id,
         profileId: userProfile?.id,
