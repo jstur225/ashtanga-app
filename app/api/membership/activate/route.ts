@@ -133,20 +133,29 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 7. 查询用户当前会员状态
+    // 7. 查询用户当前会员状态（使用 userProfile.id）
     let currentMembership: { is_active: boolean; expires_at: string | null } | null = null
+
+    // ⭐ 首先获取 profile id（因为视图中的 user_id 实际上是 profile id）
+    const { data: userProfile } = await supabase
+      .from('user_profiles')
+      .select('id')
+      .eq('user_id', user.id)
+      .maybeSingle()
+
     try {
       const { data, error } = await supabase
         .from('user_membership_status')
         .select('is_active, expires_at')
-        .eq('user_id', user.id)
-        .single()
+        .eq('user_id', userProfile?.id || user.id)
+        .maybeSingle()
 
       if (error) {
         console.error('[Membership API] 查询会员状态失败:', error)
         // 不阻止流程，按新会员处理
       } else {
         currentMembership = data
+        console.log('[Membership API] 当前会员状态:', currentMembership)
       }
     } catch (err: any) {
       console.error('[Membership API] 查询会员状态异常:', err)
@@ -155,16 +164,10 @@ export async function POST(request: NextRequest) {
 
     const now = new Date()
 
-    // ⭐ 确保用户有 profile 记录
-    const { data: existingProfile } = await supabase
-      .from('user_profiles')
-      .select('id')
-      .eq('user_id', user.id)
-      .maybeSingle()
-
+    // ⭐ 确保用户有 profile 记录（同时用于查询会员状态和创建会员记录）
     let profileId: string
 
-    if (!existingProfile) {
+    if (!userProfile) {
       console.log('[Membership API] 创建用户 profile:', user.id)
       const { data: newProfile, error: profileError } = await supabase
         .from('user_profiles')
@@ -188,7 +191,7 @@ export async function POST(request: NextRequest) {
       }
       profileId = newProfile.id
     } else {
-      profileId = existingProfile.id
+      profileId = userProfile.id
     }
 
     let newExpiresAt: Date
