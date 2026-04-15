@@ -3451,7 +3451,6 @@ function ProBadge({ isPro, daysRemaining }: { isPro: boolean; daysRemaining?: nu
 function StatsTab({
   practiceHistory,
   profile,
-  membership,
   onOpenSettings,
   onOpenMembership,
   onOpenFakeDoor,
@@ -3465,7 +3464,6 @@ function StatsTab({
 }: {
   practiceHistory: PracticeRecord[]
   profile: UserProfile
-  membership: { is_active: boolean; expires_at_formatted: string | null; days_remaining: number; type: 'quarter' | 'year' | null } | null
   onOpenSettings: () => void
   onOpenMembership: () => void
   onOpenFakeDoor: () => void
@@ -3477,6 +3475,9 @@ function StatsTab({
   setShowPWAInstallTutorial: (value: boolean) => void
   setReadInviteVersion: (version: string) => void
 }) {
+  // ⭐ StatsTab 内部自己获取会员状态，确保切换Tab时数据最新
+  const { membership } = useMembership()
+
   // 隐藏邮箱的辅助函数
   const maskEmail = (email: string): string => {
     if (!email) return ''
@@ -5419,7 +5420,6 @@ export default function AshtangaTracker() {
         <StatsTab
           practiceHistory={practiceHistory}
           profile={userProfile}
-          membership={membership}
           onOpenSettings={() => setShowSettings(true)}
           onOpenMembership={() => {
             setSettingsInitialSection('membership')
