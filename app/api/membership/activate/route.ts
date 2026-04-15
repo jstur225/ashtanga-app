@@ -27,34 +27,81 @@ if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
 
 // POST - 激活会员
 export async function POST(request: NextRequest) {
+  console.log('[Membership API] 收到激活请求')
+
   try {
     // 1. 验证用户登录
     const authHeader = request.headers.get('authorization')
+    console.log('[Membership API] authHeader:', authHeader ? '存在' : '不存在')
+
     if (!authHeader) {
       return NextResponse.json(
-        { success: false, error: 'NOT_AUTHENTICATED' },
+        { success: false, error: 'NOT_AUTHENTICATED', debug: '缺少 Authorization header' },
         { status: 401 }
       )
     }
 
     const token = authHeader.replace('Bearer ', '')
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    })
+    console.log('[Membership API] token 长度:', token.length)
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
-    if (authError || !user) {
+    let supabase
+    try {
+      supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      })
+    } catch (e: any) {
+      console.error('[Membership API] 创建 Supabase 客户端失败:', e)
       return NextResponse.json(
-        { success: false, error: 'NOT_AUTHENTICATED' },
+        { success: false, error: 'CONFIG_ERROR', debug: '创建 Supabase 客户端失败: ' + e.message },
+        { status: 500 }
+      )
+    }
+
+    console.log('[Membership API] 正在验证 token...')
+    let user
+    try {
+      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token)
+      if (authError) {
+        console.error('[Membership API] 验证 token 失败:', authError)
+        return NextResponse.json(
+          { success: false, error: 'NOT_AUTHENTICATED', debug: 'Token 验证失败: ' + authError.message },
+          { status: 401 }
+        )
+      }
+      user = authUser
+    } catch (e: any) {
+      console.error('[Membership API] 验证 token 异常:', e)
+      return NextResponse.json(
+        { success: false, error: 'NOT_AUTHENTICATED', debug: 'Token 验证异常: ' + e.message },
         { status: 401 }
       )
     }
 
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: 'NOT_AUTHENTICATED', debug: '用户不存在' },
+        { status: 401 }
+      )
+    }
+
+    console.log('[Membership API] 用户验证成功:', user.id)
+
     // 2. 解析请求体
-    const body = await request.json()
+    let body
+    try {
+      body = await request.json()
+      console.log('[Membership API] 请求体:', body)
+    } catch (e: any) {
+      console.error('[Membership API] 解析请求体失败:', e)
+      return NextResponse.json(
+        { success: false, error: 'INVALID_REQUEST', debug: '解析请求体失败: ' + e.message },
+        { status: 400 }
+      )
+    }
+
     const { code } = body
 
     if (!code || typeof code !== 'string') {
@@ -66,6 +113,7 @@ export async function POST(request: NextRequest) {
 
     // 格式化激活码 (大写,去除空格)
     const formattedCode = code.toUpperCase().replace(/\s/g, '')
+    console.log('[Membership API] 格式化后的激活码:', formattedCode)
 
     // 3. 验证激活码格式 (XXXX-XXXX-XXXX)
     const codePattern = /^[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/
@@ -77,6 +125,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 4. 查询激活码
+    console.log('[Membership API] 正在查询激活码...')
     let activationCode
     try {
       const result = await supabase
@@ -85,6 +134,8 @@ export async function POST(request: NextRequest) {
         .eq('code', formattedCode)
         .single()
 
+      console.log('[Membership API] 查询激活码结果:', result)
+
       if (result.error) {
         console.error('[Membership API] 查询激活码错误:', result.error)
         return NextResponse.json(
@@ -92,7 +143,7 @@ export async function POST(request: NextRequest) {
             success: false,
             error: 'DATABASE_ERROR',
             details: result.error.message,
-            hint: '检查 activation_codes 表是否存在'
+            debug: '查询激活码失败',
           },
           { status: 500 }
         )
@@ -105,6 +156,7 @@ export async function POST(request: NextRequest) {
           success: false,
           error: 'DATABASE_ERROR',
           details: err.message,
+          debug: '查询激活码异常',
         },
         { status: 500 }
       )
@@ -137,27 +189,53 @@ export async function POST(request: NextRequest) {
     }
 
     // 7. 查询用户当前会员状态（使用 userProfile.id）
+    console.log('[Membership API] 查询用户 profile...')
     let currentMembership: { is_active: boolean; expires_at: string | null } | null = null
 
     // ⭐ 首先获取 profile id（因为视图中的 user_id 实际上是 profile id）
-    const { data: userProfile } = await supabase
-      .from('user_profiles')
-      .select('id')
-      .eq('user_id', user.id)
-      .maybeSingle()
-
+    let userProfile
     try {
-      const { data, error } = await supabase
+      const result = await supabase
+        .from('user_profiles')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle()
+
+      console.log('[Membership API] 查询 profile 结果:', result)
+
+      if (result.error) {
+        console.error('[Membership API] 查询 profile 失败:', result.error)
+        return NextResponse.json(
+          { success: false, error: 'DATABASE_ERROR', debug: '查询 profile 失败: ' + result.error.message },
+          { status: 500 }
+        )
+      }
+      userProfile = result.data
+    } catch (e: any) {
+      console.error('[Membership API] 查询 profile 异常:', e)
+      return NextResponse.json(
+        { success: false, error: 'DATABASE_ERROR', debug: '查询 profile 异常: ' + e.message },
+        { status: 500 }
+      )
+    }
+
+    console.log('[Membership API] userProfile:', userProfile)
+
+    // 查询当前会员状态
+    try {
+      const result = await supabase
         .from('user_membership_status')
         .select('is_active, expires_at')
         .eq('user_id', userProfile?.id || user.id)
         .maybeSingle()
 
-      if (error) {
-        console.error('[Membership API] 查询会员状态失败:', error)
+      console.log('[Membership API] 查询会员状态结果:', result)
+
+      if (result.error) {
+        console.error('[Membership API] 查询会员状态失败:', result.error)
         // 不阻止流程，按新会员处理
       } else {
-        currentMembership = data
+        currentMembership = result.data
         console.log('[Membership API] 当前会员状态:', currentMembership)
       }
     } catch (err: any) {
@@ -172,30 +250,42 @@ export async function POST(request: NextRequest) {
 
     if (!userProfile) {
       console.log('[Membership API] 创建用户 profile:', user.id)
-      const { data: newProfile, error: profileError } = await supabase
-        .from('user_profiles')
-        .insert({
-          user_id: user.id,
-          name: user.email?.split('@')[0] || '用户',
-          signature: '',
-          is_pro: false,
-          created_at: now.toISOString(),
-          updated_at: now.toISOString(),
-        })
-        .select('id')
-        .single()
+      try {
+        const result = await supabase
+          .from('user_profiles')
+          .insert({
+            user_id: user.id,
+            name: user.email?.split('@')[0] || '用户',
+            signature: '',
+            is_pro: false,
+            created_at: now.toISOString(),
+            updated_at: now.toISOString(),
+          })
+          .select('id')
+          .single()
 
-      if (profileError || !newProfile) {
-        console.error('[Membership API] 创建 profile 失败:', profileError)
+        console.log('[Membership API] 创建 profile 结果:', result)
+
+        if (result.error || !result.data) {
+          console.error('[Membership API] 创建 profile 失败:', result.error)
+          return NextResponse.json(
+            { success: false, error: 'DATABASE_ERROR', details: '创建用户资料失败: ' + (result.error?.message || '未知错误') },
+            { status: 500 }
+          )
+        }
+        profileId = result.data.id
+      } catch (e: any) {
+        console.error('[Membership API] 创建 profile 异常:', e)
         return NextResponse.json(
-          { success: false, error: 'DATABASE_ERROR', details: '创建用户资料失败: ' + (profileError?.message || '未知错误') },
+          { success: false, error: 'DATABASE_ERROR', details: '创建 profile 异常: ' + e.message },
           { status: 500 }
         )
       }
-      profileId = newProfile.id
     } else {
       profileId = userProfile.id
     }
+
+    console.log('[Membership API] 使用 profileId:', profileId)
 
     let newExpiresAt: Date
     let isNewMembership = false
@@ -205,53 +295,76 @@ export async function POST(request: NextRequest) {
       // 续费: 从原到期时间累加
       const currentExpiresAt = new Date(currentMembership.expires_at)
       newExpiresAt = new Date(currentExpiresAt.getTime() + activationCode.duration_days * 24 * 60 * 60 * 1000)
+      console.log('[Membership API] 续费, 原到期时间:', currentExpiresAt, '新到期时间:', newExpiresAt)
     } else {
       // 新开通: 从当前时间开始
       newExpiresAt = new Date(now.getTime() + activationCode.duration_days * 24 * 60 * 60 * 1000)
       isNewMembership = true
+      console.log('[Membership API] 新开通, 到期时间:', newExpiresAt)
     }
 
     // 9. 创建会员记录
-    const { error: membershipError } = await supabase
-      .from('user_memberships')
-      .insert({
-        user_id: profileId,
-        email: user.email,  // 保存邮箱方便查询
-        type: activationCode.type,
-        started_at: now.toISOString(),
-        expires_at: newExpiresAt.toISOString(),
-        activated_by_code_id: activationCode.id,
-      })
+    console.log('[Membership API] 创建会员记录...')
+    try {
+      const result = await supabase
+        .from('user_memberships')
+        .insert({
+          user_id: profileId,
+          email: user.email,
+          type: activationCode.type,
+          started_at: now.toISOString(),
+          expires_at: newExpiresAt.toISOString(),
+          activated_by_code_id: activationCode.id,
+        })
 
-    if (membershipError) {
-      console.error('[Membership API] 创建会员记录失败:', membershipError)
+      console.log('[Membership API] 创建会员记录结果:', result)
+
+      if (result.error) {
+        console.error('[Membership API] 创建会员记录失败:', result.error)
+        return NextResponse.json(
+          { success: false, error: 'DATABASE_ERROR', details: '创建会员记录失败: ' + result.error.message },
+          { status: 500 }
+        )
+      }
+    } catch (e: any) {
+      console.error('[Membership API] 创建会员记录异常:', e)
       return NextResponse.json(
-        { success: false, error: 'DATABASE_ERROR', details: membershipError.message },
+        { success: false, error: 'DATABASE_ERROR', details: '创建会员记录异常: ' + e.message },
         { status: 500 }
       )
     }
 
     // 10. 标记激活码为已使用
-    console.log('[Membership API] 标记激活码为已使用, code:', activationCode.code, 'id:', activationCode.id)
-    const { data: updateData, error: updateError } = await supabase
-      .from('activation_codes')
-      .update({
-        used: true,
-        used_by: user.id,
-        used_at: now.toISOString(),
-      })
-      .eq('code', activationCode.code)  // ⭐ 使用 code 字段匹配更可靠
-      .select()  // ⭐ 返回更新后的数据确认
+    console.log('[Membership API] 标记激活码为已使用, code:', activationCode.code)
+    try {
+      const result = await supabase
+        .from('activation_codes')
+        .update({
+          used: true,
+          used_by: user.id,
+          used_at: now.toISOString(),
+        })
+        .eq('code', activationCode.code)
+        .select()
 
-    if (updateError) {
-      console.error('[Membership API] 更新激活码状态失败:', updateError)
+      console.log('[Membership API] 更新激活码结果:', result)
+
+      if (result.error) {
+        console.error('[Membership API] 更新激活码状态失败:', result.error)
+        return NextResponse.json(
+          { success: false, error: 'DATABASE_ERROR', details: '激活码状态更新失败: ' + result.error.message },
+          { status: 500 }
+        )
+      }
+
+      console.log('[Membership API] 激活码已成功标记为已使用')
+    } catch (e: any) {
+      console.error('[Membership API] 更新激活码异常:', e)
       return NextResponse.json(
-        { success: false, error: 'DATABASE_ERROR', details: '激活码状态更新失败: ' + updateError.message },
+        { success: false, error: 'DATABASE_ERROR', details: '更新激活码异常: ' + e.message },
         { status: 500 }
       )
     }
-
-    console.log('[Membership API] 激活码已成功标记为已使用, 更新结果:', updateData)
 
     // 11. 返回成功响应
     return NextResponse.json({
