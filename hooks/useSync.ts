@@ -400,7 +400,7 @@ export function useSync(
                 updated_at: remoteData.profile.updated_at || remoteData.profile.created_at || new Date().toISOString(),
                 name: remoteData.profile.name,
                 signature: remoteData.profile.signature || '练习、练习，一切随之而来。',
-                avatar: null,
+                avatar: remoteData.profile?.avatar || null,
                 phone: remoteData.profile.phone,
                 is_pro: remoteData.profile.is_pro || false,
                 historical_days: remoteData.profile.historical_days || 0,
@@ -465,7 +465,7 @@ export function useSync(
               updated_at: remoteData.profile.updated_at || remoteData.profile.created_at || new Date().toISOString(),
               name: remoteData.profile.name,
               signature: remoteData.profile.signature || '练习、练习，一切随之而来。',
-              avatar: null,
+              avatar: remoteData.profile?.avatar || null,
               phone: remoteData.profile.phone,
               is_pro: remoteData.profile.is_pro || false,
               historical_days: remoteData.profile.historical_days || 0,
@@ -685,7 +685,7 @@ export function useSync(
           updated_at: profileRes.data.updated_at || profileRes.data.created_at || new Date().toISOString(), // ⭐ 确保 updated_at
           name: profileRes.data.name,
           signature: profileRes.data.signature || '练习、练习，一切随之而来。',
-          avatar: null, // ⚠️ 头像不上传
+          avatar: profileRes.data?.avatar || null,
           phone: profileRes.data.phone,
           is_pro: profileRes.data.is_pro || false,
           historical_days: profileRes.data.historical_days || 0,           // ⭐ 历史练习天数

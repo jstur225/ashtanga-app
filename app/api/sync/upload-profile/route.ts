@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
         user_id: userId,
         name: profile.name || '阿斯汤加习练者',
         signature: profile.signature || '练习、练习，一切随之而来。',
-        avatar: null,
+        avatar: profile.avatar,
         is_pro: profile.is_pro || false,
         email: profile.email || null,
         updated_at: profile.updated_at || new Date().toISOString(), // ⭐ 添加更新时间戳

@@ -1524,6 +1524,7 @@ function SettingsModal({
   const [avatar, setAvatar] = useState<string | null>(profile.avatar)
   const [activeSection, setActiveSection] = useState<'profile' | 'membership' | 'account' | 'data'>(initialSection || 'profile')
   const [isExportingLog, setIsExportingLog] = useState(false)
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // 历史数据校准
@@ -1549,55 +1550,99 @@ function SettingsModal({
     setAvatar(profile.avatar)
   }, [profile])
 
-  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
 
-    // 检查文件大小（限制5MB）
-    const MAX_SIZE = 5 * 1024 * 1024 // 5MB
-    if (file.size > MAX_SIZE) {
-      alert('图片太大啦，请选择5MB以内的图片')
+    // 检查是否已绑定邮箱
+    if (!user?.email) {
+      toast.info('绑定邮箱后可上传头像', {
+        action: {
+          label: '去绑定',
+          onClick: () => setActiveSection('account'),
+        },
+      })
       return
     }
 
-    // 自动压缩图片
-    const reader = new FileReader()
-    reader.onload = (event) => {
-      const img = new Image()
-      img.onload = () => {
-        const canvas = document.createElement('canvas')
-        const ctx = canvas.getContext('2d')
-
-        // 计算压缩后的尺寸（最大200x200，头像显示足够）
-        const MAX_DIMENSION = 200
-        let width = img.width
-        let height = img.height
-
-        if (width > height) {
-          if (width > MAX_DIMENSION) {
-            height = (height * MAX_DIMENSION) / width
-            width = MAX_DIMENSION
-          }
-        } else {
-          if (height > MAX_DIMENSION) {
-            width = (width * MAX_DIMENSION) / height
-            height = MAX_DIMENSION
-          }
-        }
-
-        canvas.width = width
-        canvas.height = height
-
-        // 绘制压缩后的图片
-        ctx?.drawImage(img, 0, 0, width, height)
-
-        // 转换为base64，质量0.85
-        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85)
-        setAvatar(compressedDataUrl)
-      }
-      img.src = event.target?.result as string
+    // 检查文件大小（限制5MB）
+    const MAX_SIZE = 5 * 1024 * 1024
+    if (file.size > MAX_SIZE) {
+      toast.error('图片太大啦，请选择5MB以内的图片')
+      return
     }
-    reader.readAsDataURL(file)
+
+    setIsUploadingAvatar(true)
+
+    try {
+      // 压缩图片
+      const compressedDataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = (event) => {
+          const img = new Image()
+          img.onload = () => {
+            const canvas = document.createElement('canvas')
+            const ctx = canvas.getContext('2d')
+
+            const MAX_DIMENSION = 200
+            let width = img.width
+            let height = img.height
+
+            if (width > height) {
+              if (width > MAX_DIMENSION) {
+                height = (height * MAX_DIMENSION) / width
+                width = MAX_DIMENSION
+              }
+            } else {
+              if (height > MAX_DIMENSION) {
+                width = (width * MAX_DIMENSION) / height
+                height = MAX_DIMENSION
+              }
+            }
+
+            canvas.width = width
+            canvas.height = height
+            ctx?.drawImage(img, 0, 0, width, height)
+            resolve(canvas.toDataURL('image/jpeg', 0.85))
+          }
+          img.onerror = reject
+          img.src = event.target?.result as string
+        }
+        reader.onerror = reject
+        reader.readAsDataURL(file)
+      })
+
+      // base64 转 Blob
+      const blob = await fetch(compressedDataUrl).then(r => r.blob())
+      const avatarFile = new File([blob], `avatar-${Date.now()}.jpg`, { type: 'image/jpeg' })
+
+      // 获取预签名 URL
+      const { getPresignedUrl } = await import('@/lib/oss')
+      const presignedResult = await getPresignedUrl(avatarFile.name, avatarFile.type)
+
+      if (!presignedResult.success) {
+        toast.error('获取上传链接失败')
+        return
+      }
+
+      // 上传到 OSS
+      const { uploadToOSS } = await import('@/lib/oss')
+      const uploadResult = await uploadToOSS(avatarFile, presignedResult.data!.presignedUrl, avatarFile.type)
+
+      if (!uploadResult.success) {
+        toast.error('头像上传失败，请重试')
+        return
+      }
+
+      // 保存 OSS URL
+      setAvatar(presignedResult.data!.ossUrl)
+      toast.success('头像上传成功')
+    } catch (error) {
+      console.error('头像上传异常:', error)
+      toast.error('头像上传失败，请重试')
+    } finally {
+      setIsUploadingAvatar(false)
+    }
   }
 
   const handleSave = () => {
@@ -1702,10 +1747,15 @@ function SettingsModal({
                         )}
                       </div>
                       <button
-                        onClick={() => fileInputRef.current?.click()}
-                        className="absolute bottom-0 right-0 p-2 bg-primary text-white rounded-full shadow-lg hover:scale-110 transition-transform"
+                        onClick={() => !isUploadingAvatar && fileInputRef.current?.click()}
+                        className="absolute bottom-0 right-0 p-2 bg-primary text-white rounded-full shadow-lg hover:scale-110 transition-transform disabled:opacity-50"
+                        disabled={isUploadingAvatar}
                       >
-                        <Camera className="w-4 h-4" />
+                        {isUploadingAvatar ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Camera className="w-4 h-4" />
+                        )}
                       </button>
                     </div>
                     <input
