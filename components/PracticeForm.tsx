@@ -269,9 +269,10 @@ export function PracticeForm({
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // ⭐ 照片上传权限和限制（使用真实会员状态）
-  const { membership } = useMembership()
+  const { membership, loading: membershipLoading, isPro: membershipIsPro } = useMembership()
   const hasEmail = !!user?.email
-  const isPro = membership?.is_active ?? false
+  // 会员状态加载完成前，使用保守值（1张），加载完成后使用真实值
+  const isPro = membershipIsPro
   const maxPhotos = isPro ? 9 : 1
   const canUploadPhotos = hasEmail && showPhotoUpload
 
@@ -317,8 +318,29 @@ export function PracticeForm({
       return
     }
 
+    // ⭐ 关键修复：在文件选择后实时获取会员状态
+    const { data: { session } } = await supabase.auth.getSession()
+    const token = session?.access_token
+    let currentMaxPhotos = 1 // 默认1张
+
+    if (token) {
+      try {
+        const response = await fetch('/api/membership/status', {
+          headers: { 'Authorization': `Bearer ${token}` },
+        })
+        if (response.ok) {
+          const result = await response.json()
+          if (result.success && result.data?.is_active) {
+            currentMaxPhotos = 9 // 会员9张
+          }
+        }
+      } catch (e) {
+        console.error('[PracticeForm] 获取会员状态失败:', e)
+      }
+    }
+
     // 计算剩余可上传数量
-    const remainingSlots = maxPhotos - photos.length
+    const remainingSlots = currentMaxPhotos - photos.length
     if (remainingSlots <= 0) {
       toast.info('当前版本只能上传1张照片')
       return
@@ -525,7 +547,7 @@ export function PracticeForm({
                   ref={fileInputRef}
                   type="file"
                   accept="image/jpeg,image/png,image/heic,image/*"
-                  multiple={isPro} // ⭐ 会员可多选，普通用户单选
+                  multiple // ⭐ 始终允许多选，实际限制在点击和上传时动态检查
                   // iOS 兼容性优化
                   {...{ webkitdirectory: undefined, directory: undefined }}
                   onChange={(e) => {
@@ -542,8 +564,8 @@ export function PracticeForm({
                       return
                     }
 
-                    // 立即创建占位图显示
-                    Array.from(files).slice(0, maxPhotos - photos.length).forEach((file, index) => {
+                    // 立即创建占位图显示（使用保守值1，实际限制在handleFileSelect中检查）
+                    Array.from(files).slice(0, 9 - photos.length).forEach((file, index) => {
                       setTestPlaceholders(prev => [...prev, {
                         id: `upload-${Date.now()}-${index}`,
                         name: file.name || '上传中...'
@@ -558,13 +580,35 @@ export function PracticeForm({
                 />
                 {/* 照片上传按钮 - 绿色渐变 */}
                 <button
-                  onClick={() => {
+                  onClick={async () => {
                     // 检查是否有邮箱
                     if (!hasEmail) {
                       toast.info('绑定邮箱后可使用照片功能')
                       return
                     }
-                    if (photos.length >= maxPhotos) {
+
+                    // ⭐ 关键修复：在点击时实时获取会员状态，避免 stale state
+                    const { data: { session } } = await supabase.auth.getSession()
+                    const token = session?.access_token
+                    let currentMaxPhotos = 1 // 默认1张
+
+                    if (token) {
+                      try {
+                        const response = await fetch('/api/membership/status', {
+                          headers: { 'Authorization': `Bearer ${token}` },
+                        })
+                        if (response.ok) {
+                          const result = await response.json()
+                          if (result.success && result.data?.is_active) {
+                            currentMaxPhotos = 9 // 会员9张
+                          }
+                        }
+                      } catch (e) {
+                        console.error('[PracticeForm] 获取会员状态失败:', e)
+                      }
+                    }
+
+                    if (photos.length >= currentMaxPhotos) {
                       toast.info('当前版本只能上传1张照片')
                       return
                     }
@@ -577,7 +621,7 @@ export function PracticeForm({
                   }}
                   disabled={!recordId || uploading || isReadingFiles}
                   className="w-10 h-10 rounded-full green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] flex items-center justify-center transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
-                  title={hasEmail ? '上传照片（当前版本限1张）' : '绑定邮箱后可使用照片功能'}
+                  title={hasEmail ? '上传照片' : '绑定邮箱后可使用照片功能'}
                 >
                   {isReadingFiles ? (
                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
