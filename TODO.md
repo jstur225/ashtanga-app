@@ -1,41 +1,38 @@
 # 待处理问题
 
-## 2026-04-16 - 头像云端存储功能 ⏳ 待开发
+## 2026-04-17 - 会员到期降级逻辑 ⏳ 待开发
 
-**状态**：方案已确定，待实现
+**状态**：待实现
 
-### 背景
-当前头像以 base64 存储在 localStorage，绑定邮箱后无法同步到云端，换设备后头像丢失。
+### 问题
+当前会员到期后没有主动降级逻辑：
+1. `user_profiles.is_pro` 字段冗余 — 到期后不会自动变为 `false`
+2. 部分功能（选项数量上限）依赖 `is_pro` 而非 `is_active`，到期用户仍可使用
+3. 同步时 `is_pro: true` 可能从旧数据带回来，覆盖正确的 `false`
+4. 没有定时任务或 Edge Function 在到期时自动更新
 
-### 方案：强制绑定邮箱才能上传头像
+### 当前机制
+- 数据库视图 `user_membership_status` 实时计算 `is_active`（`expires_at > NOW()`）
+- API `/api/membership/status` 返回 `is_active` 和 `days_remaining`
+- 前端 `useMembership` hook 每次打开页面/切回前台时查询
+- **但 `user_profiles.is_pro` 从不更新**
 
-**业务逻辑**：
-- 未绑定邮箱用户：点击上传头像 → 提示绑定邮箱 → 跳转账号绑定区域
-- 已绑定邮箱用户：正常上传 → 压缩 → OSS → 保存 URL → 同步云端
-
-**好处**：
-1. 推动用户绑定邮箱（数据安全的核心价值）
-2. 简化技术实现（不用维护本地临时头像逻辑）
-3. 换设备后头像自动同步
+### 修复方案
+1. **统一判断来源**：所有 Pro 判断统一走 `is_active`（视图），废弃 `user_profiles.is_pro`
+2. **清理 `is_pro` 字段**：选项数量限制改用 `useMembership().isPro` 而非 `profile.is_pro`
+3. **（可选）添加 Supabase 定时任务**：到期时自动将 `is_pro` 设为 `false`
 
 ### 涉及文件
+- `hooks/usePracticeData.ts` — `MAX_SLOTS_FREE/MAX_SLOTS_PRO` 判断逻辑
+- `app/practice/page.tsx` — 选项数量限制、Pro 徽章
+- `hooks/useSync.ts` — 同步时不覆盖 `is_pro`（或完全移除该字段）
+- `hooks/useMembership.ts` — 确保所有页面都能获取会员状态
 
-1. `app/practice/page.tsx` (~1552-1600行)
-   - `handleAvatarUpload` 开头加邮箱检查
-   - 未绑定显示提示弹窗（类似照片上传限制）
-   - 已绑定走 OSS 上传流程
+---
 
-2. `app/api/sync/upload-profile/route.ts` (第31行)
-   - `avatar: null` → `avatar: profile.avatar`
+## 2026-04-16 - 头像云端存储功能 ✅ 已修复
 
-3. `hooks/useSync.ts` (3处)
-   - Line 403, 468, 688: `avatar: null` → `avatar: remoteData.profile?.avatar || null`
-
-### 测试验证
-- [ ] 未绑定用户点击上传 → 显示绑定提示
-- [ ] 已绑定用户上传 → OSS 有文件 → 数据库有 URL
-- [ ] 换设备登录 → 头像自动同步
-- [ ] 分享卡片 → 显示头像
+**状态**：resolveConflict 中 avatar 硬编码为 null 的 bug 已修复并推送
 
 ---
 
