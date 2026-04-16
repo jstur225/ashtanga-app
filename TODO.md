@@ -17,16 +17,26 @@
 
 ### 修复方案
 
-1. 修复 `handleAddOption`（第4433行）和 `isOptionsFull`（第4802行），改为只排除 `custom`：
+1. **点击自定义按钮时提前拦截**（第4253行）：先判断 `isOptionsFull`，满了直接 toast 提示，不打开弹窗
 ```typescript
-// 修复前（错误，多排除了 guided_audio）
-practiceOptions.filter(o => o.id !== "custom" && o.id !== "guided_audio")
+// 修复前：直接打开弹窗
+if (option.id === "custom") {
+  setShowCustomModal(true)
+}
 
-// 修复后（只排除 custom）
-practiceOptions.filter(o => o.id !== "custom")
+// 修复后：先检查是否已满
+if (option.id === "custom") {
+  if (isOptionsFull) {
+    toast.error(`当前版本只能添加${MAX_SLOTS_FREE}个练习选项`)
+    return
+  }
+  setShowCustomModal(true)
+}
 ```
 
-2. 删除 `handleCustomConfirm`（第4319-4343行），统一用 `handleAddOption`，避免重复逻辑
+2. 修复 `handleAddOption`（第4433行）和 `isOptionsFull`（第4802行）过滤逻辑，只排除 `custom`
+
+3. 删除 `handleCustomConfirm`，统一用 `handleAddOption`
 
 ### 涉及文件
 - `app/practice/page.tsx` — 修复两处过滤 + 删除重复函数
