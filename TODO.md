@@ -2,7 +2,7 @@
 
 ## 2026-04-17 - 会员到期降级逻辑 ⏳ 待开发
 
-**状态**：待实现
+**状态**：方案已确定，待实施
 
 ### 问题
 当前会员到期后没有主动降级逻辑：
@@ -17,16 +17,48 @@
 - 前端 `useMembership` hook 每次打开页面/切回前台时查询
 - **但 `user_profiles.is_pro` 从不更新**
 
-### 修复方案
-1. **统一判断来源**：所有 Pro 判断统一走 `is_active`（视图），废弃 `user_profiles.is_pro`
-2. **清理 `is_pro` 字段**：选项数量限制改用 `useMembership().isPro` 而非 `profile.is_pro`
-3. **（可选）添加 Supabase 定时任务**：到期时自动将 `is_pro` 设为 `false`
+### 方案：完全移除 `is_pro` 字段
 
-### 涉及文件
-- `hooks/usePracticeData.ts` — `MAX_SLOTS_FREE/MAX_SLOTS_PRO` 判断逻辑
-- `app/practice/page.tsx` — 选项数量限制、Pro 徽章
-- `hooks/useSync.ts` — 同步时不覆盖 `is_pro`（或完全移除该字段）
-- `hooks/useMembership.ts` — 确保所有页面都能获取会员状态
+所有 Pro 判断统一走 `useMembership().isPro`（基于视图 `is_active`），彻底移除 `is_pro`。
+
+### 已有代码（可复用）
+
+| 已有代码 | 说明 |
+|---------|------|
+| `useMembership()` hook | 已提供正确的 `isPro`，照片限制和 Pro 徽章已在用 |
+| `PracticeForm` 照片限制 | 已正确使用 `useMembership()`，可参考同样模式 |
+| `MAX_SLOTS_FREE / MAX_SLOTS_PRO` 常量 | 从 `usePracticeData` 导出 |
+
+### 具体修改清单
+
+| # | 文件 | 修改内容 |
+|---|------|---------|
+| 1 | `hooks/usePracticeData.ts` | `UserProfile` 接口移除 `is_pro`；`addOption` 不再依赖 `profile.is_pro`，改为接收 `isPro` 参数；`clearAllData` 移除 `is_pro` |
+| 2 | `app/practice/page.tsx` | 3处移除 `userProfile?.is_pro` prop 传递（第646、1433、2384行）；选项添加限制改用 `useMembership().isPro` 判断（第4322、4434、4803行）；设置页 `isPro` 改用 membership（第4618行） |
+| 3 | `hooks/useSync.ts` | 所有 profile 构建中移除 `is_pro` 字段（约8处） |
+| 4 | `app/api/sync/upload-profile/route.ts` | 移除 `is_pro: profile.is_pro || false`（第32行） |
+| 5 | `components/AccountBindingSection.tsx` | 移除 `is_pro: false`（第355行） |
+| 6 | `app/api/membership/activate/route.ts` | 移除 `is_pro: false`（第260行） |
+| 7 | `lib/supabase.ts` | 类型定义移除 `is_pro`（第123行） |
+
+### 测试验证
+
+| 场景 | 预期 |
+|------|------|
+| 免费用户添加选项 | 第5个被拒绝（`MAX_SLOTS_FREE=4`） |
+| Pro用户添加选项 | 可添加到10个（`MAX_SLOTS_PRO=10`） |
+| Pro到期后添加选项 | 被拒绝（回到4个限制），已有选项保留 |
+| 已有10个选项的Pro到期 | 选项保留可见，删除后不可新增（回到4个上限） |
+| 多设备同步 | `is_pro` 不会从云端带回来，到期用户始终显示免费 |
+| 离线Pro到期 | 下次联网时 `useMembership()` 刷新，立即生效 |
+
+### 不做的事
+
+| 功能 | 不做原因 |
+|------|---------|
+| Supabase 定时任务自动更新 `is_pro` | 既然完全移除 `is_pro`，不需要定时任务 |
+| 选项批量裁剪（Pro到期自动删除超出选项） | 破坏用户数据，保留选项但不允许新增更安全 |
+| 自动化测试框架搭建 | 当前项目无测试基础设施，属于独立任务 |
 
 ---
 
