@@ -304,9 +304,10 @@ export function useSync(
         let profileChangeSource: 'local' | 'remote' | null = null
 
         if (localProfile && remoteProfile) {
-          // ⭐ 只比对 name 和 signature，avatar 不上传
+          // ⭐ 比对 name、signature、avatar 等字段
           const hasContentDiff = localProfile.name !== remoteProfile.name ||
               localProfile.signature !== remoteProfile.signature ||
+              localProfile.avatar !== remoteProfile.avatar ||
               (localProfile.historical_days || 0) !== (remoteProfile.historical_days || 0) ||
               (localProfile.historical_avg_minutes || 0) !== (remoteProfile.historical_avg_minutes || 0)
 

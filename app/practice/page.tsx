@@ -1687,7 +1687,7 @@ function SettingsModal({
               </button>
             </div>
 
-            {/* Section Tabs - 顺序：个人资料 | 会员 | 账户与同步 | 数据管理 */}
+            {/* Section Tabs - 顺序：个人资料 | 会员 | 账户同步 | 数据管理 */}
             <div className="flex gap-2 mb-6">
               <button
                 onClick={() => setActiveSection('profile')}
@@ -1717,7 +1717,7 @@ function SettingsModal({
                     : 'bg-secondary text-foreground'
                 }`}
               >
-                账户与同步
+                账户同步
               </button>
               <button
                 onClick={() => setActiveSection('data')}
@@ -2142,7 +2142,7 @@ function AccountSyncModal({
             className="fixed bottom-0 left-0 right-0 bg-card rounded-t-[24px] z-50 p-6 pb-10 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] max-h-[calc(100vh-2rem)] overflow-y-auto"
           >
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-lg font-serif text-foreground">账户与同步</h2>
+              <h2 className="text-lg font-serif text-foreground">账户同步</h2>
               <button onClick={onClose} className="p-2 -mr-2 text-muted-foreground hover:text-foreground transition-colors">
                 <X className="w-5 h-5" />
               </button>
@@ -5462,7 +5462,7 @@ export default function AshtangaTracker() {
           onDeleteRecord={handleDeleteRecord}
           onAddRecord={handleAddRecord}
           onOpenFakeDoor={() => {
-            // 无论是否登录，都直接打开账户与同步弹窗
+            // 无论是否登录，都直接打开账户同步弹窗
             setShowAccountSync(true)
           }}
           onOpenVoiceFakeDoor={() => setShowFakeDoor({ type: 'voice', isOpen: true })}
