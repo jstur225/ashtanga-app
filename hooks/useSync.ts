@@ -709,6 +709,7 @@ export function useSync(
 
       console.error('   ✅ 有效选项数量:', options.length)
       console.error('📥 [downloadRemoteData] 云端 profile:', profileRes.data)
+      console.error('   头像字段:', profileRes.data?.avatar ? '有值' : '无值')
 
       // ⭐ 构建返回的 profile，确保包含 updated_at 字段
       let profile: UserProfile | null = null
@@ -1031,6 +1032,9 @@ export function useSync(
           // 使用云端数据
           addLog('使用云端数据', 'success')
 
+          console.error('📦 [resolveConflict] 云端 profile 数据:', remoteData.profile)
+          console.error('   头像:', remoteData.profile?.avatar ? remoteData.profile.avatar.substring(0, 50) + '...' : 'null')
+
           // ⭐ 构建完整的 profile 对象，确保包含 updated_at
           // 修复：只要云端有 profile 数据，就使用它，不要进行二次判断
           const remoteProfile = remoteData.profile && remoteData.profile.name
@@ -1041,13 +1045,13 @@ export function useSync(
                 updated_at: remoteData.profile.updated_at || remoteData.profile.created_at || new Date().toISOString(),
                 name: remoteData.profile.name,
                 signature: remoteData.profile.signature || '练习、练习，一切随之而来。',
-                avatar: null,
+                avatar: remoteData.profile?.avatar || null,
                 phone: remoteData.profile.phone,
                 is_pro: remoteData.profile.is_pro || false,
                 historical_days: remoteData.profile.historical_days || 0,
                 historical_avg_minutes: remoteData.profile.historical_avg_minutes || 0,
               }
-            : { name: '阿斯汤加习练者', signature: remoteData.profile?.signature || '练习、练习，一切随之而来。', avatar: null, is_pro: false, historical_days: 0, historical_avg_minutes: 0 }
+            : { name: '阿斯汤加习练者', signature: remoteData.profile?.signature || '练习、练习，一切随之而来。', avatar: remoteData.profile?.avatar || null, is_pro: false, historical_days: 0, historical_avg_minutes: 0 }
 
           onSyncComplete({
             records: remoteData.records,
