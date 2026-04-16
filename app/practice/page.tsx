@@ -1637,6 +1637,16 @@ function SettingsModal({
       // 保存 OSS URL
       setAvatar(presignedResult.data!.ossUrl)
       toast.success('头像上传成功')
+
+      // ⭐ 自动保存到 profile 并触发同步
+      onSave({
+        ...profile,
+        name,
+        signature,
+        avatar: presignedResult.data!.ossUrl,
+        historical_days: historicalDays,
+        historical_avg_minutes: historicalAvgMinutes,
+      })
     } catch (error) {
       console.error('头像上传异常:', error)
       toast.error('头像上传失败，请重试')
@@ -1747,7 +1757,20 @@ function SettingsModal({
                         )}
                       </div>
                       <button
-                        onClick={() => !isUploadingAvatar && fileInputRef.current?.click()}
+                        onClick={() => {
+                          if (!user?.email) {
+                            toast.info('绑定邮箱后可上传头像', {
+                              action: {
+                                label: '去绑定',
+                                onClick: () => setActiveSection('account'),
+                              },
+                            })
+                            return
+                          }
+                          if (!isUploadingAvatar) {
+                            fileInputRef.current?.click()
+                          }
+                        }}
                         className="absolute bottom-0 right-0 p-2 bg-primary text-white rounded-full shadow-lg hover:scale-110 transition-transform disabled:opacity-50"
                         disabled={isUploadingAvatar}
                       >

@@ -304,30 +304,37 @@ export function useSync(
         let profileChangeSource: 'local' | 'remote' | null = null
 
         if (localProfile && remoteProfile) {
-          // ⭐ 比对 name、signature、avatar 等字段
-          const hasContentDiff = localProfile.name !== remoteProfile.name ||
-              localProfile.signature !== remoteProfile.signature ||
-              localProfile.avatar !== remoteProfile.avatar ||
-              (localProfile.historical_days || 0) !== (remoteProfile.historical_days || 0) ||
-              (localProfile.historical_avg_minutes || 0) !== (remoteProfile.historical_avg_minutes || 0)
-
-          if (hasContentDiff) {
+          // ⭐ 如果本地是默认 profile（id 为空），强制从云端下载
+          if (!localProfile.id || localProfile.id === '') {
             profileChanged = true
+            profileChangeSource = 'remote'
+            console.error(`📊 [autoSync] profile 本地为默认空数据，从云端下载`)
+          } else {
+            // ⭐ 比对 name、signature、avatar 等字段
+            const hasContentDiff = localProfile.name !== remoteProfile.name ||
+                localProfile.signature !== remoteProfile.signature ||
+                localProfile.avatar !== remoteProfile.avatar ||
+                (localProfile.historical_days || 0) !== (remoteProfile.historical_days || 0) ||
+                (localProfile.historical_avg_minutes || 0) !== (remoteProfile.historical_avg_minutes || 0)
 
-            // ⭐ 基于时间戳判断谁更新
-            const localTime = new Date(localProfile.updated_at || localProfile.created_at).getTime()
-            const remoteTime = new Date(remoteProfile.updated_at || remoteProfile.created_at).getTime()
+            if (hasContentDiff) {
+              profileChanged = true
 
-            if (localTime > remoteTime) {
-              profileChangeSource = 'local'
-              console.error(`📊 [autoSync] profile 本地更新：本地时间=${new Date(localTime).toISOString()}, 云端时间=${new Date(remoteTime).toISOString()}`)
-            } else if (remoteTime > localTime) {
-              profileChangeSource = 'remote'
-              console.error(`📊 [autoSync] profile 云端更新：云端时间=${new Date(remoteTime).toISOString()}, 本地时间=${new Date(localTime).toISOString()}`)
-            } else {
-              // 时间相同，默认本地优先
-              profileChangeSource = 'local'
-              console.error(`📊 [autoSync] profile 时间相同，默认本地优先`)
+              // ⭐ 基于时间戳判断谁更新
+              const localTime = new Date(localProfile.updated_at || localProfile.created_at).getTime()
+              const remoteTime = new Date(remoteProfile.updated_at || remoteProfile.created_at).getTime()
+
+              if (localTime > remoteTime) {
+                profileChangeSource = 'local'
+                console.error(`📊 [autoSync] profile 本地更新：本地时间=${new Date(localTime).toISOString()}, 云端时间=${new Date(remoteTime).toISOString()}`)
+              } else if (remoteTime > localTime) {
+                profileChangeSource = 'remote'
+                console.error(`📊 [autoSync] profile 云端更新：云端时间=${new Date(remoteTime).toISOString()}, 本地时间=${new Date(localTime).toISOString()}`)
+              } else {
+                // 时间相同，默认本地优先
+                profileChangeSource = 'local'
+                console.error(`📊 [autoSync] profile 时间相同，默认本地优先`)
+              }
             }
           }
         } else if (localProfile && !remoteProfile) {
