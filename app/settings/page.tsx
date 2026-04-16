@@ -86,7 +86,7 @@ export default function SettingsPage() {
                 <div className="w-8 h-8 bg-gradient-to-br from-[#C1A268] to-[#D4AF37] rounded-lg flex items-center justify-center">
                   <Crown className="w-4 h-4 text-white" />
                 </div>
-                <h2 className="font-serif text-lg text-[#8B7355]">Pro 会员</h2>
+                <h2 className="font-serif text-lg text-[#8B7355]">PRO 会员</h2>
               </div>
 
               {loading ? (
@@ -118,7 +118,7 @@ export default function SettingsPage() {
 
           {/* Pro 功能预览 */}
           <div className="mt-4 pt-4 border-t border-[#C1A268]/20">
-            <p className="text-xs text-[#8B7355] mb-3 font-serif">Pro 会员权益</p>
+            <p className="text-xs text-[#8B7355] mb-3 font-serif">PRO 会员权益</p>
             <div className="grid grid-cols-3 gap-2">
               <div className="text-center">
                 <div className="text-lg font-bold text-[#6B5A47]">9 张</div>
@@ -147,8 +147,8 @@ export default function SettingsPage() {
                 <CrownIcon className="w-5 h-5 text-white" />
               </div>
               <div className="text-left">
-                <p className="font-medium text-[#2D3A2D] font-serif">购买会员</p>
-                <p className="text-sm text-[#8B7355] font-serif">开通 Pro 解锁全部功能</p>
+                <p className="font-medium text-[#2D3A2D] font-serif">购买 PRO 会员</p>
+                <p className="text-sm text-[#8B7355] font-serif">开通 PRO 解锁全部功能</p>
               </div>
             </div>
             <span className="text-[#C1A268] text-sm font-medium group-hover:translate-x-1 transition-transform">
@@ -166,7 +166,7 @@ export default function SettingsPage() {
               </div>
               <div className="text-left">
                 <p className="font-medium text-[#2D3A2D] font-serif">激活会员</p>
-                <p className="text-sm text-[#8B7355] font-serif">使用激活码开通或续费</p>
+                <p className="text-sm text-[#8B7355] font-serif">使用激活码开通 PRO 或续费</p>
               </div>
             </div>
             <ChevronRight className="w-5 h-5 text-[#C1A268]" />
