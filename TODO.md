@@ -1,23 +1,31 @@
 # 待处理问题
 
-## 2026-04-17 - 选项数量限制 bug（guided_audio 被错误计入）⏳ 待修复
+## 2026-04-17 - 选项数量限制 bug + 重复逻辑清理 ⏳ 待修复
 
 **状态**：已定位，待实施
 
 ### 问题
-`handleCustomConfirm`（第4321行）计算选项数量时，只排除了 `custom`，没排除 `guided_audio`（口令跟练预设）。导致免费用户有 3 个默认选项 + 1 个口令跟练 = 4，刚打开就无法添加自定义选项。
+1. `handleCustomConfirm`（第4321行）计算选项数量时没排除 `guided_audio`，导致 3个默认选项+1个口令跟练=4，免费用户无法添加自定义选项
+2. `handleCustomConfirm` 和 `handleAddOption` 限制检查逻辑重复，且过滤规则不一致（一个排除guided_audio，一个不排除）
 
-而同文件中 `handleAddOption`（第4433行）和 `isOptionsFull`（第4802行）都正确排除了 `guided_audio`。**三处检查逻辑不一致。**
+### 两个函数对比
 
-### 修复
-`practice/page.tsx` 第4321行，与第4433行保持一致：
-```typescript
-// 修复前（错误）
-const nonCustomOptions = practiceOptions.filter(o => o.id !== "custom")
+| | `handleCustomConfirm` (4319行) | `handleAddOption` (4431行) |
+|---|---|---|
+| 用途 | Tab1 自定义练习弹窗确认 | 设置页添加选项 |
+| 限制检查 | 只排除 custom（漏了guided_audio） | 排除 custom + guided_audio |
+| 达到限制时 | toast + 设为临时选项继续练习 | toast + 直接返回 |
+| 添加成功后 | 无同步 | 自动同步到云端 |
 
-// 修复后（与 handleAddOption 一致）
-const nonCustomOptions = practiceOptions.filter(o => o.id !== "custom" && o.id !== "guided_audio")
-```
+### 修复方案：删掉 handleCustomConfirm，统一用 handleAddOption
+
+1. 删除 `handleCustomConfirm` 函数（第4319-4343行）
+2. 调用 `handleCustomConfirm` 的地方改为调用 `handleAddOption`
+3. "达到限制时继续练习"的降级行为移到调用处处理
+4. 保留 `isOptionsFull`（第4801行）作为统一的状态判断，UI 层用它控制按钮显隐
+
+### 涉及文件
+- `app/practice/page.tsx` — 删除 `handleCustomConfirm`，改调用处
 
 ---
 
