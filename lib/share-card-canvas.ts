@@ -260,14 +260,22 @@ export async function drawShareCard(
 
   // 突破徽章（如果有）
   if (data.breakthrough) {
+    // 先测量文字宽度，动态计算徽章宽度
+    ctx.font = `bold 13px ${FONTS.serif}`
+    const textMetrics = ctx.measureText(data.breakthrough)
+    const textWidth = textMetrics.width
+    // 最小宽度100，根据文字长度自适应，最大280（卡片宽度-80）
+    const badgeWidth = Math.min(Math.max(100, textWidth + 32), 280)
+    const badgeHeight = 28
+
     ctx.fillStyle = 'rgba(230, 126, 34, 0.1)'
-    drawRoundRect(ctx, 20, currentY, 100, 28, 14)
+    drawRoundRect(ctx, 20, currentY, badgeWidth, badgeHeight, 14)
     ctx.fill()
 
     ctx.fillStyle = COLORS.accentOrange
     ctx.font = `bold 13px ${FONTS.serif}`
     ctx.textAlign = 'center'
-    ctx.fillText(data.breakthrough, 70, currentY + 19)
+    ctx.fillText(data.breakthrough, 20 + badgeWidth / 2, currentY + 19)
     ctx.textAlign = 'left'
     currentY += 40
   } else {
