@@ -26,10 +26,7 @@ export interface PracticeOption {
   is_preset?: boolean;      // 是否预设特殊选项
   audio_src?: string;       // 音频文件路径
   can_edit?: boolean;       // 是否可编辑（默认true）
-  // ⭐ 固定槽位系统新增字段
-  slot_index: number;       // 槽位索引 1-4（普通用户）/ 1-10（Pro用户）
-  visible: boolean;         // 是否可见（删除只是标记隐藏）
-  is_default: boolean;      // 是否系统默认选项
+  updated_at?: string;      // 最后修改时间
 }
 
 export interface UserProfile {
@@ -47,7 +44,7 @@ export interface UserProfile {
   historical_avg_minutes?: number;    // 历史平均每次时长（分钟）
 }
 
-// ⭐ 槽位系统常量
+// 选项数量限制
 export const MAX_SLOTS_FREE = 4;
 export const MAX_SLOTS_PRO = 10;
 
@@ -61,16 +58,13 @@ export const GUIDED_AUDIO_OPTION: PracticeOption = {
   is_preset: true,
   audio_src: '/audio/guruji-led-primary.m4a',
   can_edit: false,
-  slot_index: 0, // 预设选项不在槽位系统中
-  visible: true,
-  is_default: true,
 };
 
-// ⭐ 固定槽位默认选项（新用户注册时自动创建）
+// 默认选项（新用户首次使用时自动创建）
 export const DEFAULT_OPTIONS: PracticeOption[] = [
-  { id: uuidv4(), created_at: new Date().toISOString(), label: '一序列', notes: 'Mysore', is_custom: false, slot_index: 1, visible: true, is_default: true },
-  { id: uuidv4(), created_at: new Date().toISOString(), label: '一序列', notes: 'Led class', is_custom: false, slot_index: 2, visible: true, is_default: true },
-  { id: uuidv4(), created_at: new Date().toISOString(), label: '半序列', notes: '站立+休息', is_custom: false, slot_index: 3, visible: true, is_default: true },
+  { id: uuidv4(), created_at: new Date().toISOString(), label: '一序列', notes: 'Mysore', is_custom: false },
+  { id: uuidv4(), created_at: new Date().toISOString(), label: '一序列', notes: 'Led class', is_custom: false },
+  { id: uuidv4(), created_at: new Date().toISOString(), label: '半序列', notes: '站立+休息', is_custom: false },
 ];
 
 export const usePracticeData = () => {
@@ -336,63 +330,30 @@ export const usePracticeData = () => {
     return updatedProfile;
   };
 
-  // ⭐ 获取用户最大槽位数
-  const getMaxSlots = (profile: UserProfile | null) => {
-    return profile?.is_pro ? MAX_SLOTS_PRO : MAX_SLOTS_FREE;
-  };
-
   const addOption = (
     label: string,
     label_zh?: string,
     notes?: string,
-    onSync?: () => void // ⭐ 新增：同步回调
+    onSync?: () => void
   ) => {
-    // ⭐ 槽位系统：找第一个不可见的槽位复用
     const existingOptions = options || [];
-    const emptySlot = existingOptions.find(o => !o.visible);
-
-    if (!emptySlot) {
-      // 没有空槽，检查是否达到上限
-      const maxSlots = getMaxSlots(profile);
-      const visibleCount = existingOptions.filter(o => o.visible).length;
-      if (visibleCount >= maxSlots) {
-        console.error(`[addOption] 选项已满，最多${maxSlots}个`);
-        return null;
-      }
+    const maxSlots = profile?.is_pro ? MAX_SLOTS_PRO : MAX_SLOTS_FREE;
+    if (existingOptions.length >= maxSlots) {
+      console.error(`[addOption] 选项已满，最多${maxSlots}个`);
+      return null;
     }
 
     const now = new Date().toISOString();
-    let newOption: PracticeOption;
+    const newOption: PracticeOption = {
+      id: uuidv4(),
+      created_at: now,
+      updated_at: now,
+      label: label_zh || label,
+      notes,
+      is_custom: true,
+    };
+    setOptions([...existingOptions, newOption]);
 
-    if (emptySlot) {
-      // ⭐ 复用隐藏槽位
-      newOption = {
-        ...emptySlot,
-        label: label_zh || label,
-        notes,
-        visible: true,
-        created_at: now,
-        updated_at: now,
-      };
-      setOptions(existingOptions.map(o => o.id === emptySlot.id ? newOption : o));
-    } else {
-      // 不应该走到这里（因为有空槽检查），但作为兜底
-      const nextSlotIndex = existingOptions.filter(o => o.visible).length + 1;
-      newOption = {
-        id: uuidv4(),
-        created_at: now,
-        updated_at: now,
-        label: label_zh || label,
-        notes,
-        is_custom: true,
-        slot_index: nextSlotIndex,
-        visible: true,
-        is_default: false,
-      };
-      setOptions([...existingOptions, newOption]);
-    }
-
-    // ⭐ 触发同步回调（延迟执行，确保状态已更新）
     setTimeout(() => {
       onSync?.();
     }, 100);
@@ -418,15 +379,10 @@ export const usePracticeData = () => {
 
   const deleteOption = (
     id: string,
-    onSync?: () => void // ⭐ 新增：同步回调
+    onSync?: () => void
   ) => {
-    // ⭐ 槽位系统：标记为隐藏而不是删除
-    const now = new Date().toISOString();
-    setOptions((options || []).map(o =>
-      o.id === id ? { ...o, visible: false, updated_at: now } : o
-    ));
+    setOptions((options || []).filter(o => o.id !== id));
 
-    // ⭐ 触发同步回调（延迟执行，确保状态已更新）
     setTimeout(() => {
       onSync?.();
     }, 100);

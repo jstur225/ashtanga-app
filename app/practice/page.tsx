@@ -4132,7 +4132,7 @@ export default function AshtangaTracker() {
   // Initialize practice options from hook data
   useEffect(() => {
     // 先过滤掉id为"custom"和"guided_audio"的选项（如果存在），以及visible=false的选项
-    const regularOptions = practiceOptionsData.filter(o => o.id !== "custom" && o.id !== "guided_audio" && o.visible !== false)
+    const regularOptions = practiceOptionsData.filter(o => o.id !== "custom" && o.id !== "guided_audio")
 
     // 检查是否已存在口令跟练选项
     const hasGuidedAudio = practiceOptionsData.some(o => o.id === "guided_audio")
@@ -4295,7 +4295,7 @@ export default function AshtangaTracker() {
 
   const handleCustomConfirm = (name: string, notes: string) => {
     // Check if we can add more options (max 4 for free users, excluding the "custom" button itself)
-    const nonCustomOptions = practiceOptions.filter(o => o.id !== "custom" && o.visible !== false)
+    const nonCustomOptions = practiceOptions.filter(o => o.id !== "custom")
     if (nonCustomOptions.length >= MAX_SLOTS_FREE) {
       // Options are full, show toast and start practice without saving
       toast.error(`当前版本只能添加${MAX_SLOTS_FREE}个练习选项`)
@@ -4407,7 +4407,7 @@ export default function AshtangaTracker() {
 
   const handleAddOption = async (name: string, notes: string) => {
     // Check if we can add more options
-    const visibleOptions = practiceOptions.filter(o => o.id !== "custom" && o.id !== "guided_audio" && o.visible !== false)
+    const visibleOptions = practiceOptions.filter(o => o.id !== "custom" && o.id !== "guided_audio")
     if (visibleOptions.length >= MAX_SLOTS_FREE) {
       toast.error(`当前版本只能添加${MAX_SLOTS_FREE}个练习选项`)
       return
@@ -4776,7 +4776,7 @@ export default function AshtangaTracker() {
   }, [practiceOptions])
 
   const isOptionsFull = useMemo(() => {
-    const nonCustomOptions = practiceOptions.filter(o => o.id !== "custom" && o.id !== "guided_audio" && o.visible !== false)
+    const nonCustomOptions = practiceOptions.filter(o => o.id !== "custom" && o.id !== "guided_audio")
     return nonCustomOptions.length >= MAX_SLOTS_FREE
   }, [practiceOptions])
 

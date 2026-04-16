@@ -408,14 +408,28 @@ export function useSync(
               }
             : freshLocalData.profile || { name: '阿斯汤加习练者', signature: '练习、练习，一切随之而来。', avatar: null, is_pro: false, historical_days: 0, historical_avg_minutes: 0 }
 
+          // ⭐ 合并选项：保留本地的本地字段（is_preset/audio_src/can_edit）
+          const mergedOptions = (remoteData.options || []).map((remoteOpt: any) => {
+            const localOpt = (freshLocalData.options || []).find((o: any) => o.id === remoteOpt.id)
+            if (localOpt) {
+              return {
+                ...remoteOpt,
+                is_preset: (localOpt as any).is_preset,
+                audio_src: (localOpt as any).audio_src,
+                can_edit: (localOpt as any).can_edit,
+              }
+            }
+            return remoteOpt
+          })
+
           onSyncComplete({
             records: mergedRecords,
-            options: remoteData.options || [],
+            options: mergedOptions,
             profile: mergedProfile
           })
           // ⭐ 关键修复：直接保存到 localStorage（不依赖回调）
           localStorage.setItem('ashtanga_records', JSON.stringify(mergedRecords))
-          localStorage.setItem('ashtanga_options', JSON.stringify(remoteData.options || []))
+          localStorage.setItem('ashtanga_options', JSON.stringify(mergedOptions))
           console.error('✅ [autoSync] records 和 options 已保存到 localStorage')
           setSyncStatus('success')
           setLastSyncStatus('success')
@@ -566,14 +580,27 @@ export function useSync(
       // 云端有新数据，下载到本地
       addLog(`下载${remoteOnly.length}条云端记录`, 'success')
       const mergedRecords = [...freshLocalData.records, ...remoteOnly]
+      // ⭐ 合并选项：保留本地字段（is_preset/audio_src/can_edit）
+      const mergedOptions = (remoteData.options || []).map((remoteOpt: any) => {
+        const localOpt = (freshLocalData.options || []).find((o: any) => o.id === remoteOpt.id)
+        if (localOpt) {
+          return {
+            ...remoteOpt,
+            is_preset: (localOpt as any).is_preset,
+            audio_src: (localOpt as any).audio_src,
+            can_edit: (localOpt as any).can_edit,
+          }
+        }
+        return remoteOpt
+      })
       onSyncComplete({
         records: mergedRecords,
-        options: remoteData.options || [],
+        options: mergedOptions,
         profile: mergedProfile // ⭐ 添加 profile
       })
       // ⭐ 关键修复：直接保存到 localStorage
       localStorage.setItem('ashtanga_records', JSON.stringify(mergedRecords))
-      localStorage.setItem('ashtanga_options', JSON.stringify(remoteData.options || []))
+      localStorage.setItem('ashtanga_options', JSON.stringify(mergedOptions))
     }
 
     if (localOnly.length > 0) {
@@ -915,7 +942,8 @@ export function useSync(
 
       // 3. 批量上传练习选项（只同步自定义选项）
       if (options.length > 0) {
-        const optionsToUpload = options.filter(o => o.is_custom).map(o => ({
+        const customOptions = options.filter(o => o.is_custom)
+        const optionsToUpload = customOptions.map(o => ({
           id: o.id,
           user_id: userId,
           label: o.label || '',
@@ -935,7 +963,7 @@ export function useSync(
           console.error('   上传的数据:', JSON.stringify(optionsToUpload, null, 2))
           addLog('批量上传选项', 'error', undefined, optionsError.message)
         } else {
-          addLog(`批量上传${options.length}个选项`, 'success')
+          addLog(`批量上传${customOptions.length}个选项`, 'success')
         }
       }
 
@@ -1027,7 +1055,7 @@ export function useSync(
           // 使用本地数据，覆盖云端
           addLog('使用本地数据，覆盖云端', 'success')
 
-          // 1. 先删除云端所有数据
+          // 1. 先删除云端所有数据（包括记录和选项）
           const { error: deleteError } = await supabase
             .from(TABLES.PRACTICE_RECORDS)
             .delete()
@@ -1036,6 +1064,13 @@ export function useSync(
           if (deleteError) {
             throw new Error(`删除云端数据失败: ${deleteError.message}`)
           }
+
+          // 同时删除云端所有选项
+          await supabase
+            .from(TABLES.PRACTICE_OPTIONS)
+            .delete()
+            .eq('user_id', user.id)
+
           addLog('云端数据已清空', 'success')
 
           // 2. 上传本地数据
