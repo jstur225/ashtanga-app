@@ -1,5 +1,26 @@
 # 待处理问题
 
+## 2026-04-17 - 选项数量限制 bug（guided_audio 被错误计入）⏳ 待修复
+
+**状态**：已定位，待实施
+
+### 问题
+`handleCustomConfirm`（第4321行）计算选项数量时，只排除了 `custom`，没排除 `guided_audio`（口令跟练预设）。导致免费用户有 3 个默认选项 + 1 个口令跟练 = 4，刚打开就无法添加自定义选项。
+
+而同文件中 `handleAddOption`（第4433行）和 `isOptionsFull`（第4802行）都正确排除了 `guided_audio`。**三处检查逻辑不一致。**
+
+### 修复
+`practice/page.tsx` 第4321行，与第4433行保持一致：
+```typescript
+// 修复前（错误）
+const nonCustomOptions = practiceOptions.filter(o => o.id !== "custom")
+
+// 修复后（与 handleAddOption 一致）
+const nonCustomOptions = practiceOptions.filter(o => o.id !== "custom" && o.id !== "guided_audio")
+```
+
+---
+
 ## 2026-04-17 - 会员到期降级逻辑 ⏳ 待开发
 
 **状态**：方案已确定，待实施
