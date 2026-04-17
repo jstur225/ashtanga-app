@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { ensureProfileAndGetId } from '@/lib/membership-utils'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || ''
@@ -188,45 +189,28 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 7. 查询用户当前会员状态（使用 userProfile.id）
-    console.log('[Membership API] 查询用户 profile...')
-    let currentMembership: { is_active: boolean; expires_at: string | null } | null = null
-
-    // ⭐ 首先获取 profile id（因为视图中的 user_id 实际上是 profile id）
-    let userProfile
+    // 7. 确保用户有 profile 记录，获取 profileId
+    console.log('[Membership API] 确保 profile 存在...')
+    let profileId: string
     try {
-      const result = await supabase
-        .from('user_profiles')
-        .select('id')
-        .eq('user_id', user.id)
-        .maybeSingle()
-
-      console.log('[Membership API] 查询 profile 结果:', result)
-
-      if (result.error) {
-        console.error('[Membership API] 查询 profile 失败:', result.error)
-        return NextResponse.json(
-          { success: false, error: 'DATABASE_ERROR', debug: '查询 profile 失败: ' + result.error.message },
-          { status: 500 }
-        )
-      }
-      userProfile = result.data
+      profileId = await ensureProfileAndGetId(supabase, user)
     } catch (e: any) {
-      console.error('[Membership API] 查询 profile 异常:', e)
+      console.error('[Membership API] profile 处理失败:', e)
       return NextResponse.json(
-        { success: false, error: 'DATABASE_ERROR', debug: '查询 profile 异常: ' + e.message },
+        { success: false, error: 'DATABASE_ERROR', details: e.message },
         { status: 500 }
       )
     }
 
-    console.log('[Membership API] userProfile:', userProfile)
+    console.log('[Membership API] 使用 profileId:', profileId)
 
     // 查询当前会员状态
+    let currentMembership: { is_active: boolean; expires_at: string | null } | null = null
     try {
       const result = await supabase
         .from('user_membership_status')
         .select('is_active, expires_at')
-        .eq('user_id', userProfile?.id || user.id)
+        .eq('user_id', profileId)
         .maybeSingle()
 
       console.log('[Membership API] 查询会员状态结果:', result)
@@ -244,47 +228,6 @@ export async function POST(request: NextRequest) {
     }
 
     const now = new Date()
-
-    // ⭐ 确保用户有 profile 记录（同时用于查询会员状态和创建会员记录）
-    let profileId: string
-
-    if (!userProfile) {
-      console.log('[Membership API] 创建用户 profile:', user.id)
-      try {
-        const result = await supabase
-          .from('user_profiles')
-          .insert({
-            user_id: user.id,
-            name: user.email?.split('@')[0] || '用户',
-            signature: '',
-            created_at: now.toISOString(),
-            updated_at: now.toISOString(),
-          })
-          .select('id')
-          .single()
-
-        console.log('[Membership API] 创建 profile 结果:', result)
-
-        if (result.error || !result.data) {
-          console.error('[Membership API] 创建 profile 失败:', result.error)
-          return NextResponse.json(
-            { success: false, error: 'DATABASE_ERROR', details: '创建用户资料失败: ' + (result.error?.message || '未知错误') },
-            { status: 500 }
-          )
-        }
-        profileId = result.data.id
-      } catch (e: any) {
-        console.error('[Membership API] 创建 profile 异常:', e)
-        return NextResponse.json(
-          { success: false, error: 'DATABASE_ERROR', details: '创建 profile 异常: ' + e.message },
-          { status: 500 }
-        )
-      }
-    } else {
-      profileId = userProfile.id
-    }
-
-    console.log('[Membership API] 使用 profileId:', profileId)
 
     let newExpiresAt: Date
     let isNewMembership = false

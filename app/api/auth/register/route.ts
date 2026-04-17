@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { supabase, getSupabaseServiceClient } from '@/lib/supabase'
+import { ensureProfileAndGetId } from '@/lib/membership-utils'
 
 /**
  * 服务端注册 API
@@ -97,7 +98,40 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ Supabase 注册成功:', data)
 
-    // 5. 标记验证码为已使用
+    // 5. 赠送31天试用会员
+    try {
+      if (data.user) {
+        const serviceClient = getSupabaseServiceClient()
+        const profileId = await ensureProfileAndGetId(serviceClient, data.user)
+
+        // 检查是否已有会员（防重复）
+        const { data: existing } = await serviceClient
+          .from('user_memberships')
+          .select('id')
+          .eq('user_id', profileId)
+          .maybeSingle()
+
+        if (!existing) {
+          const expiresAt = new Date(Date.now() + 31 * 24 * 60 * 60 * 1000)
+          await serviceClient.from('user_memberships').insert({
+            user_id: profileId,
+            email,
+            type: 'trial',
+            started_at: new Date().toISOString(),
+            expires_at: expiresAt.toISOString(),
+            activated_by_code_id: null,
+          })
+          console.log('✅ 已赠送31天试用会员')
+        } else {
+          console.log('⏭️ 用户已有会员，跳过赠送')
+        }
+      }
+    } catch (trialError: any) {
+      // 赠送失败不影响注册流程
+      console.error('⚠️ 赠送试用会员失败（不影响注册）:', trialError.message)
+    }
+
+    // 6. 标记验证码为已使用
     await supabase
       .from('verification_codes')
       .update({ used: true })
@@ -105,7 +139,7 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ 验证码已标记为已使用')
 
-    // 6. 返回成功响应
+    // 7. 返回成功响应
     return NextResponse.json({
       success: true,
       data: {

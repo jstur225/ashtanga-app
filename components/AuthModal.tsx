@@ -242,8 +242,8 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
             })
           } else {
             console.log('✅ 自动登录成功:', signInData.user?.email)
-            toast.success('✅ 注册成功，已自动登录', {
-              description: `欢迎，${signInData.user?.email}`,
+            toast.success('✅ 绑定成功，已自动登录', {
+              description: '🎉 已赠送31天Pro会员',
               duration: 3000,
             })
           }
@@ -774,7 +774,10 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
                     </div>
 
                     {/* 提示文本 */}
-                    <p className="text-xs font-serif text-muted-foreground text-center mt-4">
+                    <p className="text-xs font-serif text-center mt-4" style={{ color: '#b8860b' }}>
+                      🎁 绑定邮箱即享31天Pro会员
+                    </p>
+                    <p className="text-xs font-serif text-muted-foreground text-center mt-1">
                       绑定后可开启云同步，数据永不丢失
                     </p>
                     <p

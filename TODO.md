@@ -1,19 +1,169 @@
 # 待处理问题
 
-## 2026-04-17 - Tab 切换动画引入的布局 Bug
+## 2026-04-17 - Tab 切换动画引入的布局 Bug ✅ 已修复
 
-**状态**：修复中
+**状态**：已完成
+**提交**：`18a7e25` fix: 修复Tab动画导致的布局断裂
 
 ### Bug 列表
-1. ⬜ **开始练习按钮位置偏上** — 按钮应在导航栏正上方居中，motion.div 包裹后 flex 布局断裂
-2. ⬜ **时光轴无限滚动失效** — JournalTab 滚动容器高度丢失，scroll 事件不触发自动加载
-3. ⬜ **回到顶部按钮消失** — 时光轴右下角置顶按钮不再出现，同样因滚动容器高度丢失
+1. ✅ **开始练习按钮位置偏上** — AnimatePresence 外层加 flex 容器
+2. ✅ **时光轴无限滚动失效** — 同上修复
+3. ✅ **回到顶部按钮消失** — 同上修复
 
-### 原因
-`AnimatePresence mode="wait"` 包裹三个 tab，`motion.div` 未正确继承外层 `h-screen flex flex-col` 的高度
+---
 
-### 涉及文件
-- `app/practice/page.tsx` — motion.div className 需加 flex 继承
+## 2026-04-17 - 练习页第一栏改为社区互动功能 💡 待设计
+
+**参考图**：`C:\Users\BIN\Desktop\d5393bd27c2a22c91801a784c964b6e1.jpg`
+
+### 想法
+把练习选项网格的第一行（3个位置）改成默认功能卡片，不占用户自定义选项的名额：
+
+| 位置 | 功能 | 说明 |
+|------|------|------|
+| 第1个 | 今日练习人数 | 显示有多少人今天练习了（全站统计） |
+| 第2个 | 练习后感想投票 | 练习完成后弹出投票，选择/分享练习感受 |
+| 第3个 | 待定 | |
+
+### 设计要点
+- 这3个是固定功能位，不算入用户的 4/10 选项上限
+- 用户自定义选项从第二行开始排列
+- 需要 API 支持统计练习人数和投票数据
+- 参考图是卡片式布局，带图标+文字+数据
+
+### 涉及改动
+- `app/practice/page.tsx` — 选项网格渲染逻辑
+- 新增 API — 练习人数统计、投票接口
+- `hooks/usePracticeData.ts` — 区分固定功能位和用户选项
+
+---
+
+## 2026-04-17 - 新用户绑定邮箱赠送31天Pro会员 💡 待开发
+
+### 功能需求
+新用户绑定邮箱时，自动发放 31 天 Pro 会员（作为绑定 incentive）
+
+### 代码流程分析
+```
+用户绑定邮箱 → POST /api/auth/register
+  → supabase.auth.signUp() 创建 auth.users
+  → 【新增】创建 user_profiles + user_memberships (trial, 31天)
+  → 返回成功
+→ 前端 AuthModal 自动登录
+→ onAuthSuccess() 关闭弹窗
+→ useAuth hook 检测到登录状态
+→ useMembership hook 自动查询会员状态
+```
+
+### 改动清单
+
+#### 1. `app/api/auth/register/route.ts` — 绑定邮箱后自动赠送（核心）
+**位置**：第 97-106 行之间（`signUp` 成功后、标记验证码已使用之前）
+
+**逻辑**：
+```typescript
+// 注册成功后，自动赠送31天Pro
+if (data.user) {
+  // 1. 确保 user_profiles 存在（可能由触发器已创建）
+  const { data: profile } = await supabase
+    .from('user_profiles')
+    .select('id')
+    .eq('user_id', data.user.id)
+    .single()
+
+  let profileId = profile?.id
+
+  if (!profileId) {
+    // 触发器没创建，手动创建
+    const { data: newProfile } = await supabase
+      .from('user_profiles')
+      .insert({
+        user_id: data.user.id,
+        name: email.split('@')[0],
+        signature: '',
+      })
+      .select('id')
+      .single()
+    profileId = newProfile?.id
+  }
+
+  // 2. 检查是否已有会员记录（防重复）
+  const { data: existingMembership } = await supabase
+    .from('user_memberships')
+    .select('id')
+    .eq('user_id', profileId)
+    .single()
+
+  if (!existingMembership && profileId) {
+    // 3. 创建 trial 会员，31天
+    const expiresAt = new Date(Date.now() + 31 * 24 * 60 * 60 * 1000)
+    await supabase.from('user_memberships').insert({
+      user_id: profileId,
+      email: email,
+      type: 'trial',
+      started_at: new Date().toISOString(),
+      expires_at: expiresAt.toISOString(),
+      activated_by_code_id: null,  // 非激活码，系统赠送
+    })
+  }
+}
+```
+
+**返回值增加**：在成功响应中添加 `trial_membership` 字段
+```typescript
+return NextResponse.json({
+  success: true,
+  data: { user: data.user, session: data.session },
+  trial_membership: { expires_at: expiresAt.toISOString() }  // 新增
+})
+```
+
+#### 2. `components/AuthModal.tsx` — 绑定成功提示
+**位置**：第 243-248 行（自动登录成功后的 toast）
+
+**改动**：
+```typescript
+// 原来
+toast.success('✅ 注册成功，已自动登录', {
+  description: `欢迎，${signInData.user?.email}`,
+})
+
+// 改为
+toast.success('✅ 绑定成功，已自动登录', {
+  description: `🎉 已赠送31天Pro会员，欢迎！`,
+})
+```
+
+同时在 `registerData` 中读取 `trial_membership` 并传递给 toast。
+
+#### 3. `components/AuthModal.tsx` — 绑定邮箱入口文案
+**位置**：注册表单区域
+
+**改动**：绑定邮箱按钮附近添加提示文字
+```
+「绑定邮箱即享31天Pro会员」
+```
+
+#### 4. `app/practice/page.tsx` — 账号同步弹窗引导文案
+**位置**：AccountSyncModal 打开时的引导区域
+
+**改动**：在未登录状态下，引导文案增加 Pro 赠送吸引点
+
+#### 5. 数据库 — user_memberships 表无改动
+- `activated_by_code_id` 已是 nullable，trial 不关联激活码
+- `type` 字段使用 `'trial'` 值（已有 `'quarter'` / `'year'`，新增不影响）
+
+### 防薅羊毛规则（暂不加）
+- 暂不限制换绑/新注册重复领取
+- 门槛（新邮箱+重新注册）已够高，31天价值仅约 ¥6
+
+### 测试验证
+| 场景 | 预期 |
+|------|------|
+| 新用户绑定邮箱 | 自动创建 trial 会员，31天到期 |
+| 注册后查看会员状态 | useMembership 返回 isPro=true |
+| 已有会员的用户注册新号 | 新号获得 trial（不同 user_id） |
+| 注册失败 | 不创建会员记录 |
 
 ---
 

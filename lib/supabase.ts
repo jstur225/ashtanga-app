@@ -144,7 +144,7 @@ export interface Photo {
 export interface UserMembership {
   id: string
   user_id: string
-  type: 'quarter' | 'year'
+  type: 'trial' | 'quarter' | 'year'
   started_at: string
   expires_at: string
   activated_by_code_id: string | null
@@ -153,7 +153,7 @@ export interface UserMembership {
 
 export interface UserMembershipStatus {
   user_id: string
-  membership_type: 'quarter' | 'year' | null
+  membership_type: 'trial' | 'quarter' | 'year' | null
   expires_at: string | null
   is_active: boolean
   days_remaining: number
