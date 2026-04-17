@@ -491,7 +491,7 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
           <div className="bg-card rounded-[24px] shadow-[0_8px_32px_rgba(0,0,0,0.12)] w-full max-w-md max-h-[calc(100vh-2rem)] overflow-y-auto pointer-events-auto">
             <div className="p-6 pb-10">
             {/* 标题栏 - 带关闭按钮（忘记密码模式显示返回登录按钮） */}
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-1">
               <h2 className="text-lg font-serif text-foreground">
                 {mode === 'register' ? '📧 绑定邮箱账号' :
                  mode === 'forgot-password' ? '🔑 忘记密码' :
@@ -516,6 +516,11 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
                 </button>
               )}
             </div>
+            {mode === 'register' && (
+              <p className="text-xs font-serif text-center mb-5" style={{ color: '#b8860b' }}>
+                🎁 绑定邮箱即享31天Pro会员
+              </p>
+            )}
 
             {mode === 'forgot-password' ? (
               // ==================== 忘记密码 - 3步流程 ====================
@@ -774,17 +779,8 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
                     </div>
 
                     {/* 提示文本 */}
-                    <p className="text-xs font-serif text-center mt-4" style={{ color: '#b8860b' }}>
-                      🎁 绑定邮箱即享31天Pro会员
-                    </p>
-                    <p className="text-xs font-serif text-muted-foreground text-center mt-1">
-                      绑定后可开启云同步，数据永不丢失
-                    </p>
-                    <p
-                      className="text-[9px] text-muted-foreground text-center mt-2 leading-relaxed"
-                      style={{ fontFamily: 'SimSun, serif' }}
-                    >
-                      🔒 注册即表示您同意我们仅为提供数据同步服务而存储您的数据。
+                    <p className="text-[10px] font-serif text-muted-foreground text-center mt-4">
+                      绑定邮箱即表示您同意我们存储您的数据
                     </p>
                   </>
                 )}
