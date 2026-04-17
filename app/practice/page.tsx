@@ -4253,12 +4253,6 @@ export default function AshtangaTracker() {
 
     // Select the option
     if (option.id === "custom") {
-      // 点击自定义按钮，先检查是否已满
-      if (isOptionsFull) {
-        setSettingsInitialSection('membership')
-        setShowSettings(true)
-        return
-      }
       setShowCustomModal(true)
     } else if (lockedOptionIds.has(option.id)) {
       // 锁定选项：单击打开会员页
