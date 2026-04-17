@@ -1,8 +1,7 @@
 'use client'
 
-import { useState, useCallback } from 'react'
 import { X, Crown, Loader2, CheckCircle, AlertCircle } from 'lucide-react'
-import { supabase } from '@/lib/supabase'
+import { useActivateCode } from '@/hooks/useActivateCode'
 
 interface ActivateModalProps {
   isOpen: boolean
@@ -10,116 +9,14 @@ interface ActivateModalProps {
   onSuccess?: () => void
 }
 
-interface ActivateResponse {
-  success: boolean
-  data?: {
-    expires_at: string
-    expires_at_formatted: string
-    days: number
-    type: 'quarter' | 'year'
-    is_new: boolean
-  }
-  error?: string
-}
-
 export function ActivateModal({ isOpen, onClose, onSuccess }: ActivateModalProps) {
-  const [code, setCode] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState<ActivateResponse['data'] | null>(null)
-
-  // 格式化输入的激活码
-  const formatCode = useCallback((input: string) => {
-    // 移除所有非字母数字字符
-    const clean = input.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 12)
-    // 每4个字符加连字符
-    const parts = []
-    for (let i = 0; i < clean.length; i += 4) {
-      parts.push(clean.slice(i, i + 4))
-    }
-    return parts.join('-')
-  }, [])
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatCode(e.target.value)
-    setCode(formatted)
-    setError(null)
-  }
-
-  // 检查激活码是否完整（12个字母数字）
-  const isCodeComplete = code.replace(/-/g, '').length === 12
-
-  const handleActivate = async () => {
-    if (!isCodeComplete) {
-      setError('请输入完整的激活码')
-      return
-    }
-
-    setLoading(true)
-    setError(null)
-
-    try {
-      // 从 Supabase 获取当前 session
-      const { data: { session } } = await supabase.auth.getSession()
-      const token = session?.access_token
-
-      if (!token) {
-        setError('请先登录')
-        setLoading(false)
-        return
-      }
-
-      const response = await fetch('/api/membership/activate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ code }),
-      })
-
-      const result: ActivateResponse = await response.json()
-
-      if (!result.success) {
-        const errorMessages: Record<string, string> = {
-          INVALID_CODE: '激活码无效',
-          INVALID_CODE_FORMAT: '激活码格式错误',
-          CODE_USED: '该激活码已被使用',
-          CODE_EXPIRED: '该激活码已过期',
-          NOT_AUTHENTICATED: '请先登录',
-          DATABASE_ERROR: '系统繁忙，请稍后再试',
-          INTERNAL_ERROR: '服务器错误: ' + (result.message || '未知错误'),
-        }
-        console.error('激活失败:', result)
-        // ⭐ 显示详细调试信息
-        const debugInfo = result.debug || result.details || ''
-        setError((errorMessages[result.error || ''] || result.error || '激活失败，请重试') + (debugInfo ? `\n\n[调试: ${JSON.stringify(debugInfo)}]` : ''))
-      } else {
-        setSuccess(result.data || null)
-        onSuccess?.()
-      }
-    } catch (err) {
-      setError('网络错误，请检查网络连接')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !loading) {
-      handleActivate()
-    }
-  }
+  const {
+    code, loading, error, success, isCodeComplete,
+    handleInputChange, handleActivate, handleKeyDown, reset,
+  } = useActivateCode(onSuccess)
 
   const handleClose = async () => {
-    const wasSuccess = success !== null
-    setCode('')
-    setError(null)
-    setSuccess(null)
-    // ⭐ 如果激活成功，先等待刷新完成再关闭弹窗
-    if (wasSuccess) {
-      await onSuccess?.()
-    }
+    await reset()
     onClose()
   }
 
@@ -210,7 +107,7 @@ export function ActivateModal({ isOpen, onClose, onSuccess }: ActivateModalProps
                 <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-xl">
                   <div className="flex items-start gap-2 text-red-600">
                     <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
-                    <div className="text-sm font-medium font-serif whitespace-pre-wrap break-all">{error}</div>
+                    <div className="text-sm font-medium font-serif">{error}</div>
                   </div>
                 </div>
               )}
@@ -236,10 +133,7 @@ export function ActivateModal({ isOpen, onClose, onSuccess }: ActivateModalProps
                 <p className="text-sm text-[#8B7355] font-serif">
                   还没有激活码？
                   <button
-                    onClick={() => {
-                      // TODO: 跳转到购买页面
-                      alert('购买功能即将上线')
-                    }}
+                    onClick={() => alert('购买功能即将上线')}
                     className="ml-1 text-[#C1A268] hover:text-[#D4AF37] font-medium"
                   >
                     去购买

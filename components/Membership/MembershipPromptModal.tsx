@@ -1,9 +1,8 @@
 'use client'
 
-import { useState, useCallback } from 'react'
 import { X, Crown, Loader2, CheckCircle, AlertCircle } from 'lucide-react'
-import { supabase } from '@/lib/supabase'
-import { PRO_BENEFITS } from '@/hooks/useMembership'
+import { MembershipCard } from '@/components/Membership/MembershipCard'
+import { useActivateCode } from '@/hooks/useActivateCode'
 
 interface MembershipPromptModalProps {
   isOpen: boolean
@@ -13,125 +12,42 @@ interface MembershipPromptModalProps {
   reason?: 'options_full' | 'locked_option' | 'locked_practice'
 }
 
-interface ActivateResponse {
-  success: boolean
-  data?: {
-    expires_at: string
-    expires_at_formatted: string
-    days: number
-    type: 'quarter' | 'year'
-    is_new: boolean
-  }
-  error?: string
+const REASON_SUBTITLES: Record<string, string> = {
+  options_full: '免费用户最多 4 个选项',
+  locked_option: '激活会员可以恢复选项使用',
+  locked_practice: '激活会员恢复选项开始练习',
 }
 
 export function MembershipPromptModal({ isOpen, onClose, onSuccess, reason }: MembershipPromptModalProps) {
-  const [code, setCode] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState<ActivateResponse['data'] | null>(null)
-
-  const formatCode = useCallback((input: string) => {
-    const clean = input.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 12)
-    const parts = []
-    for (let i = 0; i < clean.length; i += 4) {
-      parts.push(clean.slice(i, i + 4))
-    }
-    return parts.join('-')
-  }, [])
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setCode(formatCode(e.target.value))
-    setError(null)
-  }
-
-  const isCodeComplete = code.replace(/-/g, '').length === 12
-
-  const handleActivate = async () => {
-    if (!isCodeComplete) {
-      setError('请输入完整的激活码')
-      return
-    }
-
-    setLoading(true)
-    setError(null)
-
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      const token = session?.access_token
-
-      if (!token) {
-        setError('请先登录')
-        setLoading(false)
-        return
-      }
-
-      const response = await fetch('/api/membership/activate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ code }),
-      })
-
-      const result: ActivateResponse = await response.json()
-
-      if (!result.success) {
-        const errorMessages: Record<string, string> = {
-          INVALID_CODE: '激活码无效',
-          INVALID_CODE_FORMAT: '激活码格式错误',
-          CODE_USED: '该激活码已被使用',
-          CODE_EXPIRED: '该激活码已过期',
-          NOT_AUTHENTICATED: '请先登录',
-          DATABASE_ERROR: '系统繁忙，请稍后再试',
-          INTERNAL_ERROR: '服务器错误',
-        }
-        setError(errorMessages[result.error || ''] || '激活失败，请重试')
-      } else {
-        setSuccess(result.data || null)
-        await onSuccess?.()
-      }
-    } catch {
-      setError('网络错误，请检查网络连接')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !loading) {
-      handleActivate()
-    }
-  }
+  const {
+    code, loading, error, success, isCodeComplete,
+    handleInputChange, handleActivate, handleKeyDown, reset,
+  } = useActivateCode(onSuccess)
 
   const handleClose = async () => {
-    const wasSuccess = success !== null
-    setCode('')
-    setError(null)
-    setSuccess(null)
-    if (wasSuccess) {
-      await onSuccess?.()
-    }
+    await reset()
     onClose()
   }
 
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-      <div className="relative w-full max-w-sm bg-white rounded-2xl shadow-2xl animate-in fade-in zoom-in duration-200 overflow-hidden">
-        {/* 关闭按钮 */}
-        <button
-          onClick={handleClose}
-          className="absolute right-3 top-3 p-1 text-[#8B7355]/60 hover:text-[#6B5A47] transition-colors z-10"
-        >
-          <X className="w-5 h-5" />
-        </button>
+    <div className="fixed inset-0 z-50 bg-black/50" onClick={handleClose}>
+      <div
+        className="fixed bottom-0 left-0 right-0 bg-card rounded-t-[24px] z-[110] p-6 pb-10 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] animate-in slide-in-from-bottom duration-300 max-h-[85vh] overflow-y-auto"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* 关闭按钮 + 标题 */}
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-lg font-serif text-foreground font-semibold">Pro 会员</h2>
+          <button onClick={handleClose} className="p-2 -mr-2 text-muted-foreground hover:text-foreground transition-colors">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
         {/* 成功状态 */}
         {success ? (
-          <div className="p-6 text-center">
+          <div className="text-center">
             <div className="mb-4">
               <div className="w-16 h-16 mx-auto bg-gradient-to-br from-[#C1A268]/20 to-[#D4AF37]/20 rounded-full flex items-center justify-center">
                 <CheckCircle className="w-8 h-8 text-[#C1A268]" />
@@ -164,38 +80,22 @@ export function MembershipPromptModal({ isOpen, onClose, onSuccess, reason }: Me
           </div>
         ) : (
           <>
-            {/* 头部 - 金色渐变背景 */}
-            <div className="bg-gradient-to-br from-[#C1A268] to-[#D4AF37] px-6 pt-8 pb-5 text-center">
-              <div className="w-12 h-12 mx-auto bg-white/20 rounded-full flex items-center justify-center mb-3">
-                <Crown className="w-6 h-6 text-white" />
-              </div>
-              <h3 className="text-lg font-bold text-white font-serif">升级 Pro 会员</h3>
-              <p className="text-sm text-white/80 font-serif mt-1">
-                {reason === 'options_full'
-                  ? '免费用户最多 4 个选项'
-                  : reason === 'locked_practice'
-                    ? '激活会员恢复选项开始练习'
-                    : '激活会员可以恢复选项使用'}
-              </p>
-            </div>
+            {/* 会员卡片 */}
+            <MembershipCard subtitle={reason ? REASON_SUBTITLES[reason] : undefined} />
 
-            {/* 权益列表 - 与设置页一致 */}
-            <div className="px-5 pt-4 pb-3">
-              <div className="grid grid-cols-3 gap-2">
-                {PRO_BENEFITS.map((b, i) => (
-                  <div key={i} className="text-center">
-                    <div className="text-lg font-bold text-[#6B5A47]">{b.text}</div>
-                    <div className="text-xs text-[#8B7355] font-serif">{b.subtext}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            {/* 购买按钮 */}
+            <button
+              onClick={() => alert('购买功能即将上线')}
+              className="w-full mt-4 py-3 px-4 bg-gradient-to-br from-[#C1A268] to-[#D4AF37] hover:opacity-90 text-white font-medium rounded-xl transition-opacity font-serif"
+            >
+              购买 PRO 会员
+            </button>
 
             {/* 分割线 */}
-            <div className="mx-5 border-t border-[#E8E8E3]" />
+            <div className="mt-4 border-t border-[#E8E8E3]" />
 
             {/* 激活码输入 */}
-            <div className="px-5 pt-3 pb-5">
+            <div className="pt-4">
               <label className="block text-sm font-medium text-[#6B5A47] mb-2 font-serif">
                 输入激活码
               </label>
@@ -231,19 +131,6 @@ export function MembershipPromptModal({ isOpen, onClose, onSuccess, reason }: Me
                   <span className="text-xs font-serif">{error}</span>
                 </div>
               )}
-
-              {/* 购买提示 */}
-              <div className="mt-3 text-center">
-                <p className="text-xs text-[#8B7355] font-serif">
-                  还没有激活码？
-                  <button
-                    onClick={() => alert('购买功能即将上线')}
-                    className="ml-1 text-[#C1A268] hover:text-[#D4AF37] font-medium"
-                  >
-                    去购买
-                  </button>
-                </p>
-              </div>
             </div>
           </>
         )}

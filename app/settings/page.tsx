@@ -1,64 +1,16 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Crown, ChevronLeft, Loader2, CrownIcon, Sparkles, Ticket, ChevronRight } from 'lucide-react'
+import { ChevronLeft, CrownIcon, Ticket, ChevronRight } from 'lucide-react'
 import { ActivateModal } from '@/components/Membership/ActivateModal'
-import { PRO_BENEFITS } from '@/hooks/useMembership'
-import { supabase } from '@/lib/supabase'
-
-interface MembershipStatus {
-  is_active: boolean
-  expires_at: string | null
-  expires_at_formatted: string | null
-  days_remaining: number
-  type: 'quarter' | 'year' | null
-}
+import { MembershipCard } from '@/components/Membership/MembershipCard'
+import { useMembership } from '@/hooks/useMembership'
 
 export default function SettingsPage() {
   const router = useRouter()
-  const [loading, setLoading] = useState(true)
-  const [membership, setMembership] = useState<MembershipStatus | null>(null)
+  const { membership, loading, refresh } = useMembership()
   const [showActivateModal, setShowActivateModal] = useState(false)
-
-  // 查询会员状态
-  const fetchMembershipStatus = async () => {
-    try {
-      // 从 Supabase 获取当前 session
-      const { data: { session } } = await supabase.auth.getSession()
-      const token = session?.access_token
-
-      if (!token) {
-        setLoading(false)
-        return
-      }
-
-      const response = await fetch('/api/membership/status', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      })
-
-      if (response.ok) {
-        const result = await response.json()
-        if (result.success) {
-          setMembership(result.data)
-        }
-      }
-    } catch (err) {
-      console.error('查询会员状态失败:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    fetchMembershipStatus()
-  }, [])
-
-  const handleActivateSuccess = () => {
-    fetchMembershipStatus()
-  }
 
   return (
     <div className="min-h-screen bg-[#F5F5F0]">
@@ -79,57 +31,8 @@ export default function SettingsPage() {
 
       {/* 内容 */}
       <main className="max-w-lg mx-auto px-4 py-6 space-y-6">
-        {/* 会员卡片 — 遵循设计规范 */}
-        <section className="bg-gradient-to-br from-[#F9F7F2] to-[#F5F0E8] rounded-[20px] p-5 border border-[#C1A268]/20">
-          <div className="flex items-start justify-between">
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 bg-gradient-to-br from-[#C1A268] to-[#D4AF37] rounded-lg flex items-center justify-center">
-                  <Crown className="w-4 h-4 text-white" />
-                </div>
-                <h2 className="font-serif text-lg text-[#8B7355]">PRO 会员</h2>
-              </div>
-
-              {loading ? (
-                <div className="flex items-center gap-2 text-[#8B7355]">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span className="text-sm font-serif">加载中...</span>
-                </div>
-              ) : membership?.is_active ? (
-                <div>
-                  <p className="text-[#6B5A47] font-serif font-medium">
-                    有效期至 {membership.expires_at_formatted}
-                  </p>
-                  <p className="text-[#8B7355] text-sm mt-1 font-serif">
-                    还剩 {membership.days_remaining} 天
-                    {membership.type === 'quarter' ? ' · 季卡' : membership.type === 'year' ? ' · 年卡' : ''}
-                  </p>
-                </div>
-              ) : (
-                <p className="text-[#8B7355] text-sm font-serif">
-                  免费用户 · 解锁更多专属功能
-                </p>
-              )}
-            </div>
-
-            {!membership?.is_active && !loading && (
-              <Sparkles className="w-6 h-6 text-[#C1A268]" />
-            )}
-          </div>
-
-          {/* Pro 功能预览 */}
-          <div className="mt-4 pt-4 border-t border-[#C1A268]/20">
-            <p className="text-xs text-[#8B7355] mb-3 font-serif">PRO 会员权益</p>
-            <div className="grid grid-cols-3 gap-2">
-              {PRO_BENEFITS.map((b, i) => (
-                <div key={i} className="text-center">
-                  <div className="text-lg font-bold text-[#6B5A47]">{b.text}</div>
-                  <div className="text-xs text-[#8B7355] font-serif">{b.subtext}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
+        {/* 会员卡片 */}
+        <MembershipCard showStatus membership={membership} loading={loading} />
 
         {/* 操作按钮 — 遵循设计规范 */}
         <section className="space-y-3">
@@ -178,7 +81,7 @@ export default function SettingsPage() {
       <ActivateModal
         isOpen={showActivateModal}
         onClose={() => setShowActivateModal(false)}
-        onSuccess={handleActivateSuccess}
+        onSuccess={refresh}
       />
     </div>
   )
