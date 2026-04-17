@@ -268,6 +268,15 @@ export function PracticeForm({
   const { photos, loading, uploading, uploadPhoto, deletePhoto, executePendingDeletions } = useRecordPhotos(recordId, initialPhotos)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // 文件选择器取消时重置 loading 状态
+  useEffect(() => {
+    const input = fileInputRef.current
+    if (!input) return
+    const handleCancel = () => setIsReadingFiles(false)
+    input.addEventListener('cancel', handleCancel)
+    return () => input.removeEventListener('cancel', handleCancel)
+  }, [])
+
   // ⭐ 照片上传权限和限制（使用真实会员状态）
   const { membership, loading: membershipLoading, isPro: membershipIsPro } = useMembership()
   const hasEmail = !!user?.email
