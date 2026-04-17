@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react'
 import { X, Crown, Loader2, CheckCircle, AlertCircle } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { PRO_BENEFITS } from '@/hooks/useMembership'
 
 interface MembershipPromptModalProps {
   isOpen: boolean
@@ -23,12 +24,6 @@ interface ActivateResponse {
   }
   error?: string
 }
-
-const benefits = [
-  { text: '9 张', subtext: '照片上传' },
-  { text: '11 个', subtext: '自定义选项' },
-  { text: '9 种', subtext: '日历标注' },
-]
 
 export function MembershipPromptModal({ isOpen, onClose, onSuccess, reason }: MembershipPromptModalProps) {
   const [code, setCode] = useState('')
@@ -187,7 +182,7 @@ export function MembershipPromptModal({ isOpen, onClose, onSuccess, reason }: Me
             {/* 权益列表 - 与设置页一致 */}
             <div className="px-5 pt-4 pb-3">
               <div className="grid grid-cols-3 gap-2">
-                {benefits.map((b, i) => (
+                {PRO_BENEFITS.map((b, i) => (
                   <div key={i} className="text-center">
                     <div className="text-lg font-bold text-[#6B5A47]">{b.text}</div>
                     <div className="text-xs text-[#8B7355] font-serif">{b.subtext}</div>

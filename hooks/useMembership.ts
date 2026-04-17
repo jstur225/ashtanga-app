@@ -11,6 +11,12 @@ export interface MembershipStatus {
   type: 'quarter' | 'year' | null
 }
 
+export const PRO_BENEFITS = [
+  { text: '9 张', subtext: '照片上传' },
+  { text: '11 个', subtext: '自定义选项' },
+  { text: '9 种', subtext: '日历标注' },
+] as const
+
 export function useMembership() {
   const [membership, setMembership] = useState<MembershipStatus | null>(null)
   const [loading, setLoading] = useState(true)

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Crown, ChevronLeft, Loader2, CrownIcon, Sparkles, Ticket, ChevronRight } from 'lucide-react'
 import { ActivateModal } from '@/components/Membership/ActivateModal'
+import { PRO_BENEFITS } from '@/hooks/useMembership'
 import { supabase } from '@/lib/supabase'
 
 interface MembershipStatus {
@@ -120,18 +121,12 @@ export default function SettingsPage() {
           <div className="mt-4 pt-4 border-t border-[#C1A268]/20">
             <p className="text-xs text-[#8B7355] mb-3 font-serif">PRO 会员权益</p>
             <div className="grid grid-cols-3 gap-2">
-              <div className="text-center">
-                <div className="text-lg font-bold text-[#6B5A47]">9 张</div>
-                <div className="text-xs text-[#8B7355] font-serif">照片上传</div>
-              </div>
-              <div className="text-center">
-                <div className="text-lg font-bold text-[#6B5A47]">11 个</div>
-                <div className="text-xs text-[#8B7355] font-serif">自定义选项</div>
-              </div>
-              <div className="text-center">
-                <div className="text-lg font-bold text-[#6B5A47]">9 种</div>
-                <div className="text-xs text-[#8B7355] font-serif">日历标注</div>
-              </div>
+              {PRO_BENEFITS.map((b, i) => (
+                <div key={i} className="text-center">
+                  <div className="text-lg font-bold text-[#6B5A47]">{b.text}</div>
+                  <div className="text-xs text-[#8B7355] font-serif">{b.subtext}</div>
+                </div>
+              ))}
             </div>
           </div>
         </section>
