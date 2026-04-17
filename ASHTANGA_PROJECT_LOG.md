@@ -1,3 +1,49 @@
+# 阿斯汤加打卡 app - 项目记录
+## 2026-04-17: 绑定邮箱赠送 31 天 Pro 会员 ✅
+
+**类型**: 新功能
+
+**状态**: 已推送
+
+### 功能需求
+新用户绑定邮箱后自动发放 31 天 Pro 会员（type='trial'），作为绑定 incentive。
+
+### 实现内容
+
+#### 1. `lib/membership-utils.ts` — 新建共享函数
+- 提取 `ensureProfileAndGetId(supabase, user)` 从 `activate/route.ts`
+- 查询 `user_profiles`，不存在则创建
+- 返回 `profileId`
+
+#### 2. `app/api/auth/register/route.ts` — 注册后自动赠送
+- 在 `signUp` 成功后插入 31 天 trial 会员
+- 防重复检查：已有会员记录则跳过
+- 优雅处理：赠送失败不影响注册流程
+
+#### 3. `app/api/membership/activate/route.ts` — 重构
+- 使用 `ensureProfileAndGetId()` 替代内联代码
+- 删除约 90 行重复逻辑
+
+#### 4. `lib/supabase.ts` — 类型扩展
+- `UserMembership.type`: 添加 `'trial'`
+- `UserMembershipStatus.membership_type`: 添加 `'trial'`
+
+#### 5. `components/AuthModal.tsx` — 前端文案
+- 注册成功 toast：「绑定成功，已自动登录」+ 描述「🎉 已赠送 31 天 Pro 会员」
+- 注册表单引导文案：「🎁 绑定邮箱即享 31 天 Pro 会员」（金色）
+
+#### 6. `app/practice/page.tsx` — 注册后刷新
+- `onAuthSuccess` 回调添加 `refreshMembership()`
+- 避免显示旧账号缓存数据
+
+### 提交记录
+- `38ea823` - fix: 注册/登录后刷新会员状态
+- `89c056e` - style: Pro 会员提示左对齐
+- `83bb09c` - style: 优化绑定邮箱页面文案布局
+- `16ec701` - feat: 绑定邮箱赠送 31 天 Pro 会员
+
+---
+
 # 阿斯汤加打卡app - 项目记录
 
 ## 2026-04-17: 头像云端存储 + 同步修复 ✅
