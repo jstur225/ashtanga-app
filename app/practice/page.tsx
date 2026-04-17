@@ -5499,16 +5499,16 @@ export default function AshtangaTracker() {
             initial={{ y: 0, opacity: 1 }}
             exit={{ y: 100, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed bottom-5 left-1/2 -translate-x-1/2 z-30 w-[85%] max-w-sm"
+            className="fixed bottom-5 left-1/2 -translate-x-1/2 z-30"
           >
-            <div className="bg-white/50 backdrop-blur-2xl rounded-full px-1 py-1 shadow-[0_4px_20px_rgba(0,0,0,0.08)] border border-white/60">
-              <div className="flex justify-around items-center">
+            <div className="bg-white/70 backdrop-blur-lg rounded-full px-1 py-1 shadow-[0_4px_20px_rgba(0,0,0,0.08)] border border-white/60">
+              <div className="flex items-center gap-1">
                 <button
                   onClick={() => {
                     console.log('[Tab] 点击今日练习, 当前:', activeTab)
                     setActiveTab('practice')
                   }}
-                  className={`flex flex-col items-center gap-1 px-4 py-2 rounded-full transition-all ${activeTab === 'practice' ? 'green-gradient text-white shadow-sm' : 'text-stone-400 hover:text-stone-600'}`}
+                  className={`flex flex-col items-center gap-1 px-3 py-1.5 rounded-full transition-all ${activeTab === 'practice' ? 'green-gradient text-white shadow-sm' : 'text-stone-400 hover:text-stone-600'}`}
                 >
                   <Calendar className="w-5 h-5" />
                   <span className="text-[10px] font-serif">今日练习</span>
@@ -5518,7 +5518,7 @@ export default function AshtangaTracker() {
                     console.log('[Tab] 点击觉察日记, 当前:', activeTab)
                     setActiveTab('journal')
                   }}
-                  className={`flex flex-col items-center gap-1 px-4 py-2 rounded-full transition-all ${activeTab === 'journal' ? 'green-gradient text-white shadow-sm' : 'text-stone-400 hover:text-stone-600'}`}
+                  className={`flex flex-col items-center gap-1 px-3 py-1.5 rounded-full transition-all ${activeTab === 'journal' ? 'green-gradient text-white shadow-sm' : 'text-stone-400 hover:text-stone-600'}`}
                 >
                   <BookOpen className="w-5 h-5" />
                   <span className="text-[10px] font-serif">觉察日记</span>
@@ -5528,7 +5528,7 @@ export default function AshtangaTracker() {
                     console.log('[Tab] 点击我的数据, 当前:', activeTab)
                     setActiveTab('stats')
                   }}
-                  className={`flex flex-col items-center gap-1 px-4 py-2 rounded-full transition-all ${activeTab === 'stats' ? 'green-gradient text-white shadow-sm' : 'text-stone-400 hover:text-stone-600'}`}
+                  className={`flex flex-col items-center gap-1 px-3 py-1.5 rounded-full transition-all ${activeTab === 'stats' ? 'green-gradient text-white shadow-sm' : 'text-stone-400 hover:text-stone-600'}`}
                 >
                   <BarChart3 className="w-5 h-5" />
                   <span className="text-[10px] font-serif">我的数据</span>
