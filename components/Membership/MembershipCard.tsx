@@ -3,10 +3,12 @@
 import { Crown, Loader2, Sparkles } from 'lucide-react'
 import { PRO_BENEFITS, type MembershipStatus } from '@/hooks/useMembership'
 
+type MembershipCardData = Pick<MembershipStatus, 'is_active' | 'expires_at_formatted' | 'days_remaining' | 'type'>
+
 export interface MembershipCardProps {
   subtitle?: string
   showStatus?: boolean
-  membership?: MembershipStatus | null
+  membership?: MembershipCardData | null
   loading?: boolean
 }
 

@@ -28,6 +28,7 @@ import { trackEvent, setUserProfile } from '@/lib/analytics'
 import { captureWithFallback, formatErrorForUser } from '@/lib/screenshot'
 import { MOON_DAYS_2026 } from '@/lib/moon-phase-data'
 import { ActivateModal } from '@/components/Membership/ActivateModal'
+import { MembershipCard } from '@/components/Membership/MembershipCard'
 import { MembershipPromptModal } from '@/components/Membership/MembershipPromptModal'
 import { supabase } from '@/lib/supabase'
 import { deletePracticeRecord } from '@/lib/database'
@@ -1879,57 +1880,7 @@ function SettingsModal({
               {activeSection === 'membership' && (
                 <div className="space-y-4">
                   {/* 会员状态卡片 */}
-                  <div className="bg-gradient-to-br from-[#F9F7F2] to-[#F5F0E8] rounded-[20px] p-5 border border-[#C1A268]/20">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className="w-8 h-8 bg-gradient-to-br from-[#C1A268] to-[#D4AF37] rounded-lg flex items-center justify-center">
-                            <Crown className="w-4 h-4 text-white" />
-                          </div>
-                          <h2 className="font-serif text-lg text-[#8B7355]">Pro 会员</h2>
-                        </div>
-
-                        {membership?.is_active ? (
-                          <div>
-                            <p className="text-[#6B5A47] font-serif font-medium">
-                              有效期至 {membership.expires_at_formatted}
-                            </p>
-                            <p className="text-[#8B7355] text-sm mt-1 font-serif">
-                              还剩 {membership.days_remaining} 天
-                              {membership.type === 'quarter' ? ' · 季卡' : membership.type === 'year' ? ' · 年卡' : ''}
-                            </p>
-                          </div>
-                        ) : (
-                          <p className="text-[#8B7355] text-sm font-serif">
-                            免费用户 · 解锁更多专属功能
-                          </p>
-                        )}
-                      </div>
-
-                      {!membership?.is_active && (
-                        <Sparkles className="w-6 h-6 text-[#C1A268]" />
-                      )}
-                    </div>
-
-                    {/* Pro 功能预览 */}
-                    <div className="mt-4 pt-4 border-t border-[#C1A268]/20">
-                      <p className="text-xs text-[#8B7355] mb-3 font-serif">Pro 会员权益</p>
-                      <div className="grid grid-cols-3 gap-2">
-                        <div className="text-center">
-                          <div className="text-lg font-bold text-[#6B5A47]">9 张</div>
-                          <div className="text-xs text-[#8B7355] font-serif">照片上传</div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-lg font-bold text-[#6B5A47]">10 个</div>
-                          <div className="text-xs text-[#8B7355] font-serif">自定义选项</div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-lg font-bold text-[#6B5A47]">9 种</div>
-                          <div className="text-xs text-[#8B7355] font-serif">日历标注</div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                  <MembershipCard showStatus membership={membership} loading={false} />
 
                   {/* 激活/续费按钮 - 始终显示 */}
                   <button
@@ -5677,9 +5628,7 @@ export default function AshtangaTracker() {
         isOpen={showMembershipPrompt}
         onClose={() => setShowMembershipPrompt(false)}
         reason={membershipPromptReason}
-        onSuccess={async () => {
-          await refreshMembership()
-        }}
+        onActivate={() => setShowActivateModal(true)}
       />
 
       {/* Account & Sync Modal */}
