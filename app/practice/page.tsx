@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { useLocalStorage, useInterval } from 'react-use';
 import { motion, AnimatePresence } from "framer-motion"
-import { usePracticeData, type PracticeRecord, type PracticeOption, type UserProfile, GUIDED_AUDIO_OPTION, MAX_SLOTS_FREE } from "@/hooks/usePracticeData"
+import { usePracticeData, type PracticeRecord, type PracticeOption, type UserProfile, GUIDED_AUDIO_OPTION, MAX_SLOTS_FREE, MAX_SLOTS_PRO } from "@/hooks/usePracticeData"
 import { useMembership } from "@/hooks/useMembership"
 import { usePWAInstall } from "@/hooks/usePWAInstall"
 import { useAuth } from "@/hooks/useAuth"
