@@ -28,6 +28,7 @@ import { trackEvent, setUserProfile } from '@/lib/analytics'
 import { captureWithFallback, formatErrorForUser } from '@/lib/screenshot'
 import { MOON_DAYS_2026 } from '@/lib/moon-phase-data'
 import { ActivateModal } from '@/components/Membership/ActivateModal'
+import { MembershipPromptModal } from '@/components/Membership/MembershipPromptModal'
 import { supabase } from '@/lib/supabase'
 import { deletePracticeRecord } from '@/lib/database'
 import { useRouter } from 'next/navigation'
@@ -3980,6 +3981,8 @@ export default function AshtangaTracker() {
   const [settingsInitialSection, setSettingsInitialSection] = useState<'profile' | 'membership' | 'account' | 'data'>('profile')
   const [showAccountSync, setShowAccountSync] = useState(false)
   const [showActivateModal, setShowActivateModal] = useState(false)
+  const [showMembershipPrompt, setShowMembershipPrompt] = useState(false)
+  const [membershipPromptReason, setMembershipPromptReason] = useState<'options_full' | 'locked_option' | 'locked_practice'>('options_full')
   const [showFakeDoor, setShowFakeDoor] = useState<{ type: 'cloud' | 'pro' | 'voice' | 'photo', isOpen: boolean }>({ type: 'cloud', isOpen: false })
   const [showImportModal, setShowImportModal] = useState(false)
   const [showDebugLogModal, setShowDebugLogModal] = useState(false)
@@ -4254,17 +4257,16 @@ export default function AshtangaTracker() {
     // Select the option
     if (option.id === "custom") {
       if (isOptionsFull && !membershipIsPro) {
-        // 免费用户已满 → 引导开通会员
-        setSettingsInitialSection('membership')
-        setShowSettings(true)
+        // 免费用户已满 → 会员转化弹窗
+        setMembershipPromptReason('options_full')
+        setShowMembershipPrompt(true)
       } else {
-        // Pro用户（满不满都打开，满了modal里显示提示）或免费用户未满
         setShowCustomModal(true)
       }
     } else if (lockedOptionIds.has(option.id)) {
-      // 锁定选项：单击打开会员页
-      setSettingsInitialSection('membership')
-      setShowSettings(true)
+      // 锁定选项：单击打开会员转化弹窗
+      setMembershipPromptReason('locked_option')
+      setShowMembershipPrompt(true)
     } else {
       setSelectedOption(option.id)
       setCustomPracticeName("")
@@ -4419,8 +4421,8 @@ export default function AshtangaTracker() {
     // Check if we can add more options
     const visibleOptions = practiceOptions.filter(o => o.id !== "custom")
     if (visibleOptions.length >= maxSlots) {
-      setSettingsInitialSection('membership')
-      setShowSettings(true)
+      setMembershipPromptReason('options_full')
+      setShowMembershipPrompt(true)
       return
     }
 
@@ -4803,8 +4805,8 @@ export default function AshtangaTracker() {
     if (selectedOption) {
       // 锁定选项不可开始练习
       if (lockedOptionIds.has(selectedOption)) {
-        setSettingsInitialSection('membership')
-        setShowSettings(true)
+        setMembershipPromptReason('locked_practice')
+        setShowMembershipPrompt(true)
         return
       }
 
@@ -5667,6 +5669,16 @@ export default function AshtangaTracker() {
           console.log('[Practice] 激活成功，准备刷新会员状态')
           await refreshMembership()
           console.log('[Practice] refreshMembership 完成')
+        }}
+      />
+
+      {/* Membership Prompt Modal - 纯转化弹窗 */}
+      <MembershipPromptModal
+        isOpen={showMembershipPrompt}
+        onClose={() => setShowMembershipPrompt(false)}
+        reason={membershipPromptReason}
+        onSuccess={async () => {
+          await refreshMembership()
         }}
       />
 
