@@ -5491,39 +5491,41 @@ export default function AshtangaTracker() {
             initial={{ y: 0, opacity: 1 }}
             exit={{ y: 100, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed bottom-0 left-0 right-0 border-t border-border bg-card px-6 py-4 pb-4 z-30"
+            className="fixed bottom-5 left-1/2 -translate-x-1/2 z-30 w-[85%] max-w-sm"
           >
-            <div className="flex justify-around items-center">
-              <button
-                onClick={() => {
-                  console.log('[Tab] 点击今日练习, 当前:', activeTab)
-                  setActiveTab('practice')
-                }}
-                className={`flex flex-col items-center gap-1.5 transition-colors ${activeTab === 'practice' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}
-              >
-                <Calendar className="w-5 h-5" />
-                <span className="text-xs font-serif">今日练习</span>
-              </button>
-              <button
-                onClick={() => {
-                  console.log('[Tab] 点击觉察日记, 当前:', activeTab)
-                  setActiveTab('journal')
-                }}
-                className={`flex flex-col items-center gap-1.5 transition-colors ${activeTab === 'journal' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}
-              >
-                <BookOpen className="w-5 h-5" />
-                <span className="text-xs font-serif">觉察日记</span>
-              </button>
-              <button
-                onClick={() => {
-                  console.log('[Tab] 点击我的数据, 当前:', activeTab)
-                  setActiveTab('stats')
-                }}
-                className={`flex flex-col items-center gap-1.5 transition-colors ${activeTab === 'stats' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}
-              >
-                <BarChart3 className="w-5 h-5" />
-                <span className="text-xs font-serif">我的数据</span>
-              </button>
+            <div className="bg-white/80 backdrop-blur-xl rounded-2xl px-2 py-2 shadow-[0_4px_20px_rgba(0,0,0,0.08)] border border-white/60">
+              <div className="flex justify-around items-center">
+                <button
+                  onClick={() => {
+                    console.log('[Tab] 点击今日练习, 当前:', activeTab)
+                    setActiveTab('practice')
+                  }}
+                  className={`flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-all ${activeTab === 'practice' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+                >
+                  <Calendar className="w-5 h-5" />
+                  <span className="text-[10px] font-serif">今日练习</span>
+                </button>
+                <button
+                  onClick={() => {
+                    console.log('[Tab] 点击觉察日记, 当前:', activeTab)
+                    setActiveTab('journal')
+                  }}
+                  className={`flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-all ${activeTab === 'journal' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+                >
+                  <BookOpen className="w-5 h-5" />
+                  <span className="text-[10px] font-serif">觉察日记</span>
+                </button>
+                <button
+                  onClick={() => {
+                    console.log('[Tab] 点击我的数据, 当前:', activeTab)
+                    setActiveTab('stats')
+                  }}
+                  className={`flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-all ${activeTab === 'stats' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+                >
+                  <BarChart3 className="w-5 h-5" />
+                  <span className="text-[10px] font-serif">我的数据</span>
+                </button>
+              </div>
             </div>
           </motion.nav>
         )}
