@@ -8,7 +8,7 @@ import { useMembership } from "@/hooks/useMembership"
 import { usePWAInstall } from "@/hooks/usePWAInstall"
 import { useAuth } from "@/hooks/useAuth"
 import { useSync } from "@/hooks/useSync"
-import { BookOpen, BarChart3, Calendar, X, Camera, Pause, Play, Trash2, User, Settings, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Cloud, Download, Upload, Plus, Minus, Share2, Sparkles, Check, Copy, ClipboardPaste, MessageCircle, Bug, AlertCircle, SkipBack, SkipForward, Volume, Crown, Ticket, Loader2 } from "lucide-react"
+import { BookOpen, BarChart3, Calendar, X, Camera, Pause, Play, Trash2, User, Settings, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Cloud, Download, Upload, Plus, Minus, Share2, Sparkles, Check, Copy, ClipboardPaste, MessageCircle, Bug, AlertCircle, SkipBack, SkipForward, Volume, Crown, Ticket, Loader2, Lock } from "lucide-react"
 import { cn } from '@/lib/utils'
 import { FakeDoorModal } from "@/components/FakeDoorModal"
 import { VoiceButton } from "@/components/VoiceButton"
@@ -285,11 +285,13 @@ function CustomPracticeModal({
   onClose,
   onConfirm,
   isFull,
+  maxSlots,
 }: {
   isOpen: boolean
   onClose: () => void
   onConfirm: (name: string, notes: string) => void
   isFull: boolean
+  maxSlots: number
 }) {
   const [practiceName, setPracticeName] = useState("")
   const [notes, setNotes] = useState("")
@@ -329,7 +331,7 @@ function CustomPracticeModal({
 
             {isFull ? (
               <div className="text-center py-8">
-                <p className="text-foreground font-serif mb-2">选项已满（当前版本最多4个）</p>
+                <p className="text-foreground font-serif mb-2">选项已满（当前版本最多{maxSlots}个）</p>
                 <p className="text-muted-foreground text-sm font-serif">请双击删除旧选项后再添加</p>
               </div>
             ) : (
@@ -4258,6 +4260,10 @@ export default function AshtangaTracker() {
         return
       }
       setShowCustomModal(true)
+    } else if (lockedOptionIds.has(option.id)) {
+      // 锁定选项：单击打开会员页
+      setSettingsInitialSection('membership')
+      setShowSettings(true)
     } else {
       setSelectedOption(option.id)
       setCustomPracticeName("")
@@ -4785,8 +4791,22 @@ export default function AshtangaTracker() {
     return nonCustomOptions.length >= maxSlots
   }, [practiceOptions, membershipIsPro])
 
+  const lockedOptionIds = useMemo(() => {
+    if (membershipIsPro) return new Set<string>()
+    const maxSlots = MAX_SLOTS_FREE
+    const nonCustomOptions = practiceOptions.filter(o => o.id !== "custom")
+    return new Set(nonCustomOptions.slice(maxSlots).map(o => o.id))
+  }, [practiceOptions, membershipIsPro])
+
   const handleStartPractice = async () => {
     if (selectedOption) {
+      // 锁定选项不可开始练习
+      if (lockedOptionIds.has(selectedOption)) {
+        setSettingsInitialSection('membership')
+        setShowSettings(true)
+        return
+      }
+
       // 先进入练习界面（立即给用户反馈）
       const now = Date.now()
       setStartTime(now)
@@ -5375,6 +5395,7 @@ export default function AshtangaTracker() {
             {practiceOptions.map((option) => {
               const isSelected = selectedOption === option.id
               const isCustomButton = option.id === "custom"
+              const isLocked = !isCustomButton && lockedOptionIds.has(option.id)
 
               return (
                 <motion.button
@@ -5383,26 +5404,31 @@ export default function AshtangaTracker() {
                   onClick={() => handleOptionTap(option)}
                   className={`
                     py-[6px] px-1 rounded-[20px] text-center font-serif transition-all duration-300
-                    min-h-[72px] w-full flex flex-col items-center justify-center
+                    min-h-[72px] w-full flex flex-col items-center justify-center relative
                     ${
-                      isSelected
+                      isSelected && !isLocked
                         ? "green-gradient text-primary-foreground backdrop-blur-[16px] border border-white/30 shadow-[0_8px_24px_rgba(45,90,39,0.3)]"
-                        : isCustomButton
-                          ? "bg-background text-muted-foreground border-2 border-dashed border-muted-foreground/30 shadow-[0_2px_12px_rgba(0,0,0,0.03)]"
-                          : "bg-background text-foreground shadow-[0_4px_16px_rgba(0,0,0,0.06)] border border-stone-100/50"
+                        : isLocked
+                          ? "bg-muted/50 text-muted-foreground/50 shadow-[0_2px_8px_rgba(0,0,0,0.03)] border border-stone-100/30 opacity-50"
+                          : isCustomButton
+                            ? "bg-background text-muted-foreground border-2 border-dashed border-muted-foreground/30 shadow-[0_2px_12px_rgba(0,0,0,0.03)]"
+                            : "bg-background text-foreground shadow-[0_4px_16px_rgba(0,0,0,0.06)] border border-stone-100/50"
                     }
                   `}
                 >
+                  {isLocked && (
+                    <Lock className="absolute top-1.5 right-1.5 w-3 h-3 text-muted-foreground/40" />
+                  )}
                   <span className="text-[14px] leading-snug break-words w-full line-clamp-2 flex items-center justify-center gap-1">
                     {isCustomButton ? "+ 自定义" : (
                       <>
                         {option.label}
-                        {option.is_preset && <Volume className="w-4 h-4" style={{ color: isSelected ? 'white' : 'rgba(74, 122, 68)' }} />}
+                        {option.is_preset && <Volume className="w-4 h-4" style={{ color: isSelected && !isLocked ? 'white' : 'rgba(74, 122, 68)' }} />}
                       </>
                     )}
                   </span>
                   {!isCustomButton && option.notes && (
-                    <span className={`text-[11px] mt-0.5 leading-snug break-words w-full line-clamp-2 ${isSelected ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
+                    <span className={`text-[11px] mt-0.5 leading-snug break-words w-full line-clamp-2 ${isSelected && !isLocked ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
                       {option.notes}
                     </span>
                   )}
@@ -5555,6 +5581,7 @@ export default function AshtangaTracker() {
         onClose={() => setShowCustomModal(false)}
         onConfirm={handleAddOption}
         isFull={isOptionsFull}
+        maxSlots={membershipIsPro ? MAX_SLOTS_PRO : MAX_SLOTS_FREE}
       />
 
       {/* Edit Option Modal */}
