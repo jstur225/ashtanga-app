@@ -331,7 +331,7 @@ function CustomPracticeModal({
 
             {isFull ? (
               <div className="text-center py-8">
-                <p className="text-foreground font-serif mb-2">选项已满（当前版本最多{maxSlots}个）</p>
+                <p className="text-foreground font-serif mb-2">选项已满（Pro会员最多{maxSlots}个）</p>
                 <p className="text-muted-foreground text-sm font-serif">请双击删除旧选项后再添加</p>
               </div>
             ) : (
@@ -4253,7 +4253,14 @@ export default function AshtangaTracker() {
 
     // Select the option
     if (option.id === "custom") {
-      setShowCustomModal(true)
+      if (isOptionsFull && !membershipIsPro) {
+        // 免费用户已满 → 引导开通会员
+        setSettingsInitialSection('membership')
+        setShowSettings(true)
+      } else {
+        // Pro用户（满不满都打开，满了modal里显示提示）或免费用户未满
+        setShowCustomModal(true)
+      }
     } else if (lockedOptionIds.has(option.id)) {
       // 锁定选项：单击打开会员页
       setSettingsInitialSection('membership')
