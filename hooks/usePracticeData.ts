@@ -38,7 +38,6 @@ export interface UserProfile {
   avatar: string | null;
   phone?: string;
   email?: string;
-  is_pro: boolean;
   // 新增：历史练习数据校准
   historical_days?: number;           // 历史练习天数
   historical_avg_minutes?: number;    // 历史平均每次时长（分钟）
@@ -78,7 +77,6 @@ export const usePracticeData = () => {
     name: '阿斯汤加习练者',
     signature: '练习、练习，一切随之而来。',
     avatar: null,
-    is_pro: false,
   });
 
   // 只在第一次初始化时设置默认值（如果 localStorage 为空）
@@ -334,10 +332,11 @@ export const usePracticeData = () => {
     label: string,
     label_zh?: string,
     notes?: string,
-    onSync?: () => void
+    onSync?: () => void,
+    isPro?: boolean
   ) => {
     const existingOptions = options || [];
-    const maxSlots = profile?.is_pro ? MAX_SLOTS_PRO : MAX_SLOTS_FREE;
+    const maxSlots = isPro ? MAX_SLOTS_PRO : MAX_SLOTS_FREE;
     if (existingOptions.length >= maxSlots) {
       console.error(`[addOption] 选项已满，最多${maxSlots}个`);
       return null;
@@ -459,7 +458,6 @@ export const usePracticeData = () => {
       name: '阿斯汤加习练者',
       signature: '练习、练习，一切随之而来。',
       avatar: null,
-      is_pro: false,
     });
   };
 

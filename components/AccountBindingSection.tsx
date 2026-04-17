@@ -352,7 +352,6 @@ export function AccountBindingSection({
                           name: '阿斯汤加习练者',
                           signature: '练习、练习，一切随之而来。',
                           avatar: null,
-                          is_pro: false,
                         }))
 
                         // ⭐ 关键：添加退出标志，防止 onAuthStateChange 自动恢复登录

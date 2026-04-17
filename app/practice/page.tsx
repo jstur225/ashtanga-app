@@ -643,7 +643,7 @@ function EditRecordModal({
             <PracticeForm
               initialData={formData}
               recordId={latestRecord?.id}
-              user={{ email: user?.email, is_pro: userProfile?.is_pro }} // ⭐ 传入用户信息
+              user={{ email: user?.email }} // ⭐ 传入用户信息
               date={formData.date}
               type={formData.type}
               onDateChange={(d) => setFormData(prev => ({ ...prev, date: d }))}
@@ -1430,7 +1430,7 @@ function AddPracticeModal({
             <PracticeForm
               initialData={formData}
               recordId={draftRecord?.id}
-              user={{ email: user?.email, is_pro: userProfile?.is_pro }} // ⭐ 传入用户信息
+              user={{ email: user?.email }} // ⭐ 传入用户信息
               date={formData.date}
               type={formData.type}
               onDateChange={(d) => setFormData(prev => ({ ...prev, date: d }))}
@@ -2381,7 +2381,7 @@ function CompletionSheet({
             <PracticeForm
               initialData={formData}
               recordId={draftRecord?.id}
-              user={{ email: user?.email, is_pro: userProfile?.is_pro }} // ⭐ 传入用户信息
+              user={{ email: user?.email }} // ⭐ 传入用户信息
               date={formData.date}
               type={formData.type}
               onDateChange={() => {}} // 只读，不处理
@@ -4251,7 +4251,12 @@ export default function AshtangaTracker() {
 
     // Select the option
     if (option.id === "custom") {
-      // 点击自定义按钮，打开自定义弹窗
+      // 点击自定义按钮，先检查是否已满
+      if (isOptionsFull) {
+        setSettingsInitialSection('membership')
+        setShowSettings(true)
+        return
+      }
       setShowCustomModal(true)
     } else {
       setSelectedOption(option.id)
@@ -4314,32 +4319,6 @@ export default function AshtangaTracker() {
         toast.error('删除同步失败，选项仅在本设备删除')
       }
     }
-  }
-
-  const handleCustomConfirm = (name: string, notes: string) => {
-    // Check if we can add more options (max 4 for free users, excluding the "custom" button itself)
-    const nonCustomOptions = practiceOptions.filter(o => o.id !== "custom")
-    if (nonCustomOptions.length >= MAX_SLOTS_FREE) {
-      // Options are full, show toast and start practice without saving
-      toast.error(`当前版本只能添加${MAX_SLOTS_FREE}个练习选项`)
-      setSelectedOption("custom-temp")
-      setCustomPracticeName(name)
-      setShowCustomModal(false)
-      return
-    }
-
-    // Create a new permanent custom option and save to localStorage
-    const result = addOption(name, name, notes)
-    if (!result) {
-      toast.error('添加选项失败，可能已达到上限')
-      return
-    }
-
-    // Update local state will be handled by useEffect when practiceOptionsData changes
-    setCustomPracticeName(name)
-    setShowCustomModal(false)
-
-    toast.success('已添加自定义选项')
   }
 
   const handleEditRecord = (id: string, data: Partial<PracticeRecord>) => {
@@ -4429,14 +4408,16 @@ export default function AshtangaTracker() {
   }
 
   const handleAddOption = async (name: string, notes: string) => {
+    const maxSlots = membershipIsPro ? MAX_SLOTS_PRO : MAX_SLOTS_FREE
     // Check if we can add more options
-    const visibleOptions = practiceOptions.filter(o => o.id !== "custom" && o.id !== "guided_audio")
-    if (visibleOptions.length >= MAX_SLOTS_FREE) {
-      toast.error(`当前版本只能添加${MAX_SLOTS_FREE}个练习选项`)
+    const visibleOptions = practiceOptions.filter(o => o.id !== "custom")
+    if (visibleOptions.length >= maxSlots) {
+      setSettingsInitialSection('membership')
+      setShowSettings(true)
       return
     }
 
-    const result = addOption(name, name, notes)
+    const result = addOption(name, name, notes, undefined, membershipIsPro)
     if (!result) {
       toast.error('添加选项失败，可能已达到上限')
       return
@@ -4615,7 +4596,7 @@ export default function AshtangaTracker() {
         name: userProfile?.name || '未设置',
         hasSignature: !!userProfile?.signature,
         hasAvatar: !!userProfile?.avatar,
-        isPro: userProfile?.is_pro || false
+        isPro: membershipIsPro
       }
     }
 
@@ -4799,9 +4780,10 @@ export default function AshtangaTracker() {
   }, [practiceOptions])
 
   const isOptionsFull = useMemo(() => {
-    const nonCustomOptions = practiceOptions.filter(o => o.id !== "custom" && o.id !== "guided_audio")
-    return nonCustomOptions.length >= MAX_SLOTS_FREE
-  }, [practiceOptions])
+    const maxSlots = membershipIsPro ? MAX_SLOTS_PRO : MAX_SLOTS_FREE
+    const nonCustomOptions = practiceOptions.filter(o => o.id !== "custom")
+    return nonCustomOptions.length >= maxSlots
+  }, [practiceOptions, membershipIsPro])
 
   const handleStartPractice = async () => {
     if (selectedOption) {
@@ -5571,7 +5553,7 @@ export default function AshtangaTracker() {
       <CustomPracticeModal
         isOpen={showCustomModal}
         onClose={() => setShowCustomModal(false)}
-        onConfirm={handleCustomConfirm}
+        onConfirm={handleAddOption}
         isFull={isOptionsFull}
       />
 

@@ -257,7 +257,6 @@ export async function POST(request: NextRequest) {
             user_id: user.id,
             name: user.email?.split('@')[0] || '用户',
             signature: '',
-            is_pro: false,
             created_at: now.toISOString(),
             updated_at: now.toISOString(),
           })

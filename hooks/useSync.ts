@@ -410,11 +410,10 @@ export function useSync(
                 signature: remoteData.profile.signature || '练习、练习，一切随之而来。',
                 avatar: remoteData.profile?.avatar || null,
                 phone: remoteData.profile.phone,
-                is_pro: remoteData.profile.is_pro || false,
                 historical_days: remoteData.profile.historical_days || 0,
                 historical_avg_minutes: remoteData.profile.historical_avg_minutes || 0,
               }
-            : freshLocalData.profile || { name: '阿斯汤加习练者', signature: '练习、练习，一切随之而来。', avatar: null, is_pro: false, historical_days: 0, historical_avg_minutes: 0 }
+            : freshLocalData.profile || { name: '阿斯汤加习练者', signature: '练习、练习，一切随之而来。', avatar: null, historical_days: 0, historical_avg_minutes: 0 }
 
           // ⭐ 合并选项：保留本地的本地字段（is_preset/audio_src/can_edit）
           const mergedOptions = (remoteData.options || []).map((remoteOpt: any) => {
@@ -489,11 +488,10 @@ export function useSync(
               signature: remoteData.profile.signature || '练习、练习，一切随之而来。',
               avatar: remoteData.profile?.avatar || null,
               phone: remoteData.profile.phone,
-              is_pro: remoteData.profile.is_pro || false,
               historical_days: remoteData.profile.historical_days || 0,
               historical_avg_minutes: remoteData.profile.historical_avg_minutes || 0,
             }
-          : { name: '阿斯汤加习练者', signature: remoteData.profile?.signature || '练习、练习，一切随之而来。', avatar: null, is_pro: false, historical_days: 0, historical_avg_minutes: 0 }
+          : { name: '阿斯汤加习练者', signature: remoteData.profile?.signature || '练习、练习，一切随之而来。', avatar: null, historical_days: 0, historical_avg_minutes: 0 }
 
         onSyncComplete({
           records: remoteRecordsToUse,
@@ -723,7 +721,6 @@ export function useSync(
           signature: profileRes.data.signature || '练习、练习，一切随之而来。',
           avatar: profileRes.data?.avatar || null,
           phone: profileRes.data.phone,
-          is_pro: profileRes.data.is_pro || false,
           historical_days: profileRes.data.historical_days || 0,           // ⭐ 历史练习天数
           historical_avg_minutes: profileRes.data.historical_avg_minutes || 0, // ⭐ 历史平均时长
         }
@@ -732,7 +729,7 @@ export function useSync(
       return {
         records,
         options,
-        profile: profile || { name: '阿斯汤加习练者', signature: profileRes.data?.signature || '练习、练习，一切随之而来。', avatar: null, is_pro: false },
+        profile: profile || { name: '阿斯汤加习练者', signature: profileRes.data?.signature || '练习、练习，一切随之而来。', avatar: null },
       }
     } catch (error: any) {
       console.error('❌ [downloadRemoteData] 下载失败:', error.message)
@@ -872,7 +869,6 @@ export function useSync(
         name: '阿斯汤加习练者',
         signature: '练习、练习，一切随之而来。',
         avatar: null,
-        is_pro: false
       }
 
       // ⭐ 新增：1000条记录限制 - 保留最新的1000条
@@ -1047,11 +1043,10 @@ export function useSync(
                 signature: remoteData.profile.signature || '练习、练习，一切随之而来。',
                 avatar: remoteData.profile?.avatar || null,
                 phone: remoteData.profile.phone,
-                is_pro: remoteData.profile.is_pro || false,
                 historical_days: remoteData.profile.historical_days || 0,
                 historical_avg_minutes: remoteData.profile.historical_avg_minutes || 0,
               }
-            : { name: '阿斯汤加习练者', signature: remoteData.profile?.signature || '练习、练习，一切随之而来。', avatar: remoteData.profile?.avatar || null, is_pro: false, historical_days: 0, historical_avg_minutes: 0 }
+            : { name: '阿斯汤加习练者', signature: remoteData.profile?.signature || '练习、练习，一切随之而来。', avatar: remoteData.profile?.avatar || null, historical_days: 0, historical_avg_minutes: 0 }
 
           onSyncComplete({
             records: remoteData.records,
