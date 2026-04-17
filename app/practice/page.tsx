@@ -5326,7 +5326,9 @@ export default function AshtangaTracker() {
   return (
     <div className="h-screen bg-background flex flex-col">
       {/* Tab Content - includes header in scroll */}
+      <AnimatePresence mode="wait">
       {activeTab === 'practice' && (
+        <motion.div key="practice" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
         <main className="flex-1 px-6 flex flex-col pb-32 overflow-y-auto">
           {/* Header - scrolls with content, can be clipped */}
           <header className="pt-12 pb-4 flex items-center justify-center">
@@ -5436,9 +5438,11 @@ export default function AshtangaTracker() {
             </span>
           </div>
         </main>
+        </motion.div>
       )}
 
       {activeTab === 'journal' && (
+        <motion.div key="journal" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
         <JournalTab
           practiceHistory={practiceHistory}
           practiceOptions={practiceOptions}
@@ -5462,8 +5466,10 @@ export default function AshtangaTracker() {
           syncStatus={syncStatus}
           user={user}
         />
+        </motion.div>
       )}
       {activeTab === 'stats' && (
+        <motion.div key="stats" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
         <StatsTab
           practiceHistory={practiceHistory}
           profile={userProfile}
@@ -5483,7 +5489,9 @@ export default function AshtangaTracker() {
           showPWAInstallTutorial={showPWAInstallTutorial}
           setShowPWAInstallTutorial={setShowPWAInstallTutorial}
         />
+        </motion.div>
       )}
+      </AnimatePresence>
       <AnimatePresence>
 
         {!hasAnyModalOpen && (
@@ -5493,7 +5501,7 @@ export default function AshtangaTracker() {
             transition={{ duration: 0.2 }}
             className="fixed bottom-5 left-1/2 -translate-x-1/2 z-30 w-[85%] max-w-sm"
           >
-            <div className="bg-white/30 backdrop-blur-2xl rounded-full px-2 py-2 shadow-[0_4px_20px_rgba(0,0,0,0.08)] border border-white/60">
+            <div className="bg-white/30 backdrop-blur-2xl rounded-full px-1 py-1 shadow-[0_4px_20px_rgba(0,0,0,0.08)] border border-white/60">
               <div className="flex justify-around items-center">
                 <button
                   onClick={() => {
