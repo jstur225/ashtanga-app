@@ -5326,9 +5326,10 @@ export default function AshtangaTracker() {
   return (
     <div className="h-screen bg-background flex flex-col">
       {/* Tab Content - includes header in scroll */}
+      <div className="flex-1 flex flex-col min-h-0">
       <AnimatePresence mode="wait">
       {activeTab === 'practice' && (
-        <motion.div key="practice" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
+        <motion.div key="practice" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="flex-1 flex flex-col min-h-0">
         <main className="flex-1 px-6 flex flex-col pb-32 overflow-y-auto">
           {/* Header - scrolls with content, can be clipped */}
           <header className="pt-12 pb-4 flex items-center justify-center">
@@ -5442,7 +5443,7 @@ export default function AshtangaTracker() {
       )}
 
       {activeTab === 'journal' && (
-        <motion.div key="journal" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
+        <motion.div key="journal" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="flex-1 flex flex-col min-h-0">
         <JournalTab
           practiceHistory={practiceHistory}
           practiceOptions={practiceOptions}
@@ -5469,7 +5470,7 @@ export default function AshtangaTracker() {
         </motion.div>
       )}
       {activeTab === 'stats' && (
-        <motion.div key="stats" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
+        <motion.div key="stats" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="flex-1 flex flex-col min-h-0">
         <StatsTab
           practiceHistory={practiceHistory}
           profile={userProfile}
@@ -5492,6 +5493,7 @@ export default function AshtangaTracker() {
         </motion.div>
       )}
       </AnimatePresence>
+      </div>
       <AnimatePresence>
 
         {!hasAnyModalOpen && (
