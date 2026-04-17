@@ -517,7 +517,7 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
               )}
             </div>
             {mode === 'register' && (
-              <p className="text-xs font-serif text-center mb-5" style={{ color: '#b8860b' }}>
+              <p className="text-xs font-serif mb-5" style={{ color: '#b8860b' }}>
                 🎁 绑定邮箱即享31天Pro会员
               </p>
             )}
