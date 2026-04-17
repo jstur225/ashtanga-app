@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import { X, Crown, Loader2, CheckCircle, AlertCircle, Lock, Camera, BarChart3 } from 'lucide-react'
+import { X, Crown, Loader2, CheckCircle, AlertCircle } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 
 interface MembershipPromptModalProps {
@@ -25,9 +25,9 @@ interface ActivateResponse {
 }
 
 const benefits = [
-  { icon: Lock, text: '11 个练习选项', subtext: '自由搭配练习组合' },
-  { icon: Camera, text: '9 张照片记录', subtext: '保存每次练习影像' },
-  { icon: BarChart3, text: '完整数据统计', subtext: '全方位追踪练习进度' },
+  { text: '9 张', subtext: '照片上传' },
+  { text: '11 个', subtext: '自定义选项' },
+  { text: '9 种', subtext: '日历标注' },
 ]
 
 export function MembershipPromptModal({ isOpen, onClose, onSuccess, reason }: MembershipPromptModalProps) {
@@ -179,24 +179,21 @@ export function MembershipPromptModal({ isOpen, onClose, onSuccess, reason }: Me
                 {reason === 'options_full'
                   ? '免费用户最多 4 个选项'
                   : reason === 'locked_practice'
-                    ? '该选项为 Pro 专属'
-                    : '解锁全部练习功能'}
+                    ? '激活会员恢复选项开始练习'
+                    : '激活会员可以恢复选项使用'}
               </p>
             </div>
 
-            {/* 权益列表 */}
+            {/* 权益列表 - 与设置页一致 */}
             <div className="px-5 pt-4 pb-3">
-              {benefits.map((b, i) => (
-                <div key={i} className="flex items-center gap-3 py-2">
-                  <div className="w-8 h-8 rounded-lg bg-[#F9F7F2] flex items-center justify-center flex-shrink-0">
-                    <b.icon className="w-4 h-4 text-[#C1A268]" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-[#2D3A2D] font-serif">{b.text}</div>
+              <div className="grid grid-cols-3 gap-2">
+                {benefits.map((b, i) => (
+                  <div key={i} className="text-center">
+                    <div className="text-lg font-bold text-[#6B5A47]">{b.text}</div>
                     <div className="text-xs text-[#8B7355] font-serif">{b.subtext}</div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
 
             {/* 分割线 */}

@@ -125,7 +125,7 @@ export default function SettingsPage() {
                 <div className="text-xs text-[#8B7355] font-serif">照片上传</div>
               </div>
               <div className="text-center">
-                <div className="text-lg font-bold text-[#6B5A47]">10 个</div>
+                <div className="text-lg font-bold text-[#6B5A47]">11 个</div>
                 <div className="text-xs text-[#8B7355] font-serif">自定义选项</div>
               </div>
               <div className="text-center">
