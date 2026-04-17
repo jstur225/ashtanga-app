@@ -5503,7 +5503,7 @@ export default function AshtangaTracker() {
             transition={{ duration: 0.2 }}
             className="fixed bottom-5 left-1/2 -translate-x-1/2 z-30"
           >
-            <div className="bg-white/20 backdrop-blur-[4px] rounded-full px-1 py-1 shadow-[0_4px_20px_rgba(0,0,0,0.08)] border border-white/30">
+            <div className="bg-white/30 backdrop-blur-[8px] rounded-full px-1 py-1 shadow-[0_4px_20px_rgba(0,0,0,0.08)] border border-white/30">
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => {
