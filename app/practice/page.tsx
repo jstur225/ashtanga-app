@@ -5908,7 +5908,7 @@ export default function AshtangaTracker() {
         isOpen={showAuthModal}
         onClose={() => setShowAuthModal(false)}
         mode={authMode}
-        onAuthSuccess={() => setShowAuthModal(false)}
+        onAuthSuccess={() => { setShowAuthModal(false); refreshMembership() }}
         onModeChange={(newMode) => setAuthMode(newMode)}
       />
 
