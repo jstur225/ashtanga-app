@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { X } from 'lucide-react'
 import { MembershipCard } from '@/components/Membership/MembershipCard'
+import { MembershipActions } from '@/components/Membership/MembershipActions'
 import { PurchaseGuideModal } from '@/components/Membership/PurchaseGuideModal'
 
 interface MembershipPromptModalProps {
@@ -43,27 +44,14 @@ export function MembershipPromptModal({ isOpen, onClose, onActivate, reason }: M
           <MembershipCard subtitle={reason ? REASON_SUBTITLES[reason] : undefined} />
 
           {/* 操作按钮 */}
-          <div className="space-y-3 mt-4">
-            <button
-              onClick={() => setShowPurchase(true)}
-              className="w-full flex items-center justify-between p-4 bg-white rounded-[20px] border border-[#E8E8E3] hover:border-[#C1A268]/50 transition-colors group shadow-sm"
-            >
-              <span className="font-medium text-[#2D3A2D] font-serif">购买 PRO 会员</span>
-              <span className="text-[#C1A268] text-sm font-medium group-hover:translate-x-1 transition-transform">
-                去购买 →
-              </span>
-            </button>
-
-            <button
-              onClick={() => {
+          <div className="mt-4">
+            <MembershipActions
+              onPurchase={() => setShowPurchase(true)}
+              onActivate={() => {
                 onClose()
                 onActivate?.()
               }}
-              className="w-full flex items-center justify-between p-4 bg-white rounded-[20px] border border-[#E8E8E3] hover:border-[#C1A268]/50 transition-colors shadow-sm"
-            >
-              <span className="font-medium text-[#2D3A2D] font-serif">激活会员</span>
-              <span className="text-[#C1A268] text-sm">使用激活码 →</span>
-            </button>
+            />
           </div>
         </div>
       </div>
