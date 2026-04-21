@@ -5,12 +5,14 @@ import { useRouter } from 'next/navigation'
 import { ChevronLeft, CrownIcon, Ticket, ChevronRight } from 'lucide-react'
 import { ActivateModal } from '@/components/Membership/ActivateModal'
 import { MembershipCard } from '@/components/Membership/MembershipCard'
+import { PurchaseGuideModal } from '@/components/Membership/PurchaseGuideModal'
 import { useMembership } from '@/hooks/useMembership'
 
 export default function SettingsPage() {
   const router = useRouter()
   const { membership, loading, refresh } = useMembership()
   const [showActivateModal, setShowActivateModal] = useState(false)
+  const [showPurchaseModal, setShowPurchaseModal] = useState(false)
 
   return (
     <div className="min-h-screen bg-[#F5F5F0]">
@@ -37,7 +39,7 @@ export default function SettingsPage() {
         {/* 操作按钮 — 遵循设计规范 */}
         <section className="space-y-3">
           <button
-            onClick={() => alert('购买功能即将上线')}
+            onClick={() => setShowPurchaseModal(true)}
             className="w-full flex items-center justify-between p-4 bg-white rounded-[20px] border border-[#E8E8E3] hover:border-[#C1A268]/50 transition-colors group shadow-sm"
           >
             <div className="flex items-center gap-3">
@@ -82,6 +84,12 @@ export default function SettingsPage() {
         isOpen={showActivateModal}
         onClose={() => setShowActivateModal(false)}
         onSuccess={refresh}
+      />
+
+      {/* 购买引导弹窗 */}
+      <PurchaseGuideModal
+        isOpen={showPurchaseModal}
+        onClose={() => setShowPurchaseModal(false)}
       />
     </div>
   )

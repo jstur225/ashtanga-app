@@ -30,6 +30,7 @@ import { MOON_DAYS_2026 } from '@/lib/moon-phase-data'
 import { ActivateModal } from '@/components/Membership/ActivateModal'
 import { MembershipCard } from '@/components/Membership/MembershipCard'
 import { MembershipPromptModal } from '@/components/Membership/MembershipPromptModal'
+import { PurchaseGuideModal } from '@/components/Membership/PurchaseGuideModal'
 import { supabase } from '@/lib/supabase'
 import { deletePracticeRecord } from '@/lib/database'
 import { useRouter } from 'next/navigation'
@@ -1905,7 +1906,7 @@ function SettingsModal({
 
                   {/* 购买按钮 */}
                   <button
-                    onClick={() => alert('购买功能即将上线')}
+                    onClick={() => setShowPurchaseModal(true)}
                     className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-[#C1A268] to-[#D4AF37] rounded-[20px] text-white shadow-sm hover:opacity-90 transition-opacity"
                   >
                     <div className="flex items-center gap-3">
@@ -3932,6 +3933,7 @@ export default function AshtangaTracker() {
   const [settingsInitialSection, setSettingsInitialSection] = useState<'profile' | 'membership' | 'account' | 'data'>('profile')
   const [showAccountSync, setShowAccountSync] = useState(false)
   const [showActivateModal, setShowActivateModal] = useState(false)
+  const [showPurchaseModal, setShowPurchaseModal] = useState(false)
   const [showMembershipPrompt, setShowMembershipPrompt] = useState(false)
   const [membershipPromptReason, setMembershipPromptReason] = useState<'options_full' | 'locked_option' | 'locked_practice'>('options_full')
   const [showFakeDoor, setShowFakeDoor] = useState<{ type: 'cloud' | 'pro' | 'voice' | 'photo', isOpen: boolean }>({ type: 'cloud', isOpen: false })
@@ -5641,6 +5643,12 @@ export default function AshtangaTracker() {
         onClose={() => setShowMembershipPrompt(false)}
         reason={membershipPromptReason}
         onActivate={() => setShowActivateModal(true)}
+      />
+
+      {/* Purchase Guide Modal */}
+      <PurchaseGuideModal
+        isOpen={showPurchaseModal}
+        onClose={() => setShowPurchaseModal(false)}
       />
 
       {/* Account & Sync Modal */}

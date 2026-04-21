@@ -1,7 +1,9 @@
 'use client'
 
+import { useState } from 'react'
 import { X, Crown, Loader2, CheckCircle, AlertCircle } from 'lucide-react'
 import { useActivateCode } from '@/hooks/useActivateCode'
+import { PurchaseGuideModal } from '@/components/Membership/PurchaseGuideModal'
 
 interface ActivateModalProps {
   isOpen: boolean
@@ -14,6 +16,7 @@ export function ActivateModal({ isOpen, onClose, onSuccess }: ActivateModalProps
     code, loading, error, success, isCodeComplete,
     handleInputChange, handleActivate, handleKeyDown, reset,
   } = useActivateCode(onSuccess)
+  const [showPurchase, setShowPurchase] = useState(false)
 
   const handleClose = async () => {
     await reset()
@@ -133,7 +136,7 @@ export function ActivateModal({ isOpen, onClose, onSuccess }: ActivateModalProps
                 <p className="text-sm text-[#8B7355] font-serif">
                   还没有激活码？
                   <button
-                    onClick={() => alert('购买功能即将上线')}
+                    onClick={() => setShowPurchase(true)}
                     className="ml-1 text-[#C1A268] hover:text-[#D4AF37] font-medium"
                   >
                     去购买
@@ -144,6 +147,11 @@ export function ActivateModal({ isOpen, onClose, onSuccess }: ActivateModalProps
           </>
         )}
       </div>
+
+      <PurchaseGuideModal
+        isOpen={showPurchase}
+        onClose={() => setShowPurchase(false)}
+      />
     </div>
   )
 }
