@@ -1504,6 +1504,7 @@ function SettingsModal({
   onOpenRegisterModal,
   membership,
   onActivateMembership,
+  onPurchaseMembership,
   onUpdateProfile,
 }: {
   isOpen: boolean
@@ -1523,6 +1524,7 @@ function SettingsModal({
   onOpenRegisterModal?: () => void
   membership?: { is_active: boolean; expires_at_formatted: string | null; days_remaining: number; type: 'quarter' | 'year' | null } | null
   onActivateMembership?: () => void
+  onPurchaseMembership?: () => void
   onUpdateProfile?: (profile: UserProfile) => void
 }) {
   const [name, setName] = useState(profile.name)
@@ -1886,7 +1888,7 @@ function SettingsModal({
 
                   {/* 操作按钮 */}
                   <MembershipActions
-                    onPurchase={() => setShowPurchaseModal(true)}
+                    onPurchase={() => onPurchaseMembership?.()}
                     onActivate={onActivateMembership}
                     isActive={membership?.is_active}
                   />
@@ -5592,6 +5594,7 @@ export default function AshtangaTracker() {
         onActivateMembership={() => {
           setShowActivateModal(true)
         }}
+        onPurchaseMembership={() => setShowPurchaseModal(true)}
         onUpdateProfile={updateProfile}
       />
 
