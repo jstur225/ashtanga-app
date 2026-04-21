@@ -3,7 +3,8 @@
 import { useState } from 'react'
 import { X, Copy, Check } from 'lucide-react'
 
-const XIANYU_URL = 'https://m.tb.cn/h.isrHxFb?tk=BaPn5iNjAKw'
+const XIANYU_TEXT = `【闲鱼】https://m.tb.cn/h.isrHxFb?tk=BaPn5iNjAKw MF937 「我在闲鱼发布了【熬汤日记丨练汤专属网页工具Appmian费会员」」
+#小程序://闲鱼/yQH9s8pdHGWkjbs`
 
 interface PurchaseGuideModalProps {
   isOpen: boolean
@@ -17,10 +18,10 @@ export function PurchaseGuideModal({ isOpen, onClose }: PurchaseGuideModalProps)
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(XIANYU_URL)
+      await navigator.clipboard.writeText(XIANYU_TEXT)
     } catch {
       const ta = document.createElement('textarea')
-      ta.value = XIANYU_URL
+      ta.value = XIANYU_TEXT
       document.body.appendChild(ta)
       ta.select()
       document.execCommand('copy')
@@ -43,13 +44,9 @@ export function PurchaseGuideModal({ isOpen, onClose }: PurchaseGuideModalProps)
           </button>
         </div>
 
-        <p className="text-sm text-muted-foreground leading-relaxed mb-4">
-          前往闲鱼下单，下单后我会给你发送激活码
-        </p>
         <div className="bg-white rounded-[16px] border border-[#E8E8E3] p-4 mb-4">
-          <p className="text-xs text-muted-foreground mb-2">闲鱼链接</p>
-          <p className="text-sm text-[#2D3A2D] break-all select-all font-mono">
-            {XIANYU_URL}
+          <p className="text-sm text-[#2D3A2D] break-all select-all font-mono leading-relaxed whitespace-pre-line">
+            {XIANYU_TEXT}
           </p>
         </div>
         <button
