@@ -45,7 +45,7 @@ const FULL_MOON_ICON = '/moon-phase/full-moon.png'
 // 固定功能栏按钮（不计入用户选项名额）
 const FIXED_BUTTONS = [
   { id: "placeholder_1", label: "占位符 1", notes: null },
-  { id: "guided_audio", label: "口令跟练", notes: "一序列" },
+  { id: "guided_audio", label: "一序列", notes: "老掌门人版口令" },
   { id: "placeholder_3", label: "占位符 3", notes: null },
 ]
 // 月相查找函数
