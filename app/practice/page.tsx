@@ -4116,7 +4116,8 @@ export default function AshtangaTracker() {
         label: b.label,
         notes: b.notes,
         isCustom: false,
-        is_fixed: true,      // 新增标志：固定按钮
+        is_fixed: true,      // 固定按钮
+        is_preset: b.id === 'guided_audio',  // 口令跟练显示喇叭图标
         can_edit: false
       })),
       // 用户选项
