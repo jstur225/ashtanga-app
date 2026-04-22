@@ -1,4 +1,25 @@
 # 阿斯汤加打卡 app - 项目记录
+
+## 2026-04-22: 全站统计追踪 + 生产优化 ✅
+
+**类型**: 新功能 + 优化
+
+**状态**: 已推送
+
+### 变更内容
+
+1. **全站统计追踪** — 新建 `daily_user_activity` 表 + `POST /api/stats/heartbeat` API，每次打开 app 记录一行（每用户每天只写一次），标记新设备 `is_new`
+2. **生产构建移除 console** — `next.config.mjs` 改为 `removeConsole: process.env.NODE_ENV === 'production'`
+3. **激活码外键优化** — `user_memberships.activated_by_code_id` 改为 `ON DELETE SET NULL`，删码不再影响会员权益
+4. **正式激活码** — 生成月卡（31天）/季卡（90天）/年卡（365天）各 10 个
+5. **落地页文案** — "无功能上的限制" → "全平台能用"
+6. **激活成功弹窗** — 去掉卡片类型小字行
+
+### 提交记录
+- `a7af1b7` - feat: 全站统计追踪 + 生产优化
+
+---
+
 ## 2026-04-17: 绑定邮箱赠送 31 天 Pro 会员 ✅
 
 **类型**: 新功能
