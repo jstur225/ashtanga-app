@@ -429,3 +429,22 @@ visibleOptions.sort((a, b) => a.slot_index - b.slot_index);
 **状态：** ✅ 评审完成，等待执行
 
 ---
+
+---
+
+## 🐛 待修复 Bug
+
+### 2026-04-22 - 练习页按钮上限计算错误 ⏳ 待明天修复
+
+**现象**: 修改第一行 3 个固定按钮后，免费会员和 Pro 会员的按钮上限计算错误
+
+**可能原因**:
+- `isOptionsFull` 计算逻辑中，固定按钮的过滤可能有问题
+- `lockedOptionIds` 计算逻辑中，`is_fixed` 判断可能未生效
+
+**待检查代码**:
+- `app/practice/page.tsx` 第 4736-4751 行 (`isOptionsFull` 和 `lockedOptionIds`)
+- 确认 `!o.is_fixed` 过滤是否正确
+
+**状态**: ⏳ 计划明天检查修复
+
