@@ -42,6 +42,12 @@ import { audioCache } from '@/lib/audioCache'
 const NEW_MOON_ICON = '/moon-phase/new-moon.png'
 const FULL_MOON_ICON = '/moon-phase/full-moon.png'
 
+// 固定功能栏按钮（不计入用户选项名额）
+const FIXED_BUTTONS = [
+  { id: "placeholder_1", label: "占位符 1", notes: null },
+  { id: "guided_audio", label: "口令跟练", notes: "一序列" },
+  { id: "placeholder_3", label: "占位符 3", notes: null },
+]
 // 月相查找函数
 const getMoonPhaseMap = () => {
   const map: Record<string, { type: 'new' | 'full'; icon: string; name: string }> = {}
@@ -4097,31 +4103,32 @@ export default function AshtangaTracker() {
 
   // Initialize practice options from hook data
   useEffect(() => {
-    // 先过滤掉id为"custom"和"guided_audio"的选项（如果存在），以及visible=false的选项
-    const regularOptions = practiceOptionsData.filter(o => o.id !== "custom" && o.id !== "guided_audio")
-
-    // 检查是否已存在口令跟练选项
-    const hasGuidedAudio = practiceOptionsData.some(o => o.id === "guided_audio")
+    // 只获取用户自定义选项（过滤掉 custom 和固定按钮的 ID）
+    const fixedIds = new Set(FIXED_BUTTONS.map(b => b.id))
+    const userOptions = practiceOptionsData.filter(o =>
+      o.id !== "custom" && !fixedIds.has(o.id) && o.visible !== false
+    )
 
     setPracticeOptions([
-      // 在最前面添加口令跟练选项（如果不存在）
-      ...(hasGuidedAudio ? [] : [{
-        id: GUIDED_AUDIO_OPTION.id,
-        label: GUIDED_AUDIO_OPTION.label,
-        notes: GUIDED_AUDIO_OPTION.notes,
+      // 固定按钮（第一行）
+      ...FIXED_BUTTONS.map(b => ({
+        id: b.id,
+        label: b.label,
+        notes: b.notes,
         isCustom: false,
-        is_preset: true,
+        is_fixed: true,      // 新增标志：固定按钮
         can_edit: false
-      }]),
-      ...regularOptions.map(o => ({
+      })),
+      // 用户选项
+      ...userOptions.map(o => ({
         id: o.id,
         label: o.label,
         notes: o.notes,
         isCustom: o.is_custom,
-        is_preset: o.is_preset,
+        is_fixed: false,
         can_edit: o.can_edit
       })),
-      // 始终在最后添加"自定义"按钮
+      // 自定义按钮
       { id: "custom", label: "自定义", notes: null, isCustom: false }
     ])
   }, [practiceOptionsData])
@@ -4177,8 +4184,13 @@ export default function AshtangaTracker() {
 
     // Check for double tap (within 300ms on the same option)
     if (lastTap && lastTap.id === option.id && now - lastTap.time < 300) {
-      // Double tap - open edit modal (but not for custom button and preset options)
       lastTapRef.current = null
+      // 固定按钮双击
+      if (option.is_fixed) {
+        toast('预设按钮暂不支持编辑')
+        return
+      }
+      // Double tap - open edit modal (but not for custom button and preset options)
       // 预设选项不能编辑
       if (option.id !== "custom" && !option.is_preset && option.can_edit !== false) {
         setEditingOption(option)
@@ -4189,8 +4201,21 @@ export default function AshtangaTracker() {
       return
     }
 
-    // Single tap
+    // Single tap - store for double tap detection
     lastTapRef.current = { id: option.id, time: now }
+
+    // 固定按钮特殊处理（单击）
+    if (option.is_fixed) {
+      if (option.id === "guided_audio") {
+        // 口令跟练：直接选中
+        setSelectedOption('guided_audio')
+        setCustomPracticeName("")
+      } else {
+        // 占位符：提示
+        toast('功能开发中')
+      }
+      return
+    }
 
     // Select the option
     if (option.id === "custom") {
@@ -4728,15 +4753,17 @@ export default function AshtangaTracker() {
 
   const isOptionsFull = useMemo(() => {
     const maxSlots = membershipIsPro ? MAX_SLOTS_PRO : MAX_SLOTS_FREE
-    const nonCustomOptions = practiceOptions.filter(o => o.id !== "custom")
-    return nonCustomOptions.length >= maxSlots
+    // 只计算用户自定义选项（排除固定按钮和自定义添加按钮）
+    const userOptions = practiceOptions.filter(o => !o.is_fixed && o.id !== "custom")
+    return userOptions.length >= maxSlots
   }, [practiceOptions, membershipIsPro])
 
   const lockedOptionIds = useMemo(() => {
     if (membershipIsPro) return new Set<string>()
     const maxSlots = MAX_SLOTS_FREE
-    const nonCustomOptions = practiceOptions.filter(o => o.id !== "custom")
-    return new Set(nonCustomOptions.slice(maxSlots).map(o => o.id))
+    // 只计算用户自定义选项
+    const userOptions = practiceOptions.filter(o => !o.is_fixed && o.id !== "custom")
+    return new Set(userOptions.slice(maxSlots).map(o => o.id))
   }, [practiceOptions, membershipIsPro])
 
   const handleStartPractice = async () => {
