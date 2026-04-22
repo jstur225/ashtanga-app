@@ -8,7 +8,7 @@ import { useMembership } from "@/hooks/useMembership"
 import { usePWAInstall } from "@/hooks/usePWAInstall"
 import { useAuth } from "@/hooks/useAuth"
 import { useSync } from "@/hooks/useSync"
-import { BookOpen, BarChart3, Calendar, X, Camera, Pause, Play, Trash2, User, Settings, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Cloud, Download, Upload, Plus, Minus, Share2, Sparkles, Check, Copy, ClipboardPaste, MessageCircle, Bug, AlertCircle, SkipBack, SkipForward, Volume, Crown, Ticket, Loader2, Lock } from "lucide-react"
+import { BookOpen, BarChart3, Calendar, X, Camera, Pause, Play, Trash2, User, Settings, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Cloud, Download, Upload, Plus, Minus, Share2, Sparkles, Check, Copy, ClipboardPaste, MessageCircle, Bug, AlertCircle, SkipBack, SkipForward, Volume, Volume2, Crown, Ticket, Loader2, Lock, Users } from "lucide-react"
 import { cn } from '@/lib/utils'
 import { FakeDoorModal } from "@/components/FakeDoorModal"
 import { VoiceButton } from "@/components/VoiceButton"
@@ -3943,6 +3943,19 @@ export default function AshtangaTracker() {
   const [seekStep, setSeekStep] = useState<number>(15)  // 快进/后退步长（默认15秒）
   const [audioDownloadProgress, setAudioDownloadProgress] = useState<number>(0)  // 下载进度（0-100）
   const [isUsingCache, setIsUsingCache] = useState<boolean>(false)  // 是否使用缓存
+
+  // 唱诵状态
+  const [chantEnabled, setChantEnabled] = useLocalStorage('ashtanga_chant_enabled', false)
+  const [chantDelay, setChantDelay] = useLocalStorage('ashtanga_chant_delay', 60) // 秒
+  const [isChantCountdown, setIsChantCountdown] = useState(false)
+  const [chantCountdown, setChantCountdown] = useState(0) // 剩余秒数
+  const [showChantSettings, setShowChantSettings] = useState(false)
+  const chantAudioRef = useRef<HTMLAudioElement | null>(null)
+  const chantCountdownRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  // 今日练习人数
+  const [todayPracticeCount, setTodayPracticeCount] = useState<number>(0)
+  const [todayCountLoading, setTodayCountLoading] = useState(true)
 
   // ⭐ 用于保存练习开始时间（在 handleConfirmEnd 重置 startTime state 后仍能使用）
   const startTimeRef = useRef<number | null>(null)
