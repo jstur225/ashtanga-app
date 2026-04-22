@@ -20,6 +20,13 @@ export function AnalyticsInitializer() {
     identifyUser(uuid)
     trackEvent('app_open', { uuid })
 
+    // 3b. Record daily active user (Supabase)
+    fetch('/api/stats/heartbeat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ uuid }),
+    }).catch(() => {})
+
     // 4. Collect user statistics
     let stats = {
       total_records: 0,

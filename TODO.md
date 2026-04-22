@@ -1,5 +1,27 @@
 # 待处理问题
 
+## 2026-04-22 - 全站数据统计追踪 💡 考虑中
+
+**状态**：待定，考虑是否开发
+
+### 需求
+追踪 4 个核心指标（用 Supabase SQL 查询）：
+1. 每天登录用户数（含匿名设备）
+2. 新用户登录数（首次打开 app）
+3. 绑定用户数（注册邮箱）
+4. 完成练习次数
+
+### 方案概要
+- 新建 `daily_user_activity` 表（每用户每天一行，标记 is_new）
+- 新建 `POST /api/stats/heartbeat` 接口记录每日活跃
+- 在 `AnalyticsInitializer` 的 `app_open` 事件旁调用 heartbeat
+- 查询 SQL：JOIN `daily_user_activity` + `user_profiles` + `practice_records`
+
+### 详细计划
+见 `C:\Users\BIN\.claude\plans\flickering-dancing-octopus.md`
+
+---
+
 ## 2026-04-17 - Tab 切换动画引入的布局 Bug ✅ 已修复
 
 **状态**：已完成

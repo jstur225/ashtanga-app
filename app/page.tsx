@@ -305,7 +305,7 @@ export default function MobileLandingPage() {
                             <CompactInfoRow
                                 icon={Coffee}
                                 title="免费使用"
-                                desc="无任何广告，无功能上的限制。"
+                                desc="无任何广告，全平台能用。"
                             />
                         </motion.div>
                         <motion.div variants={fadeInUp} className="h-[1px] bg-[#2A4B3C]/5 w-full"></motion.div>

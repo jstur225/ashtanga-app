@@ -26,9 +26,9 @@ const nextConfig = {
   experimental: {
     optimizePackageImports: ['@radix-ui', 'lucide-react', 'framer-motion'], // 优化导入
   },
-  // ⭐ 保留 console 日志（用于调试）
+  // 生产构建自动移除 console 日志
   compiler: {
-    removeConsole: false,
+    removeConsole: process.env.NODE_ENV === 'production',
   },
   // 注入 Git 版本信息到环境变量
   env: {

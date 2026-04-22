@@ -58,9 +58,6 @@ export function ActivateModal({ isOpen, onClose, onSuccess }: ActivateModalProps
               <div className="text-2xl font-bold text-[#6B5A47] font-serif">
                 有效期至 {success.expires_at_formatted}
               </div>
-              <div className="text-sm text-[#8B7355] mt-1 font-serif">
-                {success.type === 'quarter' ? '季卡 (90天)' : '年卡 (365天)'}
-              </div>
             </div>
             <button
               onClick={handleClose}
