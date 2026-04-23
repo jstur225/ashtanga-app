@@ -46,7 +46,7 @@ const FULL_MOON_ICON = '/moon-phase/full-moon.png'
 const FIXED_BUTTONS = [
   { id: "placeholder_1", label: "占位符 1", notes: null },
   { id: "guided_audio", label: "一序列", notes: "老掌门人版口令" },
-  { id: "today_count", label: "", notes: "今日练习" },
+  { id: "today_count", label: "", notes: "今日练习人数" },
 ]
 // 月相查找函数
 const getMoonPhaseMap = () => {
