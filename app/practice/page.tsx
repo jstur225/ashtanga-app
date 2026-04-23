@@ -5083,6 +5083,12 @@ export default function AshtangaTracker() {
         position: 'top-center'
       })
 
+      // 刷新今日练习人数
+      fetch('/api/stats/today')
+        .then(res => res.json())
+        .then(data => setTodayCount(data.count || 0))
+        .catch(() => {})
+
       // ⭐ 延迟 500ms 同步，确保 localStorage 已完全更新
       // 只有绑定邮箱的用户才同步到云端
       console.log('[handleSavePractice] 准备同步，user:', user?.email || '未登录')

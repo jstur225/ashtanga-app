@@ -9,18 +9,21 @@ export async function GET() {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
     const today = new Date().toISOString().split('T')[0]
 
-    // 查询今日活跃用户数
-    const { count, error } = await supabase
-      .from('daily_user_activity')
-      .select('*', { count: 'exact', head: true })
-      .eq('date', today)
+    // 查询今日练习人数（去重用户）
+    const { data, error } = await supabase
+      .from('practice_records')
+      .select('uuid')
+      .gte('created_at', today)
+      .lt('created_at', today + 'T23:59:59')
 
     if (error) {
       console.error('[Stats] Failed to fetch today count:', error)
       return NextResponse.json({ count: 0 })
     }
 
-    return NextResponse.json({ count: count || 0 })
+    // 去重统计
+    const uniqueUsers = new Set(data?.map(r => r.uuid))
+    return NextResponse.json({ count: uniqueUsers.size })
   } catch (error) {
     console.error('[Stats] Error fetching today count:', error)
     return NextResponse.json({ count: 0 })
