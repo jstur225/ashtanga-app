@@ -5570,10 +5570,19 @@ export default function AshtangaTracker() {
                   {isLocked && (
                     <Lock className="absolute top-1.5 right-1.5 w-3 h-3 text-muted-foreground/40" />
                   )}
+                  {option.id === 'today_count' ? (
+                    <div className="flex flex-col items-center justify-center">
+                      <span className="text-[20px] font-bold text-[#C5975C] leading-[14px]">{option.label}</span>
+                      <span className={`text-[11px] mt-1 leading-snug ${isSelected ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
+                        {option.notes}
+                      </span>
+                    </div>
+                  ) : (
+                  <>
                   <span className={`text-[14px] leading-snug break-words w-full line-clamp-2 flex items-center justify-center gap-1`}>
                     {isCustomButton ? "+ 自定义" : (
                       <>
-                        <span className={option.id === 'today_count' ? 'text-[#C5975C] text-[18px] font-bold' : ''}>{option.label}</span>
+                        <span>{option.label}</span>
                         {option.is_preset && <Volume className="w-4 h-4" style={{ color: isSelected && !isLocked ? 'white' : 'rgba(74, 122, 68)' }} />}
                       </>
                     )}
@@ -5582,6 +5591,8 @@ export default function AshtangaTracker() {
                     <span className={`text-[11px] mt-0.5 leading-snug break-words w-full line-clamp-2 ${(isSelected || isChantOn) && !isLocked ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
                       {option.notes}
                     </span>
+                  )}
+                  </>
                   )}
                 </motion.button>
               )
