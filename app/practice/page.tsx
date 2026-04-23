@@ -4811,20 +4811,32 @@ export default function AshtangaTracker() {
     const audio = new Audio('/audio/opening-chant.mp3')
     chantAudioRef.current = audio
     audio.addEventListener('ended', () => {
-      // 唱诵结束，自动开始练习计时
+      // 唱诵结束，重置起始时间，从0开始练习计时
       chantAudioRef.current = null
       setIsChantPlaying(false)
+      const now = Date.now()
+      setStartTime(now)
+      startTimeRef.current = now
+      setElapsedTime(0)
       setIsPaused(false)
     })
     audio.addEventListener('error', () => {
       chantAudioRef.current = null
       setIsChantPlaying(false)
+      const now = Date.now()
+      setStartTime(now)
+      startTimeRef.current = now
+      setElapsedTime(0)
       setIsPaused(false)
       toast.error('唱诵音频加载失败')
     })
     audio.play().catch(() => {
       chantAudioRef.current = null
       setIsChantPlaying(false)
+      const now = Date.now()
+      setStartTime(now)
+      startTimeRef.current = now
+      setElapsedTime(0)
       setIsPaused(false)
     })
   }, [])
