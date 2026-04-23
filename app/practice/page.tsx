@@ -44,7 +44,7 @@ const FULL_MOON_ICON = '/moon-phase/full-moon.png'
 
 // 固定功能栏按钮（不计入用户选项名额）
 const FIXED_BUTTONS = [
-  { id: "placeholder_1", label: "占位符 1", notes: null },
+  { id: "chant_switch", label: "唱诵", notes: null },
   { id: "guided_audio", label: "一序列", notes: "老掌门人版口令" },
   { id: "today_count", label: "", notes: "今日练习人数" },
 ]
@@ -3956,6 +3956,7 @@ export default function AshtangaTracker() {
   const [chantDelay, setChantDelay] = useLocalStorage('ashtanga_chant_delay', 60) // 秒
   const [isChantCountdown, setIsChantCountdown] = useState(false)
   const [chantCountdown, setChantCountdown] = useState(0) // 剩余秒数
+  const [isChantPlaying, setIsChantPlaying] = useState(false)
   const [showChantSettings, setShowChantSettings] = useState(false)
   const chantAudioRef = useRef<HTMLAudioElement | null>(null)
   const chantCountdownRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -4197,7 +4198,15 @@ export default function AshtangaTracker() {
       lastTapRef.current = null
       // 固定按钮双击
       if (option.is_fixed) {
-        toast('预设按钮暂不支持编辑')
+        if (option.id === 'chant_switch') {
+          // 唱诵设置
+          if (!membershipIsPro) {
+            setMembershipPromptReason('options_full')
+            setShowMembershipPrompt(true)
+          } else {
+            setShowChantSettings(true)
+          }
+        }
         return
       }
       // Double tap - open edit modal (but not for custom button and preset options)
@@ -4218,10 +4227,28 @@ export default function AshtangaTracker() {
     if (option.is_fixed) {
       if (option.id === "guided_audio") {
         // 口令跟练：直接选中
+        // 互斥：如果唱诵开启，先关闭唱诵
+        if (chantEnabled) {
+          setChantEnabled(false)
+          toast('已关闭唱诵')
+        }
         setSelectedOption('guided_audio')
         setCustomPracticeName("")
       } else if (option.id === 'today_count') {
         toast('今天你熬汤了吗？')
+      } else if (option.id === 'chant_switch') {
+        const newEnabled = !chantEnabled
+        setChantEnabled(newEnabled)
+        if (newEnabled) {
+          toast('唱诵已开启')
+          // 互斥：如果当前选中口令跟练，取消选中
+          if (selectedOption === 'guided_audio') {
+            setSelectedOption(null)
+            toast('已关闭口令跟练')
+          }
+        } else {
+          toast('唱诵已关闭')
+        }
       }
       return
     }
@@ -4775,12 +4802,88 @@ export default function AshtangaTracker() {
     return new Set(userOptions.slice(maxSlots).map(o => o.id))
   }, [practiceOptions, membershipIsPro])
 
+  // 唱诵倒计时结束 → 播放唱诵音频
+  const playChantAudio = useCallback(() => {
+    setIsChantCountdown(false)
+    setIsChantPlaying(true)
+    const audio = new Audio('/audio/opening-chant.mp3')
+    chantAudioRef.current = audio
+    audio.addEventListener('ended', () => {
+      // 唱诵结束，自动开始练习计时
+      chantAudioRef.current = null
+      setIsChantPlaying(false)
+      setIsPaused(false)
+    })
+    audio.addEventListener('error', () => {
+      chantAudioRef.current = null
+      setIsChantPlaying(false)
+      setIsPaused(false)
+      toast.error('唱诵音频加载失败')
+    })
+    audio.play().catch(() => {
+      chantAudioRef.current = null
+      setIsChantPlaying(false)
+      setIsPaused(false)
+    })
+  }, [])
+
+  // 跳过倒计时，直接播放唱诵
+  const skipChantCountdown = useCallback(() => {
+    if (chantCountdownRef.current) {
+      clearInterval(chantCountdownRef.current)
+      chantCountdownRef.current = null
+    }
+    playChantAudio()
+  }, [playChantAudio])
+
+  // 启动唱诵倒计时
+  const startChantCountdown = useCallback(() => {
+    // 先进入练习界面
+    const now = Date.now()
+    setStartTime(now)
+    startTimeRef.current = now
+    setIsPracticing(true)
+    setIsPaused(true)
+    setTotalPausedTime(0)
+    setPauseStartTime(null)
+    setElapsedTime(0)
+
+    // 启动倒计时
+    let remaining = chantDelay
+    setChantCountdown(remaining)
+    setIsChantCountdown(true)
+
+    chantCountdownRef.current = setInterval(() => {
+      remaining -= 1
+      if (remaining <= 0) {
+        if (chantCountdownRef.current) {
+          clearInterval(chantCountdownRef.current)
+          chantCountdownRef.current = null
+        }
+        playChantAudio()
+      } else {
+        setChantCountdown(remaining)
+      }
+    }, 1000)
+  }, [chantDelay, playChantAudio])
+
   const handleStartPractice = async () => {
     if (selectedOption) {
       // 锁定选项不可开始练习
       if (lockedOptionIds.has(selectedOption)) {
         setMembershipPromptReason('locked_practice')
         setShowMembershipPrompt(true)
+        return
+      }
+
+      // 唱诵模式：倒计时 → 唱诵 → 自动开始
+      if (chantEnabled && selectedOption === 'guided_audio') {
+        toast('唱诵与口令跟练不可同时使用')
+        return
+      }
+      if (chantEnabled) {
+        startChantCountdown()
+        trackEvent('start_practice', { type: getSelectedLabel(), chant: true })
         return
       }
 
@@ -4987,6 +5090,20 @@ export default function AshtangaTracker() {
     setPauseStartTime(null)
     setTotalPausedTime(0)
 
+    // 清理唱诵资源
+    if (chantCountdownRef.current) {
+      clearInterval(chantCountdownRef.current)
+      chantCountdownRef.current = null
+    }
+    if (chantAudioRef.current) {
+      chantAudioRef.current.pause()
+      chantAudioRef.current.src = ''
+      chantAudioRef.current = null
+    }
+    setIsChantCountdown(false)
+    setChantCountdown(0)
+    setIsChantPlaying(false)
+
     // 清理音频资源
     if (audioElement) {
       audioElement.pause()
@@ -5116,11 +5233,43 @@ export default function AshtangaTracker() {
   // Full-screen Timer View with Hero Transition
   if (isPracticing) {
     return (
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="min-h-screen bg-background flex flex-col"
+        className="min-h-screen bg-background flex flex-col relative"
       >
+        {/* 唱诵倒计时全屏覆盖 */}
+        <AnimatePresence>
+          {isChantCountdown && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center"
+            >
+              <div className="w-40 h-40 rounded-full border-4 border-primary/60 flex items-center justify-center mb-8">
+                <span className="text-6xl font-light text-white font-serif">
+                  {chantCountdown}
+                </span>
+              </div>
+              <p className="text-white/70 text-sm font-serif mb-6">唱诵倒计时</p>
+              <button
+                onClick={skipChantCountdown}
+                className="px-6 py-2 rounded-full bg-white/10 border border-white/20 text-white/70 text-sm font-serif"
+              >
+                跳过
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        {/* 唱诵播放中提示 */}
+        {isChantPlaying && (
+          <div className="absolute top-4 left-0 right-0 text-center z-10">
+            <span className="text-xs text-primary/70 font-serif bg-primary/5 px-3 py-1 rounded-full">
+              唱诵中...
+            </span>
+          </div>
+        )}
         <main className="flex-1 flex items-center justify-center px-6">
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
@@ -5410,6 +5559,9 @@ export default function AshtangaTracker() {
                       <>
                         <span className={option.id === 'today_count' ? 'text-[#C5975C] text-[18px] font-bold' : ''}>{option.label}</span>
                         {option.is_preset && <Volume className="w-4 h-4" style={{ color: isSelected && !isLocked ? 'white' : 'rgba(74, 122, 68)' }} />}
+                        {option.id === 'chant_switch' && (
+                          <span className={`inline-block w-2 h-2 rounded-full ${chantEnabled ? 'bg-green-500' : 'bg-gray-300'}`} />
+                        )}
                       </>
                     )}
                   </span>
@@ -5947,6 +6099,99 @@ export default function AshtangaTracker() {
         onAuthSuccess={() => { setShowAuthModal(false); refreshMembership() }}
         onModeChange={(newMode) => setAuthMode(newMode)}
       />
+
+      {/* 唱诵设置 Sheet */}
+      <AnimatePresence>
+        {showChantSettings && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/30 z-[100]"
+              onClick={() => setShowChantSettings(false)}
+            />
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="fixed bottom-0 left-0 right-0 bg-card rounded-t-[24px] z-[110] p-6 pb-10 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]"
+            >
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-lg font-serif text-foreground">唱诵设置</h2>
+                <button onClick={() => setShowChantSettings(false)} className="p-2 -mr-2 text-muted-foreground hover:text-foreground transition-colors">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {membershipIsPro ? (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-serif text-foreground mb-3">
+                      倒计时时长
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {[30, 60, 90, 120].map((sec) => (
+                        <button
+                          key={sec}
+                          onClick={() => setChantDelay(sec)}
+                          className={`px-4 py-2 rounded-full text-sm font-serif transition-all ${
+                            chantDelay === sec
+                              ? 'green-gradient text-white shadow-sm'
+                              : 'bg-secondary text-foreground hover:bg-secondary/80'
+                          }`}
+                        >
+                          {sec}秒
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-serif text-foreground mb-2">
+                      自定义（秒）
+                    </label>
+                    <input
+                      type="number"
+                      min={5}
+                      max={300}
+                      value={chantDelay}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value)
+                        if (!isNaN(val) && val >= 5 && val <= 300) {
+                          setChantDelay(val)
+                        }
+                      }}
+                      className="w-full px-4 py-3 rounded-2xl bg-secondary text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-serif"
+                      placeholder="5-300秒"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-6">
+                  <Lock className="w-8 h-8 text-muted-foreground/40 mx-auto mb-3" />
+                  <p className="text-foreground font-serif mb-2">自定义倒计时时长</p>
+                  <p className="text-muted-foreground text-sm font-serif mb-4">升级 Pro 解锁自定义时长</p>
+                  <p className="text-xs text-muted-foreground/70 font-serif">
+                    当前默认倒计时：{chantDelay}秒
+                  </p>
+                  <button
+                    onClick={() => {
+                      setShowChantSettings(false)
+                      setMembershipPromptReason('options_full')
+                      setShowMembershipPrompt(true)
+                    }}
+                    className="mt-4 px-6 py-2.5 rounded-full green-gradient text-white text-sm font-serif"
+                  >
+                    <Crown className="w-4 h-4 inline mr-1" />
+                    升级 Pro
+                  </button>
+                </div>
+              )}
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Data Conflict Modal - 数据冲突处理 */}
       <DataConflictModal
