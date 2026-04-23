@@ -6120,71 +6120,125 @@ export default function AshtangaTracker() {
               </div>
 
               {membershipIsPro ? (
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-serif text-foreground mb-3">
-                      倒计时时长
-                    </label>
-                    <div className="flex flex-wrap gap-2">
-                      {[30, 60, 90, 120].map((sec) => (
-                        <button
-                          key={sec}
-                          onClick={() => setChantDelay(sec)}
-                          className={`px-4 py-2 rounded-full text-sm font-serif transition-all ${
-                            chantDelay === sec
-                              ? 'green-gradient text-white shadow-sm'
-                              : 'bg-secondary text-foreground hover:bg-secondary/80'
-                          }`}
-                        >
-                          {sec}秒
-                        </button>
-                      ))}
+                <div className="space-y-5">
+                  <label className="block text-sm font-serif text-foreground">
+                    倒计时时长
+                  </label>
+                  {/* 双滚轮：分钟 + 秒 */}
+                  <div className="flex items-center justify-center gap-4">
+                    {/* 分钟滚轮 */}
+                    <div className="relative w-20 h-[160px] overflow-hidden">
+                      <div className="absolute inset-x-0 top-0 h-[60px] bg-gradient-to-b from-card to-transparent z-10 pointer-events-none" />
+                      <div className="absolute inset-x-0 bottom-0 h-[60px] bg-gradient-to-t from-card to-transparent z-10 pointer-events-none" />
+                      <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[40px] border-t border-b border-primary/30 z-10 pointer-events-none rounded-sm" />
+                      <div
+                        className="flex flex-col items-center pt-[60px] pb-[60px] snap-y snap-mandatory overflow-y-auto scrollbar-hide"
+                        style={{ scrollSnapType: 'y mandatory', WebkitOverflowScrolling: 'touch' }}
+                        ref={(el) => {
+                          if (el) {
+                            const mins = Math.floor(chantDelay / 60)
+                            el.scrollTop = mins * 40
+                          }
+                        }}
+                        onScroll={(e) => {
+                          const scrollTop = (e.target as HTMLElement).scrollTop
+                          const mins = Math.round(scrollTop / 40)
+                          const secs = chantDelay % 60
+                          setChantDelay(Math.min(300, Math.max(5, mins * 60 + secs)))
+                        }}
+                      >
+                        {Array.from({ length: 6 }, (_, i) => i).map((m) => (
+                          <div
+                            key={m}
+                            className="h-[40px] flex items-center justify-center snap-start text-xl font-serif text-foreground shrink-0 w-full"
+                          >
+                            {m}
+                          </div>
+                        ))}
+                      </div>
                     </div>
+                    <span className="text-sm font-serif text-muted-foreground">分</span>
+                    {/* 秒滚轮 */}
+                    <div className="relative w-20 h-[160px] overflow-hidden">
+                      <div className="absolute inset-x-0 top-0 h-[60px] bg-gradient-to-b from-card to-transparent z-10 pointer-events-none" />
+                      <div className="absolute inset-x-0 bottom-0 h-[60px] bg-gradient-to-t from-card to-transparent z-10 pointer-events-none" />
+                      <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[40px] border-t border-b border-primary/30 z-10 pointer-events-none rounded-sm" />
+                      <div
+                        className="flex flex-col items-center pt-[60px] pb-[60px] snap-y snap-mandatory overflow-y-auto scrollbar-hide"
+                        style={{ scrollSnapType: 'y mandatory', WebkitOverflowScrolling: 'touch' }}
+                        ref={(el) => {
+                          if (el) {
+                            const secs = chantDelay % 60
+                            el.scrollTop = (secs / 5) * 40
+                          }
+                        }}
+                        onScroll={(e) => {
+                          const scrollTop = (e.target as HTMLElement).scrollTop
+                          const secIdx = Math.round(scrollTop / 40)
+                          const secs = secIdx * 5
+                          const mins = Math.floor(chantDelay / 60)
+                          setChantDelay(Math.min(300, Math.max(5, mins * 60 + secs)))
+                        }}
+                      >
+                        {Array.from({ length: 12 }, (_, i) => i * 5).map((s) => (
+                          <div
+                            key={s}
+                            className="h-[40px] flex items-center justify-center snap-start text-xl font-serif text-foreground shrink-0 w-full"
+                          >
+                            {String(s).padStart(2, '0')}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <span className="text-sm font-serif text-muted-foreground">秒</span>
                   </div>
-                  <div>
-                    <label className="block text-sm font-serif text-foreground mb-2">
-                      自定义（秒）
-                    </label>
-                    <input
-                      type="number"
-                      min={5}
-                      max={300}
-                      value={chantDelay}
-                      onChange={(e) => {
-                        const val = parseInt(e.target.value)
-                        if (!isNaN(val) && val >= 5 && val <= 300) {
-                          setChantDelay(val)
-                        }
-                      }}
-                      className="w-full px-4 py-3 rounded-2xl bg-secondary text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-serif"
-                      placeholder="5-300秒"
-                    />
-                  </div>
+                  <p className="text-center text-xs text-muted-foreground/60 font-serif">
+                    当前：{Math.floor(chantDelay / 60)}分{chantDelay % 60}秒
+                  </p>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2 mb-2">
+                <div className="space-y-5">
+                  <div className="flex items-center gap-2">
                     <Lock className="w-4 h-4 text-muted-foreground/40" />
                     <span className="text-xs text-muted-foreground/60 font-serif">Pro 功能</span>
                   </div>
-                  <div>
-                    <label className="block text-sm font-serif text-foreground mb-3">
-                      倒计时时长
-                    </label>
-                    <div className="flex flex-wrap gap-2 opacity-50">
-                      {[30, 60, 90, 120].map((sec) => (
-                        <span
-                          key={sec}
-                          className={`px-4 py-2 rounded-full text-sm font-serif ${
-                            chantDelay === sec
-                              ? 'bg-primary/20 text-primary'
-                              : 'bg-secondary text-foreground'
-                          }`}
-                        >
-                          {sec}秒
-                        </span>
-                      ))}
+                  <label className="block text-sm font-serif text-foreground">
+                    倒计时时长
+                  </label>
+                  {/* 灰色滚轮预览 */}
+                  <div className="flex items-center justify-center gap-4 opacity-40 pointer-events-none">
+                    <div className="relative w-20 h-[160px] overflow-hidden">
+                      <div className="absolute inset-x-0 top-0 h-[60px] bg-gradient-to-b from-card to-transparent z-10 pointer-events-none" />
+                      <div className="absolute inset-x-0 bottom-0 h-[60px] bg-gradient-to-t from-card to-transparent z-10 pointer-events-none" />
+                      <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[40px] border-t border-b border-primary/30 z-10 pointer-events-none rounded-sm" />
+                      <div className="flex flex-col items-center pt-[60px] pb-[60px]">
+                        {Array.from({ length: 6 }, (_, i) => i).map((m) => (
+                          <div
+                            key={m}
+                            className={`h-[40px] flex items-center justify-center text-xl font-serif shrink-0 w-full ${Math.floor(chantDelay / 60) === m ? 'text-foreground' : 'text-muted-foreground/50'}`}
+                          >
+                            {m}
+                          </div>
+                        ))}
+                      </div>
                     </div>
+                    <span className="text-sm font-serif text-muted-foreground">分</span>
+                    <div className="relative w-20 h-[160px] overflow-hidden">
+                      <div className="absolute inset-x-0 top-0 h-[60px] bg-gradient-to-b from-card to-transparent z-10 pointer-events-none" />
+                      <div className="absolute inset-x-0 bottom-0 h-[60px] bg-gradient-to-t from-card to-transparent z-10 pointer-events-none" />
+                      <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[40px] border-t border-b border-primary/30 z-10 pointer-events-none rounded-sm" />
+                      <div className="flex flex-col items-center pt-[60px] pb-[60px]">
+                        {Array.from({ length: 12 }, (_, i) => i * 5).map((s) => (
+                          <div
+                            key={s}
+                            className={`h-[40px] flex items-center justify-center text-xl font-serif shrink-0 w-full ${chantDelay % 60 === s ? 'text-foreground' : 'text-muted-foreground/50'}`}
+                          >
+                            {String(s).padStart(2, '0')}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <span className="text-sm font-serif text-muted-foreground">秒</span>
                   </div>
                   <p className="text-xs text-muted-foreground font-serif leading-relaxed">
                     开启后，开始练习前会先全屏倒计时，然后播放开篇唱诵音频，结束后自动开始练习计时。
