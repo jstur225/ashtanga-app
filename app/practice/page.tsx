@@ -3958,8 +3958,12 @@ export default function AshtangaTracker() {
   const [chantCountdown, setChantCountdown] = useState(0) // 剩余秒数
   const [isChantPlaying, setIsChantPlaying] = useState(false)
   const [showChantSettings, setShowChantSettings] = useState(false)
+  const [chantMins, setChantMins] = useState(1)
+  const [chantSecs, setChantSecs] = useState(0)
   const chantAudioRef = useRef<HTMLAudioElement | null>(null)
   const chantCountdownRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const chantMinScrollRef = useRef<HTMLDivElement | null>(null)
+  const chantSecScrollRef = useRef<HTMLDivElement | null>(null)
 
   // 今日练习人数
   const [todayPracticeCount, setTodayPracticeCount] = useState<number>(0)
@@ -4201,6 +4205,8 @@ export default function AshtangaTracker() {
       // 固定按钮双击
       if (option.is_fixed) {
         if (option.id === 'chant_switch') {
+          setChantMins(Math.floor(chantDelay / 60))
+          setChantSecs(chantDelay % 60)
           setShowChantSettings(true)
         }
         return
@@ -6111,10 +6117,24 @@ export default function AshtangaTracker() {
               exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
               className="fixed bottom-0 left-0 right-0 bg-card rounded-t-[24px] z-[110] p-6 pb-10 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]"
+              onAnimationComplete={() => {
+                // 动画完成后初始化滚轮位置（只执行一次）
+                if (chantMinScrollRef.current) {
+                  chantMinScrollRef.current.scrollTop = chantMins * 40
+                }
+                if (chantSecScrollRef.current) {
+                  chantSecScrollRef.current.scrollTop = chantSecs * 40
+                }
+              }}
             >
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-lg font-serif text-foreground">唱诵设置</h2>
-                <button onClick={() => setShowChantSettings(false)} className="p-2 -mr-2 text-muted-foreground hover:text-foreground transition-colors">
+                <button onClick={() => {
+                  // 关闭时同步到 chantDelay
+                  const total = chantMins * 60 + chantSecs
+                  if (total >= 5) setChantDelay(total)
+                  setShowChantSettings(false)
+                }} className="p-2 -mr-2 text-muted-foreground hover:text-foreground transition-colors">
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -6125,26 +6145,24 @@ export default function AshtangaTracker() {
                     倒计时时长
                   </label>
                   {/* 双滚轮：分钟 + 秒 */}
-                  <div className="flex items-center justify-center gap-4">
+                  <div className="flex items-center justify-center gap-3">
                     {/* 分钟滚轮 */}
                     <div className="relative w-20 h-[160px] overflow-hidden">
                       <div className="absolute inset-x-0 top-0 h-[60px] bg-gradient-to-b from-card to-transparent z-10 pointer-events-none" />
                       <div className="absolute inset-x-0 bottom-0 h-[60px] bg-gradient-to-t from-card to-transparent z-10 pointer-events-none" />
                       <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[40px] border-t border-b border-primary/30 z-10 pointer-events-none rounded-sm" />
                       <div
-                        className="flex flex-col items-center pt-[60px] pb-[60px] snap-y snap-mandatory overflow-y-auto scrollbar-hide"
-                        style={{ scrollSnapType: 'y mandatory', WebkitOverflowScrolling: 'touch' }}
-                        ref={(el) => {
-                          if (el) {
-                            const mins = Math.floor(chantDelay / 60)
-                            el.scrollTop = mins * 40
-                          }
-                        }}
+                        ref={chantMinScrollRef}
+                        className="flex flex-col items-center pt-[60px] pb-[60px] snap-y snap-mandatory overflow-y-auto"
+                        style={{ scrollSnapType: 'y mandatory', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}
                         onScroll={(e) => {
-                          const scrollTop = (e.target as HTMLElement).scrollTop
-                          const mins = Math.round(scrollTop / 40)
-                          const secs = chantDelay % 60
-                          setChantDelay(Math.min(300, Math.max(5, mins * 60 + secs)))
+                          const st = (e.target as HTMLElement).scrollTop
+                          const m = Math.round(st / 40)
+                          if (m !== chantMins && m >= 0 && m <= 5) {
+                            setChantMins(m)
+                            const total = m * 60 + chantSecs
+                            if (total >= 5) setChantDelay(total)
+                          }
                         }}
                       >
                         {Array.from({ length: 6 }, (_, i) => i).map((m) => (
@@ -6164,23 +6182,20 @@ export default function AshtangaTracker() {
                       <div className="absolute inset-x-0 bottom-0 h-[60px] bg-gradient-to-t from-card to-transparent z-10 pointer-events-none" />
                       <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[40px] border-t border-b border-primary/30 z-10 pointer-events-none rounded-sm" />
                       <div
-                        className="flex flex-col items-center pt-[60px] pb-[60px] snap-y snap-mandatory overflow-y-auto scrollbar-hide"
-                        style={{ scrollSnapType: 'y mandatory', WebkitOverflowScrolling: 'touch' }}
-                        ref={(el) => {
-                          if (el) {
-                            const secs = chantDelay % 60
-                            el.scrollTop = (secs / 5) * 40
+                        ref={chantSecScrollRef}
+                        className="flex flex-col items-center pt-[60px] pb-[60px] snap-y snap-mandatory overflow-y-auto"
+                        style={{ scrollSnapType: 'y mandatory', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}
+                        onScroll={(e) => {
+                          const st = (e.target as HTMLElement).scrollTop
+                          const s = Math.round(st / 40)
+                          if (s !== chantSecs && s >= 0 && s <= 59) {
+                            setChantSecs(s)
+                            const total = chantMins * 60 + s
+                            if (total >= 5) setChantDelay(total)
                           }
                         }}
-                        onScroll={(e) => {
-                          const scrollTop = (e.target as HTMLElement).scrollTop
-                          const secIdx = Math.round(scrollTop / 40)
-                          const secs = secIdx * 5
-                          const mins = Math.floor(chantDelay / 60)
-                          setChantDelay(Math.min(300, Math.max(5, mins * 60 + secs)))
-                        }}
                       >
-                        {Array.from({ length: 12 }, (_, i) => i * 5).map((s) => (
+                        {Array.from({ length: 60 }, (_, i) => i).map((s) => (
                           <div
                             key={s}
                             className="h-[40px] flex items-center justify-center snap-start text-xl font-serif text-foreground shrink-0 w-full"
@@ -6193,7 +6208,7 @@ export default function AshtangaTracker() {
                     <span className="text-sm font-serif text-muted-foreground">秒</span>
                   </div>
                   <p className="text-center text-xs text-muted-foreground/60 font-serif">
-                    当前：{Math.floor(chantDelay / 60)}分{chantDelay % 60}秒
+                    当前：{chantMins}分{String(chantSecs).padStart(2, '0')}秒
                   </p>
                 </div>
               ) : (
@@ -6205,38 +6220,14 @@ export default function AshtangaTracker() {
                   <label className="block text-sm font-serif text-foreground">
                     倒计时时长
                   </label>
-                  {/* 灰色滚轮预览 */}
-                  <div className="flex items-center justify-center gap-4 opacity-40 pointer-events-none">
-                    <div className="relative w-20 h-[160px] overflow-hidden">
-                      <div className="absolute inset-x-0 top-0 h-[60px] bg-gradient-to-b from-card to-transparent z-10 pointer-events-none" />
-                      <div className="absolute inset-x-0 bottom-0 h-[60px] bg-gradient-to-t from-card to-transparent z-10 pointer-events-none" />
-                      <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[40px] border-t border-b border-primary/30 z-10 pointer-events-none rounded-sm" />
-                      <div className="flex flex-col items-center pt-[60px] pb-[60px]">
-                        {Array.from({ length: 6 }, (_, i) => i).map((m) => (
-                          <div
-                            key={m}
-                            className={`h-[40px] flex items-center justify-center text-xl font-serif shrink-0 w-full ${Math.floor(chantDelay / 60) === m ? 'text-foreground' : 'text-muted-foreground/50'}`}
-                          >
-                            {m}
-                          </div>
-                        ))}
-                      </div>
+                  {/* 灰色滚轮预览（静态展示当前值） */}
+                  <div className="flex items-center justify-center gap-3 opacity-40 pointer-events-none">
+                    <div className="w-20 h-[160px] flex items-center justify-center">
+                      <span className="text-4xl font-serif text-foreground">{Math.floor(chantDelay / 60)}</span>
                     </div>
                     <span className="text-sm font-serif text-muted-foreground">分</span>
-                    <div className="relative w-20 h-[160px] overflow-hidden">
-                      <div className="absolute inset-x-0 top-0 h-[60px] bg-gradient-to-b from-card to-transparent z-10 pointer-events-none" />
-                      <div className="absolute inset-x-0 bottom-0 h-[60px] bg-gradient-to-t from-card to-transparent z-10 pointer-events-none" />
-                      <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[40px] border-t border-b border-primary/30 z-10 pointer-events-none rounded-sm" />
-                      <div className="flex flex-col items-center pt-[60px] pb-[60px]">
-                        {Array.from({ length: 12 }, (_, i) => i * 5).map((s) => (
-                          <div
-                            key={s}
-                            className={`h-[40px] flex items-center justify-center text-xl font-serif shrink-0 w-full ${chantDelay % 60 === s ? 'text-foreground' : 'text-muted-foreground/50'}`}
-                          >
-                            {String(s).padStart(2, '0')}
-                          </div>
-                        ))}
-                      </div>
+                    <div className="w-20 h-[160px] flex items-center justify-center">
+                      <span className="text-4xl font-serif text-foreground">{String(chantDelay % 60).padStart(2, '0')}</span>
                     </div>
                     <span className="text-sm font-serif text-muted-foreground">秒</span>
                   </div>
