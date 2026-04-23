@@ -4201,13 +4201,7 @@ export default function AshtangaTracker() {
       // 固定按钮双击
       if (option.is_fixed) {
         if (option.id === 'chant_switch') {
-          // 唱诵设置
-          if (!membershipIsPro) {
-            setMembershipPromptReason('options_full')
-            setShowMembershipPrompt(true)
-          } else {
-            setShowChantSettings(true)
-          }
+          setShowChantSettings(true)
         }
         return
       }
@@ -6168,12 +6162,32 @@ export default function AshtangaTracker() {
                   </div>
                 </div>
               ) : (
-                <div className="text-center py-6">
-                  <Lock className="w-8 h-8 text-muted-foreground/40 mx-auto mb-3" />
-                  <p className="text-foreground font-serif mb-2">自定义倒计时时长</p>
-                  <p className="text-muted-foreground text-sm font-serif mb-4">升级 Pro 解锁自定义时长</p>
-                  <p className="text-xs text-muted-foreground/70 font-serif">
-                    当前默认倒计时：{chantDelay}秒
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Lock className="w-4 h-4 text-muted-foreground/40" />
+                    <span className="text-xs text-muted-foreground/60 font-serif">Pro 功能</span>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-serif text-foreground mb-3">
+                      倒计时时长
+                    </label>
+                    <div className="flex flex-wrap gap-2 opacity-50">
+                      {[30, 60, 90, 120].map((sec) => (
+                        <span
+                          key={sec}
+                          className={`px-4 py-2 rounded-full text-sm font-serif ${
+                            chantDelay === sec
+                              ? 'bg-primary/20 text-primary'
+                              : 'bg-secondary text-foreground'
+                          }`}
+                        >
+                          {sec}秒
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground font-serif leading-relaxed">
+                    开启后，开始练习前会先全屏倒计时，然后播放开篇唱诵音频，结束后自动开始练习计时。
                   </p>
                   <button
                     onClick={() => {
@@ -6181,10 +6195,10 @@ export default function AshtangaTracker() {
                       setMembershipPromptReason('options_full')
                       setShowMembershipPrompt(true)
                     }}
-                    className="mt-4 px-6 py-2.5 rounded-full green-gradient text-white text-sm font-serif"
+                    className="w-full mt-2 px-6 py-2.5 rounded-full green-gradient text-white text-sm font-serif"
                   >
                     <Crown className="w-4 h-4 inline mr-1" />
-                    升级 Pro
+                    升级 Pro 解锁自定义时长
                   </button>
                 </div>
               )}
