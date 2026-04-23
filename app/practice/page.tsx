@@ -5268,10 +5268,10 @@ export default function AshtangaTracker() {
                   </span>
                 </div>
               </main>
-              <div className="pb-32">
+              <div className="px-6 pb-32 flex justify-center">
                 <button
                   onClick={skipChantCountdown}
-                  className="px-6 py-2 rounded-full bg-white/20 border border-white/30 text-foreground/60 text-sm font-serif"
+                  className="flex items-center gap-2 px-8 py-4 rounded-full bg-card/80 backdrop-blur-md border border-white/10 text-foreground font-serif shadow-[0_4px_20px_rgba(0,0,0,0.05)] hover:bg-card transition-colors"
                 >
                   跳过
                 </button>
