@@ -5572,7 +5572,7 @@ export default function AshtangaTracker() {
                   )}
                   {option.id === 'today_count' ? (
                     <>
-                      <span className="text-[14px] leading-snug flex items-center justify-center">
+                      <span className="text-[14px] leading-snug flex items-center justify-center -mt-[2px]">
                         <span className="text-[#C5975C] text-[20px] font-bold">{option.label}</span>
                       </span>
                       <span className={`text-[11px] mt-0.5 leading-snug ${isSelected ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
