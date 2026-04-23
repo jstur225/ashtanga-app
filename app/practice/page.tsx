@@ -5281,8 +5281,8 @@ export default function AshtangaTracker() {
         </AnimatePresence>
         {/* 唱诵播放中提示 */}
         {isChantPlaying && (
-          <div className="absolute top-4 left-0 right-0 text-center z-10">
-            <span className="text-xs text-primary/70 font-serif bg-primary/5 px-3 py-1 rounded-full">
+          <div className="absolute top-4 left-0 right-0 flex justify-center z-10">
+            <span className="text-xs text-foreground/70 font-serif bg-white/30 backdrop-blur-[8px] border border-white/30 px-4 py-1.5 rounded-full">
               唱诵中...
             </span>
           </div>
@@ -5344,15 +5344,15 @@ export default function AshtangaTracker() {
             animate={{ opacity: 1, y: 0 }}
           >
             {/* 进度条 */}
-            <div className="relative h-1.5 bg-muted rounded-full overflow-hidden">
+            <div className="relative h-1.5 bg-white/20 backdrop-blur-sm rounded-full overflow-hidden border border-white/10">
               <div
-                className="absolute inset-y-0 left-0 bg-primary rounded-full transition-all duration-300"
+                className="absolute inset-y-0 left-0 bg-primary/80 rounded-full transition-all duration-300"
                 style={{ width: `${audioProgress}%` }}
               />
             </div>
 
             {/* 时间显示 */}
-            <div className="flex justify-between text-xs text-muted-foreground mt-2 font-serif">
+            <div className="flex justify-between text-xs text-foreground/50 mt-2 font-serif">
               <span>{formatAudioTime(audioCurrentTime)}</span>
               <span>{formatAudioTime(audioDuration)}</span>
             </div>
@@ -5366,25 +5366,25 @@ export default function AshtangaTracker() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="flex flex-col items-center justify-center py-3"
+              className="flex flex-col items-center justify-center py-3 bg-white/20 backdrop-blur-[8px] rounded-2xl border border-white/30"
             >
               <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-              <p className="text-sm text-muted-foreground mt-4 font-serif">
+              <p className="text-sm text-foreground/70 mt-4 font-serif">
                 {isUsingCache ? '从缓存读取...' : audioDownloadProgress > 0 ? `下载中 ${audioDownloadProgress}%` : '加载音频中...'}
               </p>
               {/* 下载进度条 */}
               {!isUsingCache && audioDownloadProgress > 0 && (
-                <div className="w-48 h-1 bg-muted rounded-full mt-2 overflow-hidden">
+                <div className="w-48 h-1 bg-white/20 rounded-full mt-2 overflow-hidden border border-white/10">
                   <div
-                    className="h-full bg-primary rounded-full transition-all duration-300"
+                    className="h-full bg-primary/80 rounded-full transition-all duration-300"
                     style={{ width: `${audioDownloadProgress}%` }}
                   />
                 </div>
               )}
               {/* 第一次下载提示 */}
               {!isUsingCache && audioDownloadProgress > 0 && (
-                <p className="text-xs text-muted-foreground/70 mt-3 font-serif text-center">
-                  💡 首次下载需要一点时间，之后就能快速打开啦
+                <p className="text-xs text-foreground/50 mt-3 font-serif text-center">
+                  首次下载需要一点时间，之后就能快速打开啦
                 </p>
               )}
             </motion.div>
@@ -5395,7 +5395,7 @@ export default function AshtangaTracker() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="flex flex-col items-center justify-center py-6"
+              className="flex flex-col items-center justify-center py-6 bg-white/20 backdrop-blur-[8px] rounded-2xl border border-white/30"
             >
               <AlertCircle className="w-12 h-12 text-destructive mb-3" />
               <p className="text-sm text-destructive font-serif text-center">
@@ -5446,13 +5446,12 @@ export default function AshtangaTracker() {
 
           {/* 步长选择器 + 前进/后退按钮 - 仅在口令跟练模式显示 */}
           {selectedOption === 'guided_audio' && isAudioLoaded && !isAudioLoading && !audioError && (
-            <div className="flex items-center justify-center gap-3 mt-4">
+            <div className="flex items-center justify-center gap-3 mt-4 bg-white/20 backdrop-blur-[8px] rounded-full px-3 py-1.5 border border-white/30">
               {/* 后退按钮 */}
               <motion.button
                 whileTap={{ scale: 0.9 }}
-                whileHover={{ scale: 1.05 }}
                 onClick={() => handleAudioSeek('backward')}
-                className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-stone-400 hover:text-stone-600 transition-all active:green-gradient active:text-white"
+                className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-foreground/50 hover:text-foreground transition-all"
               >
                 <SkipBack className="w-3.5 h-3.5" />
               </motion.button>
@@ -5466,7 +5465,7 @@ export default function AshtangaTracker() {
                     className={`px-2 py-1 rounded-full text-xs font-mono transition-all ${
                       seekStep === step
                         ? 'green-gradient text-white shadow-sm'
-                        : 'text-stone-400 hover:text-stone-600'
+                        : 'text-foreground/50 hover:text-foreground'
                     }`}
                   >
                     {step}秒
@@ -5477,9 +5476,8 @@ export default function AshtangaTracker() {
               {/* 前进按钮 */}
               <motion.button
                 whileTap={{ scale: 0.9 }}
-                whileHover={{ scale: 1.05 }}
                 onClick={() => handleAudioSeek('forward')}
-                className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-stone-400 hover:text-stone-600 transition-all active:green-gradient active:text-white"
+                className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-foreground/50 hover:text-foreground transition-all"
               >
                 <SkipForward className="w-3.5 h-3.5" />
               </motion.button>
