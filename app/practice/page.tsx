@@ -5261,18 +5261,29 @@ export default function AshtangaTracker() {
               exit={{ opacity: 0 }}
               className="fixed inset-0 bg-white/30 backdrop-blur-[8px] z-50 flex flex-col items-center justify-center border border-white/30"
             >
-              <div className="w-40 h-40 rounded-full border border-white/40 bg-white/20 backdrop-blur-sm flex items-center justify-center mb-8">
-                <span className="text-6xl font-light text-foreground font-serif">
-                  {chantCountdown}
-                </span>
+              <main className="flex-1 flex items-center justify-center px-6">
+                <div className="relative">
+                  {/* 和练习计时圆圈同样的结构：外层 green-gradient + 内层内容 */}
+                  <div className="w-[200px] h-[200px] sm:w-[220px] sm:h-[220px] rounded-full green-gradient p-[2px] shadow-[0_12px_48px_rgba(45,90,39,0.45)]">
+                    <div className="w-full h-full rounded-full bg-background/95 backdrop-blur-[16px] flex flex-col items-center justify-center border border-white/30">
+                      <span className="text-5xl sm:text-6xl font-light text-foreground tracking-wider font-serif">
+                        {chantCountdown}
+                      </span>
+                      <div className="flex items-baseline gap-0.5 mt-1">
+                        <span className="text-foreground text-lg font-serif">秒</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </main>
+              <div className="pb-32">
+                <button
+                  onClick={skipChantCountdown}
+                  className="px-6 py-2 rounded-full bg-white/20 border border-white/30 text-foreground/60 text-sm font-serif"
+                >
+                  跳过
+                </button>
               </div>
-              <p className="text-foreground/70 text-sm font-serif mb-6">唱诵倒计时</p>
-              <button
-                onClick={skipChantCountdown}
-                className="px-6 py-2 rounded-full bg-white/20 border border-white/30 text-foreground/60 text-sm font-serif"
-              >
-                跳过
-              </button>
             </motion.div>
           )}
         </AnimatePresence>
