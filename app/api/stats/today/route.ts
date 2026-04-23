@@ -8,12 +8,14 @@ export async function GET() {
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
-    // 近 24 小时练习人数（去重用户，无时区问题）
-    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+    // 用北京时间生成今日日期，匹配客户端的 date 字段
+    const beijingNow = new Date(Date.now() + 8 * 60 * 60 * 1000)
+    const today = beijingNow.toISOString().split('T')[0]
+
     const { data, error } = await supabase
       .from('practice_records')
       .select('user_id')
-      .gte('created_at', since)
+      .eq('date', today)
 
     if (error) {
       console.error('[Stats] Failed to fetch today count:', error)
