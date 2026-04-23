@@ -44,7 +44,7 @@ export interface UserProfile {
 }
 
 // 选项数量限制
-export const MAX_SLOTS_FREE = 4;
+export const MAX_SLOTS_FREE = 3;
 export const MAX_SLOTS_PRO = 11;
 
 // 口令跟练预设选项

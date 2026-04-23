@@ -46,7 +46,7 @@ const FULL_MOON_ICON = '/moon-phase/full-moon.png'
 const FIXED_BUTTONS = [
   { id: "placeholder_1", label: "占位符 1", notes: null },
   { id: "guided_audio", label: "一序列", notes: "老掌门人版口令" },
-  { id: "placeholder_3", label: "占位符 3", notes: null },
+  { id: "today_count", label: "", notes: "今日练习" },
 ]
 // 月相查找函数
 const getMoonPhaseMap = () => {
@@ -3872,6 +3872,7 @@ export default function AshtangaTracker() {
 
   const [practiceOptions, setPracticeOptions] = useState<PracticeOption[]>([])
   const [selectedOption, setSelectedOption] = useState<string | null>(null)
+  const [todayCount, setTodayCount] = useState<number | null>(null)
   const [customPracticeName, setCustomPracticeName] = useState("")
   const [isPracticing, setIsPracticing] = useLocalStorage('ashtanga_is_practicing', false)
   const [isPaused, setIsPaused] = useLocalStorage('ashtanga_is_paused', false)
@@ -4113,7 +4114,7 @@ export default function AshtangaTracker() {
       // 固定按钮（第一行）
       ...FIXED_BUTTONS.map(b => ({
         id: b.id,
-        label: b.label,
+        label: b.id === 'today_count' ? (todayCount !== null ? String(todayCount) : '--') : b.label,
         notes: b.notes,
         isCustom: false,
         is_fixed: true,      // 固定按钮
@@ -4132,7 +4133,15 @@ export default function AshtangaTracker() {
       // 自定义按钮
       { id: "custom", label: "自定义", notes: null, isCustom: false }
     ])
-  }, [practiceOptionsData])
+  }, [practiceOptionsData, todayCount])
+
+  // 页面加载时获取今日在线人数
+  useEffect(() => {
+    fetch('/api/stats/today')
+      .then(res => res.json())
+      .then(data => setTodayCount(data.count || 0))
+      .catch(() => {})
+  }, [])
 
   // Keep screen awake during practice
   useEffect(() => {
@@ -4211,9 +4220,8 @@ export default function AshtangaTracker() {
         // 口令跟练：直接选中
         setSelectedOption('guided_audio')
         setCustomPracticeName("")
-      } else {
-        // 占位符：提示
-        toast('功能开发中')
+      } else if (option.id === 'today_count') {
+        toast('今天你熬汤了吗？')
       }
       return
     }
@@ -4383,8 +4391,8 @@ export default function AshtangaTracker() {
   const handleAddOption = async (name: string, notes: string) => {
     const maxSlots = membershipIsPro ? MAX_SLOTS_PRO : MAX_SLOTS_FREE
     // Check if we can add more options
-    const visibleOptions = practiceOptions.filter(o => o.id !== "custom")
-    if (visibleOptions.length >= maxSlots) {
+    const userOptions = practiceOptions.filter(o => !o.is_fixed && o.id !== "custom")
+    if (userOptions.length >= maxSlots) {
       setMembershipPromptReason('options_full')
       setShowMembershipPrompt(true)
       return
@@ -4748,8 +4756,8 @@ export default function AshtangaTracker() {
   }
 
   const canDeleteOption = useMemo(() => {
-    const nonCustomOptions = practiceOptions.filter(o => o.id !== "custom")
-    return nonCustomOptions.length > 2
+    const userOptions = practiceOptions.filter(o => !o.is_fixed && o.id !== "custom")
+    return userOptions.length > 1
   }, [practiceOptions])
 
   const isOptionsFull = useMemo(() => {
@@ -5391,10 +5399,10 @@ export default function AshtangaTracker() {
                   {isLocked && (
                     <Lock className="absolute top-1.5 right-1.5 w-3 h-3 text-muted-foreground/40" />
                   )}
-                  <span className="text-[14px] leading-snug break-words w-full line-clamp-2 flex items-center justify-center gap-1">
+                  <span className={`text-[14px] leading-snug break-words w-full line-clamp-2 flex items-center justify-center gap-1`}>
                     {isCustomButton ? "+ 自定义" : (
                       <>
-                        {option.label}
+                        <span className={option.id === 'today_count' ? 'text-[#C5975C] text-[18px] font-bold' : ''}>{option.label}</span>
                         {option.is_preset && <Volume className="w-4 h-4" style={{ color: isSelected && !isLocked ? 'white' : 'rgba(74, 122, 68)' }} />}
                       </>
                     )}
