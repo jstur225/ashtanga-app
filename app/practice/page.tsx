@@ -5259,21 +5259,13 @@ export default function AshtangaTracker() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-white/30 backdrop-blur-[8px] z-50 flex flex-col items-center justify-center border border-white/30"
+              className="fixed inset-0 bg-white/30 backdrop-blur-[8px] z-50 flex flex-col items-center border border-white/30"
             >
               <main className="flex-1 flex items-center justify-center px-6">
-                <div className="relative">
-                  {/* 和练习计时圆圈同样的结构：外层 green-gradient + 内层内容 */}
-                  <div className="w-[200px] h-[200px] sm:w-[220px] sm:h-[220px] rounded-full green-gradient p-[2px] shadow-[0_12px_48px_rgba(45,90,39,0.45)]">
-                    <div className="w-full h-full rounded-full bg-background/95 backdrop-blur-[16px] flex flex-col items-center justify-center border border-white/30">
-                      <span className="text-5xl sm:text-6xl font-light text-foreground tracking-wider font-serif">
-                        {chantCountdown}
-                      </span>
-                      <div className="flex items-baseline gap-0.5 mt-1">
-                        <span className="text-foreground text-lg font-serif">秒</span>
-                      </div>
-                    </div>
-                  </div>
+                <div className="w-[200px] h-[200px] sm:w-[220px] sm:h-[220px] rounded-full border border-white/40 bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                  <span className="text-5xl sm:text-6xl font-light text-foreground font-serif">
+                    {chantCountdown}
+                  </span>
                 </div>
               </main>
               <div className="pb-32">
