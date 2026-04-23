@@ -7,21 +7,19 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!
 export async function GET() {
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
-    const today = new Date().toISOString().split('T')[0]
 
-    // 查询今日练习人数（去重用户）
+    // 近 24 小时练习人数（去重用户，无时区问题）
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
     const { data, error } = await supabase
       .from('practice_records')
       .select('uuid')
-      .gte('created_at', today)
-      .lt('created_at', today + 'T23:59:59')
+      .gte('created_at', since)
 
     if (error) {
       console.error('[Stats] Failed to fetch today count:', error)
       return NextResponse.json({ count: 0 })
     }
 
-    // 去重统计
     const uniqueUsers = new Set(data?.map(r => r.uuid))
     return NextResponse.json({ count: uniqueUsers.size })
   } catch (error) {
