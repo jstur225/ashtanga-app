@@ -5259,17 +5259,17 @@ export default function AshtangaTracker() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center"
+              className="fixed inset-0 bg-white/30 backdrop-blur-[8px] z-50 flex flex-col items-center justify-center border border-white/30"
             >
-              <div className="w-40 h-40 rounded-full border-4 border-primary/60 flex items-center justify-center mb-8">
-                <span className="text-6xl font-light text-white font-serif">
+              <div className="w-40 h-40 rounded-full border border-white/40 bg-white/20 backdrop-blur-sm flex items-center justify-center mb-8">
+                <span className="text-6xl font-light text-foreground font-serif">
                   {chantCountdown}
                 </span>
               </div>
-              <p className="text-white/70 text-sm font-serif mb-6">唱诵倒计时</p>
+              <p className="text-foreground/70 text-sm font-serif mb-6">唱诵倒计时</p>
               <button
                 onClick={skipChantCountdown}
-                className="px-6 py-2 rounded-full bg-white/10 border border-white/20 text-white/70 text-sm font-serif"
+                className="px-6 py-2 rounded-full bg-white/20 border border-white/30 text-foreground/60 text-sm font-serif"
               >
                 跳过
               </button>
