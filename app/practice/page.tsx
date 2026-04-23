@@ -44,7 +44,7 @@ const FULL_MOON_ICON = '/moon-phase/full-moon.png'
 
 // 固定功能栏按钮（不计入用户选项名额）
 const FIXED_BUTTONS = [
-  { id: "chant_switch", label: "唱诵", notes: null },
+  { id: "chant_switch", label: "开篇唱诵", notes: "关" },
   { id: "guided_audio", label: "一序列", notes: "老掌门人版口令" },
   { id: "today_count", label: "", notes: "今日练习人数" },
 ]
@@ -4116,7 +4116,9 @@ export default function AshtangaTracker() {
       ...FIXED_BUTTONS.map(b => ({
         id: b.id,
         label: b.id === 'today_count' ? (todayCount !== null ? String(todayCount) : '--') : b.label,
-        notes: b.notes,
+        notes: b.id === 'chant_switch'
+          ? (chantEnabled ? `${chantDelay}秒后播放` : '关')
+          : b.notes,
         isCustom: false,
         is_fixed: true,      // 固定按钮
         is_preset: b.id === 'guided_audio',  // 口令跟练显示喇叭图标
@@ -4134,7 +4136,7 @@ export default function AshtangaTracker() {
       // 自定义按钮
       { id: "custom", label: "自定义", notes: null, isCustom: false }
     ])
-  }, [practiceOptionsData, todayCount])
+  }, [practiceOptionsData, todayCount, chantEnabled, chantDelay])
 
   // 页面加载时获取今日在线人数
   useEffect(() => {
@@ -5531,6 +5533,7 @@ export default function AshtangaTracker() {
               const isSelected = selectedOption === option.id
               const isCustomButton = option.id === "custom"
               const isLocked = !isCustomButton && lockedOptionIds.has(option.id)
+              const isChantOn = option.id === 'chant_switch' && chantEnabled
 
               return (
                 <motion.button
@@ -5541,7 +5544,7 @@ export default function AshtangaTracker() {
                     py-[6px] px-1 rounded-[20px] text-center font-serif transition-all duration-300
                     min-h-[72px] w-full flex flex-col items-center justify-center relative
                     ${
-                      isSelected && !isLocked
+                      (isSelected || isChantOn) && !isLocked
                         ? "green-gradient text-primary-foreground backdrop-blur-[16px] border border-white/30 shadow-[0_8px_24px_rgba(45,90,39,0.3)]"
                         : isLocked
                           ? "bg-muted/50 text-muted-foreground/50 shadow-[0_2px_8px_rgba(0,0,0,0.03)] border border-stone-100/30 opacity-50"
@@ -5559,14 +5562,11 @@ export default function AshtangaTracker() {
                       <>
                         <span className={option.id === 'today_count' ? 'text-[#C5975C] text-[18px] font-bold' : ''}>{option.label}</span>
                         {option.is_preset && <Volume className="w-4 h-4" style={{ color: isSelected && !isLocked ? 'white' : 'rgba(74, 122, 68)' }} />}
-                        {option.id === 'chant_switch' && (
-                          <span className={`inline-block w-2 h-2 rounded-full ${chantEnabled ? 'bg-green-500' : 'bg-gray-300'}`} />
-                        )}
                       </>
                     )}
                   </span>
                   {!isCustomButton && option.notes && (
-                    <span className={`text-[11px] mt-0.5 leading-snug break-words w-full line-clamp-2 ${isSelected && !isLocked ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
+                    <span className={`text-[11px] mt-0.5 leading-snug break-words w-full line-clamp-2 ${(isSelected || isChantOn) && !isLocked ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
                       {option.notes}
                     </span>
                   )}
