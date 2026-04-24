@@ -53,11 +53,8 @@ export function useMembership() {
       // ⭐ 打印调试信息（用 error 级别确保显示）
       if (result._debug) {
         console.error('[useMembership] ========== 调试信息 ==========')
-        console.error('[useMembership] userId:', result._debug.userId)
-        console.error('[useMembership] profileId:', result._debug.profileId)
-        console.error('[useMembership] queryId:', result._debug.queryId)
-        console.error('[useMembership] hasMembershipData:', result._debug.hasMembershipData)
-        console.error('[useMembership] rawMembership:', JSON.stringify(result._debug.rawMembership, null, 2))
+        console.error('[useMembership] 所有会员记录:', JSON.stringify(result._debug.allMemberships, null, 2))
+        console.error('[useMembership] 视图返回:', JSON.stringify(result._debug.membershipData, null, 2))
         console.error('[useMembership] =================================')
       }
 

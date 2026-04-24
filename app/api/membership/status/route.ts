@@ -96,13 +96,16 @@ export async function GET(request: NextRequest) {
 
     console.log('[Membership API] user_profiles 查询:', { hasProfile: !!userProfile, profileId: userProfile?.id, error: profileError?.message })
 
+    // ⭐ 调试: 先直接查 user_memberships 看所有记录
+    let debugAllMemberships: any[] | undefined = undefined
+
     if (userProfile) {
-      // ⭐ 调试: 先直接查 user_memberships 看所有记录
       const { data: allMemberships } = await supabase
         .from('user_memberships')
         .select('type, expires_at')
         .eq('user_id', userProfile.id)
         .order('expires_at', { ascending: false })
+      debugAllMemberships = allMemberships
       console.log('[Membership API] ⭐ 该用户所有会员记录:', JSON.stringify(allMemberships))
 
       // ⭐ 调试: 查询视图
@@ -261,6 +264,11 @@ export async function GET(request: NextRequest) {
           : null,
         days_remaining: membershipData?.days_remaining ?? 0,
         type: membershipData?.membership_type ?? null,
+      },
+      // ⭐ 调试信息：所有会员记录 + 视图返回值
+      _debug: {
+        allMemberships: debugAllMemberships,
+        membershipData,
       },
     }
 
