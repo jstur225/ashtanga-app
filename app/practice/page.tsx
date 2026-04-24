@@ -6181,15 +6181,6 @@ export default function AshtangaTracker() {
                         ref={chantMinScrollRef}
                         className="flex flex-col items-center pt-[60px] pb-[60px] snap-y snap-mandatory overflow-y-auto"
                         style={{ scrollSnapType: 'y mandatory', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}
-                        onScroll={(e) => {
-                          const st = (e.target as HTMLElement).scrollTop
-                          const m = Math.round(st / 40)
-                          if (m !== chantMins && m >= 0 && m <= 5) {
-                            setChantMins(m)
-                            const total = m * 60 + chantSecs
-                            if (total >= 5) setChantDelay(total)
-                          }
-                        }}
                       >
                         {Array.from({ length: 6 }, (_, i) => i).map((m) => (
                           <div
@@ -6211,15 +6202,6 @@ export default function AshtangaTracker() {
                         ref={chantSecScrollRef}
                         className="flex flex-col items-center pt-[60px] pb-[60px] snap-y snap-mandatory overflow-y-auto"
                         style={{ scrollSnapType: 'y mandatory', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}
-                        onScroll={(e) => {
-                          const st = (e.target as HTMLElement).scrollTop
-                          const s = Math.round(st / 40)
-                          if (s !== chantSecs && s >= 0 && s <= 59) {
-                            setChantSecs(s)
-                            const total = chantMins * 60 + s
-                            if (total >= 5) setChantDelay(total)
-                          }
-                        }}
                       >
                         {Array.from({ length: 60 }, (_, i) => i).map((s) => (
                           <div
@@ -6234,7 +6216,7 @@ export default function AshtangaTracker() {
                     <span className="text-sm font-serif text-muted-foreground">秒</span>
                   </div>
                   <p className="text-center text-xs text-muted-foreground/60 font-serif">
-                    当前：{chantMins}分{String(chantSecs).padStart(2, '0')}秒
+                    当前：{Math.floor(chantDelay / 60)}分{String(chantDelay % 60).padStart(2, '0')}秒
                   </p>
                 </div>
               ) : (
