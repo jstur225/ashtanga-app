@@ -6212,6 +6212,19 @@ export default function AshtangaTracker() {
               exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
               className="fixed bottom-0 left-0 right-0 bg-card rounded-t-[24px] z-[110] p-6 pb-10 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]"
+              onTouchStart={(e) => {
+                // 只阻止非滚轮区域的触摸冒泡
+                const target = e.target as HTMLElement
+                if (!target.closest('[data-scroll-wheel]')) {
+                  e.stopPropagation()
+                }
+              }}
+              onTouchMove={(e) => {
+                const target = e.target as HTMLElement
+                if (!target.closest('[data-scroll-wheel]')) {
+                  e.stopPropagation()
+                }
+              }}
               onAnimationComplete={() => {
                 // 动画完成后初始化滚轮位置（只执行一次）
                 if (chantMinScrollRef.current) {
@@ -6242,14 +6255,19 @@ export default function AshtangaTracker() {
                   {/* 双滚轮：分钟 + 秒 */}
                   <div className="flex items-center justify-center gap-3">
                     {/* 分钟滚轮 */}
-                    <div className="relative w-20 h-[160px] overflow-hidden">
+                    <div className="relative w-20 h-[160px] overflow-hidden" data-scroll-wheel="min"
+                      onTouchStart={(e) => e.stopPropagation()}
+                      onTouchMove={(e) => e.stopPropagation()}
+                    >
                       <div className="absolute inset-x-0 top-0 h-[60px] bg-gradient-to-b from-card to-transparent z-10 pointer-events-none" />
                       <div className="absolute inset-x-0 bottom-0 h-[60px] bg-gradient-to-t from-card to-transparent z-10 pointer-events-none" />
                       <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[40px] border-t border-b border-primary/30 z-10 pointer-events-none rounded-sm" />
                       <div
                         ref={chantMinScrollRef}
                         className="flex flex-col items-center pt-[60px] pb-[60px] snap-y snap-mandatory overflow-y-auto"
-                        style={{ scrollSnapType: 'y mandatory', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}
+                        style={{ scrollSnapType: 'y mandatory', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', overscrollBehaviorY: 'contain' }}
+                        onTouchStart={(e) => e.stopPropagation()}
+                        onTouchMove={(e) => e.stopPropagation()}
                       >
                         {Array.from({ length: 6 }, (_, i) => i).map((m) => (
                           <div
@@ -6263,14 +6281,19 @@ export default function AshtangaTracker() {
                     </div>
                     <span className="text-sm font-serif text-muted-foreground">分</span>
                     {/* 秒滚轮 */}
-                    <div className="relative w-20 h-[160px] overflow-hidden">
+                    <div className="relative w-20 h-[160px] overflow-hidden" data-scroll-wheel="sec"
+                      onTouchStart={(e) => e.stopPropagation()}
+                      onTouchMove={(e) => e.stopPropagation()}
+                    >
                       <div className="absolute inset-x-0 top-0 h-[60px] bg-gradient-to-b from-card to-transparent z-10 pointer-events-none" />
                       <div className="absolute inset-x-0 bottom-0 h-[60px] bg-gradient-to-t from-card to-transparent z-10 pointer-events-none" />
                       <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[40px] border-t border-b border-primary/30 z-10 pointer-events-none rounded-sm" />
                       <div
                         ref={chantSecScrollRef}
                         className="flex flex-col items-center pt-[60px] pb-[60px] snap-y snap-mandatory overflow-y-auto"
-                        style={{ scrollSnapType: 'y mandatory', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}
+                        style={{ scrollSnapType: 'y mandatory', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', overscrollBehaviorY: 'contain' }}
+                        onTouchStart={(e) => e.stopPropagation()}
+                        onTouchMove={(e) => e.stopPropagation()}
                       >
                         {Array.from({ length: 60 }, (_, i) => i).map((s) => (
                           <div
