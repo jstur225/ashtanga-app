@@ -100,24 +100,13 @@ export async function GET(request: NextRequest) {
     let debugAllMemberships: any[] | undefined = undefined
 
     if (userProfile) {
-      const { data: allMemberships } = await supabase
-        .from('user_memberships')
-        .select('type, expires_at')
-        .eq('user_id', userProfile.id)
-        .order('expires_at', { ascending: false })
-      debugAllMemberships = allMemberships
-      console.log('[Membership API] ⭐ 该用户所有会员记录:', JSON.stringify(allMemberships))
-
-      // ⭐ 调试: 查询视图
       const { data, error } = await supabase
         .from('user_membership_status')
         .select('is_active, expires_at, days_remaining, membership_type')
         .eq('user_id', userProfile.id)
         .maybeSingle()
-      console.log('[Membership API] ⭐ 视图返回:', JSON.stringify(data), 'error:', error)
       if (!error && data) {
         membershipData = data
-        console.log('[Membership API] 方式1(视图)命中:', data)
       }
     }
 
@@ -264,11 +253,6 @@ export async function GET(request: NextRequest) {
           : null,
         days_remaining: membershipData?.days_remaining ?? 0,
         type: membershipData?.membership_type ?? null,
-      },
-      // ⭐ 调试信息：所有会员记录 + 视图返回值
-      _debug: {
-        allMemberships: debugAllMemberships,
-        membershipData,
       },
     }
 

@@ -21,7 +21,6 @@ export function useMembership() {
   const [membership, setMembership] = useState<MembershipStatus | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [debugInfo, setDebugInfo] = useState<any>(null)
 
   const fetchMembershipStatus = useCallback(async () => {
     try {
@@ -43,15 +42,6 @@ export function useMembership() {
       })
 
       const result = await response.json()
-
-      // ⭐ 提取调试信息
-      if (result._debug) {
-        setDebugInfo({
-          allMemberships: result._debug.allMemberships,
-          membershipData: result._debug.membershipData,
-          responseData: result.data,
-        })
-      }
 
       if (response.ok) {
         if (result.success) {
@@ -97,6 +87,5 @@ export function useMembership() {
     error,
     isPro: membership?.is_active ?? false,
     refresh,
-    debugInfo,
   }
 }
