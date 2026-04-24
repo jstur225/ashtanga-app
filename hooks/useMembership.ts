@@ -8,7 +8,7 @@ export interface MembershipStatus {
   expires_at: string | null
   expires_at_formatted: string | null
   days_remaining: number
-  type: 'quarter' | 'year' | null
+  type: 'quarter' | 'year' | 'trial' | null
 }
 
 export const PRO_BENEFITS = [

@@ -157,6 +157,79 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // 方式4: 用 auth uid 直接查 user_memberships（通过 user_profiles 子查询）
+    if (!membershipData) {
+      // 先找出该 auth uid 对应的所有 profile
+      const { data: allProfiles, error: apError } = await supabase
+        .from('user_profiles')
+        .select('id')
+        .eq('user_id', user.id)
+
+      console.log('[Membership API] 方式4(所有profiles):', { profiles: allProfiles, error: apError?.message })
+
+      if (allProfiles && allProfiles.length > 0) {
+        // 遍历所有 profile 查找 membership
+        for (const p of allProfiles) {
+          if (membershipData) break
+          const { data: byPid, error: pidErr } = await supabase
+            .from('user_memberships')
+            .select('expires_at, type')
+            .eq('user_id', p.id)
+            .order('expires_at', { ascending: false })
+            .limit(1)
+            .maybeSingle()
+
+          if (byPid) {
+            const isActive = new Date(byPid.expires_at) > new Date()
+            const daysRemaining = isActive
+              ? Math.ceil((new Date(byPid.expires_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+              : 0
+            membershipData = {
+              is_active: isActive,
+              expires_at: byPid.expires_at,
+              days_remaining: daysRemaining,
+              membership_type: byPid.type,
+            }
+            console.log('[Membership API] 方式4(遍历profile)命中, profileId:', p.id, 'data:', byPid)
+          }
+        }
+      }
+    }
+
+    // 方式5: 直接查 user_memberships 表所有记录，按 email 模糊匹配
+    if (!membershipData && user.email) {
+      const { data: allMemberships, error: amError } = await supabase
+        .from('user_memberships')
+        .select('id, user_id, email, expires_at, type')
+        .order('expires_at', { ascending: false })
+        .limit(20)
+
+      console.log('[Membership API] 方式5(全表扫描前20条):', {
+        count: allMemberships?.length || 0,
+        error: amError?.message,
+        useremail: user.email
+      })
+
+      if (allMemberships && allMemberships.length > 0) {
+        const match = allMemberships.find(m => m.email === user.email)
+        if (match) {
+          const isActive = new Date(match.expires_at) > new Date()
+          const daysRemaining = isActive
+            ? Math.ceil((new Date(match.expires_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+            : 0
+          membershipData = {
+            is_active: isActive,
+            expires_at: match.expires_at,
+            days_remaining: daysRemaining,
+            membership_type: match.type,
+          }
+          console.log('[Membership API] 方式5(全表匹配email)命中:', match)
+        } else {
+          console.log('[Membership API] 方式5: 全表中未找到 email 匹配，所有记录 email:', allMemberships.map(m => m.email))
+        }
+      }
+    }
+
     console.log('[Membership API] 最终 membershipData:', membershipData)
 
     // 3. 格式化响应（免费用户返回 is_active: false）
