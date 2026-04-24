@@ -79,7 +79,11 @@ export async function GET(request: NextRequest) {
     // 2. 查询会员状态
     console.log('[Membership API] 查询会员状态, userId:', user.id)
 
-    // ⭐ 首先通过 user_id 查询 user_profiles 获取 profile id
+    // 先尝试直接从 user_memberships 查（用 auth uid 的 email 匹配）
+    // 也通过 user_profiles 链路查
+    let membershipData: any = null
+
+    // 方式1: 通过 user_profiles → 视图
     const { data: userProfile, error: profileError } = await supabase
       .from('user_profiles')
       .select('id')
@@ -88,51 +92,88 @@ export async function GET(request: NextRequest) {
 
     console.log('[Membership API] user_profiles 查询:', { hasProfile: !!userProfile, profileId: userProfile?.id, error: profileError?.message })
 
-    let membershipQuery: any
-
-    // 优先使用 profile id 查询，如果没有 profile 则尝试用 user.id
-    const queryId = userProfile?.id || user.id
-    console.log('[Membership API] 使用 queryId:', queryId)
-
-    // 查询视图（视图中的 user_id 实际上是 user_profiles.id）
-    const { data: membership, error: membershipError } = await supabase
-      .from('user_membership_status')
-      .select('is_active, expires_at, days_remaining, membership_type')
-      .eq('user_id', queryId)
-      .maybeSingle()
-
-    console.log('[Membership API] 查询结果:', { hasData: !!membership, error: membershipError?.message, data: membership })
-
-    if (membershipError) {
-      console.error('[Membership API] 查询会员状态失败:', membershipError)
-      return NextResponse.json(
-        { success: false, error: 'DATABASE_ERROR' },
-        { status: 500 }
-      )
+    if (userProfile) {
+      const { data, error } = await supabase
+        .from('user_membership_status')
+        .select('is_active, expires_at, days_remaining, membership_type')
+        .eq('user_id', userProfile.id)
+        .maybeSingle()
+      if (!error && data) {
+        membershipData = data
+        console.log('[Membership API] 方式1(视图)命中:', data)
+      }
     }
+
+    // 方式2: 直接查 user_memberships 表（用 email 或 auth uid 匹配）
+    if (!membershipData) {
+      // 用 email 查
+      const { data: byEmail, error: emailError } = await supabase
+        .from('user_memberships')
+        .select('expires_at, type')
+        .eq('email', user.email)
+        .order('expires_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      console.log('[Membership API] 方式2(email直查):', { data: byEmail, error: emailError?.message })
+
+      if (byEmail) {
+        const isActive = new Date(byEmail.expires_at) > new Date()
+        const daysRemaining = isActive
+          ? Math.ceil((new Date(byEmail.expires_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+          : 0
+        membershipData = {
+          is_active: isActive,
+          expires_at: byEmail.expires_at,
+          days_remaining: daysRemaining,
+          membership_type: byEmail.type,
+        }
+      }
+    }
+
+    // 方式3: 用 user_profiles.id 直接查 user_memberships 表
+    if (!membershipData && userProfile) {
+      const { data: byProfileId, error: pidError } = await supabase
+        .from('user_memberships')
+        .select('expires_at, type')
+        .eq('user_id', userProfile.id)
+        .order('expires_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      console.log('[Membership API] 方式3(profileId直查):', { data: byProfileId, error: pidError?.message })
+
+      if (byProfileId) {
+        const isActive = new Date(byProfileId.expires_at) > new Date()
+        const daysRemaining = isActive
+          ? Math.ceil((new Date(byProfileId.expires_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+          : 0
+        membershipData = {
+          is_active: isActive,
+          expires_at: byProfileId.expires_at,
+          days_remaining: daysRemaining,
+          membership_type: byProfileId.type,
+        }
+      }
+    }
+
+    console.log('[Membership API] 最终 membershipData:', membershipData)
 
     // 3. 格式化响应（免费用户返回 is_active: false）
     const responseData = {
       success: true,
       data: {
-        is_active: membership?.is_active ?? false,
-        expires_at: membership?.expires_at ?? null,
-        expires_at_formatted: membership?.expires_at
-          ? new Date(membership.expires_at).toLocaleDateString('zh-CN', {
+        is_active: membershipData?.is_active ?? false,
+        expires_at: membershipData?.expires_at ?? null,
+        expires_at_formatted: membershipData?.expires_at
+          ? new Date(membershipData.expires_at).toLocaleDateString('zh-CN', {
               year: 'numeric',
               month: '2-digit',
               day: '2-digit',
             }).replace(/\//g, '.')
           : null,
-        days_remaining: membership?.days_remaining ?? 0,
-        type: membership?.membership_type ?? null,
-        // ⭐ 把调试信息放 data 里确保能看到
-        _test: {
-          v: '5',
-          hasMembership: !!membership,
-          profileId: userProfile?.id,
-          queryId: queryId,
-        },
+        days_remaining: membershipData?.days_remaining ?? 0,
+        type: membershipData?.membership_type ?? null,
       },
     }
 
