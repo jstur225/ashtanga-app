@@ -4140,13 +4140,23 @@ export default function AshtangaTracker() {
     ])
   }, [practiceOptionsData, todayCount, chantEnabled, chantDelay])
 
-  // 页面加载时获取今日在线人数
-  useEffect(() => {
-    fetch('/api/stats/today')
+  // 获取今日练习次数
+  const fetchTodayCount = useCallback(() => {
+    fetch(`/api/stats/today?t=${Date.now()}`)
       .then(res => res.json())
       .then(data => setTodayCount(data.count || 0))
       .catch(() => {})
   }, [])
+
+  // 页面加载 + 页面可见时刷新
+  useEffect(() => {
+    fetchTodayCount()
+    const handler = () => {
+      if (document.visibilityState === 'visible') fetchTodayCount()
+    }
+    document.addEventListener('visibilitychange', handler)
+    return () => document.removeEventListener('visibilitychange', handler)
+  }, [fetchTodayCount])
 
   // Keep screen awake during practice
   useEffect(() => {
@@ -4235,6 +4245,7 @@ export default function AshtangaTracker() {
         setSelectedOption('guided_audio')
         setCustomPracticeName("")
       } else if (option.id === 'today_count') {
+        fetchTodayCount()
         toast('今天你熬汤了吗？')
       } else if (option.id === 'chant_switch') {
         const newEnabled = !chantEnabled
@@ -5282,9 +5293,7 @@ export default function AshtangaTracker() {
       })
 
       // 刷新今日练习人数
-      fetch('/api/stats/today')
-        .then(res => res.json())
-        .then(data => setTodayCount(data.count || 0))
+      fetchTodayCount()
         .catch(() => {})
 
       // ⭐ 延迟 500ms 同步，确保 localStorage 已完全更新
