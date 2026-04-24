@@ -4753,10 +4753,78 @@ export default function AshtangaTracker() {
       photoLogs = { error: '读取照片日志失败', details: String(e) }
     }
 
+    // ===== 14. 会员状态日志 =====
+    let membershipLogs: any = { source: 'local_only' }
+    try {
+      // 14a. 本地 hook 状态
+      membershipLogs.localState = {
+        membership: membership ? {
+          is_active: membership.is_active,
+          type: membership.type,
+          expires_at: membership.expires_at,
+          expires_at_formatted: membership.expires_at_formatted,
+          days_remaining: membership.days_remaining,
+        } : null,
+        isPro: membershipIsPro,
+        loading: membershipLoading,
+      }
+
+      // 14b. 从 Supabase session 获取 token，调 API 查询后端会员状态
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.access_token) {
+        membershipLogs.hasSession = true
+        membershipLogs.authUserId = user?.id || null
+        membershipLogs.authEmail = user?.email || null
+
+        try {
+          const resp = await fetch('/api/membership/status', {
+            headers: { 'Authorization': `Bearer ${session.access_token}` },
+          })
+          membershipLogs.apiStatus = resp.status
+          const apiResult = await resp.json()
+          membershipLogs.apiResponse = apiResult
+        } catch (e: any) {
+          membershipLogs.apiError = e?.message || String(e)
+        }
+
+        // 14c. 调 debug API 获取全链路数据
+        try {
+          const debugResp = await fetch('/api/debug/membership', {
+            headers: { 'Authorization': `Bearer ${session.access_token}` },
+          })
+          const debugResult = await debugResp.json()
+          // 只取关键信息，避免日志过大
+          if (debugResult.success && debugResult.data) {
+            const d = debugResult.data
+            membershipLogs.debugOverview = {
+              envOk: d.env?.hasUrl && d.env?.hasKey,
+              membershipCount: d.tables?.user_memberships?.count || 0,
+              membershipRecords: d.tables?.user_memberships?.records || [],
+              viewRecords: d.tables?.user_membership_status?.records || [],
+              userSpecific: d.user_specific || null,
+            }
+          }
+        } catch (e: any) {
+          membershipLogs.debugApiError = e?.message || String(e)
+        }
+      } else {
+        membershipLogs.hasSession = false
+        membershipLogs.note = '用户未登录，无法查询后端会员状态'
+      }
+
+      // 14d. 唱诵相关状态
+      membershipLogs.chantState = {
+        enabled: chantEnabled,
+        delay: chantDelay,
+      }
+    } catch (e: any) {
+      membershipLogs.error = '收集会员日志失败: ' + (e?.message || String(e))
+    }
+
     // 生成完整日志
     const debugLog = {
       _meta: {
-        version: '2.3',
+        version: '2.4',
         exportTime: new Date().toISOString(),
         description: '熬汤日记调试日志 - 用于问题排查',
         gitVersion: getVersionInfo()
@@ -4775,7 +4843,8 @@ export default function AshtangaTracker() {
       performanceInfo,
       currentAppState,
       syncLogs,
-      photoLogs
+      photoLogs,
+      membershipLogs
     }
 
     // 转换为JSON字符串并显示在弹窗中
