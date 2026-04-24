@@ -3459,6 +3459,7 @@ function StatsTab({
   profile,
   membership,
   membershipLoading,
+  membershipDebugInfo,
   onOpenSettings,
   onOpenMembership,
   onOpenFakeDoor,
@@ -3474,6 +3475,7 @@ function StatsTab({
   profile: UserProfile
   membership: { is_active: boolean; expires_at_formatted: string | null; days_remaining: number; type: 'quarter' | 'year' | null } | null
   membershipLoading: boolean
+  membershipDebugInfo: any
   onOpenSettings: () => void
   onOpenMembership: () => void
   onOpenFakeDoor: () => void
@@ -3726,6 +3728,15 @@ function StatsTab({
               <ChevronRight className="w-3.5 h-3.5" />
             </button>
           )}
+          {/* ⭐ 临时调试信息 */}
+          {membershipDebugInfo && (
+            <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-xl text-[9px] font-mono text-yellow-800 break-all">
+              <div className="font-bold mb-1">DEBUG:</div>
+              <div>所有记录: {JSON.stringify(membershipDebugInfo.allMemberships)}</div>
+              <div>视图返回: {JSON.stringify(membershipDebugInfo.membershipData)}</div>
+              <div>响应: {membershipDebugInfo.responseData?.expires_at_formatted} ({membershipDebugInfo.responseData?.days_remaining}天)</div>
+            </div>
+          )}
           <p className="text-[10px] font-mono text-gray-400 mt-1">
             ID: {user?.email ? maskEmail(user.email) : (profile.id?.slice(0, 8) || 'ANONYMOUS')}
           </p>
@@ -3865,7 +3876,7 @@ export default function AshtangaTracker() {
   } = usePracticeData()
 
   // ==================== 会员状态 ====================
-  const { membership, loading: membershipLoading, isPro: membershipIsPro, refresh: refreshMembership } = useMembership()
+  const { membership, loading: membershipLoading, isPro: membershipIsPro, refresh: refreshMembership, debugInfo: membershipDebugInfo } = useMembership()
 
   // ==================== 认证状态 ====================
   const { user, loading: authLoading } = useAuth()
@@ -5759,6 +5770,7 @@ export default function AshtangaTracker() {
           profile={userProfile}
           membership={membership}
           membershipLoading={membershipLoading}
+          membershipDebugInfo={membershipDebugInfo}
           onOpenSettings={() => setShowSettings(true)}
           onOpenMembership={() => {
             setSettingsInitialSection('membership')

@@ -21,6 +21,7 @@ export function useMembership() {
   const [membership, setMembership] = useState<MembershipStatus | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [debugInfo, setDebugInfo] = useState<any>(null)
 
   const fetchMembershipStatus = useCallback(async () => {
     try {
@@ -28,34 +29,28 @@ export function useMembership() {
       const { data: { session } } = await supabase.auth.getSession()
       const token = session?.access_token
 
-      console.log('[useMembership] Session:', session ? 'exists' : 'null')
-      console.log('[useMembership] Token:', token ? `exists (${token.slice(0, 20)}...)` : 'null')
-
       if (!token) {
-        console.log('[useMembership] No token, skipping fetch')
         setLoading(false)
         setMembership(null)
         return
       }
 
       setLoading(true)
-      console.log('[useMembership] Sending request with Authorization header')
       const response = await fetch('/api/membership/status', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
       })
 
-      console.log('[useMembership] Response status:', response.status)
       const result = await response.json()
-      console.log('[useMembership] API 返回完整数据:', JSON.stringify(result, null, 2))
 
-      // ⭐ 打印调试信息（用 error 级别确保显示）
+      // ⭐ 提取调试信息
       if (result._debug) {
-        console.error('[useMembership] ========== 调试信息 ==========')
-        console.error('[useMembership] 所有会员记录:', JSON.stringify(result._debug.allMemberships, null, 2))
-        console.error('[useMembership] 视图返回:', JSON.stringify(result._debug.membershipData, null, 2))
-        console.error('[useMembership] =================================')
+        setDebugInfo({
+          allMemberships: result._debug.allMemberships,
+          membershipData: result._debug.membershipData,
+          responseData: result.data,
+        })
       }
 
       if (response.ok) {
@@ -84,7 +79,6 @@ export function useMembership() {
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        console.log('[useMembership] 页面可见，刷新会员状态')
         fetchMembershipStatus()
       }
     }
@@ -103,5 +97,6 @@ export function useMembership() {
     error,
     isPro: membership?.is_active ?? false,
     refresh,
+    debugInfo,
   }
 }
