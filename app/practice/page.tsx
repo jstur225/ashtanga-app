@@ -6231,31 +6231,31 @@ export default function AshtangaTracker() {
                   <label className="block text-sm font-serif text-foreground">
                     倒计时时长
                   </label>
-                  <div className="flex items-center justify-center gap-2">
+                  <div className="flex items-center justify-center gap-3">
                     <div className="flex flex-col items-center">
                       <button
                         onClick={() => {
-                          const v = Math.min(5, chantMins + 1)
+                          const v = Math.min(180, chantMins + 1)
                           setChantMins(v)
                           const total = v * 60 + chantSecs
                           if (total >= 5) setChantDelay(total)
                         }}
-                        className="w-14 h-8 flex items-center justify-center text-muted-foreground hover:text-foreground active:scale-90 transition-transform"
+                        className="w-[72px] h-9 flex items-center justify-center text-muted-foreground hover:text-foreground active:scale-90 transition-transform rounded-lg hover:bg-secondary/60"
                       >
                         <ChevronUp className="w-5 h-5" />
                       </button>
                       <input
                         type="number"
                         min={0}
-                        max={5}
+                        max={180}
                         value={chantMins}
                         onChange={(e) => {
-                          const v = Math.min(5, Math.max(0, parseInt(e.target.value) || 0))
+                          const v = Math.min(180, Math.max(0, parseInt(e.target.value) || 0))
                           setChantMins(v)
                           const total = v * 60 + chantSecs
                           if (total >= 5) setChantDelay(total)
                         }}
-                        className="w-14 h-14 text-center text-3xl font-light text-foreground bg-secondary/60 rounded-2xl border border-border/30 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:bg-secondary appearance-none [moz-appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        className="w-[72px] h-16 text-center text-3xl font-light text-foreground bg-secondary/60 rounded-2xl border border-border/30 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:bg-secondary appearance-none [moz-appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         inputMode="numeric"
                       />
                       <button
@@ -6265,7 +6265,7 @@ export default function AshtangaTracker() {
                           const total = v * 60 + chantSecs
                           if (total >= 5) setChantDelay(total)
                         }}
-                        className="w-14 h-8 flex items-center justify-center text-muted-foreground hover:text-foreground active:scale-90 transition-transform"
+                        className="w-[72px] h-9 flex items-center justify-center text-muted-foreground hover:text-foreground active:scale-90 transition-transform rounded-lg hover:bg-secondary/60"
                       >
                         <ChevronDown className="w-5 h-5" />
                       </button>
@@ -6279,7 +6279,7 @@ export default function AshtangaTracker() {
                           const total = chantMins * 60 + v
                           if (total >= 5) setChantDelay(total)
                         }}
-                        className="w-14 h-8 flex items-center justify-center text-muted-foreground hover:text-foreground active:scale-90 transition-transform"
+                        className="w-[72px] h-9 flex items-center justify-center text-muted-foreground hover:text-foreground active:scale-90 transition-transform rounded-lg hover:bg-secondary/60"
                       >
                         <ChevronUp className="w-5 h-5" />
                       </button>
@@ -6294,7 +6294,7 @@ export default function AshtangaTracker() {
                           const total = chantMins * 60 + v
                           if (total >= 5) setChantDelay(total)
                         }}
-                        className="w-14 h-14 text-center text-3xl font-light text-foreground bg-secondary/60 rounded-2xl border border-border/30 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:bg-secondary appearance-none [moz-appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        className="w-[72px] h-16 text-center text-3xl font-light text-foreground bg-secondary/60 rounded-2xl border border-border/30 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:bg-secondary appearance-none [moz-appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         inputMode="numeric"
                       />
                       <button
@@ -6304,7 +6304,7 @@ export default function AshtangaTracker() {
                           const total = chantMins * 60 + v
                           if (total >= 5) setChantDelay(total)
                         }}
-                        className="w-14 h-8 flex items-center justify-center text-muted-foreground hover:text-foreground active:scale-90 transition-transform"
+                        className="w-[72px] h-9 flex items-center justify-center text-muted-foreground hover:text-foreground active:scale-90 transition-transform rounded-lg hover:bg-secondary/60"
                       >
                         <ChevronDown className="w-5 h-5" />
                       </button>
@@ -6312,7 +6312,7 @@ export default function AshtangaTracker() {
                     <span className="text-base font-serif text-muted-foreground mt-1">秒</span>
                   </div>
                   <p className="text-center text-xs text-muted-foreground/60 font-serif">
-                    当前：{Math.floor(chantDelay / 60)}分{String(chantDelay % 60).padStart(2, '0')}秒（最少5秒）
+                    当前：{Math.floor(chantDelay / 60)}分{String(chantDelay % 60).padStart(2, '0')}秒（最少5秒，最长3小时）
                   </p>
                 </div>
               ) : (
