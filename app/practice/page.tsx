@@ -3962,8 +3962,6 @@ export default function AshtangaTracker() {
   const [chantSecs, setChantSecs] = useState(0)
   const chantAudioRef = useRef<HTMLAudioElement | null>(null)
   const chantCountdownRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const chantMinScrollRef = useRef<HTMLDivElement | null>(null)
-  const chantSecScrollRef = useRef<HTMLDivElement | null>(null)
 
   // 今日练习人数
   const [todayPracticeCount, setTodayPracticeCount] = useState<number>(0)
@@ -6212,27 +6210,8 @@ export default function AshtangaTracker() {
               exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
               className="fixed bottom-0 left-0 right-0 bg-card rounded-t-[24px] z-[110] p-6 pb-10 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]"
-              onTouchStart={(e) => {
-                // 只阻止非滚轮区域的触摸冒泡
-                const target = e.target as HTMLElement
-                if (!target.closest('[data-scroll-wheel]')) {
-                  e.stopPropagation()
-                }
-              }}
-              onTouchMove={(e) => {
-                const target = e.target as HTMLElement
-                if (!target.closest('[data-scroll-wheel]')) {
-                  e.stopPropagation()
-                }
-              }}
               onAnimationComplete={() => {
-                // 动画完成后初始化滚轮位置（只执行一次）
-                if (chantMinScrollRef.current) {
-                  chantMinScrollRef.current.scrollTop = chantMins * 40
-                }
-                if (chantSecScrollRef.current) {
-                  chantSecScrollRef.current.scrollTop = chantSecs * 40
-                }
+                // 动画完成（保留 ref 以备后用）
               }}
             >
               <div className="flex items-center justify-between mb-6">
@@ -6252,63 +6231,40 @@ export default function AshtangaTracker() {
                   <label className="block text-sm font-serif text-foreground">
                     倒计时时长
                   </label>
-                  {/* 双滚轮：分钟 + 秒 */}
                   <div className="flex items-center justify-center gap-3">
-                    {/* 分钟滚轮 */}
-                    <div className="relative w-20 h-[160px] overflow-hidden" data-scroll-wheel="min"
-                      onTouchStart={(e) => e.stopPropagation()}
-                      onTouchMove={(e) => e.stopPropagation()}
-                    >
-                      <div className="absolute inset-x-0 top-0 h-[60px] bg-gradient-to-b from-card to-transparent z-10 pointer-events-none" />
-                      <div className="absolute inset-x-0 bottom-0 h-[60px] bg-gradient-to-t from-card to-transparent z-10 pointer-events-none" />
-                      <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[40px] border-t border-b border-primary/30 z-10 pointer-events-none rounded-sm" />
-                      <div
-                        ref={chantMinScrollRef}
-                        className="flex flex-col items-center pt-[60px] pb-[60px] snap-y snap-mandatory overflow-y-auto"
-                        style={{ scrollSnapType: 'y mandatory', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', overscrollBehaviorY: 'contain' }}
-                        onTouchStart={(e) => e.stopPropagation()}
-                        onTouchMove={(e) => e.stopPropagation()}
-                      >
-                        {Array.from({ length: 6 }, (_, i) => i).map((m) => (
-                          <div
-                            key={m}
-                            className="h-[40px] flex items-center justify-center snap-start text-xl font-serif text-foreground shrink-0 w-full"
-                          >
-                            {m}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+                    <input
+                      type="number"
+                      min={0}
+                      max={5}
+                      value={chantMins}
+                      onChange={(e) => {
+                        const v = Math.min(5, Math.max(0, parseInt(e.target.value) || 0))
+                        setChantMins(v)
+                        const total = v * 60 + chantSecs
+                        if (total >= 5) setChantDelay(total)
+                      }}
+                      className="w-16 h-12 text-center text-2xl font-serif text-foreground bg-secondary rounded-xl border border-border/50 focus:outline-none focus:ring-2 focus:ring-primary/30 appearance-none"
+                      inputMode="numeric"
+                    />
                     <span className="text-sm font-serif text-muted-foreground">分</span>
-                    {/* 秒滚轮 */}
-                    <div className="relative w-20 h-[160px] overflow-hidden" data-scroll-wheel="sec"
-                      onTouchStart={(e) => e.stopPropagation()}
-                      onTouchMove={(e) => e.stopPropagation()}
-                    >
-                      <div className="absolute inset-x-0 top-0 h-[60px] bg-gradient-to-b from-card to-transparent z-10 pointer-events-none" />
-                      <div className="absolute inset-x-0 bottom-0 h-[60px] bg-gradient-to-t from-card to-transparent z-10 pointer-events-none" />
-                      <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[40px] border-t border-b border-primary/30 z-10 pointer-events-none rounded-sm" />
-                      <div
-                        ref={chantSecScrollRef}
-                        className="flex flex-col items-center pt-[60px] pb-[60px] snap-y snap-mandatory overflow-y-auto"
-                        style={{ scrollSnapType: 'y mandatory', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', overscrollBehaviorY: 'contain' }}
-                        onTouchStart={(e) => e.stopPropagation()}
-                        onTouchMove={(e) => e.stopPropagation()}
-                      >
-                        {Array.from({ length: 60 }, (_, i) => i).map((s) => (
-                          <div
-                            key={s}
-                            className="h-[40px] flex items-center justify-center snap-start text-xl font-serif text-foreground shrink-0 w-full"
-                          >
-                            {String(s).padStart(2, '0')}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+                    <input
+                      type="number"
+                      min={0}
+                      max={59}
+                      value={chantSecs}
+                      onChange={(e) => {
+                        const v = Math.min(59, Math.max(0, parseInt(e.target.value) || 0))
+                        setChantSecs(v)
+                        const total = chantMins * 60 + v
+                        if (total >= 5) setChantDelay(total)
+                      }}
+                      className="w-16 h-12 text-center text-2xl font-serif text-foreground bg-secondary rounded-xl border border-border/50 focus:outline-none focus:ring-2 focus:ring-primary/30 appearance-none"
+                      inputMode="numeric"
+                    />
                     <span className="text-sm font-serif text-muted-foreground">秒</span>
                   </div>
                   <p className="text-center text-xs text-muted-foreground/60 font-serif">
-                    当前：{Math.floor(chantDelay / 60)}分{String(chantDelay % 60).padStart(2, '0')}秒
+                    当前：{Math.floor(chantDelay / 60)}分{String(chantDelay % 60).padStart(2, '0')}秒（最少5秒）
                   </p>
                 </div>
               ) : (
