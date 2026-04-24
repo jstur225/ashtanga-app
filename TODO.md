@@ -1,5 +1,39 @@
 # 待处理问题
 
+## 2026-04-24 - 会员续费时间累加修复 ✅ 已完成
+
+**状态**：已完成
+**提交**：`a0bce46` fix: 会员续费时间累加 — 直接查 user_memberships 表取代不可靠的视图查询
+
+### 问题
+已有会员再激活新卡时，到期时间没有从现有到期日累加，而是从当前时间重新计算。
+
+### 已实现
+- 激活 API 改为直接查 `user_memberships` 表找 `MAX(expires_at)`（不再依赖 `user_membership_status` 视图）
+- 有活跃会员 → 新到期 = 现有到期 + 新卡天数
+- 无活跃会员 → 新到期 = 当前时间 + 新卡天数
+
+### 涉及文件
+- `app/api/membership/activate/route.ts` — 查询逻辑重构
+
+---
+
+## 2026-04-24 - 会员状态 API 缓存修复 ✅ 已完成
+
+**状态**：已完成
+**提交**：`b7717f7` fix: 会员状态 API 增加缓存控制和调试日志
+
+### 问题
+会员状态 API 响应被 Next.js 缓存，刷新页面仍显示旧的到期时间。
+
+### 已实现
+- 添加 `dynamic = 'force-dynamic'`、`fetchCache = 'force-no-store'`、`revalidate = 0` 禁用缓存
+
+### 涉及文件
+- `app/api/membership/status/route.ts` — 缓存控制
+
+---
+
 ## 2026-04-24 - 会员状态查询优化 + 调试日志增强 ✅ 已完成
 
 **状态**：已完成
