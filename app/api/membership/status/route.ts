@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
+export const dynamic = 'force-dynamic'
+export const fetchCache = 'force-no-store'
+export const revalidate = 0
+
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 
@@ -93,11 +97,21 @@ export async function GET(request: NextRequest) {
     console.log('[Membership API] user_profiles 查询:', { hasProfile: !!userProfile, profileId: userProfile?.id, error: profileError?.message })
 
     if (userProfile) {
+      // ⭐ 调试: 先直接查 user_memberships 看所有记录
+      const { data: allMemberships } = await supabase
+        .from('user_memberships')
+        .select('type, expires_at')
+        .eq('user_id', userProfile.id)
+        .order('expires_at', { ascending: false })
+      console.log('[Membership API] ⭐ 该用户所有会员记录:', JSON.stringify(allMemberships))
+
+      // ⭐ 调试: 查询视图
       const { data, error } = await supabase
         .from('user_membership_status')
         .select('is_active, expires_at, days_remaining, membership_type')
         .eq('user_id', userProfile.id)
         .maybeSingle()
+      console.log('[Membership API] ⭐ 视图返回:', JSON.stringify(data), 'error:', error)
       if (!error && data) {
         membershipData = data
         console.log('[Membership API] 方式1(视图)命中:', data)
