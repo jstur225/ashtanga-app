@@ -204,40 +204,40 @@ export async function POST(request: NextRequest) {
 
     console.log('[Membership API] 使用 profileId:', profileId)
 
-    // 查询当前会员状态
-    let currentMembership: { is_active: boolean; expires_at: string | null } | null = null
+    const now = new Date()
+
+    // 查询当前活跃会员的到期时间
+    // ⭐ 直接查 user_memberships 表（不依赖视图），找出所有未过期的记录取 MAX(expires_at)
+    let currentLatestExpiry: Date | null = null
     try {
-      const result = await supabase
-        .from('user_membership_status')
-        .select('is_active, expires_at')
+      const { data: memberships, error } = await supabase
+        .from('user_memberships')
+        .select('expires_at')
         .eq('user_id', profileId)
-        .maybeSingle()
+        .gt('expires_at', now.toISOString()) // 只查尚未过期的
+        .order('expires_at', { ascending: false })
+        .limit(1)
 
-      console.log('[Membership API] 查询会员状态结果:', result)
-
-      if (result.error) {
-        console.error('[Membership API] 查询会员状态失败:', result.error)
-        // 不阻止流程，按新会员处理
+      if (error) {
+        console.error('[Membership API] 查询会员记录失败:', error)
+      } else if (memberships && memberships.length > 0) {
+        currentLatestExpiry = new Date(memberships[0].expires_at)
+        console.log('[Membership API] 当前活跃会员最新到期时间:', currentLatestExpiry)
       } else {
-        currentMembership = result.data
-        console.log('[Membership API] 当前会员状态:', currentMembership)
+        console.log('[Membership API] 无活跃会员记录')
       }
     } catch (err: any) {
-      console.error('[Membership API] 查询会员状态异常:', err)
-      // 不阻止流程，按新会员处理
+      console.error('[Membership API] 查询会员记录异常:', err)
     }
-
-    const now = new Date()
 
     let newExpiresAt: Date
     let isNewMembership = false
 
     // 8. 计算新的到期时间
-    if (currentMembership?.is_active && currentMembership.expires_at) {
-      // 续费: 从原到期时间累加
-      const currentExpiresAt = new Date(currentMembership.expires_at)
-      newExpiresAt = new Date(currentExpiresAt.getTime() + activationCode.duration_days * 24 * 60 * 60 * 1000)
-      console.log('[Membership API] 续费, 原到期时间:', currentExpiresAt, '新到期时间:', newExpiresAt)
+    if (currentLatestExpiry) {
+      // 续费: 从当前最新到期时间累加
+      newExpiresAt = new Date(currentLatestExpiry.getTime() + activationCode.duration_days * 24 * 60 * 60 * 1000)
+      console.log('[Membership API] 续费, 原到期时间:', currentLatestExpiry, '新到期时间:', newExpiresAt)
     } else {
       // 新开通: 从当前时间开始
       newExpiresAt = new Date(now.getTime() + activationCode.duration_days * 24 * 60 * 60 * 1000)
