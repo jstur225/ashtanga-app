@@ -6344,7 +6344,7 @@ export default function AshtangaTracker() {
                       setMembershipPromptReason('options_full')
                       setShowMembershipPrompt(true)
                     }}
-                    className="w-full mt-2 px-6 py-2.5 rounded-full green-gradient text-white text-sm font-serif"
+                    className="w-full mt-2 px-6 py-2.5 rounded-full bg-gradient-to-r from-amber-500 to-yellow-500 text-white text-sm font-serif shadow-[0_4px_12px_rgba(245,158,11,0.3)]"
                   >
                     <Crown className="w-4 h-4 inline mr-1" />
                     升级 Pro 解锁自定义时长
