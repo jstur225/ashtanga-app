@@ -16,7 +16,7 @@ export async function GET() {
 
     const { data, error } = await supabase
       .from('practice_records')
-      .select('user_id')
+      .select('id')
       .eq('date', today)
 
     if (error) {
@@ -24,8 +24,7 @@ export async function GET() {
       return NextResponse.json({ count: 0 })
     }
 
-    const uniqueUsers = new Set(data?.map(r => r.user_id))
-    return NextResponse.json({ count: uniqueUsers.size })
+    return NextResponse.json({ count: data?.length || 0 })
   } catch (error) {
     console.error('[Stats] Error fetching today count:', error)
     return NextResponse.json({ count: 0 })
