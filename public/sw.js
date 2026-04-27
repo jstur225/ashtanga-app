@@ -71,6 +71,12 @@ self.addEventListener('fetch', event => {
     return
   }
 
+  // API 请求不缓存，直接走网络
+  if (url.pathname.startsWith('/api/')) {
+    event.respondWith(fetch(event.request))
+    return
+  }
+
   // 对于静态资源（图标等），使用Cache First（优先缓存，提升性能）
   event.respondWith(
     caches.match(event.request)
