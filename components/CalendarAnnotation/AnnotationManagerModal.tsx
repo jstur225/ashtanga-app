@@ -7,8 +7,8 @@ import type { AnnotationType } from '@/lib/annotation-types'
 
 // 9 色调色板（避开 green/orange/yellow）
 const PALETTE = [
-  '#E8637A', '#E8944A', '#2DB5B5', '#9B72CF', '#D4A843',
-  '#D94F4F', '#5B8FE8', '#6BBF8A', '#C47AD4',
+  '#E8637A', '#B07856', '#2DB5B5', '#9B72CF', '#8B9EB7',
+  '#D94F4F', '#5B8FE8', '#D4837A', '#C47AD4',
 ]
 
 const MAX_DISPLAY_TYPES = 9  // 最多 9 个类型 + 1 个添加按钮 = 10 格（两行×5列）
@@ -198,7 +198,10 @@ export function AnnotationManagerModal({
 
   // 打开创建表单
   const openCreateForm = () => {
-    if (types.length >= maxTypes) return
+    if (types.length >= maxTypes) {
+      alert(isPro ? '最多可创建 9 个标注类型，请先删除已有的再新建。' : '免费用户只能创建 1 个标注类型，升级 Pro 可创建 9 个。')
+      return
+    }
     setFormLabel('')
     setFormColor(PALETTE[types.length % PALETTE.length])
     setShowForm('create')
@@ -309,8 +312,8 @@ export function AnnotationManagerModal({
                   )
                 })}
 
-                {/* 添加按钮 */}
-                {types.length < maxTypes && types.length < MAX_DISPLAY_TYPES && (
+                {/* 添加按钮（始终显示） */}
+                {types.length < MAX_DISPLAY_TYPES && (
                   <button
                     onClick={openCreateForm}
                     className="py-2 px-1 rounded-[12px] font-serif flex flex-col items-center justify-center gap-1 bg-background text-muted-foreground border-2 border-dashed border-muted-foreground/30 hover:border-muted-foreground/50 hover:text-foreground transition-all"
