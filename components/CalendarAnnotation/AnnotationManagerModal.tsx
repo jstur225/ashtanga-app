@@ -313,18 +313,16 @@ export function AnnotationManagerModal({
                 })}
 
                 {/* 添加按钮（始终显示） */}
-                {types.length < MAX_DISPLAY_TYPES && (
-                  <button
+                <button
                     onClick={openCreateForm}
                     className="py-2 px-1 rounded-[12px] font-serif flex flex-col items-center justify-center gap-1 bg-background text-muted-foreground border-2 border-dashed border-muted-foreground/30 hover:border-muted-foreground/50 hover:text-foreground transition-all"
                   >
                     <Plus className="w-5 h-5" />
                     <span className="text-xs">添加</span>
-                  </button>
-                )}
+                  </button>}
 
                 {/* 剩余空位占位 */}
-                {Array.from({ length: Math.max(0, MAX_DISPLAY_TYPES - Math.min(types.length, MAX_DISPLAY_TYPES) - (types.length < maxTypes ? 1 : 0)) }).map((_, i) => (
+                {Array.from({ length: Math.max(0, 10 - types.length - 1) }).map((_, i) => (
                   <div key={`empty-${i}`} className="py-2 px-1 rounded-[12px]" />
                 ))}
               </div>
