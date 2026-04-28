@@ -2806,9 +2806,7 @@ function MonthlyHeatmap({
               aria-label="小红书群邀请"
             >
               <MessageCircle className="w-3.5 h-3.5" />
-              {hasNewXhsMessage && (
-                <div className="absolute bottom-1 left-1/2 -translate-x-1/2 rounded-full w-1 h-1 bg-red-400" />
-              )}
+              <div className={`absolute bottom-1 left-1/2 -translate-x-1/2 rounded-full w-1 h-1 ${hasNewXhsMessage ? 'bg-red-400' : 'bg-green-400'}`} />
             </button>
             <button
               onClick={goToPreviousMonth}
