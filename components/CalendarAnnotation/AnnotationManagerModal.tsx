@@ -49,7 +49,7 @@ export function AnnotationManagerModal({
     Object.keys(pendingRemoves).some(k => pendingRemoves[k].size > 0)
 
   // ===== 创建/编辑弹窗 =====
-  const [showForm, setShowForm] = useState<'create' | 'edit' | null>(null)
+  const [showForm, setShowForm] = useState<'create' | 'edit' | 'full' | null>(null)
   const [editingType, setEditingType] = useState<AnnotationType | null>(null)
   const [formLabel, setFormLabel] = useState('')
   const [formColor, setFormColor] = useState('')
@@ -199,7 +199,7 @@ export function AnnotationManagerModal({
   // 打开创建表单
   const openCreateForm = () => {
     if (types.length >= maxTypes) {
-      alert(isPro ? '最多可创建 9 个标注类型，请先删除已有的再新建。' : '免费用户只能创建 1 个标注类型，升级 Pro 可创建 9 个。')
+      setShowForm('full')
       return
     }
     setFormLabel('')
@@ -415,13 +415,24 @@ export function AnnotationManagerModal({
                 >
                   <div className="flex items-center justify-between mb-6">
                     <h2 className="text-lg font-serif text-foreground">
-                      {showForm === 'create' ? '新建标注' : '编辑标注'}
+                      {showForm === 'create' ? '新建标注' : showForm === 'edit' ? '编辑标注' : '提示'}
                     </h2>
                     <button onClick={() => { setShowForm(null); setEditingType(null) }} className="p-2 -mr-2 text-muted-foreground hover:text-foreground transition-colors">
                       <X className="w-5 h-5" />
                     </button>
                   </div>
 
+                  {showForm === 'full' ? (
+                    <div className="text-center py-8">
+                      <p className="text-foreground font-serif mb-2">
+                        {isPro ? '标注已满（最多 9 个）' : '免费用户只能创建 1 个标注类型'}
+                      </p>
+                      <p className="text-muted-foreground text-sm font-serif">
+                        {isPro ? '请双击删除已有标注后再添加' : '升级 Pro 可创建 9 个标注类型'}
+                      </p>
+                    </div>
+                  ) : (
+                  <>
                   {/* 名称 */}
                   <div className="mb-4">
                     <label className="block text-sm font-serif text-foreground mb-2">名称</label>
@@ -482,6 +493,8 @@ export function AnnotationManagerModal({
                     >
                       创建
                     </button>
+                  )}
+                  </>
                   )}
                 </motion.div>
               )}
