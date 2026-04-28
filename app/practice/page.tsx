@@ -5,10 +5,12 @@ import { useLocalStorage, useInterval } from 'react-use';
 import { motion, AnimatePresence } from "framer-motion"
 import { usePracticeData, type PracticeRecord, type PracticeOption, type UserProfile, GUIDED_AUDIO_OPTION, MAX_SLOTS_FREE, MAX_SLOTS_PRO } from "@/hooks/usePracticeData"
 import { useMembership } from "@/hooks/useMembership"
+import { useAnnotations } from "@/hooks/useAnnotations"
+import { AnnotationManagerModal } from "@/components/CalendarAnnotation/AnnotationManagerModal"
 import { usePWAInstall } from "@/hooks/usePWAInstall"
 import { useAuth } from "@/hooks/useAuth"
 import { useSync } from "@/hooks/useSync"
-import { BookOpen, BarChart3, Calendar, X, Camera, Pause, Play, Trash2, User, Settings, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Cloud, Download, Upload, Plus, Minus, Share2, Sparkles, Check, Copy, ClipboardPaste, MessageCircle, Bug, AlertCircle, SkipBack, SkipForward, Volume, Volume2, Crown, Ticket, Loader2, Lock, Users } from "lucide-react"
+import { BookOpen, BarChart3, Calendar, X, Camera, Pause, Play, Trash2, User, Settings, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Cloud, Download, Upload, Plus, Minus, Share2, Sparkles, Check, Copy, ClipboardPaste, MessageCircle, Bug, AlertCircle, SkipBack, SkipForward, Volume, Volume2, Crown, Ticket, Loader2, Lock, Users, Pencil } from "lucide-react"
 import { cn } from '@/lib/utils'
 import { FakeDoorModal } from "@/components/FakeDoorModal"
 import { VoiceButton } from "@/components/VoiceButton"
@@ -238,6 +240,7 @@ function MoonDayButton({
   practiced,
   isPast,
   hasBreakthrough,
+  annotationColors = [],
   className,
   ...props
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -246,10 +249,14 @@ function MoonDayButton({
   practiced: boolean
   isPast?: boolean
   hasBreakthrough?: boolean
+  annotationColors?: string[]
 }) {
   // 修复：已练习的月相日期应该优先显示绿色，而不是月相图标
   const isMoonDayNotPracticed = moonInfo && !practiced
   const isFutureMoonDay = moonInfo && !practiced && isPast === false
+
+  const hasMoonDot = moonInfo && practiced
+  const hasBreakthroughDot = hasBreakthrough && !moonInfo
 
   return (
     <button
@@ -276,14 +283,16 @@ function MoonDayButton({
       {/* 日期数字 - 未来月相日期显示灰色，过去月相日期显示黑色 */}
       <span className={`relative z-10 ${isFutureMoonDay ? 'text-muted-foreground/50' : ''}`}>{day}</span>
 
-      {/* 月相日期且已练习：显示黄色小亮点 */}
-      {moonInfo && practiced && (
-        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-1 h-1 bg-[#FFE066] rounded-full z-20 shadow-[0_0_6px_rgba(255,224,102,0.8)]" />
-      )}
-
-      {/* 突破日：显示橙色小亮点（非月相日期） */}
-      {hasBreakthrough && !moonInfo && (
-        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-1 h-1 bg-[#e67e22] rounded-full z-20 shadow-[0_0_6px_rgba(230,126,34,0.8)]" />
+      {/* 多圆点容器 */}
+      {(hasMoonDot || hasBreakthroughDot || annotationColors.length > 0) && (
+        <div className="absolute -bottom-[2px] left-1/2 -translate-x-1/2 flex gap-[1.5px] z-20">
+          {hasMoonDot && <div className="w-1 h-1 rounded-full bg-[#FFE066] shadow-[0_0_6px_rgba(255,224,102,0.8)]" />}
+          {hasBreakthroughDot && <div className="w-1 h-1 rounded-full bg-[#e67e22] shadow-[0_0_6px_rgba(230,126,34,0.8)]" />}
+          {annotationColors.slice(0, 3).map((color, i) => (
+            <div key={i} className="w-1 h-1 rounded-full" style={{ backgroundColor: color, boxShadow: `0 0 4px ${color}80` }} />
+          ))}
+          {annotationColors.length > 3 && <span className="text-[6px] text-muted-foreground">+{annotationColors.length - 3}</span>}
+        </div>
       )}
     </button>
   )
@@ -2672,6 +2681,8 @@ function MonthlyHeatmap({
   syncStatus,
   user,
   onMonthChange,
+  annotationMap,
+  onOpenAnnotationManager,
 }: {
   practiceHistory: PracticeRecord[]
   onDayClick: (dateStr: string) => void
@@ -2681,6 +2692,8 @@ function MonthlyHeatmap({
   syncStatus: 'idle' | 'syncing' | 'success' | 'error'
   user: any
   onMonthChange?: (date: Date) => void
+  annotationMap?: Record<string, { label: string; color: string }[]>
+  onOpenAnnotationManager?: () => void
 }) {
   const today = new Date()
   const todayStr = getLocalDateStr()
@@ -2800,8 +2813,16 @@ function MonthlyHeatmap({
           </button>
         </div>
         
-        {/* Right: Add Button - aligned with calendar last column */}
-        <div className="w-[calc((100%-12px)/7)] flex justify-center">
+        {/* Right: Annotation + Add Buttons */}
+        <div className="flex items-center justify-center gap-1">
+          {onOpenAnnotationManager && (
+            <button
+              onClick={onOpenAnnotationManager}
+              className="w-8 h-8 rounded-full bg-background border border-stone-200 shadow-[0_2px_8px_rgba(0,0,0,0.06)] flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <Pencil className="w-3.5 h-3.5" />
+            </button>
+          )}
           <button
             onClick={onAddRecord}
             className="w-8 h-8 rounded-full green-gradient-deep border border-white/20 shadow-[0_2px_8px_rgba(45,90,39,0.2)] flex items-center justify-center text-white"
@@ -2822,6 +2843,9 @@ function MonthlyHeatmap({
           const isPast = day ? dateStr <= todayStr : false
           const moonInfo = day ? moonPhaseMap[dateStr] : null
           const hasBreakthrough = day ? breakthroughMap[dateStr] : false
+          const annotationColors = day && annotationMap?.[dateStr]
+            ? annotationMap[dateStr].map(a => a.color)
+            : []
 
           return (
             <MoonDayButton
@@ -2831,6 +2855,7 @@ function MonthlyHeatmap({
               practiced={practiced}
               isPast={isPast}
               hasBreakthrough={hasBreakthrough}
+              annotationColors={annotationColors}
               onClick={() => handleDayClick(day)}
               disabled={!moonInfo && !practiced}
               className={
@@ -2965,6 +2990,9 @@ function JournalTab({
   onSetShowAddModal,
   syncStatus,
   user,
+  annotationMap,
+  onOpenAnnotationManager,
+  onJournalMonthChange,
 }: {
   practiceHistory: PracticeRecord[]
   practiceOptions: PracticeOption[]
@@ -2984,6 +3012,9 @@ function JournalTab({
   onSetShowAddModal: (show: boolean) => void
   syncStatus: 'idle' | 'syncing' | 'success' | 'error'
   user: any
+  annotationMap?: Record<string, { label: string; color: string }[]>
+  onOpenAnnotationManager?: () => void
+  onJournalMonthChange?: (date: Date) => void
 }) {
   const [sharingRecordId, setSharingRecordId] = useState<string | null>(null)
   const [childModalOpen, setChildModalOpen] = useState(false)
@@ -3156,9 +3187,13 @@ function JournalTab({
           votedCloud={votedCloud}
           syncStatus={syncStatus}
           user={user}
+          annotationMap={annotationMap}
+          onOpenAnnotationManager={onOpenAnnotationManager}
           onMonthChange={(date) => {
             // ⭐ 切换月份时重置加载的月份列表
             setLoadedMonths([date])
+            // ⭐ 通知父组件月份变化
+            onJournalMonthChange?.(date)
           }}
         />
       </div>
@@ -3866,6 +3901,37 @@ export default function AshtangaTracker() {
 
   // ==================== 会员状态 ====================
   const { membership, loading: membershipLoading, isPro: membershipIsPro, refresh: refreshMembership } = useMembership()
+
+  // ==================== 日历标注 ====================
+  const {
+    types: annotationTypes,
+    maxTypes: maxAnnotationTypes,
+    loadTypes: loadAnnotationTypes,
+    loadMonth: loadAnnotationMonth,
+    createType: createAnnotationType,
+    updateType: updateAnnotationType,
+    deleteType: deleteAnnotationType,
+    addAnnotation,
+    removeAnnotation,
+    buildAnnotationMap,
+  } = useAnnotations()
+  const [showAnnotationManager, setShowAnnotationManager] = useState(false)
+  const [journalDate, setJournalDate] = useState(new Date())
+  // 当前显示的标注映射
+  const annotationMap = useMemo(
+    () => buildAnnotationMap(journalDate.getFullYear(), journalDate.getMonth()),
+    [buildAnnotationMap, journalDate]
+  )
+
+  // 加载标注类型
+  useEffect(() => {
+    loadAnnotationTypes()
+  }, [loadAnnotationTypes])
+
+  // 月份切换时加载标注
+  useEffect(() => {
+    loadAnnotationMonth(journalDate.getFullYear(), journalDate.getMonth())
+  }, [journalDate, loadAnnotationMonth])
 
   // ==================== 认证状态 ====================
   const { user, loading: authLoading } = useAuth()
@@ -5749,6 +5815,9 @@ export default function AshtangaTracker() {
           onSetShowAddModal={setShowAddModal}
           syncStatus={syncStatus}
           user={user}
+          annotationMap={annotationMap}
+          onOpenAnnotationManager={() => setShowAnnotationManager(true)}
+          onJournalMonthChange={setJournalDate}
         />
         </motion.div>
       )}
@@ -5905,6 +5974,20 @@ export default function AshtangaTracker() {
         }}
         onPurchaseMembership={() => setShowPurchaseModal(true)}
         onUpdateProfile={updateProfile}
+      />
+
+      {/* Annotation Manager Modal */}
+      <AnnotationManagerModal
+        isOpen={showAnnotationManager}
+        onClose={() => setShowAnnotationManager(false)}
+        types={annotationTypes}
+        maxTypes={maxAnnotationTypes}
+        isPro={membershipIsPro}
+        onCreateType={createAnnotationType}
+        onUpdateType={updateAnnotationType}
+        onDeleteType={deleteAnnotationType}
+        onAddAnnotation={addAnnotation}
+        onRemoveAnnotation={removeAnnotation}
       />
 
       {/* Activate Membership Modal */}
