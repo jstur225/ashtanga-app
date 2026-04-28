@@ -285,13 +285,13 @@ function MoonDayButton({
 
       {/* 多圆点容器 */}
       {(hasMoonDot || hasBreakthroughDot || annotationColors.length > 0) && (
-        <div className="absolute -bottom-[2px] left-1/2 -translate-x-1/2 flex gap-[1.5px] z-20">
+        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-[1.5px] z-20">
           {hasMoonDot && <div className="w-1 h-1 rounded-full bg-[#FFE066] shadow-[0_0_6px_rgba(255,224,102,0.8)]" />}
           {hasBreakthroughDot && <div className="w-1 h-1 rounded-full bg-[#e67e22] shadow-[0_0_6px_rgba(230,126,34,0.8)]" />}
           {annotationColors.slice(0, 3).map((color, i) => (
-            <div key={i} className="w-1 h-1 rounded-full" style={{ backgroundColor: color, boxShadow: `0 0 4px ${color}80` }} />
+            <div key={i} className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color, boxShadow: `0 0 4px ${color}80` }} />
           ))}
-          {annotationColors.length > 3 && <span className="text-[6px] text-muted-foreground">+{annotationColors.length - 3}</span>}
+          {annotationColors.length > 3 && <span className="text-[7px] text-muted-foreground ml-0.5">+{annotationColors.length - 3}</span>}
         </div>
       )}
     </button>
@@ -5993,7 +5993,6 @@ export default function AshtangaTracker() {
         onUpdateType={updateAnnotationType}
         onDeleteType={deleteAnnotationType}
         onAddAnnotation={addAnnotation}
-        onRemoveAnnotation={removeAnnotation}
       />
 
       {/* Activate Membership Modal */}
