@@ -42,6 +42,12 @@ export function AnnotationManagerModal({
   const [selectedTypeId, setSelectedTypeId] = useState<string | null>(null)
   const lastTapRef = useRef<{ id: string; time: number } | null>(null)
 
+  // ===== 待提交的变更（本地状态，即时反馈） =====
+  const [pendingAdds, setPendingAdds] = useState<Record<string, Set<string>>>({})   // { typeId: Set<dateStr> }
+  const [pendingRemoves, setPendingRemoves] = useState<Record<string, Set<string>>>({})
+  const hasPendingChanges = Object.keys(pendingAdds).some(k => pendingAdds[k].size > 0) ||
+    Object.keys(pendingRemoves).some(k => pendingRemoves[k].size > 0)
+
   // ===== 创建/编辑弹窗 =====
   const [showForm, setShowForm] = useState<'create' | 'edit' | null>(null)
   const [editingType, setEditingType] = useState<AnnotationType | null>(null)
@@ -95,25 +101,99 @@ export function AnnotationManagerModal({
     }
   }, [selectedTypeId])
 
-  // 日期点击 — 根据是否已有标注决定添加或删除
-  const handleDateClick = useCallback(async (day: number) => {
+  // 日期点击 — 本地切换，不调 API
+  const handleDateClick = useCallback((day: number) => {
     if (!selectedTypeId) return
     const dateStr = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
 
-    const hasAnno = annotationDates?.[selectedTypeId]?.has(dateStr)
-    if (hasAnno) {
-      await onRemoveAnnotation(selectedTypeId, dateStr)
-    } else {
-      await onAddAnnotation(selectedTypeId, dateStr)
-    }
-  }, [selectedTypeId, viewYear, viewMonth, annotationDates, onAddAnnotation, onRemoveAnnotation])
+    // 判断当前状态：原始数据里有没有
+    const originalHas = annotationDates?.[selectedTypeId]?.has(dateStr) ?? false
 
-  // 判断某日期是否已有选中类型的标注
-  const hasAnnotation = useCallback((day: number): boolean => {
-    if (!selectedTypeId || !annotationDates) return false
-    const dateStr = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-    return annotationDates[selectedTypeId]?.has(dateStr) ?? false
+    if (originalHas) {
+      // 原来有 → 切换为移除
+      setPendingRemoves(prev => {
+        const next = { ...prev }
+        const set = new Set(next[selectedTypeId] || [])
+        if (set.has(dateStr)) {
+          set.delete(dateStr) // 再点一次恢复
+        } else {
+          set.add(dateStr)
+        }
+        next[selectedTypeId] = set
+        return next
+      })
+      // 如果同时在 pendingAdds 里，直接取消
+      setPendingAdds(prev => {
+        const set = prev[selectedTypeId]
+        if (set?.has(dateStr)) {
+          const next = { ...prev, [selectedTypeId]: new Set([...set].filter(d => d !== dateStr)) }
+          return next
+        }
+        return prev
+      })
+    } else {
+      // 原来没有 → 切换为添加
+      setPendingAdds(prev => {
+        const next = { ...prev }
+        const set = new Set(next[selectedTypeId] || [])
+        if (set.has(dateStr)) {
+          set.delete(dateStr) // 再点一次取消
+        } else {
+          set.add(dateStr)
+        }
+        next[selectedTypeId] = set
+        return next
+      })
+      // 如果同时在 pendingRemoves 里，直接取消
+      setPendingRemoves(prev => {
+        const set = prev[selectedTypeId]
+        if (set?.has(dateStr)) {
+          return { ...prev, [selectedTypeId]: new Set([...set].filter(d => d !== dateStr)) }
+        }
+        return prev
+      })
+    }
   }, [selectedTypeId, viewYear, viewMonth, annotationDates])
+
+  // 判断某日期是否有某类型的标注（原始 + 待添加 - 待移除）
+  const getDateAnnotationColors = useCallback((day: number): { color: string; isCurrentType: boolean }[] => {
+    const dateStr = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+    const result: { color: string; isCurrentType: boolean }[] = []
+
+    for (const type of types) {
+      const originalHas = annotationDates?.[type.id]?.has(dateStr) ?? false
+      const isPendingAdd = pendingAdds[type.id]?.has(dateStr) ?? false
+      const isPendingRemove = pendingRemoves[type.id]?.has(dateStr) ?? false
+
+      const has = (originalHas && !isPendingRemove) || isPendingAdd
+      if (has) {
+        result.push({ color: type.color, isCurrentType: type.id === selectedTypeId })
+      }
+    }
+    return result
+  }, [viewYear, viewMonth, annotationDates, pendingAdds, pendingRemoves, types, selectedTypeId])
+
+  // 批量保存
+  const handleSave = useCallback(async () => {
+    const promises: Promise<any>[] = []
+
+    // 所有待添加
+    for (const [typeId, dates] of Object.entries(pendingAdds)) {
+      for (const date of dates) {
+        promises.push(onAddAnnotation(typeId, date))
+      }
+    }
+    // 所有待移除
+    for (const [typeId, dates] of Object.entries(pendingRemoves)) {
+      for (const date of dates) {
+        promises.push(onRemoveAnnotation(typeId, date))
+      }
+    }
+
+    await Promise.all(promises)
+    setPendingAdds({})
+    setPendingRemoves({})
+  }, [pendingAdds, pendingRemoves, onAddAnnotation, onRemoveAnnotation])
 
   // 打开创建表单
   const openCreateForm = () => {
@@ -161,6 +241,8 @@ export function AnnotationManagerModal({
     setShowForm(null)
     setEditingType(null)
     setMonthOffset(0)
+    setPendingAdds({})
+    setPendingRemoves({})
     onClose()
   }
 
@@ -295,7 +377,7 @@ export function AnnotationManagerModal({
                   ))}
                   {calendarDays.map((day, idx) => {
                     if (day === null) return <div key={idx} />
-                    const hasAnno = selectedTypeId ? hasAnnotation(day) : false
+                    const dotColors = getDateAnnotationColors(day)
                     return (
                       <button
                         key={idx}
@@ -308,16 +390,38 @@ export function AnnotationManagerModal({
                         `}
                       >
                         {day}
-                        {hasAnno && (
-                          <div
-                            className="absolute bottom-1.5 w-1 h-1 rounded-full"
-                            style={{ backgroundColor: selectedType!.color }}
-                          />
+                        {/* 显示所有类型的圆点 */}
+                        {dotColors.length > 0 && (
+                          <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 flex gap-[1px]">
+                            {dotColors.slice(0, 3).map((dot, i) => (
+                              <div
+                                key={i}
+                                className="w-1 h-1 rounded-full transition-all"
+                                style={{
+                                  backgroundColor: dot.color,
+                                  opacity: dot.isCurrentType ? 1 : 0.35,
+                                }}
+                              />
+                            ))}
+                            {dotColors.length > 3 && (
+                              <span className="text-[5px] text-muted-foreground">+{dotColors.length - 3}</span>
+                            )}
+                          </div>
                         )}
                       </button>
                     )
                   })}
                 </div>
+
+                {/* 保存按钮（有变更时显示） */}
+                {hasPendingChanges && (
+                  <button
+                    onClick={handleSave}
+                    className="w-full mt-2 py-3 rounded-full green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white font-serif transition-all hover:opacity-90 active:scale-[0.98]"
+                  >
+                    保存
+                  </button>
+                )}
               </>
             </div>
 
