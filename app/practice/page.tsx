@@ -5818,7 +5818,7 @@ export default function AshtangaTracker() {
           annotationMap={annotationMap}
           onOpenAnnotationManager={() => {
             if (!user) {
-              setShowAuthModal(true)
+              toast.error('绑定邮箱后才可使用日历标注功能')
               return
             }
             setShowAnnotationManager(true)
