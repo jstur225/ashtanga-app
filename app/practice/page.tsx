@@ -2682,6 +2682,9 @@ function MonthlyHeatmap({
   onMonthChange,
   annotationMap,
   onOpenAnnotationManager,
+  onOpenXiaohongshuModal,
+  hasNewXhsMessage,
+  onReadInvite,
 }: {
   practiceHistory: PracticeRecord[]
   onDayClick: (dateStr: string) => void
@@ -2693,6 +2696,9 @@ function MonthlyHeatmap({
   onMonthChange?: (date: Date) => void
   annotationMap?: Record<string, { label: string; color: string }[]>
   onOpenAnnotationManager?: () => void
+  onOpenXiaohongshuModal: () => void
+  hasNewXhsMessage: boolean
+  onReadInvite: () => void
 }) {
   const today = new Date()
   const todayStr = getLocalDateStr()
@@ -2793,8 +2799,21 @@ function MonthlyHeatmap({
           </h3>
 
           {/* Left icons: right next to month */}
-          <div className="absolute top-1/2 -translate-y-1/2 flex items-center gap-1.5" style={{ right: 'calc(50% + 52px)' }}>
+          <div className="absolute top-1/2 -translate-y-1/2 flex items-center gap-1.5" style={{ right: 'calc(50% + 76px)' }}>
             <SyncButton onOpenFakeDoor={onOpenFakeDoor} syncStatus={syncStatus} hasVoted={!!user} />
+            <button
+              onClick={() => {
+                onReadInvite()
+                onOpenXiaohongshuModal()
+              }}
+              className="relative w-7 h-7 rounded-full green-gradient-deep border border-white/20 shadow-[0_2px_6px_rgba(45,90,39,0.2)] flex items-center justify-center text-white"
+              aria-label="小红书群邀请"
+            >
+              <MessageCircle className="w-3.5 h-3.5" />
+              {hasNewXhsMessage && (
+                <div className="absolute bottom-1 left-1/2 -translate-x-1/2 rounded-full w-1 h-1 bg-red-400" />
+              )}
+            </button>
             <button
               onClick={goToPreviousMonth}
               className="w-7 h-7 rounded-full green-gradient-deep border border-white/20 shadow-[0_2px_6px_rgba(45,90,39,0.2)] flex items-center justify-center text-white"
@@ -2989,6 +3008,9 @@ function JournalTab({
   annotationMap,
   onOpenAnnotationManager,
   onJournalMonthChange,
+  onOpenXiaohongshuModal,
+  hasNewXhsMessage,
+  onReadInvite,
 }: {
   practiceHistory: PracticeRecord[]
   practiceOptions: PracticeOption[]
@@ -3011,6 +3033,9 @@ function JournalTab({
   annotationMap?: Record<string, { label: string; color: string }[]>
   onOpenAnnotationManager?: () => void
   onJournalMonthChange?: (date: Date) => void
+  onOpenXiaohongshuModal: () => void
+  hasNewXhsMessage: boolean
+  onReadInvite: () => void
 }) {
   const [sharingRecordId, setSharingRecordId] = useState<string | null>(null)
   const [childModalOpen, setChildModalOpen] = useState(false)
@@ -3185,6 +3210,9 @@ function JournalTab({
           user={user}
           annotationMap={annotationMap}
           onOpenAnnotationManager={onOpenAnnotationManager}
+          onOpenXiaohongshuModal={onOpenXiaohongshuModal}
+          hasNewXhsMessage={hasNewXhsMessage}
+          onReadInvite={onReadInvite}
           onMonthChange={(date) => {
             // ⭐ 切换月份时重置加载的月份列表
             setLoadedMonths([date])
@@ -3495,9 +3523,7 @@ function StatsTab({
   onOpenFakeDoor,
   showXiaohongshuModal,
   setShowXiaohongshuModal,
-  hasNewXhsMessage,
   user,
-  setReadInviteVersion,
   showPWAInstallTutorial,
   setShowPWAInstallTutorial,
 }: {
@@ -3510,11 +3536,9 @@ function StatsTab({
   onOpenFakeDoor: () => void
   showXiaohongshuModal: boolean
   setShowXiaohongshuModal: (value: boolean) => void
-  hasNewXhsMessage: boolean
   user?: any
   showPWAInstallTutorial: boolean
   setShowPWAInstallTutorial: (value: boolean) => void
-  setReadInviteVersion: (version: string) => void
 }) {
   // 隐藏邮箱的辅助函数
   const maskEmail = (email: string): string => {
@@ -3701,23 +3725,6 @@ function StatsTab({
                 <User className="w-10 h-10 text-white" />
               )}
             </div>
-
-            {/* 气泡通知图标 - 头像右上角（更靠外） */}
-            <button
-              onClick={() => {
-                setShowXiaohongshuModal(true)
-                setReadInviteVersion(INVITE_VERSION) // 保存当前版本号
-              }}
-              className="absolute -top-6 -right-6 w-9 h-9 rounded-full bg-white shadow-lg flex items-center justify-center hover:scale-110 active:scale-95 transition-transform z-10"
-              aria-label="小红书群邀请"
-            >
-              <MessageCircle className="w-4.5 h-4.5 text-[#e67e22]" />
-
-              {/* 红色状态点 - 气泡中下方 */}
-              {hasNewXhsMessage && (
-                <div className="absolute bottom-1 left-1/2 -translate-x-1/2 rounded-full w-1 h-1 bg-red-400" />
-              )}
-            </button>
           </div>
           <div className="flex items-center gap-2">
             <h2 className="text-xl font-serif text-[#2D5A27]">{profile.name}</h2>
@@ -5826,6 +5833,9 @@ export default function AshtangaTracker() {
             setShowAnnotationManager(true)
           }}
           onJournalMonthChange={setJournalDate}
+          onOpenXiaohongshuModal={() => setShowXiaohongshuModal(true)}
+          hasNewXhsMessage={hasNewXhsMessage}
+          onReadInvite={() => setReadInviteVersion(INVITE_VERSION)}
         />
         </motion.div>
       )}
@@ -5844,9 +5854,7 @@ export default function AshtangaTracker() {
           onOpenFakeDoor={() => setShowFakeDoor({ type: 'pro', isOpen: true })}
           showXiaohongshuModal={showXiaohongshuModal}
           setShowXiaohongshuModal={setShowXiaohongshuModal}
-          hasNewXhsMessage={hasNewXhsMessage}
           user={user}
-          setReadInviteVersion={setReadInviteVersion}
           showPWAInstallTutorial={showPWAInstallTutorial}
           setShowPWAInstallTutorial={setShowPWAInstallTutorial}
         />
