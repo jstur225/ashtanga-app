@@ -7,8 +7,8 @@ import type { AnnotationType } from '@/lib/annotation-types'
 
 // 9 色调色板（避开 green/orange/yellow）
 const PALETTE = [
-  '#D4A5A5', '#C4956A', '#7FA8A8', '#A8A0C4', '#C9B99A',
-  '#B86C6C', '#7A8BA8', '#8FA88F', '#A89888',
+  '#E49D9D', '#DB9454', '#71AFAF', '#A498CF', '#D4BC8D',
+  '#D25F5F', '#6F89B5', '#8BB18B', '#B09880',
 ]
 
 const MAX_DISPLAY_TYPES = 8  // 最多显示 8 个 + 1 个添加按钮 = 9 格
@@ -216,9 +216,7 @@ export function AnnotationManagerModal({
                           boxShadow: isSelected ? `0 0 12px ${type.color}` : 'none',
                         }}
                       />
-                      <span className={`text-xs leading-tight transition-colors ${isSelected ? 'font-medium' : ''}`}>
-                        {type.label}
-                      </span>
+                      <span className="text-xs leading-tight">{type.label}</span>
                     </button>
                   )
                 })}
@@ -303,17 +301,13 @@ export function AnnotationManagerModal({
                           onClick={() => handleDateClick(day)}
                           className={`
                             aspect-square rounded-full flex items-center justify-center text-[11px] font-serif transition-all relative
-                            ${hasAnno
-                              ? 'bg-foreground text-background'
-                              : 'bg-secondary text-foreground hover:bg-secondary/80'
-                            }
+                            bg-secondary text-foreground hover:bg-secondary/80
                           `}
                         >
                           {day}
-                          {/* 已标注日期显示小点 */}
                           {hasAnno && (
                             <div
-                              className="absolute -bottom-0.5 w-1 h-1 rounded-full"
+                              className="absolute bottom-1 w-1 h-1 rounded-full"
                               style={{ backgroundColor: selectedType.color }}
                             />
                           )}
