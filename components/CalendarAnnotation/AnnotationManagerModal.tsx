@@ -269,7 +269,10 @@ export function AnnotationManagerModal({
           >
             {/* Header */}
             <div className="flex items-center justify-between px-6 pt-6 pb-3 flex-shrink-0">
-              <h2 className="text-lg font-serif text-foreground">日历标注</h2>
+              <div className="flex items-center gap-2">
+                <h2 className="text-lg font-serif text-foreground">日历标注</h2>
+                <span className="text-[10px] text-muted-foreground font-serif">单击选择·双击编辑</span>
+              </div>
               <button onClick={handleClose} className="p-2 -mr-2 text-muted-foreground hover:text-foreground transition-colors">
                 <X className="w-5 h-5" />
               </button>
@@ -288,8 +291,7 @@ export function AnnotationManagerModal({
                       className={`
                         py-3 px-1 rounded-[16px] text-center font-serif transition-all duration-200
                         flex flex-col items-center justify-center gap-1.5
-                        bg-background text-foreground shadow-[0_2px_8px_rgba(0,0,0,0.06)] border border-stone-100/50
-                        hover:shadow-[0_4px_12px_rgba(0,0,0,0.1)]
+                        bg-white text-foreground
                       `}
                     >
                       <div
@@ -321,36 +323,8 @@ export function AnnotationManagerModal({
                 ))}
               </div>
 
-              {/* 提示文字 */}
-              <p className="text-center text-[10px] text-muted-foreground font-serif mb-1">
-                单击选择类型·双击编辑
-              </p>
-
-              {/* 限额提示 */}
-              {types.length >= maxTypes && (
-                <p className="text-center text-[10px] text-muted-foreground font-serif mb-3">
-                  {types.length}/{maxTypes} · {!isPro ? '升级 Pro 解锁更多' : '已达上限'}
-                </p>
-              )}
-
               {/* ===== 日历区域（始终显示） ===== */}
               <>
-                {/* 分隔线 */}
-                <div className="border-t border-border my-3" />
-
-                {/* 当前选中类型指示 */}
-                <div className="flex items-center justify-center gap-2 mb-3">
-                  {selectedType ? (
-                    <>
-                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: selectedType.color }} />
-                      <span className="text-sm font-serif text-foreground">{selectedType.label}</span>
-                      <span className="text-[10px] text-muted-foreground font-serif">· 点击日期切换</span>
-                    </>
-                  ) : (
-                    <span className="text-sm text-muted-foreground font-serif">请在上方选择标注类型</span>
-                  )}
-                </div>
-
                 {/* 月导航 */}
                 <div className="flex items-center justify-center gap-4 mb-2">
                   <button
