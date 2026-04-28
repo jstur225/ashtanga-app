@@ -589,44 +589,15 @@ export function PracticeForm({
                 />
                 {/* 照片上传按钮 - 绿色渐变 */}
                 <button
-                  onClick={async () => {
+                  onClick={() => {
                     // 检查是否有邮箱
                     if (!hasEmail) {
                       toast.info('绑定邮箱后可使用照片功能')
                       return
                     }
-
-                    // ⭐ 关键修复：在点击时实时获取会员状态，避免 stale state
-                    const { data: { session } } = await supabase.auth.getSession()
-                    const token = session?.access_token
-                    let currentMaxPhotos = 1 // 默认1张
-
-                    if (token) {
-                      try {
-                        const response = await fetch('/api/membership/status', {
-                          headers: { 'Authorization': `Bearer ${token}` },
-                        })
-                        if (response.ok) {
-                          const result = await response.json()
-                          if (result.success && result.data?.is_active) {
-                            currentMaxPhotos = 9 // 会员9张
-                          }
-                        }
-                      } catch (e) {
-                        console.error('[PracticeForm] 获取会员状态失败:', e)
-                      }
-                    }
-
-                    if (photos.length >= currentMaxPhotos) {
-                      toast.info('当前版本只能上传1张照片')
-                      return
-                    }
-                    // 显示读取中状态
-                    setIsReadingFiles(true)
-                    // 稍微延迟打开文件选择器，让loading状态先显示
-                    setTimeout(() => {
-                      fileInputRef.current?.click()
-                    }, 50)
+                    // iOS Safari 要求 input.click() 在用户手势的同步调用栈中触发
+                    // 会员检查移到 onChange/handleFileSelect 中，选完文件后再校验
+                    fileInputRef.current?.click()
                   }}
                   disabled={!recordId || uploading || isReadingFiles}
                   className="w-10 h-10 rounded-full green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] flex items-center justify-center transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
