@@ -164,7 +164,9 @@ export const TABLES = {
   PRACTICE_RECORDS: 'practice_records',
   PRACTICE_OPTIONS: 'practice_options',
   USER_PROFILES: 'user_profiles',
-  PHOTOS: 'photos', // ⭐ 新增：照片表
+  PHOTOS: 'photos',
   USER_MEMBERSHIPS: 'user_memberships',
   ACTIVATION_CODES: 'activation_codes',
+  ANNOTATION_TYPES: 'annotation_types',
+  CALENDAR_ANNOTATIONS: 'calendar_annotations',
 } as const
