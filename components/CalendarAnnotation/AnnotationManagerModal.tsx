@@ -11,7 +11,7 @@ const PALETTE = [
   '#D94F4F', '#5B8FE8', '#6BBF8A', '#C47AD4',
 ]
 
-const MAX_DISPLAY_TYPES = 8  // 最多显示 8 个 + 1 个添加按钮 = 9 格
+const MAX_DISPLAY_TYPES = 9  // 最多 9 个类型 + 1 个添加按钮 = 10 格（两行×5列）
 
 export function AnnotationManagerModal({
   isOpen,
@@ -269,9 +269,9 @@ export function AnnotationManagerModal({
           >
             {/* Header */}
             <div className="flex items-center justify-between px-6 pt-6 pb-3 flex-shrink-0">
-              <div className="flex items-center gap-2">
-                <h2 className="text-lg font-serif text-foreground">日历标注</h2>
-                <span className="text-[10px] text-muted-foreground font-serif">单击选择·双击编辑</span>
+              <div className="flex items-end gap-2">
+                <h2 className="text-lg font-serif text-foreground leading-none">日历标注</h2>
+                <span className="text-[10px] text-muted-foreground font-serif leading-none">单击选择·双击编辑</span>
               </div>
               <button onClick={handleClose} className="p-2 -mr-2 text-muted-foreground hover:text-foreground transition-colors">
                 <X className="w-5 h-5" />
@@ -280,7 +280,7 @@ export function AnnotationManagerModal({
 
             <div className="flex-1 overflow-y-auto px-6 pb-6">
               {/* ===== 类型网格 ===== */}
-              <div className="grid grid-cols-3 gap-2 mb-3" onClick={(e) => e.stopPropagation()}>
+              <div className="grid grid-cols-5 gap-2 mb-2" onClick={(e) => e.stopPropagation()}>
                 {/* 已有类型 */}
                 {types.slice(0, MAX_DISPLAY_TYPES).map(type => {
                   const isSelected = selectedTypeId === type.id
@@ -289,8 +289,8 @@ export function AnnotationManagerModal({
                       key={type.id}
                       onClick={() => handleTypeTap(type)}
                       className={`
-                        py-3 px-1 rounded-[16px] text-center font-serif transition-all duration-200
-                        flex flex-col items-center justify-center gap-1.5
+                        py-2 px-1 rounded-[12px] text-center font-serif transition-all duration-200
+                        flex flex-col items-center justify-center gap-1
                         bg-white text-foreground
                       `}
                     >
@@ -310,7 +310,7 @@ export function AnnotationManagerModal({
                 {types.length < maxTypes && types.length < MAX_DISPLAY_TYPES && (
                   <button
                     onClick={openCreateForm}
-                    className="py-3 px-1 rounded-[16px] font-serif flex flex-col items-center justify-center gap-1.5 bg-background text-muted-foreground border-2 border-dashed border-muted-foreground/30 hover:border-muted-foreground/50 hover:text-foreground transition-all"
+                    className="py-2 px-1 rounded-[12px] font-serif flex flex-col items-center justify-center gap-1 bg-background text-muted-foreground border-2 border-dashed border-muted-foreground/30 hover:border-muted-foreground/50 hover:text-foreground transition-all"
                   >
                     <Plus className="w-5 h-5" />
                     <span className="text-xs">添加</span>
@@ -319,7 +319,7 @@ export function AnnotationManagerModal({
 
                 {/* 剩余空位占位 */}
                 {Array.from({ length: Math.max(0, MAX_DISPLAY_TYPES - Math.min(types.length, MAX_DISPLAY_TYPES) - (types.length < maxTypes ? 1 : 0)) }).map((_, i) => (
-                  <div key={`empty-${i}`} className="py-3 px-1 rounded-[16px]" />
+                  <div key={`empty-${i}`} className="py-2 px-1 rounded-[12px]" />
                 ))}
               </div>
 
