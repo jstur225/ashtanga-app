@@ -2792,8 +2792,8 @@ function MonthlyHeatmap({
             {currentYear}年{currentMonth + 1}月
           </h3>
 
-          {/* Left icons: centered between page left edge and month text */}
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+          {/* Left icons: right next to month */}
+          <div className="absolute top-1/2 -translate-y-1/2 flex items-center gap-1.5" style={{ right: 'calc(50% + 52px)' }}>
             <SyncButton onOpenFakeDoor={onOpenFakeDoor} syncStatus={syncStatus} hasVoted={!!user} />
             <button
               onClick={goToPreviousMonth}
