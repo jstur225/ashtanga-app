@@ -11,13 +11,14 @@ interface MembershipPromptModalProps {
   onClose: () => void
   onActivate?: () => void
   /** 触发来源，用于展示不同提示 */
-  reason?: 'options_full' | 'locked_option' | 'locked_practice'
+  reason?: 'options_full' | 'locked_option' | 'locked_practice' | 'locked_annotation'
 }
 
 const REASON_SUBTITLES: Record<string, string> = {
   options_full: '免费用户最多 4 个选项',
   locked_option: '激活会员可以恢复选项使用',
   locked_practice: '激活会员恢复选项开始练习',
+  locked_annotation: '免费用户只能 1 个标注，Pro 最多 9 个',
 }
 
 export function MembershipPromptModal({ isOpen, onClose, onActivate, reason }: MembershipPromptModalProps) {

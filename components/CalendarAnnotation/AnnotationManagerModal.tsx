@@ -24,6 +24,7 @@ export function AnnotationManagerModal({
   onDeleteType,
   onAddAnnotation,
   onRemoveAnnotation,
+  onLockedClick,
   annotationDates, // { typeId: Set<"YYYY-MM-DD"> } 已有标注的日期
 }: {
   isOpen: boolean
@@ -36,6 +37,7 @@ export function AnnotationManagerModal({
   onDeleteType: (id: string) => Promise<any>
   onAddAnnotation: (typeId: string, date: string) => Promise<any>
   onRemoveAnnotation: (typeId: string, date: string) => Promise<any>
+  onLockedClick?: () => void
   annotationDates?: Record<string, Set<string>>
 }) {
   // ===== 选择状态 =====
@@ -294,7 +296,7 @@ export function AnnotationManagerModal({
                   return (
                     <button
                       key={type.id}
-                      onClick={() => isLocked ? null : handleTypeTap(type)}
+                      onClick={() => isLocked ? onLockedClick?.() : handleTypeTap(type)}
                       className={`
                         py-2 px-1 rounded-[12px] text-center font-serif transition-all duration-200
                         flex flex-col items-center justify-center gap-1 relative
