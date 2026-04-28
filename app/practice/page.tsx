@@ -2787,37 +2787,45 @@ function MonthlyHeatmap({
   return (
     <div className="bg-white rounded-[20px] mb-3 shadow-md border border-stone-200 overflow-hidden">
       {/* Integrated Header: Sync + Month Navigation + Buttons */}
-      <div className="flex items-center justify-center gap-1.5 px-3 py-3 border-b border-stone-100 bg-lime-50">
-          <SyncButton onOpenFakeDoor={onOpenFakeDoor} syncStatus={syncStatus} hasVoted={!!user} />
-          <button
-            onClick={goToPreviousMonth}
-            className="w-7 h-7 rounded-full green-gradient-deep border border-white/20 shadow-[0_2px_6px_rgba(45,90,39,0.2)] flex items-center justify-center text-white"
-          >
-            <ChevronLeft className="w-3.5 h-3.5" />
-          </button>
-          <h3 className="font-serif text-foreground font-semibold text-base min-w-[90px] text-center">
+      <div className="relative flex items-center justify-center px-3 py-3 border-b border-stone-100 bg-lime-50">
+          <h3 className="font-serif text-foreground font-semibold text-base">
             {currentYear}年{currentMonth + 1}月
           </h3>
-          <button
-            onClick={goToNextMonth}
-            className="w-7 h-7 rounded-full green-gradient-deep border border-white/20 shadow-[0_2px_6px_rgba(45,90,39,0.2)] flex items-center justify-center text-white"
-          >
-            <ChevronRight className="w-3.5 h-3.5" />
-          </button>
-          {onOpenAnnotationManager && (
+
+          {/* Left icons: centered between page left edge and month text */}
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+            <SyncButton onOpenFakeDoor={onOpenFakeDoor} syncStatus={syncStatus} hasVoted={!!user} />
             <button
-              onClick={onOpenAnnotationManager}
+              onClick={goToPreviousMonth}
               className="w-7 h-7 rounded-full green-gradient-deep border border-white/20 shadow-[0_2px_6px_rgba(45,90,39,0.2)] flex items-center justify-center text-white"
             >
-              <Pencil className="w-3 h-3" />
+              <ChevronLeft className="w-3.5 h-3.5" />
             </button>
-          )}
-          <button
-            onClick={onAddRecord}
-            className="w-7 h-7 rounded-full green-gradient-deep border border-white/20 shadow-[0_2px_6px_rgba(45,90,39,0.2)] flex items-center justify-center text-white"
-          >
-            <Plus className="w-3.5 h-3.5" />
-          </button>
+          </div>
+
+          {/* Right icons: centered between month text and page right edge */}
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+            <button
+              onClick={goToNextMonth}
+              className="w-7 h-7 rounded-full green-gradient-deep border border-white/20 shadow-[0_2px_6px_rgba(45,90,39,0.2)] flex items-center justify-center text-white"
+            >
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+            {onOpenAnnotationManager && (
+              <button
+                onClick={onOpenAnnotationManager}
+                className="w-7 h-7 rounded-full green-gradient-deep border border-white/20 shadow-[0_2px_6px_rgba(45,90,39,0.2)] flex items-center justify-center text-white"
+              >
+                <Pencil className="w-3 h-3" />
+              </button>
+            )}
+            <button
+              onClick={onAddRecord}
+              className="w-7 h-7 rounded-full green-gradient-deep border border-white/20 shadow-[0_2px_6px_rgba(45,90,39,0.2)] flex items-center justify-center text-white"
+            >
+              <Plus className="w-3.5 h-3.5" />
+            </button>
+          </div>
       </div>
       <div className="grid grid-cols-7 gap-[2px] p-4">
         {weekDays.map((day) => (
