@@ -319,7 +319,7 @@ export function AnnotationManagerModal({
                   >
                     <Plus className="w-5 h-5" />
                     <span className="text-xs">添加</span>
-                  </button>}
+                  </button>
 
                 {/* 剩余空位占位 */}
                 {Array.from({ length: Math.max(0, 10 - types.length - 1) }).map((_, i) => (
