@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Plus, Check, Trash2, ChevronLeft, ChevronRight } from 'lucide-react'
+import { X, Plus, Check, Trash2, ChevronLeft, ChevronRight, Lock } from 'lucide-react'
 import type { AnnotationType } from '@/lib/annotation-types'
 
 // 9 色调色板（避开 green/orange/yellow）
@@ -288,23 +288,25 @@ export function AnnotationManagerModal({
               {/* ===== 类型网格 ===== */}
               <div className="grid grid-cols-5 gap-2 mb-2" onClick={(e) => e.stopPropagation()}>
                 {/* 已有类型 */}
-                {types.slice(0, MAX_DISPLAY_TYPES).map(type => {
+                {types.slice(0, MAX_DISPLAY_TYPES).map((type, idx) => {
                   const isSelected = selectedTypeId === type.id
+                  const isLocked = !isPro && idx >= maxTypes
                   return (
                     <button
                       key={type.id}
-                      onClick={() => handleTypeTap(type)}
+                      onClick={() => isLocked ? null : handleTypeTap(type)}
                       className={`
                         py-2 px-1 rounded-[12px] text-center font-serif transition-all duration-200
-                        flex flex-col items-center justify-center gap-1
-                        bg-white text-foreground
+                        flex flex-col items-center justify-center gap-1 relative
+                        ${isLocked ? 'bg-white/50 text-muted-foreground/50 opacity-50 cursor-default' : 'bg-white text-foreground cursor-pointer'}
                       `}
                     >
+                      {isLocked && <Lock className="absolute top-1 right-1 w-2.5 h-2.5 text-muted-foreground/40" />}
                       <div
-                        className="w-5 h-5 rounded-full transition-all duration-200"
+                        className={`w-5 h-5 rounded-full transition-all duration-200 ${isLocked ? 'opacity-50' : ''}`}
                         style={{
                           backgroundColor: type.color,
-                          boxShadow: isSelected ? `0 0 12px ${type.color}` : 'none',
+                          boxShadow: isSelected && !isLocked ? `0 0 12px ${type.color}` : 'none',
                         }}
                       />
                       <span className="text-xs leading-tight">{type.label}</span>
