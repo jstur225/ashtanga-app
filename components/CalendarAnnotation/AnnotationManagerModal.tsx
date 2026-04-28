@@ -23,6 +23,8 @@ export function AnnotationManagerModal({
   onUpdateType,
   onDeleteType,
   onAddAnnotation,
+  onRemoveAnnotation,
+  annotationDates, // { typeId: Set<"YYYY-MM-DD"> } 已有标注的日期
 }: {
   isOpen: boolean
   onClose: () => void
@@ -33,6 +35,8 @@ export function AnnotationManagerModal({
   onUpdateType: (id: string, updates: { label?: string; color?: string }) => Promise<any>
   onDeleteType: (id: string) => Promise<any>
   onAddAnnotation: (typeId: string, date: string) => Promise<any>
+  onRemoveAnnotation: (typeId: string, date: string) => Promise<any>
+  annotationDates?: Record<string, Set<string>>
 }) {
   // ===== 选择状态 =====
   const [selectedTypeId, setSelectedTypeId] = useState<string | null>(null)
@@ -91,13 +95,25 @@ export function AnnotationManagerModal({
     }
   }, [selectedTypeId])
 
-  // 日期点击 — 直接切换（API 幂等）
+  // 日期点击 — 根据是否已有标注决定添加或删除
   const handleDateClick = useCallback(async (day: number) => {
     if (!selectedTypeId) return
     const dateStr = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-    // 服务端决定是添加还是删除
-    await onAddAnnotation(selectedTypeId, dateStr)
-  }, [selectedTypeId, viewYear, viewMonth, onAddAnnotation])
+
+    const hasAnno = annotationDates?.[selectedTypeId]?.has(dateStr)
+    if (hasAnno) {
+      await onRemoveAnnotation(selectedTypeId, dateStr)
+    } else {
+      await onAddAnnotation(selectedTypeId, dateStr)
+    }
+  }, [selectedTypeId, viewYear, viewMonth, annotationDates, onAddAnnotation, onRemoveAnnotation])
+
+  // 判断某日期是否已有选中类型的标注
+  const hasAnnotation = useCallback((day: number): boolean => {
+    if (!selectedTypeId || !annotationDates) return false
+    const dateStr = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+    return annotationDates[selectedTypeId]?.has(dateStr) ?? false
+  }, [selectedTypeId, viewYear, viewMonth, annotationDates])
 
   // 打开创建表单
   const openCreateForm = () => {
@@ -190,17 +206,19 @@ export function AnnotationManagerModal({
                       className={`
                         py-3 px-1 rounded-[16px] text-center font-serif transition-all duration-200
                         flex flex-col items-center justify-center gap-1.5
-                        ${isSelected
-                          ? 'bg-foreground text-background shadow-[0_4px_12px_rgba(0,0,0,0.15)]'
-                          : 'bg-secondary text-foreground hover:bg-secondary/80 shadow-[0_2px_8px_rgba(0,0,0,0.04)]'
-                        }
+                        bg-secondary text-foreground hover:bg-secondary/80 shadow-[0_2px_8px_rgba(0,0,0,0.04)]
                       `}
                     >
                       <div
-                        className="w-5 h-5 rounded-full"
-                        style={{ backgroundColor: type.color }}
+                        className="w-5 h-5 rounded-full transition-all duration-200"
+                        style={{
+                          backgroundColor: type.color,
+                          boxShadow: isSelected ? `0 0 12px ${type.color}` : 'none',
+                        }}
                       />
-                      <span className="text-xs leading-tight">{type.label}</span>
+                      <span className={`text-xs leading-tight transition-colors ${isSelected ? 'font-medium' : ''}`}>
+                        {type.label}
+                      </span>
                     </button>
                   )
                 })}
@@ -242,7 +260,10 @@ export function AnnotationManagerModal({
 
                   {/* 当前选中类型指示 */}
                   <div className="flex items-center justify-center gap-2 mb-3">
-                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: selectedType.color }} />
+                    <div
+                      className="w-3 h-3 rounded-full"
+                      style={{ backgroundColor: selectedType.color }}
+                    />
                     <span className="text-sm font-serif text-foreground">{selectedType.label}</span>
                     <span className="text-[10px] text-muted-foreground font-serif">
                       · 点击日期切换
@@ -274,20 +295,28 @@ export function AnnotationManagerModal({
                       <div key={d} className="text-center text-[10px] text-muted-foreground font-serif py-1">{d}</div>
                     ))}
                     {calendarDays.map((day, idx) => {
+                      if (day === null) return <div key={idx} />
+                      const hasAnno = hasAnnotation(day)
                       return (
                         <button
                           key={idx}
-                          disabled={day === null}
-                          onClick={() => day && handleDateClick(day)}
+                          onClick={() => handleDateClick(day)}
                           className={`
                             aspect-square rounded-full flex items-center justify-center text-[11px] font-serif transition-all relative
-                            ${day === null
-                              ? 'bg-transparent'
+                            ${hasAnno
+                              ? 'bg-foreground text-background'
                               : 'bg-secondary text-foreground hover:bg-secondary/80'
                             }
                           `}
                         >
                           {day}
+                          {/* 已标注日期显示小点 */}
+                          {hasAnno && (
+                            <div
+                              className="absolute -bottom-0.5 w-1 h-1 rounded-full"
+                              style={{ backgroundColor: selectedType.color }}
+                            />
+                          )}
                         </button>
                       )
                     })}

@@ -225,6 +225,20 @@ export function useAnnotations() {
     return map
   }, [annotationsByMonth])
 
+  // 构建 { typeId → Set<dateStr> } 用于弹窗内判断日期是否已标注
+  const buildAnnotatedDates = useCallback((year: number, month: number): Record<string, Set<string>> => {
+    const key = `${year}-${String(month + 1).padStart(2, '0')}`
+    const monthData = annotationsByMonth[key]
+    if (!monthData?.length) return {}
+
+    const map: Record<string, Set<string>> = {}
+    for (const item of monthData) {
+      if (!map[item.annotation_type_id]) map[item.annotation_type_id] = new Set()
+      map[item.annotation_type_id].add(item.date)
+    }
+    return map
+  }, [annotationsByMonth])
+
   return {
     types,
     loading,
@@ -232,6 +246,7 @@ export function useAnnotations() {
     annotationColors: ANNOTATION_COLORS,
     getAnnotationColorsForDate,
     buildAnnotationMap,
+    buildAnnotatedDates,
     loadTypes,
     loadMonth,
     createType,

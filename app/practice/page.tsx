@@ -289,9 +289,9 @@ function MoonDayButton({
           {hasMoonDot && <div className="w-1 h-1 rounded-full bg-[#FFE066] shadow-[0_0_6px_rgba(255,224,102,0.8)]" />}
           {hasBreakthroughDot && <div className="w-1 h-1 rounded-full bg-[#e67e22] shadow-[0_0_6px_rgba(230,126,34,0.8)]" />}
           {annotationColors.slice(0, 3).map((color, i) => (
-            <div key={i} className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color, boxShadow: `0 0 4px ${color}80` }} />
+            <div key={i} className="w-1 h-1 rounded-full" style={{ backgroundColor: color, boxShadow: `0 0 4px ${color}80` }} />
           ))}
-          {annotationColors.length > 3 && <span className="text-[7px] text-muted-foreground ml-0.5">+{annotationColors.length - 3}</span>}
+          {annotationColors.length > 3 && <span className="text-[6px] text-muted-foreground ml-0.5">+{annotationColors.length - 3}</span>}
         </div>
       )}
     </button>
@@ -3914,6 +3914,7 @@ export default function AshtangaTracker() {
     addAnnotation,
     removeAnnotation,
     buildAnnotationMap,
+    buildAnnotatedDates,
   } = useAnnotations()
   const [showAnnotationManager, setShowAnnotationManager] = useState(false)
   const [journalDate, setJournalDate] = useState(new Date())
@@ -3921,6 +3922,11 @@ export default function AshtangaTracker() {
   const annotationMap = useMemo(
     () => buildAnnotationMap(journalDate.getFullYear(), journalDate.getMonth()),
     [buildAnnotationMap, journalDate]
+  )
+  // 当前月的标注日期映射（用于弹窗）
+  const annotationDates = useMemo(
+    () => buildAnnotatedDates(journalDate.getFullYear(), journalDate.getMonth()),
+    [buildAnnotatedDates, journalDate]
   )
 
   // 加载标注类型
@@ -5993,6 +5999,8 @@ export default function AshtangaTracker() {
         onUpdateType={updateAnnotationType}
         onDeleteType={deleteAnnotationType}
         onAddAnnotation={addAnnotation}
+        onRemoveAnnotation={removeAnnotation}
+        annotationDates={annotationDates}
       />
 
       {/* Activate Membership Modal */}
