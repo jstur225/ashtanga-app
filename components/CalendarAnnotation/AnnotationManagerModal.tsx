@@ -228,6 +228,8 @@ export function AnnotationManagerModal({
   // 删除
   const handleDelete = async () => {
     if (!editingType) return
+    const confirmed = window.confirm(`确认删除「${editingType.label}」？所有日期的标注记录都会被清空。`)
+    if (!confirmed) return
     await onDeleteType(editingType.id)
     if (selectedTypeId === editingType.id) {
       setSelectedTypeId(null)
