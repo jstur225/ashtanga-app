@@ -193,6 +193,7 @@ export function AnnotationManagerModal({
     await Promise.all(promises)
     setPendingAdds({})
     setPendingRemoves({})
+    handleClose()
   }, [pendingAdds, pendingRemoves, onAddAnnotation, onRemoveAnnotation])
 
   // 打开创建表单

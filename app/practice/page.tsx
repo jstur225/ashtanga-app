@@ -291,7 +291,6 @@ function MoonDayButton({
           {annotationColors.slice(0, 3).map((color, i) => (
             <div key={i} className="w-1 h-1 rounded-full" style={{ backgroundColor: color, boxShadow: `0 0 4px ${color}80` }} />
           ))}
-          {annotationColors.length > 3 && <span className="text-[6px] text-muted-foreground ml-0.5">+{annotationColors.length - 3}</span>}
         </div>
       )}
     </button>
