@@ -7,8 +7,8 @@ import type { AnnotationType } from '@/lib/annotation-types'
 
 // 9 色调色板（避开 green/orange/yellow）
 const PALETTE = [
-  '#E49D9D', '#DB9454', '#71AFAF', '#A498CF', '#D4BC8D',
-  '#D25F5F', '#6F89B5', '#8BB18B', '#B09880',
+  '#F2CECE', '#EDCAAA', '#B8D7D7', '#D2CCE7', '#EADEC6',
+  '#E9AFAF', '#B7C4DA', '#C5D8C5', '#D8CCC0',
 ]
 
 const MAX_DISPLAY_TYPES = 8  // 最多显示 8 个 + 1 个添加按钮 = 9 格
@@ -206,7 +206,8 @@ export function AnnotationManagerModal({
                       className={`
                         py-3 px-1 rounded-[16px] text-center font-serif transition-all duration-200
                         flex flex-col items-center justify-center gap-1.5
-                        bg-secondary text-foreground hover:bg-secondary/80 shadow-[0_2px_8px_rgba(0,0,0,0.04)]
+                        bg-background text-foreground shadow-[0_2px_8px_rgba(0,0,0,0.06)] border border-stone-100/50
+                        hover:shadow-[0_4px_12px_rgba(0,0,0,0.1)]
                       `}
                     >
                       <div
@@ -225,7 +226,7 @@ export function AnnotationManagerModal({
                 {types.length < maxTypes && types.length < MAX_DISPLAY_TYPES && (
                   <button
                     onClick={openCreateForm}
-                    className="py-3 px-1 rounded-[16px] font-serif flex flex-col items-center justify-center gap-1.5 bg-background text-muted-foreground border-2 border-dashed border-muted-foreground/30 hover:border-muted-foreground/50 transition-all"
+                    className="py-3 px-1 rounded-[16px] font-serif flex flex-col items-center justify-center gap-1.5 bg-background text-muted-foreground border-2 border-dashed border-muted-foreground/30 hover:border-muted-foreground/50 hover:text-foreground transition-all"
                   >
                     <Plus className="w-5 h-5" />
                     <span className="text-xs">添加</span>
@@ -250,73 +251,74 @@ export function AnnotationManagerModal({
                 </p>
               )}
 
-              {/* ===== 日历区域（有选中类型才显示） ===== */}
-              {selectedType && (
-                <>
-                  {/* 分隔线 */}
-                  <div className="border-t border-border my-3" />
+              {/* ===== 日历区域（始终显示） ===== */}
+              <>
+                {/* 分隔线 */}
+                <div className="border-t border-border my-3" />
 
-                  {/* 当前选中类型指示 */}
-                  <div className="flex items-center justify-center gap-2 mb-3">
-                    <div
-                      className="w-3 h-3 rounded-full"
-                      style={{ backgroundColor: selectedType.color }}
-                    />
-                    <span className="text-sm font-serif text-foreground">{selectedType.label}</span>
-                    <span className="text-[10px] text-muted-foreground font-serif">
-                      · 点击日期切换
-                    </span>
-                  </div>
+                {/* 当前选中类型指示 */}
+                <div className="flex items-center justify-center gap-2 mb-3">
+                  {selectedType ? (
+                    <>
+                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: selectedType.color }} />
+                      <span className="text-sm font-serif text-foreground">{selectedType.label}</span>
+                      <span className="text-[10px] text-muted-foreground font-serif">· 点击日期切换</span>
+                    </>
+                  ) : (
+                    <span className="text-sm text-muted-foreground font-serif">请在上方选择标注类型</span>
+                  )}
+                </div>
 
-                  {/* 月导航 */}
-                  <div className="flex items-center justify-center gap-4 mb-2">
-                    <button
-                      onClick={() => setMonthOffset(prev => prev - 1)}
-                      className="p-1 text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      <ChevronLeft className="w-4 h-4" />
-                    </button>
-                    <span className="font-serif text-sm text-foreground min-w-[80px] text-center">
-                      {viewYear}年{viewMonth + 1}月
-                    </span>
-                    <button
-                      onClick={() => setMonthOffset(prev => prev + 1)}
-                      className="p-1 text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      <ChevronRight className="w-4 h-4" />
-                    </button>
-                  </div>
+                {/* 月导航 */}
+                <div className="flex items-center justify-center gap-4 mb-2">
+                  <button
+                    onClick={() => setMonthOffset(prev => prev - 1)}
+                    className="p-1 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <span className="font-serif text-sm text-foreground min-w-[80px] text-center">
+                    {viewYear}年{viewMonth + 1}月
+                  </span>
+                  <button
+                    onClick={() => setMonthOffset(prev => prev + 1)}
+                    className="p-1 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
 
-                  {/* 月历网格 */}
-                  <div className="grid grid-cols-7 gap-1 mb-2">
-                    {weekDays.map(d => (
-                      <div key={d} className="text-center text-[10px] text-muted-foreground font-serif py-1">{d}</div>
-                    ))}
-                    {calendarDays.map((day, idx) => {
-                      if (day === null) return <div key={idx} />
-                      const hasAnno = hasAnnotation(day)
-                      return (
-                        <button
-                          key={idx}
-                          onClick={() => handleDateClick(day)}
-                          className={`
-                            aspect-square rounded-full flex items-center justify-center text-[11px] font-serif transition-all relative
-                            bg-secondary text-foreground hover:bg-secondary/80
-                          `}
-                        >
-                          {day}
-                          {hasAnno && (
-                            <div
-                              className="absolute bottom-1 w-1 h-1 rounded-full"
-                              style={{ backgroundColor: selectedType.color }}
-                            />
-                          )}
-                        </button>
-                      )
-                    })}
-                  </div>
-                </>
-              )}
+                {/* 月历网格 */}
+                <div className="grid grid-cols-7 gap-1 mb-2">
+                  {weekDays.map(d => (
+                    <div key={d} className="text-center text-[10px] text-muted-foreground font-serif py-1">{d}</div>
+                  ))}
+                  {calendarDays.map((day, idx) => {
+                    if (day === null) return <div key={idx} />
+                    const hasAnno = selectedTypeId ? hasAnnotation(day) : false
+                    return (
+                      <button
+                        key={idx}
+                        disabled={!selectedTypeId}
+                        onClick={() => handleDateClick(day)}
+                        className={`
+                          aspect-square rounded-full flex items-center justify-center text-[11px] font-serif transition-all relative
+                          bg-secondary text-foreground hover:bg-secondary/80
+                          ${!selectedTypeId ? 'opacity-40 cursor-default' : 'cursor-pointer'}
+                        `}
+                      >
+                        {day}
+                        {hasAnno && (
+                          <div
+                            className="absolute bottom-1 w-1 h-1 rounded-full"
+                            style={{ backgroundColor: selectedType!.color }}
+                          />
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
+              </>
             </div>
 
             {/* ===== 创建/编辑表单（覆盖层） ===== */}
