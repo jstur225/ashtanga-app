@@ -2793,13 +2793,9 @@ function MonthlyHeatmap({
   return (
     <div className="bg-white rounded-[20px] mb-3 shadow-md border border-stone-200 overflow-hidden">
       {/* Integrated Header: Sync + Month Navigation + Buttons */}
-      <div className="relative flex items-center justify-center px-3 py-3 border-b border-stone-100 bg-lime-50">
-          <h3 className="font-serif text-foreground font-semibold text-base">
-            {currentYear}年{currentMonth + 1}月
-          </h3>
-
-          {/* Left icons: right next to month */}
-          <div className="absolute top-1/2 -translate-y-1/2 flex items-center gap-1.5" style={{ right: 'calc(50% + 76px)' }}>
+      <div className="flex items-center justify-between px-3 py-3 border-b border-stone-100 bg-lime-50">
+          {/* Left icons */}
+          <div className="flex items-center gap-1.5">
             <SyncButton onOpenFakeDoor={onOpenFakeDoor} syncStatus={syncStatus} hasVoted={!!user} />
             <button
               onClick={() => {
@@ -2822,8 +2818,13 @@ function MonthlyHeatmap({
             </button>
           </div>
 
-          {/* Right icons: centered between month text and page right edge */}
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+          {/* Center month - takes remaining space, centered */}
+          <h3 className="font-serif text-foreground font-semibold text-base text-center flex-1">
+            {currentYear}年{currentMonth + 1}月
+          </h3>
+
+          {/* Right icons */}
+          <div className="flex items-center gap-1.5">
             <button
               onClick={goToNextMonth}
               className="w-7 h-7 rounded-full green-gradient-deep border border-white/20 shadow-[0_2px_6px_rgba(45,90,39,0.2)] flex items-center justify-center text-white"
