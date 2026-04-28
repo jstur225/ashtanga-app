@@ -2805,7 +2805,7 @@ function MonthlyHeatmap({
               className="relative w-7 h-7 rounded-full green-gradient-deep border border-white/20 shadow-[0_2px_6px_rgba(45,90,39,0.2)] flex items-center justify-center text-white"
               aria-label="小红书群邀请"
             >
-              <MessageCircle className="w-3 h-3" />
+              <MessageCircle className="w-[11px] h-[11px]" />
               <div className={`absolute bottom-1 left-1/2 -translate-x-1/2 rounded-full w-1 h-1 ${hasNewXhsMessage ? 'bg-red-400' : 'bg-green-400'}`} />
             </button>
             <button
