@@ -7,8 +7,8 @@ import type { AnnotationType } from '@/lib/annotation-types'
 
 // 9 色调色板（避开 green/orange/yellow）
 const PALETTE = [
-  '#F2CECE', '#EDCAAA', '#B8D7D7', '#D2CCE7', '#EADEC6',
-  '#E9AFAF', '#B7C4DA', '#C5D8C5', '#D8CCC0',
+  '#E8637A', '#E8944A', '#2DB5B5', '#9B72CF', '#D4A843',
+  '#D94F4F', '#5B8FE8', '#6BBF8A', '#C47AD4',
 ]
 
 const MAX_DISPLAY_TYPES = 8  // 最多显示 8 个 + 1 个添加按钮 = 9 格
@@ -310,7 +310,7 @@ export function AnnotationManagerModal({
                         {day}
                         {hasAnno && (
                           <div
-                            className="absolute bottom-1 w-1 h-1 rounded-full"
+                            className="absolute bottom-1.5 w-1 h-1 rounded-full"
                             style={{ backgroundColor: selectedType!.color }}
                           />
                         )}

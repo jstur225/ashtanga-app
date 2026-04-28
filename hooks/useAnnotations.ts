@@ -158,55 +158,76 @@ export function useAnnotations() {
     return result
   }, [getToken])
 
-  // 添加标注到日期（幂等）
+  // 添加标注到日期（乐观更新：先更新 UI，后台发 API）
   const addAnnotation = useCallback(async (typeId: string, date: string) => {
-    const token = await getToken()
-    if (!token) return null
+    const monthKey = date.slice(0, 7)
+    const typeInfo = types.find(t => t.id === typeId)
 
-    const res = await fetch('/api/annotations/assignments', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ type_id: typeId, date }),
-    })
-    const result = await res.json()
-    if (result.success) {
-      // 更新缓存
-      const monthKey = date.slice(0, 7)
-      const typeInfo = types.find(t => t.id === typeId)
-      if (typeInfo && result.data) {
-        setAnnotationsByMonth(prev => ({
-          ...prev,
-          [monthKey]: [
-            ...(prev[monthKey] || []),
-            { ...result.data, type: { label: typeInfo.label, color: typeInfo.color, id: typeId } } as EnrichedAnnotation,
-          ],
-        }))
-      }
+    // 乐观更新：立即在本地添加
+    if (typeInfo) {
+      setAnnotationsByMonth(prev => ({
+        ...prev,
+        [monthKey]: [
+          ...(prev[monthKey] || []),
+          {
+            id: `temp-${Date.now()}`,
+            annotation_type_id: typeId,
+            date,
+            created_at: new Date().toISOString(),
+            type: { label: typeInfo.label, color: typeInfo.color, id: typeId },
+          } as EnrichedAnnotation,
+        ],
+      }))
     }
-    return result
-  }, [getToken, types])
 
-  // 从日期移除标注（幂等）
-  const removeAnnotation = useCallback(async (typeId: string, date: string) => {
+    // 后台发 API
     const token = await getToken()
     if (!token) return null
 
-    const res = await fetch(`/api/annotations/assignments?type_id=${typeId}&date=${date}`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${token}` },
-    })
-    const result = await res.json()
-    if (result.success) {
-      // 更新缓存
-      const monthKey = date.slice(0, 7)
+    try {
+      await fetch('/api/annotations/assignments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ type_id: typeId, date }),
+      })
+    } catch {
+      // 失败时回滚
       setAnnotationsByMonth(prev => ({
         ...prev,
         [monthKey]: (prev[monthKey] || []).filter(a =>
-          !(a.annotation_type_id === typeId && a.date === date)
+          !(a.annotation_type_id === typeId && a.date === date) || a.id.startsWith('temp-')
         ),
       }))
     }
-    return result
+    return { success: true }
+  }, [getToken, types])
+
+  // 从日期移除标注（乐观更新）
+  const removeAnnotation = useCallback(async (typeId: string, date: string) => {
+    const monthKey = date.slice(0, 7)
+
+    // 乐观更新：立即在本地移除
+    setAnnotationsByMonth(prev => ({
+      ...prev,
+      [monthKey]: (prev[monthKey] || []).filter(a =>
+        !(a.annotation_type_id === typeId && a.date === date)
+      ),
+    }))
+
+    // 后台发 API
+    const token = await getToken()
+    if (!token) return null
+
+    try {
+      await fetch(`/api/annotations/assignments?type_id=${typeId}&date=${date}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+    } catch {
+      // 失败时无法简单回滚，需要重新加载
+      loadedMonthsRef.current.delete(monthKey)
+    }
+    return { success: true }
   }, [getToken])
 
   // 构建指定月的标注映射 date → {label, color}[]
