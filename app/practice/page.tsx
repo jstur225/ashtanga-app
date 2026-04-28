@@ -2787,14 +2787,7 @@ function MonthlyHeatmap({
   return (
     <div className="bg-white rounded-[20px] mb-3 shadow-md border border-stone-200 overflow-hidden">
       {/* Integrated Header: Sync + Month Navigation + Buttons */}
-      <div className="relative flex items-center justify-center px-3 py-3 border-b border-stone-100 bg-lime-50">
-        {/* Center: Month (absolute centered) */}
-        <h3 className="font-serif text-foreground font-semibold text-base">
-          {currentYear}年{currentMonth + 1}月
-        </h3>
-
-        {/* Left: Sync + Prev */}
-        <div className="absolute left-3 flex items-center gap-1.5">
+      <div className="flex items-center justify-center gap-1.5 px-3 py-3 border-b border-stone-100 bg-lime-50">
           <SyncButton onOpenFakeDoor={onOpenFakeDoor} syncStatus={syncStatus} hasVoted={!!user} />
           <button
             onClick={goToPreviousMonth}
@@ -2802,10 +2795,9 @@ function MonthlyHeatmap({
           >
             <ChevronLeft className="w-3.5 h-3.5" />
           </button>
-        </div>
-
-        {/* Right: Next + Pencil + Add */}
-        <div className="absolute right-3 flex items-center gap-1.5">
+          <h3 className="font-serif text-foreground font-semibold text-base min-w-[90px] text-center">
+            {currentYear}年{currentMonth + 1}月
+          </h3>
           <button
             onClick={goToNextMonth}
             className="w-7 h-7 rounded-full green-gradient-deep border border-white/20 shadow-[0_2px_6px_rgba(45,90,39,0.2)] flex items-center justify-center text-white"
@@ -2826,7 +2818,6 @@ function MonthlyHeatmap({
           >
             <Plus className="w-3.5 h-3.5" />
           </button>
-        </div>
       </div>
       <div className="grid grid-cols-7 gap-[2px] p-4">
         {weekDays.map((day) => (
