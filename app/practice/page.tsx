@@ -5816,7 +5816,13 @@ export default function AshtangaTracker() {
           syncStatus={syncStatus}
           user={user}
           annotationMap={annotationMap}
-          onOpenAnnotationManager={() => setShowAnnotationManager(true)}
+          onOpenAnnotationManager={() => {
+            if (!user) {
+              setShowAuthModal(true)
+              return
+            }
+            setShowAnnotationManager(true)
+          }}
           onJournalMonthChange={setJournalDate}
         />
         </motion.div>
