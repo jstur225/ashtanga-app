@@ -1258,7 +1258,7 @@ function TypeSelectorModal({
             <div className="flex-1 overflow-y-auto px-6 py-6">
               <div className="grid grid-cols-3 gap-3">
                 {practiceOptions
-                  .filter(option => option.id !== "custom")
+                  .filter(option => option.id !== "custom" && !option.is_fixed)
                   .map((option) => {
                   // 显示逻辑：label（名称）+ notes（备注）
                   const displayName = option.label || ''
