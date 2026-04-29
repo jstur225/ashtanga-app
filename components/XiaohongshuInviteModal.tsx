@@ -88,7 +88,7 @@ export function XiaohongshuInviteModal({ isOpen, onClose }: XiaohongshuInviteMod
               {/* 图片 */}
               <div className="w-full">
                 <Image
-                  src="/进群方法2.jpg"
+                  src="/xhs-join-group.jpg"
                   alt="进群方法"
                   width={400}
                   height={300}
@@ -113,16 +113,16 @@ export function XiaohongshuInviteModal({ isOpen, onClose }: XiaohongshuInviteMod
                 <div className="flex gap-3 pt-2">
                   <button
                     onClick={() => copyToClipboard(XIAOHONGSHU_GROUP_TEXT, 'xhs')}
-                    className="flex-1 py-3 rounded-full bg-[#FF2442] text-white font-serif text-sm transition-all hover:opacity-90 active:scale-[0.98] flex items-center justify-center gap-2"
+                    className="flex-1 py-3 px-2 rounded-full bg-[#FF2442] text-white font-serif text-xs transition-all hover:opacity-90 active:scale-[0.98] flex items-center justify-center gap-1.5 whitespace-nowrap"
                   >
-                    {copiedXhs ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                    {copiedXhs ? '已复制' : '复制小红书群链接'}
+                    {copiedXhs ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                    {copiedXhs ? '已复制' : '复制小红书群'}
                   </button>
                   <button
                     onClick={() => copyToClipboard(WECHAT_ID, 'wx')}
-                    className="flex-1 py-3 rounded-full bg-[#07C160] text-white font-serif text-sm transition-all hover:opacity-90 active:scale-[0.98] flex items-center justify-center gap-2"
+                    className="flex-1 py-3 px-2 rounded-full bg-[#07C160] text-white font-serif text-xs transition-all hover:opacity-90 active:scale-[0.98] flex items-center justify-center gap-1.5 whitespace-nowrap"
                   >
-                    {copiedWx ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                    {copiedWx ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                     {copiedWx ? '已复制' : '复制微信号'}
                   </button>
                 </div>
