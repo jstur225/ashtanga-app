@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils'
 import { supabase, type PracticeRecord, type PracticeOption, type Photo } from '@/lib/supabase'
 import { PhotoPreviewList, PhotoPreview } from './PhotoUpload/PhotoPreview'
 import { toast } from 'sonner'
-import { Expand, Camera } from 'lucide-react'
+import { Expand, Camera, ChevronDown } from 'lucide-react'
 import { useMembership } from '@/hooks/useMembership'
 
 // 将 URL 数组转换为 Photo 数组的辅助函数
@@ -258,6 +258,7 @@ export function PracticeForm({
   const [testPlaceholders, setTestPlaceholders] = useState<{id: string; name: string}[]>([])
   // 读取文件中的 loading 状态
   const [isReadingFiles, setIsReadingFiles] = useState(false)
+  const [isFullscreen, setIsFullscreen] = useState(false)
   const [breakthroughEnabled, setBreakthroughEnabled] = useState(!!initialData?.breakthrough)
   const [breakthroughText, setBreakthroughText] = useState(initialData?.breakthrough || "")
 
@@ -621,9 +622,9 @@ export function PracticeForm({
             )}
             {/* 扩张/展开按钮 - 绿色渐变 */}
             <button
-              onClick={() => toast.info('全屏编辑功能开发中，期待上线')}
+              onClick={() => setIsFullscreen(true)}
               className="w-10 h-10 rounded-full green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] flex items-center justify-center transition-all hover:scale-105 active:scale-95"
-              title="展开更多"
+              title="展开编辑"
             >
               <Expand className="w-5 h-5 text-white" />
             </button>
@@ -745,6 +746,41 @@ export function PracticeForm({
               </div>
             </motion.div>
           </>
+        )}
+      </AnimatePresence>
+
+      {/* 全屏编辑覆盖层 */}
+      <AnimatePresence>
+        {isFullscreen && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-[100] flex flex-col bg-paper-pattern"
+          >
+            {/* 顶部栏 */}
+            <div className="flex items-center justify-between px-4 py-3 border-b border-stone-200 flex-shrink-0">
+              <button
+                onClick={() => setIsFullscreen(false)}
+                className="flex items-center gap-1 text-muted-foreground text-sm font-serif active:opacity-70 transition-opacity"
+              >
+                <ChevronDown className="w-4 h-4" />
+                收起
+              </button>
+              <span className="text-xs font-serif text-muted-foreground">觉察/笔记</span>
+              <span className="text-xs text-muted-foreground/60">{notes.length}/2000</span>
+            </div>
+
+            {/* 全屏 textarea — 像手写日记内页 */}
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value.slice(0, 2000))}
+              autoFocus
+              placeholder="今天练习感受如何？有什么觉察？"
+              className="flex-1 w-full p-5 bg-transparent text-foreground placeholder:text-muted-foreground/50 focus:outline-none resize-none font-serif text-base leading-relaxed"
+            />
+          </motion.div>
         )}
       </AnimatePresence>
     </div>

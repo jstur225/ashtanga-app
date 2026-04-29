@@ -1,36 +1,25 @@
 # 待处理问题
 
-## 2026-04-24 - 会员续费时间累加修复 ✅ 已完成
+## 2026-04-29 - 觉察笔记全屏编辑功能 ⏳ 待开发
 
-**状态**：已完成
-**提交**：`a0bce46` fix: 会员续费时间累加 — 直接查 user_memberships 表取代不可靠的视图查询
+**状态**：待开发
+**改动文件**：`components/PracticeForm.tsx`（仅此一个文件）
 
-### 问题
-已有会员再激活新卡时，到期时间没有从现有到期日累加，而是从当前时间重新计算。
+### 需求
+三个弹窗（完成练习、补录练习、编辑练习）的觉察/笔记 textarea 右下角有 Expand 按钮，目前点击只弹 toast 占位。需要实现全屏编辑。
 
-### 已实现
-- 激活 API 改为直接查 `user_memberships` 表找 `MAX(expires_at)`（不再依赖 `user_membership_status` 视图）
-- 有活跃会员 → 新到期 = 现有到期 + 新卡天数
-- 无活跃会员 → 新到期 = 当前时间 + 新卡天数
+### 实现方案
+1. PracticeForm 新增 `isFullscreen` 内部状态
+2. Expand 按钮 onClick 改为 `setIsFullscreen(true)`
+3. 全屏覆盖层：z-[100]，顶部栏（收起按钮 + 字数），全屏 textarea（text-base 字号，autoFocus）
+4. notes 状态共享——全屏和弹窗共用同一个 state，收起后内容自动同步
+5. 不需要新增 props，对外部透明
 
-### 涉及文件
-- `app/api/membership/activate/route.ts` — 查询逻辑重构
-
----
-
-## 2026-04-24 - 会员状态 API 缓存修复 ✅ 已完成
-
-**状态**：已完成
-**提交**：`b7717f7` fix: 会员状态 API 增加缓存控制和调试日志
-
-### 问题
-会员状态 API 响应被 Next.js 缓存，刷新页面仍显示旧的到期时间。
-
-### 已实现
-- 添加 `dynamic = 'force-dynamic'`、`fetchCache = 'force-no-store'`、`revalidate = 0` 禁用缓存
-
-### 涉及文件
-- `app/api/membership/status/route.ts` — 缓存控制
+### 验证
+- [ ] 点击 Expand → 全屏覆盖层出现，textarea 自动聚焦
+- [ ] 输入文字 → 收起 → 文字保留在弹窗中
+- [ ] 字数计数器正常
+- [ ] 照片上传等其他功能不受影响
 
 ---
 
