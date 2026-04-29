@@ -113,7 +113,7 @@ export function XiaohongshuInviteModal({ isOpen, onClose }: XiaohongshuInviteMod
                 <div className="flex gap-3 pt-2">
                   <button
                     onClick={() => copyToClipboard(XIAOHONGSHU_GROUP_TEXT, 'xhs')}
-                    className="flex-1 py-3 rounded-full bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white font-serif text-sm transition-all hover:opacity-90 active:scale-[0.98] flex items-center justify-center gap-2"
+                    className="flex-1 py-3 rounded-full bg-[#FF2442] text-white font-serif text-sm transition-all hover:opacity-90 active:scale-[0.98] flex items-center justify-center gap-2"
                   >
                     {copiedXhs ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                     {copiedXhs ? '已复制' : '复制小红书群链接'}
