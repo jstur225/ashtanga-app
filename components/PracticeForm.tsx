@@ -251,7 +251,7 @@ export function PracticeForm({
     setInternalType(value)
     onTypeChange?.(value)
   }
-  const [duration, setDuration] = useState(initialData?.duration || 60)
+  const [duration, setDuration] = useState<number|string>(initialData?.duration || 60)
   const [notes, setNotes] = useState(initialData?.notes || "")
 
   // 测试用：占位符显示状态
@@ -382,7 +382,7 @@ export function PracticeForm({
     onSave({
       date,
       type,
-      duration,
+      duration: typeof duration === 'string' ? (Number(duration) || 0) : duration,
       notes,
       breakthrough: breakthroughEnabled ? breakthroughText : undefined,
       photos: photos.map(p => p.oss_url), // ⭐ 保存时包含照片
@@ -470,12 +470,20 @@ export function PracticeForm({
             <input
               type="number"
               value={duration}
-              onChange={(e) => setDuration(Math.max(0, Number(e.target.value)))}
+              onChange={(e) => {
+                const val = e.target.value
+                if (val === '') {
+                  setDuration('')
+                } else {
+                  const num = Number(val)
+                  if (!isNaN(num)) setDuration(Math.max(0, num))
+                }
+              }}
               className="w-full px-3 py-2.5 rounded-xl bg-secondary text-foreground font-serif text-center focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all text-sm"
             />
           ) : (
             <div className="w-full px-3 py-2.5 rounded-xl bg-secondary/50 text-foreground font-serif text-center text-sm">
-              {duration} 分钟
+              {duration === '' ? '0' : duration} 分钟
             </div>
           )}
         </div>
