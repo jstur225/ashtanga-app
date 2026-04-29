@@ -285,13 +285,12 @@ function MoonDayButton({
 
       {/* 多圆点容器 */}
       {(hasMoonDot || hasBreakthroughDot || annotationColors.length > 0) && (
-        <div className="absolute -bottom-[2px] left-1/2 -translate-x-1/2 flex gap-[1.5px] z-20">
+        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-[1.5px] z-20">
           {hasMoonDot && <div className="w-1 h-1 rounded-full bg-[#FFE066] shadow-[0_0_6px_rgba(255,224,102,0.8)]" />}
           {hasBreakthroughDot && <div className="w-1 h-1 rounded-full bg-[#e67e22] shadow-[0_0_6px_rgba(230,126,34,0.8)]" />}
           {annotationColors.slice(0, 3).map((color, i) => (
             <div key={i} className="w-1 h-1 rounded-full" style={{ backgroundColor: color, boxShadow: `0 0 4px ${color}80` }} />
           ))}
-          {annotationColors.length > 3 && <span className="text-[6px] text-muted-foreground">+{annotationColors.length - 3}</span>}
         </div>
       )}
     </button>
@@ -2683,6 +2682,9 @@ function MonthlyHeatmap({
   onMonthChange,
   annotationMap,
   onOpenAnnotationManager,
+  onOpenXiaohongshuModal,
+  hasNewXhsMessage,
+  onReadInvite,
 }: {
   practiceHistory: PracticeRecord[]
   onDayClick: (dateStr: string) => void
@@ -2694,6 +2696,9 @@ function MonthlyHeatmap({
   onMonthChange?: (date: Date) => void
   annotationMap?: Record<string, { label: string; color: string }[]>
   onOpenAnnotationManager?: () => void
+  onOpenXiaohongshuModal: () => void
+  hasNewXhsMessage: boolean
+  onReadInvite: () => void
 }) {
   const today = new Date()
   const todayStr = getLocalDateStr()
@@ -2787,49 +2792,58 @@ function MonthlyHeatmap({
   
   return (
     <div className="bg-white rounded-[20px] mb-3 shadow-md border border-stone-200 overflow-hidden">
-      {/* Integrated Header: Sync + Month Navigation + Add Button */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-stone-100 bg-lime-50">
-        {/* Left: Sync Status - aligned with calendar first column */}
-        <div className="w-[calc((100%-12px)/7)] flex justify-center">
-          <SyncButton onOpenFakeDoor={onOpenFakeDoor} syncStatus={syncStatus} hasVoted={!!user} />
-        </div>
-        
-        {/* Center: Month Navigation - takes remaining space */}
-        <div className="flex-1 flex items-center justify-center gap-2">
-          <button 
-            onClick={goToPreviousMonth}
-            className="p-1 text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-          <h3 className="font-serif text-foreground min-w-[90px] text-center font-semibold text-lg">
+      {/* Integrated Header: Sync + Month Navigation + Buttons */}
+      <div className="flex items-center justify-between px-3 py-3 border-b border-stone-100 bg-lime-50">
+          {/* Left icons */}
+          <div className="flex items-center gap-1.5">
+            <SyncButton onOpenFakeDoor={onOpenFakeDoor} syncStatus={syncStatus} hasVoted={!!user} />
+            <button
+              onClick={() => {
+                onReadInvite()
+                onOpenXiaohongshuModal()
+              }}
+              className="relative w-7 h-7 rounded-full green-gradient-deep border border-white/20 shadow-[0_2px_6px_rgba(45,90,39,0.2)] flex items-center justify-center text-white"
+              aria-label="小红书群邀请"
+            >
+              <MessageCircle className="w-[11px] h-[11px] -translate-y-[2px]" />
+              <div className={`absolute bottom-1 left-1/2 -translate-x-1/2 rounded-full w-1 h-1 ${hasNewXhsMessage ? 'bg-red-400' : 'bg-green-400'}`} />
+            </button>
+            <button
+              onClick={goToPreviousMonth}
+              className="w-7 h-7 rounded-full green-gradient-deep border border-white/20 shadow-[0_2px_6px_rgba(45,90,39,0.2)] flex items-center justify-center text-white"
+            >
+              <ChevronLeft className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          {/* Center month - takes remaining space, centered */}
+          <h3 className="font-serif text-foreground font-semibold text-base text-center flex-1">
             {currentYear}年{currentMonth + 1}月
           </h3>
-          <button
-            onClick={goToNextMonth}
-            className="p-1 text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
-        </div>
-        
-        {/* Right: Annotation + Add Buttons */}
-        <div className="flex items-center justify-center gap-1">
-          {onOpenAnnotationManager && (
+
+          {/* Right icons */}
+          <div className="flex items-center gap-1.5">
             <button
-              onClick={onOpenAnnotationManager}
-              className="w-8 h-8 rounded-full bg-background border border-stone-200 shadow-[0_2px_8px_rgba(0,0,0,0.06)] flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+              onClick={goToNextMonth}
+              className="w-7 h-7 rounded-full green-gradient-deep border border-white/20 shadow-[0_2px_6px_rgba(45,90,39,0.2)] flex items-center justify-center text-white"
             >
-              <Pencil className="w-3.5 h-3.5" />
+              <ChevronRight className="w-3.5 h-3.5" />
             </button>
-          )}
-          <button
-            onClick={onAddRecord}
-            className="w-8 h-8 rounded-full green-gradient-deep border border-white/20 shadow-[0_2px_8px_rgba(45,90,39,0.2)] flex items-center justify-center text-white"
-          >
-            <Plus className="w-4 h-4" />
-          </button>
-        </div>
+            {onOpenAnnotationManager && (
+              <button
+                onClick={onOpenAnnotationManager}
+                className="w-7 h-7 rounded-full green-gradient-deep border border-white/20 shadow-[0_2px_6px_rgba(45,90,39,0.2)] flex items-center justify-center text-white"
+              >
+                <Pencil className="w-3 h-3" />
+              </button>
+            )}
+            <button
+              onClick={onAddRecord}
+              className="w-7 h-7 rounded-full green-gradient-deep border border-white/20 shadow-[0_2px_6px_rgba(45,90,39,0.2)] flex items-center justify-center text-white"
+            >
+              <Plus className="w-3.5 h-3.5" />
+            </button>
+          </div>
       </div>
       <div className="grid grid-cols-7 gap-[2px] p-4">
         {weekDays.map((day) => (
@@ -2948,7 +2962,7 @@ function SyncButton({ onOpenFakeDoor, syncStatus, hasVoted }: { onOpenFakeDoor: 
   return (
     <button
       onClick={handleClick}
-      className={`relative w-8 h-8 rounded-full backdrop-blur-md border border-white/20 shadow-[0_2px_8px_rgba(45,90,39,0.2)] flex items-center justify-center transition-all ${
+      className={`relative w-7 h-7 rounded-full backdrop-blur-md border border-white/20 shadow-[0_2px_6px_rgba(45,90,39,0.2)] flex items-center justify-center transition-all ${
         hasVoted
           ? 'green-gradient'
           : 'bg-stone-400'
@@ -2962,7 +2976,7 @@ function SyncButton({ onOpenFakeDoor, syncStatus, hasVoted }: { onOpenFakeDoor: 
           repeat: syncStatus === 'syncing' ? Infinity : (isClickSpinning ? 1 : 0)
         }}
       >
-        <Cloud className={`w-4 h-4 ${hasVoted ? 'text-[#FAF7F2]' : 'text-stone-200'}`} />
+        <Cloud className={`w-3.5 h-3.5 ${hasVoted ? 'text-[#FAF7F2]' : 'text-stone-200'}`} />
       </motion.div>
       {/* Status dot - 根据同步状态显示不同颜色 */}
       <div className={`absolute bottom-1 left-1/2 -translate-x-1/2 rounded-full w-1 h-1 ${getStatusColor()}`} />
@@ -2993,6 +3007,9 @@ function JournalTab({
   annotationMap,
   onOpenAnnotationManager,
   onJournalMonthChange,
+  onOpenXiaohongshuModal,
+  hasNewXhsMessage,
+  onReadInvite,
 }: {
   practiceHistory: PracticeRecord[]
   practiceOptions: PracticeOption[]
@@ -3015,6 +3032,9 @@ function JournalTab({
   annotationMap?: Record<string, { label: string; color: string }[]>
   onOpenAnnotationManager?: () => void
   onJournalMonthChange?: (date: Date) => void
+  onOpenXiaohongshuModal: () => void
+  hasNewXhsMessage: boolean
+  onReadInvite: () => void
 }) {
   const [sharingRecordId, setSharingRecordId] = useState<string | null>(null)
   const [childModalOpen, setChildModalOpen] = useState(false)
@@ -3189,6 +3209,9 @@ function JournalTab({
           user={user}
           annotationMap={annotationMap}
           onOpenAnnotationManager={onOpenAnnotationManager}
+          onOpenXiaohongshuModal={onOpenXiaohongshuModal}
+          hasNewXhsMessage={hasNewXhsMessage}
+          onReadInvite={onReadInvite}
           onMonthChange={(date) => {
             // ⭐ 切换月份时重置加载的月份列表
             setLoadedMonths([date])
@@ -3499,9 +3522,7 @@ function StatsTab({
   onOpenFakeDoor,
   showXiaohongshuModal,
   setShowXiaohongshuModal,
-  hasNewXhsMessage,
   user,
-  setReadInviteVersion,
   showPWAInstallTutorial,
   setShowPWAInstallTutorial,
 }: {
@@ -3514,11 +3535,9 @@ function StatsTab({
   onOpenFakeDoor: () => void
   showXiaohongshuModal: boolean
   setShowXiaohongshuModal: (value: boolean) => void
-  hasNewXhsMessage: boolean
   user?: any
   showPWAInstallTutorial: boolean
   setShowPWAInstallTutorial: (value: boolean) => void
-  setReadInviteVersion: (version: string) => void
 }) {
   // 隐藏邮箱的辅助函数
   const maskEmail = (email: string): string => {
@@ -3705,23 +3724,6 @@ function StatsTab({
                 <User className="w-10 h-10 text-white" />
               )}
             </div>
-
-            {/* 气泡通知图标 - 头像右上角（更靠外） */}
-            <button
-              onClick={() => {
-                setShowXiaohongshuModal(true)
-                setReadInviteVersion(INVITE_VERSION) // 保存当前版本号
-              }}
-              className="absolute -top-6 -right-6 w-9 h-9 rounded-full bg-white shadow-lg flex items-center justify-center hover:scale-110 active:scale-95 transition-transform z-10"
-              aria-label="小红书群邀请"
-            >
-              <MessageCircle className="w-4.5 h-4.5 text-[#e67e22]" />
-
-              {/* 红色状态点 - 气泡中下方 */}
-              {hasNewXhsMessage && (
-                <div className="absolute bottom-1 left-1/2 -translate-x-1/2 rounded-full w-1 h-1 bg-red-400" />
-              )}
-            </button>
           </div>
           <div className="flex items-center gap-2">
             <h2 className="text-xl font-serif text-[#2D5A27]">{profile.name}</h2>
@@ -3914,6 +3916,7 @@ export default function AshtangaTracker() {
     addAnnotation,
     removeAnnotation,
     buildAnnotationMap,
+    buildAnnotatedDates,
   } = useAnnotations()
   const [showAnnotationManager, setShowAnnotationManager] = useState(false)
   const [journalDate, setJournalDate] = useState(new Date())
@@ -3921,6 +3924,11 @@ export default function AshtangaTracker() {
   const annotationMap = useMemo(
     () => buildAnnotationMap(journalDate.getFullYear(), journalDate.getMonth()),
     [buildAnnotationMap, journalDate]
+  )
+  // 当前月的标注日期映射（用于弹窗）
+  const annotationDates = useMemo(
+    () => buildAnnotatedDates(journalDate.getFullYear(), journalDate.getMonth()),
+    [buildAnnotatedDates, journalDate]
   )
 
   // 加载标注类型
@@ -3980,7 +3988,7 @@ export default function AshtangaTracker() {
   const [showActivateModal, setShowActivateModal] = useState(false)
   const [showPurchaseModal, setShowPurchaseModal] = useState(false)
   const [showMembershipPrompt, setShowMembershipPrompt] = useState(false)
-  const [membershipPromptReason, setMembershipPromptReason] = useState<'options_full' | 'locked_option' | 'locked_practice'>('options_full')
+  const [membershipPromptReason, setMembershipPromptReason] = useState<'options_full' | 'locked_option' | 'locked_practice' | 'locked_annotation'>('options_full')
   const [showFakeDoor, setShowFakeDoor] = useState<{ type: 'cloud' | 'pro' | 'voice' | 'photo', isOpen: boolean }>({ type: 'cloud', isOpen: false })
   const [showImportModal, setShowImportModal] = useState(false)
   const [showDebugLogModal, setShowDebugLogModal] = useState(false)
@@ -5816,8 +5824,17 @@ export default function AshtangaTracker() {
           syncStatus={syncStatus}
           user={user}
           annotationMap={annotationMap}
-          onOpenAnnotationManager={() => setShowAnnotationManager(true)}
+          onOpenAnnotationManager={() => {
+            if (!user) {
+              toast.error('绑定邮箱后才可使用日历标注功能')
+              return
+            }
+            setShowAnnotationManager(true)
+          }}
           onJournalMonthChange={setJournalDate}
+          onOpenXiaohongshuModal={() => setShowXiaohongshuModal(true)}
+          hasNewXhsMessage={hasNewXhsMessage}
+          onReadInvite={() => setReadInviteVersion(INVITE_VERSION)}
         />
         </motion.div>
       )}
@@ -5836,9 +5853,7 @@ export default function AshtangaTracker() {
           onOpenFakeDoor={() => setShowFakeDoor({ type: 'pro', isOpen: true })}
           showXiaohongshuModal={showXiaohongshuModal}
           setShowXiaohongshuModal={setShowXiaohongshuModal}
-          hasNewXhsMessage={hasNewXhsMessage}
           user={user}
-          setReadInviteVersion={setReadInviteVersion}
           showPWAInstallTutorial={showPWAInstallTutorial}
           setShowPWAInstallTutorial={setShowPWAInstallTutorial}
         />
@@ -5988,6 +6003,11 @@ export default function AshtangaTracker() {
         onDeleteType={deleteAnnotationType}
         onAddAnnotation={addAnnotation}
         onRemoveAnnotation={removeAnnotation}
+        onLockedClick={() => {
+          setMembershipPromptReason('locked_annotation')
+          setShowMembershipPrompt(true)
+        }}
+        annotationDates={annotationDates}
       />
 
       {/* Activate Membership Modal */}
