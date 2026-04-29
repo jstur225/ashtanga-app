@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X, Copy, Check } from 'lucide-react'
 import Image from 'next/image'
 import { useState } from 'react'
-import toast from 'react-hot-toast'
+import { toast } from 'sonner'
 
 // 版本号 - 每次更新文案时修改此版本号
 export const INVITE_VERSION = 'v3'
