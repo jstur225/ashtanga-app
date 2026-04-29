@@ -116,7 +116,7 @@ export function XiaohongshuInviteModal({ isOpen, onClose }: XiaohongshuInviteMod
                     className="flex-1 py-3 px-2 rounded-full bg-[#FF2442] text-white font-serif text-xs transition-all hover:opacity-90 active:scale-[0.98] flex items-center justify-center gap-1.5 whitespace-nowrap"
                   >
                     {copiedXhs ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                    {copiedXhs ? '已复制' : '复制小红书群'}
+                    {copiedXhs ? '已复制' : '复制小红书群链接'}
                   </button>
                   <button
                     onClick={() => copyToClipboard(WECHAT_ID, 'wx')}
