@@ -7,9 +7,9 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 
 // 版本号 - 每次更新文案时修改此版本号
-export const INVITE_VERSION = 'v3'
+export const INVITE_VERSION = 'v4'
 
-const XIAOHONGSHU_GROUP_TEXT = '6【长按复制，小红书APP见】 5月27日到期，"👏熬汤日记 App 交流群 3"志同道合处 HU7603 :/#h🐟😊🥞🥐🍆🥭🌽😊🐰😎😉🐨'
+const XIAOHONGSHU_GROUP_TEXT = '1【长按复制，小红书APP见】 5月27日到期，"🆓熬汤日记App交流群"志同道合处 ZH9565 :/#i🍠😷🥯🌽🥑🧀🥒🍤🎂🧁🐮🍖'
 const WECHAT_ID = 'xiao519216978'
 
 interface XiaohongshuInviteModalProps {
@@ -88,7 +88,7 @@ export function XiaohongshuInviteModal({ isOpen, onClose }: XiaohongshuInviteMod
               {/* 图片 */}
               <div className="w-full">
                 <Image
-                  src="/xhs-join-group.jpg"
+                  src="/xhs-join-group2.jpg"
                   alt="进群方法"
                   width={400}
                   height={300}
@@ -100,10 +100,10 @@ export function XiaohongshuInviteModal({ isOpen, onClose }: XiaohongshuInviteMod
               {/* 文案 + 按钮 */}
               <div className="p-6 space-y-4">
                 <p className="text-sm text-foreground font-serif leading-relaxed">
-                  ✋汤友你好，之前的小红群被禁言了，可以进新群啦
+                  ✋汤友你好，欢迎进小红书交流群
                 </p>
                 <p className="text-sm text-muted-foreground font-serif leading-relaxed">
-                  如果使用上有建议或bug，可以直接联系我微信，也防丢失，后面会拉个微信汤友群~
+                  如果使用上有建议或bug，可以直接联系我微信，后面会拉个微信汤友群~
                 </p>
                 <p className="text-sm text-muted-foreground font-serif leading-relaxed">
                   🐸{WECHAT_ID}

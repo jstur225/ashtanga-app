@@ -3199,6 +3199,15 @@ function JournalTab({
     <div ref={scrollContainerRef} className="flex-1 overflow-y-auto pb-24 pt-12 relative">
       {/* Calendar with integrated header */}
       <div className="px-6">
+        {!user && (
+          <p
+            className="text-[11px] pl-4 mb-1.5 cursor-pointer"
+            style={{ color: '#C1A268' }}
+            onClick={onOpenFakeDoor}
+          >
+            👇绑定邮箱，免费领 62 天 Pro 会员（5.1 前有效）
+          </p>
+        )}
         <MonthlyHeatmap
           practiceHistory={practiceHistory}
           onDayClick={handleDayClick}
