@@ -2515,3 +2515,33 @@ export const INVITE_VERSION = 'v2'  // 从 v1 更新到 v2
 - 优化状态管理区块的交互
 
 ---
+
+## 2026-04-29 - Tab2 绑定邮箱提醒条 + 公告弹窗 v4
+
+**提交**：
+- `6fb7add` feat: Tab2 顶部绑定邮箱提醒条（金色可点击，未登录可见）
+- `477d8be` fix: 提醒条文案改为5.1统一发放
+- `a0610f2` feat: 更新公告弹窗v4 - 新群链接+新图片+文案更新
+- `ea86a99` fix: 添加公告图片 xhs-join-group2.jpg
+
+**改动1：Tab2 顶部绑定邮箱提醒条**
+- 位置：`app/practice/page.tsx` JournalTab 组件，MonthlyHeatmap 上方
+- 条件：`!user` — 已登录用户不显示
+- 样式：金色 `#C1A268`，`text-[11px]`，`pl-4` 对齐 SyncButton
+- 交互：可点击，触发 `onOpenFakeDoor`（与云同步图标相同弹窗）
+- 文案：`👇绑定邮箱，免费领 62 天 Pro 会员（5.1统一发放）`
+- **⚠️ 5.1 后需手动删除**
+
+**改动2：公告弹窗 v4**
+- `components/XiaohongshuInviteModal.tsx`
+- INVITE_VERSION: v3 → v4
+- 新群链接：ZH9565
+- 新图片：`public/xhs-join-group2.jpg`
+- 主文案去掉"被禁言"，改为"欢迎进小红书交流群"
+- 副文案去掉"也防丢失"
+
+**工程评审**：
+- Eng Review: CLEAN（0 issues, 0 critical gaps）
+- Design Review: CLEAN（9/10，从灰色改为金色+可点击）
+
+---
