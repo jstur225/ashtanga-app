@@ -3205,7 +3205,7 @@ function JournalTab({
             style={{ color: '#C1A268' }}
             onClick={onOpenFakeDoor}
           >
-            👇绑定邮箱，免费领 62 天 Pro 会员（5.1统一发放）
+            👇绑定邮箱，免费领 31 天 Pro 会员（绑定后自动发放）
           </p>
         )}
         <MonthlyHeatmap
