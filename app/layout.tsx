@@ -52,6 +52,7 @@ export const metadata: Metadata = {
   keywords: '熬汤日记,阿斯汤加,Ashtanga,瑜伽打卡,练习记录,Mysore,Ashtanga Yoga',
   other: {
     'applicable-device': 'mobile',
+    'baidu-site-verification': 'codeva-63gDAx1xg3',
   },
 }
 
