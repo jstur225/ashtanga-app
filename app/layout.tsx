@@ -49,6 +49,10 @@ export const metadata: Metadata = {
   formatDetection: {
     telephone: false,
   },
+  keywords: '熬汤日记,阿斯汤加,Ashtanga,瑜伽打卡,练习记录,Mysore,Ashtanga Yoga',
+  other: {
+    'applicable-device': 'mobile',
+  },
 }
 
 export default function RootLayout({
@@ -57,7 +61,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
+    <html lang="zh-CN">
       <body className={`${inter.variable} ${jetbrainsMono.variable} ${notoSerifSC.variable} ${playfair.variable} font-sans antialiased`}>
         <AnalyticsInitializer />
         <ServiceWorkerRegister />
