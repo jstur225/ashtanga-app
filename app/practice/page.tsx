@@ -758,6 +758,7 @@ function ShareCardModal({
       toast.loading('正在生成图片...', { id: 'export' })
 
       // 1. 临时移除滚动限制，展开完整内容
+      setIsCapturing(true)
       element.style.maxHeight = 'none'
       element.style.overflow = 'visible'
 
@@ -806,6 +807,7 @@ function ShareCardModal({
       toast.error('导出失败，请重试')
     } finally {
       // 恢复原始样式
+      setIsCapturing(false)
       element.style.maxHeight = originalMaxHeight
       element.style.overflow = originalOverflow
     }
