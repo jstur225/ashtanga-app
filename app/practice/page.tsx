@@ -754,12 +754,18 @@ function ShareCardModal({
     const originalMaxHeight = element.style.maxHeight
     const originalOverflow = element.style.overflow
 
+    // 找到觉察文字区域，直接操作DOM（不依赖React异步渲染）
+    const notesEl = element.querySelector('p') as HTMLElement | null
+    const originalNotesMaxHeight = notesEl?.style.maxHeight
+
     try {
       toast.loading('正在生成图片...', { id: 'export' })
 
       // 1. 临时移除滚动限制，展开完整内容
       element.style.maxHeight = 'none'
       element.style.overflow = 'visible'
+      // 直接移除觉察文字的高度限制（Tailwind class 不会被 React 状态更新即时移除）
+      if (notesEl) notesEl.style.maxHeight = 'none'
 
       // 2. 等待DOM更新（确保高度扩展完成）
       await new Promise(resolve => setTimeout(resolve, 100))
@@ -808,6 +814,7 @@ function ShareCardModal({
       // 恢复原始样式
       element.style.maxHeight = originalMaxHeight
       element.style.overflow = originalOverflow
+      if (notesEl) notesEl.style.maxHeight = originalNotesMaxHeight || ''
     }
   }
 
