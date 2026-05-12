@@ -2151,10 +2151,12 @@ function ConfirmEndDialog({
   isOpen,
   onClose,
   onConfirm,
+  onDiscard,
 }: {
   isOpen: boolean
   onClose: () => void
   onConfirm: () => void
+  onDiscard: () => void
 }) {
   return (
     <AnimatePresence>
@@ -2174,21 +2176,29 @@ function ConfirmEndDialog({
             transition={{ type: "spring", damping: 25, stiffness: 400 }}
             className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card rounded-3xl z-[70] p-6 shadow-[0_4px_30px_rgba(0,0,0,0.1)] w-[calc(100%-48px)] max-w-sm"
           >
-            <h2 className="text-lg font-serif text-foreground text-center mb-2">确认结束？</h2>
-            <p className="text-muted-foreground text-center text-sm mb-6 font-serif">确定要结束这次练习吗？</p>
+            {/* 右上角关闭按钮 */}
+            <button
+              onClick={onClose}
+              className="absolute right-4 top-4 p-1 text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            </button>
+
+            <h2 className="text-lg font-serif text-foreground text-center mb-2">结束练习？</h2>
+            <p className="text-muted-foreground text-center text-sm mb-6 font-serif">选择保存或丢弃这次记录</p>
 
             <div className="flex gap-3">
               <button
-                onClick={onClose}
+                onClick={onDiscard}
                 className="flex-1 py-3 rounded-full bg-secondary text-foreground font-serif transition-all hover:bg-secondary/80 active:scale-[0.98]"
               >
-                取消
+                不保存退出
               </button>
               <button
                 onClick={onConfirm}
                 className="flex-1 py-3 rounded-full green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white font-serif transition-all hover:opacity-90 active:scale-[0.98]"
               >
-                结束
+                保存并退出
               </button>
             </div>
           </motion.div>
@@ -2374,7 +2384,7 @@ function MonthlyStatsCard({
     const totalMinutes = Math.round(totalSeconds / 60)
     const avgMinutes = practiceDays > 0 ? Math.round(totalMinutes / practiceDays) : 0
 
-    // 计算连续练习周数
+    // 计算连续练习周数：检查相邻练习间隔是否超过7天
     const practiceDates = practiceHistory
       .filter(r => r.duration > 0 && r.type !== '草稿')
       .map(r => r.date)
@@ -2384,25 +2394,26 @@ function MonthlyStatsCard({
     let consecutiveWeeks = 0
     if (practiceDates.length > 0) {
       const today = new Date()
-      const currentWeekEnd = new Date(today)
-      currentWeekEnd.setHours(23, 59, 59, 999)
+      const mostRecent = new Date(practiceDates[0])
+      const daysSinceLastPractice = Math.floor((today.getTime() - mostRecent.getTime()) / (1000 * 60 * 60 * 24))
 
-      while (true) {
-        const weekStart = new Date(currentWeekEnd)
-        weekStart.setDate(weekStart.getDate() - 6)
-        weekStart.setHours(0, 0, 0, 0)
+      // 最近一周没练 → 断了
+      if (daysSinceLastPractice <= 7) {
+        let totalSpanDays = 1 // 至少包含最近这次练习
 
-        const hasPracticeThisWeek = practiceDates.some(dateStr => {
-          const d = new Date(dateStr)
-          return d >= weekStart && d <= currentWeekEnd
-        })
+        for (let i = 0; i < practiceDates.length - 1; i++) {
+          const current = new Date(practiceDates[i])
+          const next = new Date(practiceDates[i + 1])
+          const gap = Math.floor((current.getTime() - next.getTime()) / (1000 * 60 * 60 * 24))
 
-        if (hasPracticeThisWeek) {
-          consecutiveWeeks++
-          currentWeekEnd.setDate(currentWeekEnd.getDate() - 7)
-        } else {
-          break
+          if (gap <= 7) {
+            totalSpanDays += gap
+          } else {
+            break // 间隔超过7天 → 断开
+          }
         }
+
+        consecutiveWeeks = Math.ceil(totalSpanDays / 7)
       }
     }
 
@@ -3595,22 +3606,11 @@ function StatsTab({
       setShowPWAInstallTutorial(true)
     }
   }
-  const [viewMode, setViewMode] = useState<'quarter' | 'half' | 'year'>('quarter')
-  const [dateOffset, setDateOffset] = useState(0)
   const [hasVotedPro] = useLocalStorage('has_voted_pro', false)
 
   const today = new Date()
   const todayStr = getLocalDateStr()
 
-  // Generate heatmap data for the year
-  const heatmapData = useMemo(() => {
-    const data: Record<string, boolean> = {}
-    practiceHistory.forEach((p) => {
-      data[p.date] = true
-    })
-    return data
-  }, [practiceHistory])
-  
   // Calculate stats - Current month only (from 1st to today)
   const currentMonthStats = useMemo(() => {
     const currentMonth = today.getMonth()
@@ -3665,39 +3665,75 @@ function StatsTab({
     }
   }, [practiceHistory, profile])
 
-  // Generate flowing dots based on view mode
-  const flowingDots = useMemo(() => {
-    const daysCount = viewMode === 'quarter' ? 90 : viewMode === 'half' ? 180 : 365
-    const daysOffset = viewMode === 'quarter' ? dateOffset * 90 : viewMode === 'half' ? dateOffset * 180 : dateOffset * 365
-    const result: string[] = []
+  const dynamicText = '练习是连贯的珍珠'
 
-    for (let i = 0; i < daysCount; i++) {
-      const d = new Date(today)
-      d.setDate(d.getDate() - i - daysOffset)
-      result.push(getLocalDateStr(d))
+  // 月分组热力图类型
+  const UNIFIED_COLS = 16
+
+  interface HeatmapDot {
+    date: string
+    count: number
+  }
+
+  interface MonthGroup {
+    monthKey: string
+    monthLabel: string
+    days: HeatmapDot[]
+  }
+
+  // 按月份分组，固定显示当前年份，统一16列，12月→1月倒序
+  const currentYear = today.getFullYear()
+  const monthGroups = useMemo(() => {
+    if (!practiceHistory.length) return []
+
+    // 建立 date → totalSeconds 映射
+    const durationMap = new Map<string, number>()
+    practiceHistory.forEach((r) => {
+      const prev = durationMap.get(r.date) ?? 0
+      durationMap.set(r.date, prev + r.duration)
+    })
+
+    const startDate = new Date(currentYear, 0, 1)  // 1月1日
+    const endDate = new Date(currentYear, 11, 31)  // 12月31日，显示全年
+
+    const groups = new Map<string, HeatmapDot[]>()
+    const cursor = new Date(startDate)
+    while (cursor <= endDate) {
+      const monthKey = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}`
+      if (!groups.has(monthKey)) groups.set(monthKey, [])
+
+      const dateStr = getLocalDateStr(cursor)
+      const totalSeconds = durationMap.get(dateStr) ?? 0
+      const count = Math.round(totalSeconds / 60)
+      groups.get(monthKey)!.push({ date: dateStr, count })
+
+      cursor.setDate(cursor.getDate() + 1)
     }
-    return result
-  }, [viewMode, dateOffset, today])
 
-  // Dynamic text based on view
-  const dynamicText = useMemo(() => {
-    switch (viewMode) {
-      case 'quarter': return '觉察每个当下'
-      case 'half': return '呼吸串联身体'
-      case 'year': return '练习是连贯的珍珠'
-    }
-  }, [viewMode])
+    // 倒序：12月 → 1月
+    return Array.from(groups.entries())
+      .sort(([a], [b]) => b.localeCompare(a))
+      .map(([monthKey, days]) => ({
+        monthKey,
+        monthLabel: `${parseInt(monthKey.split('-')[1])}月`,
+        days,
+      }))
+  }, [practiceHistory, currentYear])
 
-  // Dot sizes based on view
-  const dotConfig = useMemo(() => {
-    switch (viewMode) {
-      case 'quarter': return { size: 'w-6 h-6', gap: 'gap-2', rounded: 'rounded-xl', cols: 'grid-cols-10' }
-      case 'half': return { size: 'w-5 h-5', gap: 'gap-2', rounded: 'rounded-lg', cols: 'grid-cols-11' }
-      case 'year': return { size: 'w-4 h-4', gap: 'gap-2', rounded: 'rounded-full', cols: 'grid-cols-12' }
-    }
-  }, [viewMode])
-
-  const canGoNext = dateOffset > 0
+  // Dot config — 固定值，不依赖 viewMode
+  const dotConfig = {
+    gap: 4,
+    dotSize: 12,
+    radius: 3,
+    cols: UNIFIED_COLS,
+    labelWidth: 32,
+    labelFontSize: 11,
+    sectionGap: 8,
+    levels: [
+      { threshold: 0, color: 'bg-stone-200' },
+      { threshold: 1, color: 'green-gradient-deep shadow-[0_2px_8px_rgba(45,90,39,0.3)]' },
+    ],
+  } as const
 
   return (
     <div className="flex-1 overflow-y-auto pb-24 pt-4">
@@ -3819,53 +3855,69 @@ function StatsTab({
               </motion.h3>
             </AnimatePresence>
             
-            {/* Right: Compact View Toggles - Monospace numbers for "Data" feel */}
-            <div className="flex bg-transparent rounded-full">
-              {(['quarter', 'half', 'year'] as const).map((mode) => (
-                <button
-                  key={mode}
-                  onClick={() => { setViewMode(mode); setDateOffset(0) }}
-                  className={`px-2 py-1 rounded-full text-xs font-mono transition-all ${
-                    viewMode === mode
-                      ? 'green-gradient text-white shadow-sm'
-                      : 'text-stone-400 hover:text-stone-600'
-                  }`}
-                >
-                  {mode === 'quarter' ? '90' : mode === 'half' ? '180' : '365'}
-                </button>
-              ))}
-            </div>
+            {/* Right: Year label */}
+            <span className="text-xs font-serif text-stone-400">
+              {today.getFullYear()}
+            </span>
           </div>
 
-          {/* Flowing Dots Grid - Breathing Fade animation */}
+          {/* Flowing Dots Grid by Month — Breathing Fade animation */}
           <div className="p-4 pt-0">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={viewMode}
-                initial={{ opacity: 0, scale: 1.05 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{
-                  enter: { duration: 0.3, ease: "easeOut" },
-                  exit: { duration: 0.15 }
-                }}
-                className={`grid ${dotConfig.cols} ${dotConfig.gap} justify-items-center`}
-              >
-                {flowingDots.map((dateStr) => (
-                  <button
-                    key={dateStr}
-                    onClick={() => {
-                      // Could open share card for this date
-                    }}
-                    className={`${dotConfig.size} ${dotConfig.rounded} transition-colors ${
-                      heatmapData[dateStr]
-                        ? 'green-gradient-deep shadow-[0_2px_8px_rgba(45,90,39,0.3)]'
-                        : 'bg-stone-200'
-                    }`}
-                  />
-                ))}
-              </motion.div>
-            </AnimatePresence>
+            {monthGroups.length === 0 ? (
+              <div className="text-center text-sm text-stone-400 font-serif py-8">
+                暂无练习数据
+              </div>
+            ) : (
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key="heatmap"
+                  initial={{ opacity: 0, scale: 1.05 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{
+                    enter: { duration: 0.3, ease: "easeOut" },
+                    exit: { duration: 0.15 }
+                  }}
+                  className="flex flex-col"
+                  style={{ gap: dotConfig.sectionGap }}
+                >
+                  {monthGroups.map((month) => (
+                    <div key={month.monthKey} className="flex items-start" style={{ gap: dotConfig.gap }}>
+                      {/* 月份标签 — 1个dot宽度，占2行高度 */}
+                      <div
+                        className="text-xs text-zinc-400 font-serif italic shrink-0 flex items-center justify-start"
+                        style={{
+                          width: dotConfig.labelWidth,
+                          height: dotConfig.dotSize,
+                        }}
+                      >
+                        {month.monthLabel}
+                      </div>
+
+                      {/* 2行网格 — 固定16列 */}
+                      <div
+                        className="grid flex-1"
+                        style={{
+                          gridTemplateColumns: `repeat(${UNIFIED_COLS}, minmax(0, 1fr))`,
+                          gap: dotConfig.gap,
+                        }}
+                      >
+                        {month.days.map((day) => {
+                          const level = [...dotConfig.levels].reverse().find(l => day.count >= l.threshold) ?? dotConfig.levels[0]
+                          return (
+                            <div
+                              key={day.date}
+                              className={`${level.color} rounded-full w-[12px] h-[12px]`}
+                              title={`${day.date}: ${day.count} 分钟`}
+                            />
+                          )
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </motion.div>
+              </AnimatePresence>
+            )}
           </div>
         </div>
       </div>
@@ -5298,6 +5350,41 @@ export default function AshtangaTracker() {
     }
   }
 
+  // 不保存结束：丢弃记录，直接回到初始状态
+  const handleDiscardEnd = () => {
+    setShowConfirmEnd(false)
+    setIsPracticing(false)
+    setStartTime(null)
+    startTimeRef.current = null
+    setPauseStartTime(null)
+    setTotalPausedTime(0)
+
+    // 清理唱诵资源
+    if (chantCountdownRef.current) {
+      clearInterval(chantCountdownRef.current)
+      chantCountdownRef.current = null
+    }
+    if (chantAudioRef.current) {
+      chantAudioRef.current.pause()
+      chantAudioRef.current.src = ''
+      chantAudioRef.current = null
+    }
+    setIsChantCountdown(false)
+    setChantCountdown(0)
+    setIsChantPlaying(false)
+
+    // 清理音频资源
+    if (audioElement) {
+      audioElement.pause()
+      audioElement.src = ''
+      setAudioElement(null)
+      setIsAudioLoaded(false)
+      setAudioProgress(0)
+      setAudioCurrentTime(0)
+      setAudioDuration(0)
+    }
+  }
+
   const handleSavePractice = useCallback((notes: string, photos: string[], breakthrough?: string) => {
     console.log('handleSavePractice called', { notes, photos, breakthrough, isSaving })
     if (isSaving) {
@@ -5653,7 +5740,7 @@ export default function AshtangaTracker() {
           )}
         </div>
 
-        <ConfirmEndDialog isOpen={showConfirmEnd} onClose={() => setShowConfirmEnd(false)} onConfirm={handleConfirmEnd} />
+        <ConfirmEndDialog isOpen={showConfirmEnd} onClose={() => setShowConfirmEnd(false)} onConfirm={handleConfirmEnd} onDiscard={handleDiscardEnd} />
 
         <CompletionSheet
           isOpen={showCompletion}
