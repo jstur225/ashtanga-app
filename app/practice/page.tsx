@@ -3605,7 +3605,6 @@ function StatsTab({
       setShowPWAInstallTutorial(true)
     }
   }
-  const [viewMode, setViewMode] = useState<'season' | 'year'>('season')
   const [hasVotedPro] = useLocalStorage('has_voted_pro', false)
 
   const today = new Date()
@@ -3665,26 +3664,7 @@ function StatsTab({
     }
   }, [practiceHistory, profile])
 
-  // Generate flowing dots based on view mode
-  const flowingDots = useMemo(() => {
-    const daysCount = viewMode === 'season' ? 90 : 365
-    const result: string[] = []
-
-    for (let i = 0; i < daysCount; i++) {
-      const d = new Date(today)
-      d.setDate(d.getDate() - i)
-      result.push(getLocalDateStr(d))
-    }
-    return result
-  }, [viewMode, today])
-
-  // Dynamic text based on view
-  const dynamicText = useMemo(() => {
-    switch (viewMode) {
-      case 'season': return '觉察每个当下'
-      case 'year': return '练习是连贯的珍珠'
-    }
-  }, [viewMode])
+  const dynamicText = '练习是连贯的珍珠'
 
   // 月分组热力图类型
   const UNIFIED_COLS = 16
@@ -3700,46 +3680,44 @@ function StatsTab({
     days: HeatmapDot[]
   }
 
-  // 按月份分组，统一16列
+  // 按月份分组，固定显示当前年份，统一16列，12月→1月倒序
   const monthGroups = useMemo(() => {
-    if (!practiceHistory.length && !flowingDots.length) return []
+    if (!practiceHistory.length) return []
 
-    // 先建立 date → totalSeconds 的映射
+    // 建立 date → totalSeconds 映射
     const durationMap = new Map<string, number>()
     practiceHistory.forEach((r) => {
       const prev = durationMap.get(r.date) ?? 0
       durationMap.set(r.date, prev + r.duration)
     })
 
-    const now = new Date()
-    let startDate: Date
-
-    if (viewMode === 'season') {
-      startDate = new Date(now.getFullYear(), now.getMonth() - 2, 1) // ~3个月
-    } else {
-      startDate = new Date(now.getFullYear() - 1, now.getMonth(), 1) // 12个月
-    }
+    const currentYear = today.getFullYear()
+    const startDate = new Date(currentYear, 0, 1)  // 1月1日
+    const endDate = today  // 到今天
 
     const groups = new Map<string, HeatmapDot[]>()
     const cursor = new Date(startDate)
-    while (cursor <= now) {
+    while (cursor <= endDate) {
       const monthKey = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}`
       if (!groups.has(monthKey)) groups.set(monthKey, [])
 
       const dateStr = getLocalDateStr(cursor)
       const totalSeconds = durationMap.get(dateStr) ?? 0
-      const count = Math.round(totalSeconds / 60) // 转分钟
+      const count = Math.round(totalSeconds / 60)
       groups.get(monthKey)!.push({ date: dateStr, count })
 
       cursor.setDate(cursor.getDate() + 1)
     }
 
-    return Array.from(groups.entries()).map(([monthKey, days]) => ({
-      monthKey,
-      monthLabel: `${parseInt(monthKey.split('-')[1])}月`,
-      days,
-    }))
-  }, [practiceHistory, flowingDots, viewMode])
+    // 倒序：12月 → 1月
+    return Array.from(groups.entries())
+      .sort(([a], [b]) => b.localeCompare(a))
+      .map(([monthKey, days]) => ({
+        monthKey,
+        monthLabel: `${parseInt(monthKey.split('-')[1])}月`,
+        days,
+      }))
+  }, [practiceHistory, today])
 
   // Dot config — 固定值，不依赖 viewMode
   const dotConfig = {
@@ -3879,25 +3857,10 @@ function StatsTab({
               </motion.h3>
             </AnimatePresence>
             
-            {/* Right: Compact View Toggles — 季 / 年 */}
-            <div className="flex bg-transparent rounded-full gap-1">
-              <button
-                onClick={() => setViewMode('season')}
-                className={`px-3 py-1 rounded-full text-xs font-mono transition-all ${
-                  viewMode === 'season'
-                    ? 'green-gradient text-white shadow-sm'
-                    : 'text-stone-400 hover:text-stone-600'
-                }`}
-              >季</button>
-              <button
-                onClick={() => setViewMode('year')}
-                className={`px-3 py-1 rounded-full text-xs font-mono transition-all ${
-                  viewMode === 'year'
-                    ? 'green-gradient text-white shadow-sm'
-                    : 'text-stone-400 hover:text-stone-600'
-                }`}
-              >年</button>
-            </div>
+            {/* Right: Year label */}
+            <span className="text-xs font-mono text-stone-400 font-medium">
+              {today.getFullYear()}
+            </span>
           </div>
 
           {/* Flowing Dots Grid by Month — Breathing Fade animation */}
@@ -3909,7 +3872,7 @@ function StatsTab({
             ) : (
               <AnimatePresence mode="wait">
                 <motion.div
-                  key={viewMode}
+                  key="heatmap"
                   initial={{ opacity: 0, scale: 1.05 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.95 }}
@@ -3946,7 +3909,7 @@ function StatsTab({
                           return (
                             <div
                               key={day.date}
-                              className={`${level.color} rounded-[3px] aspect-square`}
+                              className={`${level.color} rounded-full w-[12px] h-[12px]`}
                               title={`${day.date}: ${day.count} 分钟`}
                             />
                           )
