@@ -3856,7 +3856,7 @@ function StatsTab({
             </AnimatePresence>
             
             {/* Right: Year label */}
-            <span className="text-xs font-mono text-stone-400 font-medium">
+            <span className="text-xs font-serif text-stone-400">
               {today.getFullYear()}
             </span>
           </div>
