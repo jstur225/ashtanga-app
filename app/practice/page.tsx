@@ -3884,10 +3884,10 @@ function StatsTab({
                     <div key={month.monthKey} className="flex items-start" style={{ gap: dotConfig.gap }}>
                       {/* 月份标签 — 1个dot宽度，占2行高度 */}
                       <div
-                        className="text-xs text-zinc-400 dark:text-zinc-500 font-medium leading-none shrink-0 flex items-center justify-start"
+                        className="text-xs text-zinc-400 font-serif italic shrink-0 flex items-center justify-start"
                         style={{
                           width: dotConfig.labelWidth,
-                          height: dotConfig.dotSize * 2 + dotConfig.gap,
+                          height: dotConfig.dotSize,
                         }}
                       >
                         {month.monthLabel}
