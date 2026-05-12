@@ -62,7 +62,6 @@ export const GUIDED_AUDIO_OPTION: PracticeOption = {
 // 默认选项（新用户首次使用时自动创建）
 export const DEFAULT_OPTIONS: PracticeOption[] = [
   { id: uuidv4(), created_at: new Date().toISOString(), label: '一序列', notes: 'Mysore', is_custom: false },
-  { id: uuidv4(), created_at: new Date().toISOString(), label: '一序列', notes: 'Led class', is_custom: false },
   { id: uuidv4(), created_at: new Date().toISOString(), label: '半序列', notes: '站立+休息', is_custom: false },
 ];
 
