@@ -3855,10 +3855,6 @@ function StatsTab({
               </motion.h3>
             </AnimatePresence>
             
-            {/* Right: Year label */}
-            <span className="text-xs font-serif text-stone-400">
-              {today.getFullYear()}
-            </span>
           </div>
 
           {/* Flowing Dots Grid by Month — Breathing Fade animation */}
