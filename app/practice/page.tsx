@@ -2384,7 +2384,7 @@ function MonthlyStatsCard({
     const totalMinutes = Math.round(totalSeconds / 60)
     const avgMinutes = practiceDays > 0 ? Math.round(totalMinutes / practiceDays) : 0
 
-    // 计算连续练习周数
+    // 计算连续练习周数：检查相邻练习间隔是否超过7天
     const practiceDates = practiceHistory
       .filter(r => r.duration > 0 && r.type !== '草稿')
       .map(r => r.date)
@@ -2394,25 +2394,26 @@ function MonthlyStatsCard({
     let consecutiveWeeks = 0
     if (practiceDates.length > 0) {
       const today = new Date()
-      const currentWeekEnd = new Date(today)
-      currentWeekEnd.setHours(23, 59, 59, 999)
+      const mostRecent = new Date(practiceDates[0])
+      const daysSinceLastPractice = Math.floor((today.getTime() - mostRecent.getTime()) / (1000 * 60 * 60 * 24))
 
-      while (true) {
-        const weekStart = new Date(currentWeekEnd)
-        weekStart.setDate(weekStart.getDate() - 6)
-        weekStart.setHours(0, 0, 0, 0)
+      // 最近一周没练 → 断了
+      if (daysSinceLastPractice <= 7) {
+        let totalSpanDays = 1 // 至少包含最近这次练习
 
-        const hasPracticeThisWeek = practiceDates.some(dateStr => {
-          const d = new Date(dateStr)
-          return d >= weekStart && d <= currentWeekEnd
-        })
+        for (let i = 0; i < practiceDates.length - 1; i++) {
+          const current = new Date(practiceDates[i])
+          const next = new Date(practiceDates[i + 1])
+          const gap = Math.floor((current.getTime() - next.getTime()) / (1000 * 60 * 60 * 24))
 
-        if (hasPracticeThisWeek) {
-          consecutiveWeeks++
-          currentWeekEnd.setDate(currentWeekEnd.getDate() - 7)
-        } else {
-          break
+          if (gap <= 7) {
+            totalSpanDays += gap
+          } else {
+            break // 间隔超过7天 → 断开
+          }
         }
+
+        consecutiveWeeks = Math.ceil(totalSpanDays / 7)
       }
     }
 
