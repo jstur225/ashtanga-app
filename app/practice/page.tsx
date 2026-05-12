@@ -2151,10 +2151,12 @@ function ConfirmEndDialog({
   isOpen,
   onClose,
   onConfirm,
+  onDiscard,
 }: {
   isOpen: boolean
   onClose: () => void
   onConfirm: () => void
+  onDiscard: () => void
 }) {
   return (
     <AnimatePresence>
@@ -2174,21 +2176,29 @@ function ConfirmEndDialog({
             transition={{ type: "spring", damping: 25, stiffness: 400 }}
             className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card rounded-3xl z-[70] p-6 shadow-[0_4px_30px_rgba(0,0,0,0.1)] w-[calc(100%-48px)] max-w-sm"
           >
-            <h2 className="text-lg font-serif text-foreground text-center mb-2">确认结束？</h2>
-            <p className="text-muted-foreground text-center text-sm mb-6 font-serif">确定要结束这次练习吗？</p>
+            {/* 右上角关闭按钮 */}
+            <button
+              onClick={onClose}
+              className="absolute right-4 top-4 p-1 text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            </button>
+
+            <h2 className="text-lg font-serif text-foreground text-center mb-2">结束练习？</h2>
+            <p className="text-muted-foreground text-center text-sm mb-6 font-serif">选择保存或丢弃这次记录</p>
 
             <div className="flex gap-3">
               <button
-                onClick={onClose}
+                onClick={onDiscard}
                 className="flex-1 py-3 rounded-full bg-secondary text-foreground font-serif transition-all hover:bg-secondary/80 active:scale-[0.98]"
               >
-                取消
+                不保存退出
               </button>
               <button
                 onClick={onConfirm}
                 className="flex-1 py-3 rounded-full green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white font-serif transition-all hover:opacity-90 active:scale-[0.98]"
               >
-                结束
+                保存并退出
               </button>
             </div>
           </motion.div>
@@ -5298,6 +5308,41 @@ export default function AshtangaTracker() {
     }
   }
 
+  // 不保存结束：丢弃记录，直接回到初始状态
+  const handleDiscardEnd = () => {
+    setShowConfirmEnd(false)
+    setIsPracticing(false)
+    setStartTime(null)
+    startTimeRef.current = null
+    setPauseStartTime(null)
+    setTotalPausedTime(0)
+
+    // 清理唱诵资源
+    if (chantCountdownRef.current) {
+      clearInterval(chantCountdownRef.current)
+      chantCountdownRef.current = null
+    }
+    if (chantAudioRef.current) {
+      chantAudioRef.current.pause()
+      chantAudioRef.current.src = ''
+      chantAudioRef.current = null
+    }
+    setIsChantCountdown(false)
+    setChantCountdown(0)
+    setIsChantPlaying(false)
+
+    // 清理音频资源
+    if (audioElement) {
+      audioElement.pause()
+      audioElement.src = ''
+      setAudioElement(null)
+      setIsAudioLoaded(false)
+      setAudioProgress(0)
+      setAudioCurrentTime(0)
+      setAudioDuration(0)
+    }
+  }
+
   const handleSavePractice = useCallback((notes: string, photos: string[], breakthrough?: string) => {
     console.log('handleSavePractice called', { notes, photos, breakthrough, isSaving })
     if (isSaving) {
@@ -5653,7 +5698,7 @@ export default function AshtangaTracker() {
           )}
         </div>
 
-        <ConfirmEndDialog isOpen={showConfirmEnd} onClose={() => setShowConfirmEnd(false)} onConfirm={handleConfirmEnd} />
+        <ConfirmEndDialog isOpen={showConfirmEnd} onClose={() => setShowConfirmEnd(false)} onConfirm={handleConfirmEnd} onDiscard={handleDiscardEnd} />
 
         <CompletionSheet
           isOpen={showCompletion}
