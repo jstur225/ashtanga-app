@@ -3605,22 +3605,12 @@ function StatsTab({
       setShowPWAInstallTutorial(true)
     }
   }
-  const [viewMode, setViewMode] = useState<'quarter' | 'half' | 'year'>('quarter')
-  const [dateOffset, setDateOffset] = useState(0)
+  const [viewMode, setViewMode] = useState<'season' | 'year'>('season')
   const [hasVotedPro] = useLocalStorage('has_voted_pro', false)
 
   const today = new Date()
   const todayStr = getLocalDateStr()
 
-  // Generate heatmap data for the year
-  const heatmapData = useMemo(() => {
-    const data: Record<string, boolean> = {}
-    practiceHistory.forEach((p) => {
-      data[p.date] = true
-    })
-    return data
-  }, [practiceHistory])
-  
   // Calculate stats - Current month only (from 1st to today)
   const currentMonthStats = useMemo(() => {
     const currentMonth = today.getMonth()
@@ -3677,37 +3667,97 @@ function StatsTab({
 
   // Generate flowing dots based on view mode
   const flowingDots = useMemo(() => {
-    const daysCount = viewMode === 'quarter' ? 90 : viewMode === 'half' ? 180 : 365
-    const daysOffset = viewMode === 'quarter' ? dateOffset * 90 : viewMode === 'half' ? dateOffset * 180 : dateOffset * 365
+    const daysCount = viewMode === 'season' ? 90 : 365
     const result: string[] = []
 
     for (let i = 0; i < daysCount; i++) {
       const d = new Date(today)
-      d.setDate(d.getDate() - i - daysOffset)
+      d.setDate(d.getDate() - i)
       result.push(getLocalDateStr(d))
     }
     return result
-  }, [viewMode, dateOffset, today])
+  }, [viewMode, today])
 
   // Dynamic text based on view
   const dynamicText = useMemo(() => {
     switch (viewMode) {
-      case 'quarter': return '觉察每个当下'
-      case 'half': return '呼吸串联身体'
+      case 'season': return '觉察每个当下'
       case 'year': return '练习是连贯的珍珠'
     }
   }, [viewMode])
 
-  // Dot sizes based on view
-  const dotConfig = useMemo(() => {
-    switch (viewMode) {
-      case 'quarter': return { size: 'w-6 h-6', gap: 'gap-2', rounded: 'rounded-xl', cols: 'grid-cols-10' }
-      case 'half': return { size: 'w-5 h-5', gap: 'gap-2', rounded: 'rounded-lg', cols: 'grid-cols-11' }
-      case 'year': return { size: 'w-4 h-4', gap: 'gap-2', rounded: 'rounded-full', cols: 'grid-cols-12' }
-    }
-  }, [viewMode])
+  // 月分组热力图类型
+  const UNIFIED_COLS = 16
 
-  const canGoNext = dateOffset > 0
+  interface HeatmapDot {
+    date: string
+    count: number
+  }
+
+  interface MonthGroup {
+    monthKey: string
+    monthLabel: string
+    days: HeatmapDot[]
+  }
+
+  // 按月份分组，统一16列
+  const monthGroups = useMemo(() => {
+    if (!practiceHistory.length && !flowingDots.length) return []
+
+    // 先建立 date → totalSeconds 的映射
+    const durationMap = new Map<string, number>()
+    practiceHistory.forEach((r) => {
+      const prev = durationMap.get(r.date) ?? 0
+      durationMap.set(r.date, prev + r.duration)
+    })
+
+    const now = new Date()
+    let startDate: Date
+
+    if (viewMode === 'season') {
+      startDate = new Date(now.getFullYear(), now.getMonth() - 2, 1) // ~3个月
+    } else {
+      startDate = new Date(now.getFullYear() - 1, now.getMonth(), 1) // 12个月
+    }
+
+    const groups = new Map<string, HeatmapDot[]>()
+    const cursor = new Date(startDate)
+    while (cursor <= now) {
+      const monthKey = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}`
+      if (!groups.has(monthKey)) groups.set(monthKey, [])
+
+      const dateStr = getLocalDateStr(cursor)
+      const totalSeconds = durationMap.get(dateStr) ?? 0
+      const count = Math.round(totalSeconds / 60) // 转分钟
+      groups.get(monthKey)!.push({ date: dateStr, count })
+
+      cursor.setDate(cursor.getDate() + 1)
+    }
+
+    return Array.from(groups.entries()).map(([monthKey, days]) => ({
+      monthKey,
+      monthLabel: `${parseInt(monthKey.split('-')[1])}月`,
+      days,
+    }))
+  }, [practiceHistory, flowingDots, viewMode])
+
+  // Dot config — 固定值，不依赖 viewMode
+  const dotConfig = {
+    gap: 4,
+    dotSize: 12,
+    radius: 3,
+    cols: UNIFIED_COLS,
+    labelWidth: 32,
+    labelFontSize: 11,
+    sectionGap: 8,
+    levels: [
+      { threshold: 0, color: 'bg-zinc-100 dark:bg-zinc-800' },
+      { threshold: 1, color: 'bg-green-200 dark:bg-green-900' },
+      { threshold: 30, color: 'bg-green-400 dark:bg-green-700' },
+      { threshold: 60, color: 'bg-green-500 dark:bg-green-600' },
+      { threshold: 90, color: 'bg-green-600 dark:bg-green-500' },
+    ],
+  } as const
 
   return (
     <div className="flex-1 overflow-y-auto pb-24 pt-4">
@@ -3829,53 +3879,84 @@ function StatsTab({
               </motion.h3>
             </AnimatePresence>
             
-            {/* Right: Compact View Toggles - Monospace numbers for "Data" feel */}
-            <div className="flex bg-transparent rounded-full">
-              {(['quarter', 'half', 'year'] as const).map((mode) => (
-                <button
-                  key={mode}
-                  onClick={() => { setViewMode(mode); setDateOffset(0) }}
-                  className={`px-2 py-1 rounded-full text-xs font-mono transition-all ${
-                    viewMode === mode
-                      ? 'green-gradient text-white shadow-sm'
-                      : 'text-stone-400 hover:text-stone-600'
-                  }`}
-                >
-                  {mode === 'quarter' ? '90' : mode === 'half' ? '180' : '365'}
-                </button>
-              ))}
+            {/* Right: Compact View Toggles — 季 / 年 */}
+            <div className="flex bg-transparent rounded-full gap-1">
+              <button
+                onClick={() => setViewMode('season')}
+                className={`px-3 py-1 rounded-full text-xs font-mono transition-all ${
+                  viewMode === 'season'
+                    ? 'green-gradient text-white shadow-sm'
+                    : 'text-stone-400 hover:text-stone-600'
+                }`}
+              >季</button>
+              <button
+                onClick={() => setViewMode('year')}
+                className={`px-3 py-1 rounded-full text-xs font-mono transition-all ${
+                  viewMode === 'year'
+                    ? 'green-gradient text-white shadow-sm'
+                    : 'text-stone-400 hover:text-stone-600'
+                }`}
+              >年</button>
             </div>
           </div>
 
-          {/* Flowing Dots Grid - Breathing Fade animation */}
+          {/* Flowing Dots Grid by Month — Breathing Fade animation */}
           <div className="p-4 pt-0">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={viewMode}
-                initial={{ opacity: 0, scale: 1.05 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{
-                  enter: { duration: 0.3, ease: "easeOut" },
-                  exit: { duration: 0.15 }
-                }}
-                className={`grid ${dotConfig.cols} ${dotConfig.gap} justify-items-center`}
-              >
-                {flowingDots.map((dateStr) => (
-                  <button
-                    key={dateStr}
-                    onClick={() => {
-                      // Could open share card for this date
-                    }}
-                    className={`${dotConfig.size} ${dotConfig.rounded} transition-colors ${
-                      heatmapData[dateStr]
-                        ? 'green-gradient-deep shadow-[0_2px_8px_rgba(45,90,39,0.3)]'
-                        : 'bg-stone-200'
-                    }`}
-                  />
-                ))}
-              </motion.div>
-            </AnimatePresence>
+            {monthGroups.length === 0 ? (
+              <div className="text-center text-sm text-stone-400 font-serif py-8">
+                暂无练习数据
+              </div>
+            ) : (
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={viewMode}
+                  initial={{ opacity: 0, scale: 1.05 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{
+                    enter: { duration: 0.3, ease: "easeOut" },
+                    exit: { duration: 0.15 }
+                  }}
+                  className="flex flex-col"
+                  style={{ gap: dotConfig.sectionGap }}
+                >
+                  {monthGroups.map((month) => (
+                    <div key={month.monthKey} className="flex items-start" style={{ gap: dotConfig.gap }}>
+                      {/* 月份标签 — 1个dot宽度，占2行高度 */}
+                      <div
+                        className="text-xs text-zinc-400 dark:text-zinc-500 font-medium leading-none shrink-0 flex items-center justify-start"
+                        style={{
+                          width: dotConfig.labelWidth,
+                          height: dotConfig.dotSize * 2 + dotConfig.gap,
+                        }}
+                      >
+                        {month.monthLabel}
+                      </div>
+
+                      {/* 2行网格 — 固定16列 */}
+                      <div
+                        className="grid flex-1"
+                        style={{
+                          gridTemplateColumns: `repeat(${UNIFIED_COLS}, minmax(0, 1fr))`,
+                          gap: dotConfig.gap,
+                        }}
+                      >
+                        {month.days.map((day) => {
+                          const level = [...dotConfig.levels].reverse().find(l => day.count >= l.threshold) ?? dotConfig.levels[0]
+                          return (
+                            <div
+                              key={day.date}
+                              className={`${level.color} rounded-[3px] aspect-square`}
+                              title={`${day.date}: ${day.count} 分钟`}
+                            />
+                          )
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </motion.div>
+              </AnimatePresence>
+            )}
           </div>
         </div>
       </div>
