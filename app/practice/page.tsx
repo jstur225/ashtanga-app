@@ -3681,6 +3681,7 @@ function StatsTab({
   }
 
   // 按月份分组，固定显示当前年份，统一16列，12月→1月倒序
+  const currentYear = today.getFullYear()
   const monthGroups = useMemo(() => {
     if (!practiceHistory.length) return []
 
@@ -3691,9 +3692,8 @@ function StatsTab({
       durationMap.set(r.date, prev + r.duration)
     })
 
-    const currentYear = today.getFullYear()
     const startDate = new Date(currentYear, 0, 1)  // 1月1日
-    const endDate = today  // 到今天
+    const endDate = new Date(currentYear, 11, 31)  // 12月31日，显示全年
 
     const groups = new Map<string, HeatmapDot[]>()
     const cursor = new Date(startDate)
@@ -3717,7 +3717,7 @@ function StatsTab({
         monthLabel: `${parseInt(monthKey.split('-')[1])}月`,
         days,
       }))
-  }, [practiceHistory, today])
+  }, [practiceHistory, currentYear])
 
   // Dot config — 固定值，不依赖 viewMode
   const dotConfig = {
@@ -3729,11 +3729,8 @@ function StatsTab({
     labelFontSize: 11,
     sectionGap: 8,
     levels: [
-      { threshold: 0, color: 'bg-zinc-100 dark:bg-zinc-800' },
-      { threshold: 1, color: 'bg-green-200 dark:bg-green-900' },
-      { threshold: 30, color: 'bg-green-400 dark:bg-green-700' },
-      { threshold: 60, color: 'bg-green-500 dark:bg-green-600' },
-      { threshold: 90, color: 'bg-green-600 dark:bg-green-500' },
+      { threshold: 0, color: 'bg-stone-200' },
+      { threshold: 1, color: 'green-gradient-deep shadow-[0_2px_8px_rgba(45,90,39,0.3)]' },
     ],
   } as const
 
