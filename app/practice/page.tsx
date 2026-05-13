@@ -2223,6 +2223,7 @@ function CompletionSheet({
   onOpenPhotoFakeDoor,
   user,
   userProfile,
+  practiceOptions,
 }: {
   isOpen: boolean
   practiceType: string
@@ -2237,6 +2238,7 @@ function CompletionSheet({
   onOpenPhotoFakeDoor?: () => void
   user?: { email?: string | null } | null
   userProfile?: UserProfile | null
+  practiceOptions: PracticeOption[]
 }) {
   // 表单数据状态（用于 PracticeForm）
   const [formData, setFormData] = useState({
@@ -2249,6 +2251,10 @@ function CompletionSheet({
 
   // 草稿记录（用于照片上传）
   const [draftRecord, setDraftRecord] = useState<PracticeRecord | null>(null)
+
+  // 子模态框状态
+  const [showDatePicker, setShowDatePicker] = useState(false)
+  const [showTypeSelector, setShowTypeSelector] = useState(false)
 
   // 当弹窗打开时，预创建草稿记录并同步数据
   useEffect(() => {
@@ -2347,13 +2353,41 @@ function CompletionSheet({
               type={formData.type}
               onDateChange={(d) => setFormData(prev => ({ ...prev, date: d }))}
               onTypeChange={(t) => setFormData(prev => ({ ...prev, type: t }))}
+              onDatePickerOpen={() => setShowDatePicker(true)}
+              onTypeSelectorOpen={() => setShowTypeSelector(true)}
               dateEditable={true}
               typeEditable={true}
               durationEditable={true}
               showDelete={false}
               showPhotoUpload={true}
-              practiceOptions={[]}
+              practiceOptions={practiceOptions}
               onSave={handleSave}
+            />
+
+            {/* DatePicker Modal */}
+            <DatePickerModal
+              isOpen={showDatePicker}
+              onClose={(selectedDate) => {
+                if (selectedDate) {
+                  setFormData(prev => ({ ...prev, date: selectedDate }))
+                }
+                setShowDatePicker(false)
+              }}
+              maxDate={getLocalDateStr()}
+              practiceHistory={[]}
+            />
+
+            {/* TypeSelector Modal */}
+            <TypeSelectorModal
+              isOpen={showTypeSelector}
+              onClose={(selectedType) => {
+                if (selectedType) {
+                  setFormData(prev => ({ ...prev, type: selectedType }))
+                }
+                setShowTypeSelector(false)
+              }}
+              practiceOptions={practiceOptions}
+              selectedType={formData.type}
             />
           </motion.div>
         </>
@@ -5791,6 +5825,7 @@ export default function AshtangaTracker() {
           onOpenPhotoFakeDoor={() => setShowFakeDoor({ type: 'photo', isOpen: true })}
           user={user}
           userProfile={userProfile}
+          practiceOptions={practiceOptionsData}
         />
       </motion.div>
     )
@@ -6407,6 +6442,7 @@ export default function AshtangaTracker() {
         onOpenPhotoFakeDoor={() => setShowFakeDoor({ type: 'photo', isOpen: true })}
         user={user}
         userProfile={userProfile}
+        practiceOptions={practiceOptionsData}
       />
 
       {/* Fake Door Modal */}
