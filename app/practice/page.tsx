@@ -3681,7 +3681,7 @@ function StatsTab({
     days: HeatmapDot[]
   }
 
-  // 按月份分组，固定显示当前年份，统一16列，12月→1月倒序
+  // 按月份分组，固定显示当前年份，统一16列，1月→12月正序
   const currentYear = today.getFullYear()
   const monthGroups = useMemo(() => {
     if (!practiceHistory.length) return []
@@ -3710,9 +3710,9 @@ function StatsTab({
       cursor.setDate(cursor.getDate() + 1)
     }
 
-    // 倒序：12月 → 1月
+    // 正序：1月 → 12月
     return Array.from(groups.entries())
-      .sort(([a], [b]) => b.localeCompare(a))
+      .sort(([a], [b]) => a.localeCompare(b))
       .map(([monthKey, days]) => ({
         monthKey,
         monthLabel: `${parseInt(monthKey.split('-')[1])}月`,
