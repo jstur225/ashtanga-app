@@ -3914,7 +3914,7 @@ function StatsTab({
                                 className="rounded-full w-[12px] h-[12px] bg-stone-200"
                                 style={{
                                   backgroundImage: `url(${moonInfo!.icon})`,
-                                  backgroundSize: 'cover',
+                                  backgroundSize: '115%',
                                   backgroundPosition: 'center',
                                 }}
                                 title={`${day.date}: ${moonInfo!.name}`}
