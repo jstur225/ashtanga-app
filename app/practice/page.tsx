@@ -3921,19 +3921,13 @@ function StatsTab({
                               />
                             )
                           }
-                          // 新月/满月 + 有练习 → 左半绿右半月相图标
+                          // 新月/满月 + 有练习 → 绿色底 + 中间小黄点
                           if (isMoonDay) {
                             return (
-                              <div
-                                key={day.date}
-                                className="rounded-full w-[12px] h-[12px]"
-                                style={{
-                                  backgroundImage: `linear-gradient(to right, rgba(45,90,39,0.85) 50%, transparent 50%), url(${moonInfo!.icon})`,
-                                  backgroundSize: 'cover, cover',
-                                  backgroundPosition: 'center, center',
-                                }}
-                                title={`${day.date}: ${day.count} 分钟 · ${moonInfo!.name}`}
-                              />
+                              <div key={day.date} className="relative w-[12px] h-[12px] flex items-center justify-center" title={`${day.date}: ${day.count} 分钟 · ${moonInfo!.name}`}>
+                                <div className="green-gradient-deep rounded-full w-[12px] h-[12px] shadow-[0_2px_8px_rgba(45,90,39,0.3)]" />
+                                <div className="absolute w-[3px] h-[3px] rounded-full bg-[#FFE066] shadow-[0_0_4px_rgba(255,224,102,0.8)]" />
+                              </div>
                             )
                           }
                           // 普通日
