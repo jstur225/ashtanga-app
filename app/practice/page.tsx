@@ -3686,6 +3686,7 @@ function StatsTab({
 
   // 按月份分组，固定显示当前年份，统一16列，1月→12月正序
   const currentYear = today.getFullYear()
+  const moonPhaseMap = useMemo(() => getMoonPhaseMap(), [])
   const monthGroups = useMemo(() => {
     if (!practiceHistory.length) return []
 
@@ -3902,6 +3903,29 @@ function StatsTab({
                         }}
                       >
                         {month.days.map((day) => {
+                          const moonInfo = moonPhaseMap[day.date]
+                          const isMoonDay = !!moonInfo
+                          const hasPractice = day.count > 0
+                          // 新月/满月 + 有练习 → 绿色圆点中间镶黄色小点
+                          if (isMoonDay && hasPractice) {
+                            return (
+                              <div key={day.date} className="relative w-[12px] h-[12px] flex items-center justify-center" title={`${day.date}: ${day.count} 分钟 · ${moonInfo!.name}`}>
+                                <div className="green-gradient-deep rounded-full w-[12px] h-[12px] shadow-[0_2px_8px_rgba(45,90,39,0.3)]" />
+                                <div className="absolute w-[5px] h-[5px] rounded-full bg-[#FFE066] shadow-[0_0_6px_rgba(255,224,102,0.8)]" />
+                              </div>
+                            )
+                          }
+                          // 新月/满月 + 无练习 → 黄色圆点
+                          if (isMoonDay) {
+                            return (
+                              <div
+                                key={day.date}
+                                className="rounded-full w-[12px] h-[12px] bg-[#FFE066] shadow-[0_0_6px_rgba(255,224,102,0.8)]"
+                                title={`${day.date}: ${moonInfo!.name}`}
+                              />
+                            )
+                          }
+                          // 普通日
                           const level = [...dotConfig.levels].reverse().find(l => day.count >= l.threshold) ?? dotConfig.levels[0]
                           return (
                             <div
