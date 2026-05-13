@@ -2295,8 +2295,11 @@ function CompletionSheet({
 
   const handleSave = (data: PracticeFormData) => {
     if (draftRecord) {
-      // 更新草稿为正式记录（包含照片）
+      // 更新草稿为正式记录（包含照片 + 用户可能修改的日期/类型/时长）
       updateRecord(draftRecord.id, {
+        date: data.date,
+        type: data.type,
+        duration: data.duration * 60, // 转换为秒
         notes: data.notes || "今日练习完成",
         breakthrough: data.breakthrough,
         photos: data.photos, // ⭐ 保存时包含照片
@@ -2342,11 +2345,11 @@ function CompletionSheet({
               user={{ email: user?.email }} // ⭐ 传入用户信息
               date={formData.date}
               type={formData.type}
-              onDateChange={() => {}} // 只读，不处理
-              onTypeChange={() => {}} // 只读，不处理
-              dateEditable={false}
-              typeEditable={false}
-              durationEditable={false}
+              onDateChange={(d) => setFormData(prev => ({ ...prev, date: d }))}
+              onTypeChange={(t) => setFormData(prev => ({ ...prev, type: t }))}
+              dateEditable={true}
+              typeEditable={true}
+              durationEditable={true}
               showDelete={false}
               showPhotoUpload={true}
               practiceOptions={[]}
