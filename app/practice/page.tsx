@@ -3906,22 +3906,33 @@ function StatsTab({
                           const moonInfo = moonPhaseMap[day.date]
                           const isMoonDay = !!moonInfo
                           const hasPractice = day.count > 0
-                          // 新月/满月 + 有练习 → 绿色圆点中间镶黄色小点
-                          if (isMoonDay && hasPractice) {
+                          // 新月/满月 + 无练习 → 仅显示月相图标（缩小版）
+                          if (isMoonDay && !hasPractice) {
                             return (
-                              <div key={day.date} className="relative w-[12px] h-[12px] flex items-center justify-center" title={`${day.date}: ${day.count} 分钟 · ${moonInfo!.name}`}>
-                                <div className="green-gradient-deep rounded-full w-[12px] h-[12px] shadow-[0_2px_8px_rgba(45,90,39,0.3)]" />
-                                <div className="absolute w-[5px] h-[5px] rounded-full bg-[#FFE066] shadow-[0_0_6px_rgba(255,224,102,0.8)]" />
-                              </div>
+                              <div
+                                key={day.date}
+                                className="rounded-full w-[12px] h-[12px]"
+                                style={{
+                                  backgroundImage: `url(${moonInfo!.icon})`,
+                                  backgroundSize: 'cover',
+                                  backgroundPosition: 'center',
+                                }}
+                                title={`${day.date}: ${moonInfo!.name}`}
+                              />
                             )
                           }
-                          // 新月/满月 + 无练习 → 黄色圆点
+                          // 新月/满月 + 有练习 → 左半绿右半月相图标
                           if (isMoonDay) {
                             return (
                               <div
                                 key={day.date}
-                                className="rounded-full w-[12px] h-[12px] bg-[#FFE066] shadow-[0_0_6px_rgba(255,224,102,0.8)]"
-                                title={`${day.date}: ${moonInfo!.name}`}
+                                className="rounded-full w-[12px] h-[12px]"
+                                style={{
+                                  backgroundImage: `linear-gradient(to right, rgba(45,90,39,0.85) 50%, transparent 50%), url(${moonInfo!.icon})`,
+                                  backgroundSize: 'cover, cover',
+                                  backgroundPosition: 'center, center',
+                                }}
+                                title={`${day.date}: ${day.count} 分钟 · ${moonInfo!.name}`}
                               />
                             )
                           }
