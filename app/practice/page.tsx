@@ -3906,12 +3906,12 @@ function StatsTab({
                           const moonInfo = moonPhaseMap[day.date]
                           const isMoonDay = !!moonInfo
                           const hasPractice = day.count > 0
-                          // 新月/满月 + 无练习 → 仅显示月相图标（缩小版）
+                          // 新月/满月 + 无练习 → 灰色底圆 + 月相图标
                           if (isMoonDay && !hasPractice) {
                             return (
                               <div
                                 key={day.date}
-                                className="rounded-full w-[12px] h-[12px]"
+                                className="rounded-full w-[12px] h-[12px] bg-stone-200"
                                 style={{
                                   backgroundImage: `url(${moonInfo!.icon})`,
                                   backgroundSize: 'cover',
@@ -3921,12 +3921,12 @@ function StatsTab({
                               />
                             )
                           }
-                          // 新月/满月 + 有练习 → 绿色底 + 中间小黄点
+                          // 新月/满月 + 有练习 → 绿色底 + 中间小黄点(2px)
                           if (isMoonDay) {
                             return (
                               <div key={day.date} className="relative w-[12px] h-[12px] flex items-center justify-center" title={`${day.date}: ${day.count} 分钟 · ${moonInfo!.name}`}>
                                 <div className="green-gradient-deep rounded-full w-[12px] h-[12px] shadow-[0_2px_8px_rgba(45,90,39,0.3)]" />
-                                <div className="absolute w-[3px] h-[3px] rounded-full bg-[#FFE066] shadow-[0_0_4px_rgba(255,224,102,0.8)]" />
+                                <div className="absolute w-[2px] h-[2px] rounded-full bg-[#FFE066] shadow-[0_0_4px_rgba(255,224,102,0.8)]" />
                               </div>
                             )
                           }
