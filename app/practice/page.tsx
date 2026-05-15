@@ -5535,6 +5535,16 @@ export default function AshtangaTracker() {
       fetchTodayCount()
         .catch(() => {})
 
+      // 记录练习行为到设备活动统计（匿名用户也记录）
+      const uuid = localStorage.getItem('ashtanga_uuid')
+      if (uuid) {
+        fetch('/api/stats/record-practice', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ uuid }),
+        }).catch(() => {})
+      }
+
       // ⭐ 延迟 500ms 同步，确保 localStorage 已完全更新
       // 只有绑定邮箱的用户才同步到云端
       console.log('[handleSavePractice] 准备同步，user:', user?.email || '未登录')
