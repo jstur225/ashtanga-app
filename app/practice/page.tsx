@@ -5542,7 +5542,9 @@ export default function AshtangaTracker() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ uuid }),
-        }).catch(() => {})
+        }).catch(() => {
+          toast.error('⚠️ 练习记录已保存，但活动统计上传失败', { duration: 3000, position: 'top-center' })
+        })
       }
 
       // ⭐ 延迟 500ms 同步，确保 localStorage 已完全更新
