@@ -1,5 +1,40 @@
 # 阿斯汤加打卡 app - 项目记录
 
+## 2026-05-15: 匿名练习埋点
+
+### 背景
+`daily_user_activity` 表只记录了设备打开 app 的情况，但无法知道这些设备是否完成了练习。未绑定用户的练习数据存在 localStorage，不落库。
+
+### 实现
+
+1. **新 API** `POST /api/stats/record-practice`
+   - 接收 `{ uuid }`，在 `daily_user_activity` 表中设置 `has_practiced = true`（幂等 upsert）
+   - 无论是否绑定邮箱，保存练习记录时都调用
+
+2. **数据库变更**
+   - `daily_user_activity` 表新增 `has_practiced` 列（boolean, default false）
+   - 手动在 Supabase 控制台执行
+
+3. **前端改动**
+   - `handleSavePractice` 中调用新 API（`.catch(() => {})` 静默失败）
+   - `/api/stats/today` 改为返回已绑定练习次数 + 无绑定练习设备数的总和
+
+4. **运营脚本**
+   - `fetch_app_data.js` 新增 `practicedDevices` 指标读取
+   - 飞书字段更新为：练习人数（已绑定）、练习人数（无绑定）、总练习次数
+
+### 涉及文件
+- `app/api/stats/record-practice/route.ts` — 新建
+- `app/api/stats/today/route.ts` — 改为返回总和
+- `app/practice/page.tsx` — handleSavePractice 调用新 API
+- `xiaohongshu内容运营/fetch_app_data.js` — 新增 practicedDevices 指标
+
+### 提交记录
+- `95d4028` - feat: 今日练习人数统计包含无绑定设备
+- `a7285a5` - feat: 匿名用户练习埋点 - 新增 record-practice API + 前端调用
+
+---
+
 ## 2026-05-09: 用户回访计划
 
 ### 背景
