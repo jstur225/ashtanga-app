@@ -18,17 +18,32 @@ export async function GET() {
     const beijingNow = new Date(Date.now() + 8 * 60 * 60 * 1000)
     const today = beijingNow.toISOString().split('T')[0]
 
-    const { data, error } = await supabase
+    // 1. 已绑定用户的练习次数
+    const { data: practiceData, error: practiceError } = await supabase
       .from('practice_records')
       .select('id')
       .eq('date', today)
 
-    if (error) {
-      console.error('[Stats] Failed to fetch today count:', error)
+    if (practiceError) {
+      console.error('[Stats] Failed to fetch today count:', practiceError)
       return NextResponse.json({ count: 0 })
     }
 
-    return NextResponse.json({ count: data?.length || 0 })
+    // 2. 无绑定设备的练习设备数
+    const { data: deviceData, error: deviceError } = await supabase
+      .from('daily_user_activity')
+      .select('uuid')
+      .eq('date', today)
+      .eq('has_practiced', true)
+
+    if (deviceError) {
+      console.error('[Stats] Failed to fetch device practice count:', deviceError)
+    }
+
+    const boundCount = practiceData?.length || 0
+    const unboundCount = deviceData?.length || 0
+
+    return NextResponse.json({ count: boundCount + unboundCount })
   } catch (error) {
     console.error('[Stats] Error fetching today count:', error)
     return NextResponse.json({ count: 0 })
