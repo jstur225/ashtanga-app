@@ -4620,6 +4620,17 @@ export default function AshtangaTracker() {
     if (record.type !== '草稿') {
       toast.success('补卡成功！')
     }
+
+    // 记录练习行为到设备活动统计（补卡也记录）
+    const recordUuid = localStorage.getItem('ashtanga_uuid')
+    if (recordUuid) {
+      fetch('/api/stats/record-practice', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ uuid: recordUuid }),
+      }).catch(() => {})
+    }
+
     // 延迟 500ms 同步，确保 localStorage 已完全更新
     // ⭐ 只有绑定邮箱的用户才同步到云端
     if (user?.email) {

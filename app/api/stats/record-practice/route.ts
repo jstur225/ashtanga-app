@@ -11,20 +11,30 @@ export async function POST(request: NextRequest) {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
-    // 用北京时间生成今日日期
-    const beijingNow = new Date(Date.now() + 8 * 60 * 60 * 1000)
-    const today = beijingNow.toISOString().split('T')[0]
+    // 用北京时间生成今日日期（与 heartbeat 一致用 UTC，避免日期不匹配）
+    const today = new Date().toISOString().split('T')[0]
 
-    // upsert: 如果 uuid+date 已存在则更新 has_practiced = true，否则插入
-    const { error } = await supabase
+    // 先尝试 update 已有记录
+    const { data, error: updateError } = await supabase
       .from('daily_user_activity')
-      .upsert(
-        { date: today, uuid, has_practiced: true },
-        { onConflict: 'uuid,date' }
-      )
+      .update({ has_practiced: true })
+      .eq('date', today)
+      .eq('uuid', uuid)
+      .select('date')
 
-    if (error) {
-      console.error('[RecordPractice] Upsert failed:', error)
+    if (updateError) {
+      console.error('[RecordPractice] Update failed:', updateError)
+    }
+
+    // 如果没有匹配的记录，insert 一条新的
+    if (!data || data.length === 0) {
+      const { error: insertError } = await supabase
+        .from('daily_user_activity')
+        .insert({ date: today, uuid, has_practiced: true })
+
+      if (insertError) {
+        console.error('[RecordPractice] Insert failed:', insertError)
+      }
     }
 
     return NextResponse.json({ success: true })
