@@ -769,7 +769,7 @@ export function useSync(
 
     const failedIds: string[] = []
 
-    const recordsToUpload = recordsToSync.map(r => ({
+    let recordsToUpload = recordsToSync.map(r => ({
       id: r.id,
       user_id: userId,
       date: r.date,
@@ -781,6 +781,65 @@ export function useSync(
       start_time: r.start_time || null,
       updated_at: r.updated_at || r.created_at || new Date().toISOString(),
     }))
+
+    // ⭐ 安全合并：上传前查询云端已有记录，防止本地空白覆盖云端有内容的记录
+    try {
+      const localIds = recordsToUpload.map(r => r.id)
+      const { data: cloudRecords } = await supabase
+        .from(TABLES.PRACTICE_RECORDS)
+        .select('id, notes, breakthrough, photos, duration, updated_at')
+        .in('id', localIds)
+
+      if (cloudRecords && cloudRecords.length > 0) {
+        const cloudMap = new Map(cloudRecords.map(r => [r.id, r]))
+        let mergedCount = 0
+
+        recordsToUpload = recordsToUpload.map(local => {
+          const cloud = cloudMap.get(local.id)
+          if (!cloud) return local
+
+          const needsMerge = (
+            // 本地 notes 为空或默认文案，但云端有非空内容
+            (!local.notes || local.notes.trim() === '' || local.notes === '今日练习完成') && cloud.notes
+          ) || (
+            // 本地 breakthrough 为空，但云端有内容
+            !local.breakthrough && cloud.breakthrough
+          ) || (
+            // 本地没有照片但云端有
+            (!local.photos || local.photos.length === 0) && cloud.photos && cloud.photos.length > 0
+          )
+
+          if (!needsMerge) return local
+
+          mergedCount++
+          const cloudTime = new Date(cloud.updated_at || 0).getTime()
+          const localTime = new Date(local.updated_at).getTime()
+
+          return {
+            ...local,
+            // notes: 如果本地为空/默认，但云端有内容 → 保留云端
+            notes: (!local.notes || local.notes.trim() === '' || local.notes === '今日练习完成') && cloud.notes
+              ? cloud.notes
+              : local.notes,
+            // breakthrough: 如果本地为空但云端有 → 保留云端
+            breakthrough: !local.breakthrough && cloud.breakthrough ? cloud.breakthrough : local.breakthrough,
+            // photos: 如果本地为空但云端有 → 保留云端
+            photos: (!local.photos || local.photos.length === 0) && cloud.photos && cloud.photos.length > 0
+              ? cloud.photos
+              : local.photos,
+            // updated_at: 使用较新的时间戳
+            updated_at: localTime > cloudTime ? local.updated_at : cloud.updated_at,
+          }
+        })
+
+        if (mergedCount > 0) {
+          addLog(`安全合并 ${mergedCount} 条云端已有内容的记录`, 'success')
+        }
+      }
+    } catch (mergeErr) {
+      // 合并失败不影响后续上传流程
+      console.error('⚠️ [uploadLocalRecords] 安全合并失败，继续直接上传:', mergeErr)
+    }
 
     // ⭐ 显示排查日志到页面
     addLog(`准备上传 ${recordsToUpload.length} 条记录`, 'success')
@@ -911,7 +970,7 @@ export function useSync(
 
       // 2. 批量上传练习记录（使用 upsert）- 使用限制后的 recordsToSync（最新的1000条）
       if (recordsToSync.length > 0) {
-        const recordsToUpload = recordsToSync.map(r => ({
+        let recordsToUpload = recordsToSync.map(r => ({
           id: r.id,
           user_id: userId,
           date: r.date,
@@ -923,6 +982,53 @@ export function useSync(
           start_time: r.start_time || null,
           updated_at: r.updated_at || r.created_at || new Date().toISOString(),
         }))
+
+        // ⭐ 安全合并：上传前查询云端已有记录，防止本地空白覆盖云端有内容的记录
+        try {
+          const localIds = recordsToUpload.map(r => r.id)
+          const { data: cloudRecords } = await supabase
+            .from(TABLES.PRACTICE_RECORDS)
+            .select('id, notes, breakthrough, photos, duration, updated_at')
+            .in('id', localIds)
+
+          if (cloudRecords && cloudRecords.length > 0) {
+            const cloudMap = new Map(cloudRecords.map(r => [r.id, r]))
+            let mergedCount = 0
+
+            recordsToUpload = recordsToUpload.map(local => {
+              const cloud = cloudMap.get(local.id)
+              if (!cloud) return local
+
+              const needsMerge = (
+                (!local.notes || local.notes.trim() === '' || local.notes === '今日练习完成') && cloud.notes
+              ) || (
+                !local.breakthrough && cloud.breakthrough
+              ) || (
+                (!local.photos || local.photos.length === 0) && cloud.photos && cloud.photos.length > 0
+              )
+
+              if (!needsMerge) return local
+
+              mergedCount++
+              return {
+                ...local,
+                notes: (!local.notes || local.notes.trim() === '' || local.notes === '今日练习完成') && cloud.notes
+                  ? cloud.notes
+                  : local.notes,
+                breakthrough: !local.breakthrough && cloud.breakthrough ? cloud.breakthrough : local.breakthrough,
+                photos: (!local.photos || local.photos.length === 0) && cloud.photos && cloud.photos.length > 0
+                  ? cloud.photos
+                  : local.photos,
+              }
+            })
+
+            if (mergedCount > 0) {
+              console.error(`✅ [uploadLocalData] 安全合并 ${mergedCount} 条云端已有内容的记录`)
+            }
+          }
+        } catch (mergeErr) {
+          console.error('⚠️ [uploadLocalData] 安全合并失败，继续直接上传:', mergeErr)
+        }
 
         console.error(`📤 [uploadLocalData] 准备上传${recordsToUpload.length}条记录`)
         console.error('📤 [uploadLocalData] 记录IDs:', recordsToUpload.map(r => r.id))

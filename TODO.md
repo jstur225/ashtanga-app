@@ -577,6 +577,13 @@ visibleOptions.sort((a, b) => a.slot_index - b.slot_index);
 
 ## 🐛 待修复 Bug
 
+### 2026-05-20 - 同步时本地空白覆盖云端内容 ✅ 已修复
+
+**状态**: 已修复
+**根因**: 用户在新设备查看旧记录时，编辑表单覆盖了原始 notes，后续 `upsert` 将空白内容上传云端覆盖原始数据
+**修复**: `uploadLocalRecords` 和 `uploadLocalData` 新增安全合并——上传前对比云端，若本地 notes 为空/默认文案但云端有内容 → 保留云端
+**文件**: `hooks/useSync.ts`
+
 ### 2026-04-22 - 练习页按钮上限计算错误 ✅ 已修复
 
 **状态**: 已修复（随固定功能栏一起修复）

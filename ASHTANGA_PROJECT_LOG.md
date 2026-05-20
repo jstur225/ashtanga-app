@@ -29,6 +29,29 @@
 - `app/practice/page.tsx` — handleSavePractice 调用新 API
 - `xiaohongshu内容运营/fetch_app_data.js` — 新增 practicedDevices 指标
 
+## 2026-05-20: 同步数据安全修复
+
+### 背景
+用户 didosheng@163.com（空知）反馈 4 月 8 日的练习觉察内容丢失。
+经 debug log 分析，根因是 sync 冲突处理导致本地空白数据覆盖云端有内容的记录。
+
+### 根因
+1. **5/13 同步冲突**：用户重新登录后，本地 localStorage 只有 1 条记录，云端 58 条
+2. **冲突弹窗解决**：用户选择上传本地数据后，云端数据未下载到本地
+3. **5/16 批量上传**：61 条本地记录（含 4 月 8 日空白记录）通过 `upsert` 覆盖云端
+4. `upsert` 按 ID 匹配，直接用本地的空 `notes` 字段覆盖了云端原有内容
+
+### 修复
+- `hooks/useSync.ts` — 在 `uploadLocalRecords` 和 `uploadLocalData` 两个上传函数中新增**安全合并逻辑**
+- 上传前先查询云端已有记录，逐字段对比：
+  - 如果本地 `notes` 为空或默认文案（"今日练习完成"），但云端有内容 → 保留云端
+  - 如果本地 `breakthrough` 为空但云端有 → 保留云端
+  - 如果本地没有照片但云端有 → 保留云端
+- 合并失败不影响上传流程（静默降级为直接上传）
+
+### 涉及文件
+- `hooks/useSync.ts` — uploadLocalRecords 和 uploadLocalData 函数新增安全合并逻辑
+
 ### 提交记录
 - `95d4028` - feat: 今日练习人数统计包含无绑定设备
 - `a7285a5` - feat: 匿名用户练习埋点 - 新增 record-practice API + 前端调用
