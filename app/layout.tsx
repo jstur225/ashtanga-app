@@ -2,6 +2,7 @@ import React from "react"
 import type { Metadata, Viewport } from 'next'
 import { Inter, Noto_Serif_SC } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 import { Toaster } from 'sonner'
 import { AnalyticsInitializer } from '@/components/AnalyticsInitializer'
 import { ServiceWorkerRegister } from '@/components/ServiceWorkerRegister'
@@ -65,6 +66,7 @@ export default function RootLayout({
           className: 'font-serif',
         }} />
         <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   )
