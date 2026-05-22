@@ -2783,3 +2783,64 @@ export const INVITE_VERSION = 'v2'  // 从 v1 更新到 v2
 
 ### 提交记录
 - `89c0e9a` - fix: 取消草稿时同步删除云端孤立记录，防止假冲突覆盖用户笔记
+
+---
+
+## 2026-05-22: 口令跟练音频边下载边播放 + 网站加载优化
+
+**类型**: 性能优化
+
+### 1. 口令跟练音频流式播放
+
+**背景**: 用户反馈口令跟练音频（43 MB）首次使用要等很久才能播放，体验差。
+
+**根因**: 代码先把整个文件下载为 ArrayBuffer，再创建 Audio 播放。42 MB 文件首次下载需要等待几十秒。
+
+**方案**:
+- 缓存未命中：`new Audio(url)` 直接流式播放（1-2 秒开始），浏览器原生支持 HTTP Range 流式加载
+- 后台静默缓存到 IndexedDB（不阻塞播放，`priority: 'low'`）
+- 缓存命中：IndexedDB → Blob URL → Audio（秒开，不变）
+- Service Worker 排除 `/audio/` 路径，确保 Range 流式播放不被拦截
+- 修复 Blob URL 内存泄漏（用 ref 追踪，结束时 revokeObjectURL）
+- 修复重试按钮调用未定义函数的 Bug
+
+### 2. 网站加载速度优化
+
+**背景**: 用户反馈打开网站慢。
+
+**根因**: `practice/page.tsx` 是 6,680 行的 `"use client"` 单文件，所有功能全塞在一起，没有任何懒加载。
+
+**优化**:
+- 删除未使用的 `recharts` 依赖（~200-300KB gzip 白送）
+- 截图库删除 `html2canvas`，只保留 `modern-screenshot` 懒加载（~80KB）
+- 12 个弹窗组件改为 `next/dynamic` 懒加载
+- 字体优化：`Noto_Serif_SC` 4 字重 → 2 字重 + `display: 'swap'`，移除 `JetBrains_Mono` 和 `Playfair_Display`
+
+### 3. Vitest 测试框架搭建
+
+新增 4 个测试文件，共 65 个自动化测试：
+- `__tests__/bundle-integrity.test.ts` — 依赖清理验证
+- `__tests__/screenshot.test.ts` — 截图功能验证
+- `__tests__/modal-lazy-loading.test.ts` — 弹窗懒加载验证
+- `__tests__/font-optimization.test.ts` — 字体配置验证
+
+### 4. Vercel Speed Insights
+
+添加 `@vercel/speed-insights`，在 Vercel Dashboard 查看真实用户加载性能数据。
+
+### 涉及文件
+- `app/practice/page.tsx` — 流式播放 + 弹窗懒加载 + Blob URL 修复
+- `lib/audioCache.ts` — downloadAndCache 新增 priority 参数
+- `lib/screenshot.ts` — 重写，只保留 modern-screenshot 懒加载
+- `public/sw.js` — 排除 /audio/ 路径
+- `app/layout.tsx` — 字体优化 + SpeedInsights
+- `app/page.tsx` — 接收 Playfair_Display
+- `vitest.config.ts` — 新建测试配置
+- `__tests__/` — 新建 6 个测试文件
+
+### 提交记录
+- `e6464bb` - feat: 口令跟练音频边下载边播放
+- `6ba3b69` - test: 搭建 Vitest 测试框架 + 音频缓存和播放测试
+- `ff94251` - fix: 流式播放时隐藏下载进度条，后台缓存完全静默
+- `82c7219` - perf: 网站加载速度优化 — 减少初始 JS ~400-500KB
+- `7a65d5f` - feat: 添加 Vercel Speed Insights 性能监控
