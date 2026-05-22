@@ -1329,6 +1329,7 @@ function AddPracticeModal({
   addRecord,
   updateRecord,
   deleteRecord,
+  onDeleteDraft,
   practiceOptions,
   practiceHistory = [],
   onChildModalOpen,
@@ -1343,6 +1344,7 @@ function AddPracticeModal({
   addRecord: (record: Omit<PracticeRecord, 'id' | 'created_at' | 'updated_at' | 'photos'>) => PracticeRecord
   updateRecord: (id: string, data: Partial<PracticeRecord>) => void
   deleteRecord: (id: string) => void
+  onDeleteDraft?: (id: string) => void
   practiceOptions: PracticeOption[]
   practiceHistory?: PracticeRecord[]
   onChildModalOpen?: (open: boolean) => void
@@ -1379,8 +1381,8 @@ function AddPracticeModal({
       })
       setDraftRecord(draft)
     } else if (draftRecord) {
-      // 弹窗关闭时删除草稿（用户取消）
-      deleteRecord(draftRecord.id, true) // true = 跳过确认
+      // 弹窗关闭时删除草稿（用户取消）- 同时删除云端草稿
+      onDeleteDraft?.(draftRecord.id)
       setDraftRecord(null)
     }
   }, [isOpen])
@@ -1389,7 +1391,7 @@ function AddPracticeModal({
   useEffect(() => {
     return () => {
       if (draftRecord) {
-        deleteRecord(draftRecord.id, true) // true = 跳过确认
+        onDeleteDraft?.(draftRecord.id)
       }
     }
   }, [])
@@ -2224,6 +2226,7 @@ function CompletionSheet({
   user,
   userProfile,
   practiceOptions,
+  onDeleteDraft,
 }: {
   isOpen: boolean
   practiceType: string
@@ -2233,6 +2236,7 @@ function CompletionSheet({
   addRecord: (record: Omit<PracticeRecord, 'id' | 'created_at' | 'updated_at' | 'photos'>) => PracticeRecord
   updateRecord: (id: string, data: Partial<PracticeRecord>) => void
   deleteRecord: (id: string, skipConfirm?: boolean) => void
+  onDeleteDraft?: (id: string) => void
   autoSync?: (triggerReason?: string) => Promise<void | boolean>
   onOpenVoiceFakeDoor?: () => void
   onOpenPhotoFakeDoor?: () => void
@@ -2284,8 +2288,8 @@ function CompletionSheet({
         }, 500)
       }
     } else if (draftRecord) {
-      // 弹窗关闭时删除草稿（用户取消）
-      deleteRecord(draftRecord.id, true) // true = 跳过确认
+      // 弹窗关闭时删除草稿（用户取消）- 同时删除云端草稿
+      onDeleteDraft?.(draftRecord.id)
       setDraftRecord(null)
     }
   }, [isOpen, practiceType, duration])
@@ -2294,7 +2298,7 @@ function CompletionSheet({
   useEffect(() => {
     return () => {
       if (draftRecord) {
-        deleteRecord(draftRecord.id, true) // true = 跳过确认
+        onDeleteDraft?.(draftRecord.id)
       }
     }
   }, [])
@@ -3481,6 +3485,7 @@ function JournalTab({
         addRecord={onAddRecord}
         updateRecord={onEditRecord}
         deleteRecord={onDeleteRecord}
+        onDeleteDraft={onDeleteRecord}
         practiceOptions={practiceOptions}
         practiceHistory={practiceHistory}
         onChildModalOpen={(open) => setChildModalOpen(open)}
@@ -5860,6 +5865,7 @@ export default function AshtangaTracker() {
           updateRecord={updateRecord}
           deleteRecord={deleteRecord}
           autoSync={autoSync}
+          onDeleteDraft={handleDeleteRecord}
           onOpenVoiceFakeDoor={() => setShowFakeDoor({ type: 'voice', isOpen: true })}
           onOpenPhotoFakeDoor={() => setShowFakeDoor({ type: 'photo', isOpen: true })}
           user={user}
@@ -6477,6 +6483,7 @@ export default function AshtangaTracker() {
         updateRecord={updateRecord}
         deleteRecord={deleteRecord}
         autoSync={autoSync}
+        onDeleteDraft={handleDeleteRecord}
         onOpenVoiceFakeDoor={() => setShowFakeDoor({ type: 'voice', isOpen: true })}
         onOpenPhotoFakeDoor={() => setShowFakeDoor({ type: 'photo', isOpen: true })}
         user={user}
