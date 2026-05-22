@@ -2233,7 +2233,7 @@ function CompletionSheet({
   addRecord: (record: Omit<PracticeRecord, 'id' | 'created_at' | 'updated_at' | 'photos'>) => PracticeRecord
   updateRecord: (id: string, data: Partial<PracticeRecord>) => void
   deleteRecord: (id: string, skipConfirm?: boolean) => void
-  autoSync?: () => Promise<void>
+  autoSync?: (triggerReason?: string) => Promise<void | boolean>
   onOpenVoiceFakeDoor?: () => void
   onOpenPhotoFakeDoor?: () => void
   user?: { email?: string | null } | null
@@ -2280,7 +2280,7 @@ function CompletionSheet({
       if (user?.email && autoSync) {
         console.log('[CompletionSheet] 草稿创建完成，准备同步')
         setTimeout(() => {
-          autoSync()
+          autoSync('完成弹窗草稿创建后同步')
         }, 500)
       }
     } else if (draftRecord) {
@@ -4535,7 +4535,7 @@ export default function AshtangaTracker() {
         } else {
           console.log('[handleEditDelete] 云端删除成功')
           // 触发同步确保状态一致
-          await autoSync()
+          await autoSync('删除选项后同步')
         }
       } catch (err) {
         console.error('[handleEditDelete] 删除异常:', err)
@@ -4548,7 +4548,7 @@ export default function AshtangaTracker() {
     updateRecord(id, data, () => {
       // 编辑后触发同步
       if (user) {
-        autoSync()
+        autoSync('编辑记录后同步')
       }
     })
     toast.success('更新成功')
@@ -4570,7 +4570,7 @@ export default function AshtangaTracker() {
       }
       // 3. 触发同步（如果用户已登录）
       if (user) {
-        autoSync()
+        autoSync('删除记录后同步')
       }
     } else {
       toast.error('删除同步失败，记录仅在本设备删除')
@@ -4635,7 +4635,7 @@ export default function AshtangaTracker() {
     // ⭐ 只有绑定邮箱的用户才同步到云端
     if (user?.email) {
       setTimeout(() => {
-        autoSync()
+        autoSync('添加记录后同步')
       }, 500)
     }
     return newRecord
@@ -4661,7 +4661,7 @@ export default function AshtangaTracker() {
     // 如果已登录，自动同步到云端
     if (user) {
       setTimeout(async () => {
-        await autoSync()
+        await autoSync('添加自定义选项后同步')
       }, 500)
     }
   }
@@ -4857,19 +4857,19 @@ export default function AshtangaTracker() {
       estimatedTotalSize: new Blob(Object.values(localStorage)).size
     }
 
-    // ===== 7. 最近的练习记录（最近10条） =====
-    // 注意：隐藏具体觉察内容，只保留是否有内容的标记，保护用户隐私
-    const recentRecords = practiceHistory.slice(0, 10).map(r => ({
+    // ===== 7. 所有练习记录（含完整觉察内容、照片URL用于排查） =====
+    const recentRecords = practiceHistory.map(r => ({
       id: r.id,
       date: r.date,
       type: r.type?.substring(0, 30),
       duration: r.duration,
-      hasNotes: !!r.notes,
-      notesLength: r.notes?.length || 0, // 只显示字数，不显示内容
+      notes: r.notes || '',
+      breakthrough: r.breakthrough || '',
+      photos: r.photos || [],
       hasPhotos: !!r.photos?.length,
       photosCount: r.photos?.length || 0,
-      hasBreakthrough: !!r.breakthrough,
-      createdAt: r.created_at
+      createdAt: r.created_at,
+      updatedAt: r.updated_at
     }))
 
     // ===== 8. 导出历史（最近10条） =====
@@ -4951,14 +4951,32 @@ export default function AshtangaTracker() {
     }
 
     // ===== 12. 同步日志（从 localStorage 读取） =====
-    let syncLogs: any[] = []
+    let syncLogs: any = { entries: [], summary: {} }
     try {
       const storedLogs = localStorage.getItem('sync_logs')
       if (storedLogs) {
-        syncLogs = JSON.parse(storedLogs)
+        const rawLogs = JSON.parse(storedLogs)
+        // ⭐ 提取同步摘要：统计各触发原因下的本地/云端数量
+        const triggers = rawLogs.filter((l: any) => l.triggerReason && l.triggerReason !== '未知触发原因')
+        const conflictLogs = rawLogs.filter((l: any) => l.action.includes('冲突') || l.status === 'warning')
+        const uploadLogs = rawLogs.filter((l: any) => l.action.includes('上传') || l.action.includes('仅本地'))
+        const downloadLogs = rawLogs.filter((l: any) => l.action.includes('云端') || l.action.includes('下载'))
+        syncLogs = {
+          entries: rawLogs,
+          summary: {
+            total: rawLogs.length,
+            conflicts: conflictLogs.length,
+            uploadCount: uploadLogs.length,
+            downloadCount: downloadLogs.length,
+            lastTriggerReason: triggers[0]?.triggerReason || '未知',
+            lastLocalCount: triggers[0]?.localCount,
+            lastRemoteCount: triggers[0]?.remoteCount,
+            lastSyncTime: rawLogs[0]?.timestamp,
+          }
+        }
       }
     } catch (e) {
-      syncLogs = [{ action: '读取同步日志失败', error: String(e), timestamp: new Date().toISOString() }]
+      syncLogs = { entries: [{ action: '读取同步日志失败', error: String(e), timestamp: new Date().toISOString() }], summary: {} }
     }
 
     // ===== 13. 照片操作日志 =====
@@ -5563,7 +5581,7 @@ export default function AshtangaTracker() {
         console.log('[handleSavePractice] 用户已绑定邮箱，启动同步')
         setTimeout(() => {
           console.log('[handleSavePractice] 执行 autoSync')
-          autoSync()
+          autoSync('保存练习后同步')
         }, 500)
       } else {
         console.log('[handleSavePractice] 用户未绑定邮箱，跳过同步')
@@ -6133,7 +6151,7 @@ export default function AshtangaTracker() {
           if (user) {
             toast.loading('正在同步到云端...', { id: 'sync-profile' })
             try {
-              const result = await autoSync()
+              const result = await autoSync('保存个人资料后同步')
               toast.dismiss('sync-profile')
               if (result) {
                 toast.success('✅ 资料已同步到云端')

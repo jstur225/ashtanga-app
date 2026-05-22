@@ -39,13 +39,26 @@ export function useSync(
   const [lastSyncTime, setLastSyncTime] = useLocalStorage<number | null>('last_sync_time', null)
   const [lastSyncStatus, setLastSyncStatus] = useLocalStorage<SyncStatus>('last_sync_status', 'idle')
   const [failedSyncIds, setFailedSyncIds] = useLocalStorage<string[]>('failed_sync_ids', [])
-  const [syncLogs, setSyncLogs] = useLocalStorage<Array<{
+  interface SyncLogEntry {
     timestamp: string
     action: string
-    status: 'success' | 'error'
+    status: 'success' | 'error' | 'warning'
+    triggerReason: string  // 同步触发原因，如"保存练习后同步"、"应用启动自动同步"
+    localCount?: number    // 触发同步时本地记录数
+    remoteCount?: number   // 触发同步时云端记录数
     recordId?: string
     error?: string
-  }>>('sync_logs', [])
+    details?: {
+      stack?: string
+      retryCount?: number
+      requestInfo?: string
+      responseStatus?: number
+    }
+  }
+  const [syncLogs, setSyncLogs] = useLocalStorage<SyncLogEntry[]>('sync_logs', [])
+
+  // 保存当前同步的触发原因，供 autoSync 内各子步骤的 addLog 使用
+  const currentTriggerReasonRef = useRef<string>('')
 
   // ⭐ 同步统计信息（用于UI显示限制提示）
   const [syncStats, setSyncStats] = useState({
@@ -146,11 +159,16 @@ export function useSync(
   }
 
   // ==================== 自动同步函数 ====================
-  const autoSync = async () => {
+  const autoSync = async (triggerReason?: string) => {
     // 防止重复调用
     if (isSyncingRef.current) {
       console.error('⏸️ [autoSync] 已有同步任务在执行，跳过')
       return
+    }
+
+    // ⭐ 记录触发原因
+    if (triggerReason) {
+      currentTriggerReasonRef.current = triggerReason
     }
 
     // ⭐ 从 localStorage 获取最新数据，避免闭包陷阱
@@ -159,6 +177,7 @@ export function useSync(
     console.error('🚨🚨🚨 [autoSync] 函数被调用了！🚨🚨🚨')
     console.error('='.repeat(50))
     console.error('[autoSync] 函数开始执行')
+    console.error('   - 触发原因:', triggerReason || '(默认)')
     console.error('='.repeat(50))
     console.error('[autoSync] 🔍 localData 详情:')
     console.error('   - records.length:', freshLocalData.records.length)
@@ -184,7 +203,10 @@ export function useSync(
     console.error('[autoSync] 状态已设置为 syncing')
 
     console.error('[autoSync] 添加日志...')
-    addLog('启动自动同步', 'success')
+    addLog('启动自动同步', 'success', undefined, undefined, undefined, {
+      triggerReason: currentTriggerReasonRef.current || '(默认)',
+      localCount: freshLocalData.records.length
+    })
     console.error('[autoSync] 日志已添加')
 
     try {
@@ -354,6 +376,11 @@ export function useSync(
         if (totalLocalChanges === 0 && totalRemoteChanges === 0 && !profileChanged && !optionsChanged) {
           // 没有差异，数据已一致
           console.error('[autoSync] 数据已一致，无需同步')
+          addLog(`数据一致，无需同步`, 'success', undefined, undefined, undefined, {
+            triggerReason: currentTriggerReasonRef.current,
+            localCount,
+            remoteCount
+          })
           setSyncStatus('success')
           return true
         }
@@ -361,7 +388,11 @@ export function useSync(
         // 有差异：本地有新增/更新的数据 → 上传到云端
         if ((totalLocalChanges > 0 || profileChangeSource === 'local' || optionsChangeSource === 'local') && totalRemoteChanges === 0 && optionsChangeSource !== 'remote') {
           console.error(`📤 [autoSync] 本地有${totalLocalChanges}条变更（新增${localOnly.length}+更新${localNewer.length}）${profileChanged ? '+ profile变更' : ''}，上传到云端`)
-          addLog(`上传本地变更：${totalLocalChanges}条记录`, 'success')
+          addLog(`上传本地 ${totalLocalChanges} 条变更新到云端`, 'success', undefined, undefined, undefined, {
+            triggerReason: currentTriggerReasonRef.current,
+            localCount,
+            remoteCount
+          })
           const result = await uploadLocalData(user.id, freshLocalData, user)
           if (result.success) {
             setSyncStatus('success')
@@ -396,7 +427,11 @@ export function useSync(
             }
           }
 
-          addLog(`同步云端变更：新增${remoteOnly.length}条，更新${remoteNewer.length}条`, 'success')
+          addLog(`同步云端变更：新增${remoteOnly.length}条，更新${remoteNewer.length}条`, 'success', undefined, undefined, undefined, {
+            triggerReason: currentTriggerReasonRef.current,
+            localCount,
+            remoteCount
+          })
 
           // ⭐ 构建完整的 profile 对象，确保包含 updated_at
           // 修复：只要云端有 profile 数据，就使用它，不要进行二次判断
@@ -454,7 +489,11 @@ export function useSync(
 
         // 两边都有变更 → 真正的冲突，需要用户选择
         console.error(`⚠️ [autoSync] 双方都有变更：本地${totalLocalChanges}条，云端${totalRemoteChanges}条`)
-        addLog(`检测到冲突：本地${totalLocalChanges}条变更，云端${totalRemoteChanges}条变更`, 'success')
+        addLog(`检测到冲突：本地${totalLocalChanges}条变更，云端${totalRemoteChanges}条变更`, 'warning', undefined, undefined, undefined, {
+          triggerReason: currentTriggerReasonRef.current,
+          localCount,
+          remoteCount
+        })
         if (onConflictDetected) {
           onConflictDetected(localCount, remoteCount)
         }
@@ -471,10 +510,18 @@ export function useSync(
 
         if (remoteCount > MAX_SYNC_RECORDS) {
           console.error(`⚠️ [autoSync] 云端有${remoteCount}条记录，只使用前${MAX_SYNC_RECORDS}条`)
-          addLog(`云端${remoteCount}条，只使用前${MAX_SYNC_RECORDS}条`, 'success')
+          addLog(`云端${remoteCount}条，只使用前${MAX_SYNC_RECORDS}条`, 'success', undefined, undefined, undefined, {
+            triggerReason: currentTriggerReasonRef.current,
+            localCount,
+            remoteCount
+          })
         }
 
-        addLog(`使用云端数据：${remoteRecordsToUse.length}条记录`, 'success')
+        addLog(`仅云端有数据：下载${remoteRecordsToUse.length}条`, 'success', undefined, undefined, undefined, {
+          triggerReason: currentTriggerReasonRef.current,
+          localCount,
+          remoteCount
+        })
 
         // ⭐ 构建完整的 profile 对象，确保包含 updated_at
         // 修复：只要云端有 profile 数据，就使用它，不要进行二次判断
@@ -518,7 +565,11 @@ export function useSync(
 
       // 4. 只有本地有数据 → 上传到云端
       if (localCount > 0 && remoteCount === 0) {
-        addLog(`上传本地数据：${localCount}条记录`, 'success')
+        addLog(`仅本地有数据：上传${localCount}条`, 'success', undefined, undefined, undefined, {
+          triggerReason: currentTriggerReasonRef.current,
+          localCount,
+          remoteCount
+        })
         const result = await uploadLocalData(user.id, freshLocalData, user)
         if (result.success) {
           setSyncStatus('success')
@@ -531,7 +582,11 @@ export function useSync(
       }
 
       // 5. 两边都没有数据 → 无需操作
-      addLog('两端都没有数据', 'success')
+      addLog('两端都没有数据', 'success', undefined, undefined, undefined, {
+        triggerReason: currentTriggerReasonRef.current,
+        localCount,
+        remoteCount
+      })
       setSyncStatus('success')
       setLastSyncStatus('success')
       setLastSyncTime(Date.now()) // ⭐ 更新同步时间
@@ -1129,10 +1184,17 @@ export function useSync(
         throw new Error('下载云端数据失败')
       }
 
+      const localCount = localDataRef.current.records.length
+      const remoteCount = remoteData.records.length
+
       switch (strategy) {
         case 'remote':
           // 使用云端数据
-          addLog('使用云端数据', 'success')
+          addLog('冲突解决：选择云端数据覆盖本地', 'success', undefined, undefined, undefined, {
+            triggerReason: '用户手动选择云端',
+            localCount,
+            remoteCount
+          })
 
           console.error('📦 [resolveConflict] 云端 profile 数据:', remoteData.profile)
           console.error('   头像:', remoteData.profile?.avatar ? remoteData.profile.avatar.substring(0, 50) + '...' : 'null')
@@ -1166,7 +1228,11 @@ export function useSync(
 
         case 'local':
           // 使用本地数据，覆盖云端
-          addLog('使用本地数据，覆盖云端', 'success')
+          addLog(`冲突解决：选择本地数据覆盖云端`, 'success', undefined, undefined, undefined, {
+            triggerReason: '用户手动选择本地',
+            localCount,
+            remoteCount
+          })
 
           // 1. 先删除云端所有数据（包括记录和选项）
           const { error: deleteError } = await supabase
@@ -1195,7 +1261,11 @@ export function useSync(
 
         case 'merge':
           // 智能合并
-          addLog('智能合并', 'success')
+          addLog(`冲突解决：智能合并`, 'success', undefined, undefined, undefined, {
+            triggerReason: '用户手动选择合并',
+            localCount,
+            remoteCount
+          })
           // ⭐ 使用 ref 获取最新的 localData
           const freshLocalDataForMerge = localDataRef.current
           const localIds = new Set(freshLocalDataForMerge.records.map(r => r.id))
@@ -1231,6 +1301,11 @@ export function useSync(
       retryCount?: number
       requestInfo?: string
       responseStatus?: number
+    },
+    extra?: {
+      triggerReason?: string
+      localCount?: number
+      remoteCount?: number
     }
   ) => {
     // 限制错误消息长度（200字符）
@@ -1238,10 +1313,13 @@ export function useSync(
     // 限制堆栈长度（500字符）
     const truncatedStack = details?.stack ? details.stack.slice(0, 500) + (details.stack.length > 500 ? '...' : '') : undefined
 
-    const log = {
+    const log: SyncLogEntry = {
       timestamp: new Date().toISOString(),
       action,
       status,
+      triggerReason: extra?.triggerReason || currentTriggerReasonRef.current || '未知触发原因',
+      localCount: extra?.localCount,
+      remoteCount: extra?.remoteCount,
       recordId,
       error: truncatedError,
       details: details ? {
