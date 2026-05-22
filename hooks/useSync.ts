@@ -166,10 +166,8 @@ export function useSync(
       return
     }
 
-    // ⭐ 记录触发原因
-    if (triggerReason) {
-      currentTriggerReasonRef.current = triggerReason
-    }
+    // ⭐ 记录触发原因（默认取全局，若未传入则置默认）
+    currentTriggerReasonRef.current = triggerReason || '应用启动自动同步'
 
     // ⭐ 从 localStorage 获取最新数据，避免闭包陷阱
     const freshLocalData = getLatestLocalData()
