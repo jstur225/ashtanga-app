@@ -5278,17 +5278,12 @@ export default function AshtangaTracker() {
 
         setAudioElement(audio)
 
-        // 后台缓存到 IndexedDB（不阻塞播放）
+        // 后台缓存到 IndexedDB（不阻塞播放，静默进行）
         setIsBackgroundCaching(true)
         audioCache.downloadAndCache(
           GUIDED_AUDIO_OPTION.audio_src,
-          (loaded, total) => {
-            if (total > 0) {
-              const progress = Math.round((loaded / total) * 100)
-              setAudioDownloadProgress(progress)
-            }
-          },
-          { priority: 'low' } // 低优先级，不抢 Audio 流式播放带宽
+          undefined, // 不显示进度——流式播放不需要
+          { priority: 'low' }
         ).then(() => {
           console.log('[音频] 后台缓存完成')
           setIsBackgroundCaching(false)
@@ -5727,7 +5722,7 @@ export default function AshtangaTracker() {
 
         {/* Control buttons - moved up 30% to avoid clipping on mobile */}
         <div className="px-6 pb-32">
-          {/* 音频加载状态 - 仅在口令跟练模式显示，替代暂停/结束按钮 */}
+          {/* 音频加载状态 - 仅在口令跟练模式显示 */}
           {selectedOption === 'guided_audio' && isAudioLoading && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -5736,23 +5731,8 @@ export default function AshtangaTracker() {
             >
               <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
               <p className="text-sm text-foreground/70 mt-4 font-serif">
-                {isUsingCache ? '从缓存读取...' : audioDownloadProgress > 0 ? `下载中 ${audioDownloadProgress}%` : '加载音频中...'}
+                {isUsingCache ? '从缓存读取...' : '加载音频中...'}
               </p>
-              {/* 下载进度条 */}
-              {!isUsingCache && audioDownloadProgress > 0 && (
-                <div className="w-48 h-1 bg-white/20 rounded-full mt-2 overflow-hidden border border-white/10">
-                  <div
-                    className="h-full bg-primary/80 rounded-full transition-all duration-300"
-                    style={{ width: `${audioDownloadProgress}%` }}
-                  />
-                </div>
-              )}
-              {/* 第一次下载提示 */}
-              {!isUsingCache && audioDownloadProgress > 0 && (
-                <p className="text-xs text-foreground/50 mt-3 font-serif text-center">
-                  首次下载需要一点时间，之后就能快速打开啦
-                </p>
-              )}
             </motion.div>
           )}
 
