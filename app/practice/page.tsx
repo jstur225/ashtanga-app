@@ -4159,6 +4159,8 @@ export default function AshtangaTracker() {
   const [seekStep, setSeekStep] = useState<number>(15)  // 快进/后退步长（默认15秒）
   const [audioDownloadProgress, setAudioDownloadProgress] = useState<number>(0)  // 下载进度（0-100）
   const [isUsingCache, setIsUsingCache] = useState<boolean>(false)  // 是否使用缓存
+  const [isBackgroundCaching, setIsBackgroundCaching] = useState<boolean>(false)  // 后台缓存中
+  const audioBlobUrlRef = useRef<string | null>(null)  // Blob URL 追踪（防内存泄漏）
 
   // 唱诵状态
   const [chantEnabled, setChantEnabled] = useLocalStorage('ashtanga_chant_enabled', false)
@@ -5197,6 +5199,111 @@ export default function AshtangaTracker() {
     }, 1000)
   }, [chantDelay, playChantAudio])
 
+  // 统一设置 Audio 事件监听（DRY）
+  const setupAudioEvents = (audio: HTMLAudioElement, onError: (e: Event) => void) => {
+    audio.addEventListener('loadedmetadata', () => {
+      setAudioDuration(audio.duration)
+      setIsAudioLoaded(true)
+      setIsAudioLoading(false)
+      setIsPaused(false)
+      audio.play()
+    })
+
+    audio.addEventListener('timeupdate', () => {
+      setAudioCurrentTime(audio.currentTime)
+      setAudioProgress((audio.currentTime / audio.duration) * 100)
+    })
+
+    audio.addEventListener('ended', () => {
+      handleEndRequest()
+    })
+
+    audio.addEventListener('error', onError)
+  }
+
+  // 口令跟练音频加载（可独立调用，重试按钮复用）
+  const loadGuidedAudio = async () => {
+    setIsAudioLoading(true)
+    setAudioError(null)
+    setAudioDownloadProgress(0)
+    setIsBackgroundCaching(false)
+    setIsPaused(true)
+
+    // 释放旧的 Blob URL
+    if (audioBlobUrlRef.current) {
+      URL.revokeObjectURL(audioBlobUrlRef.current)
+      audioBlobUrlRef.current = null
+    }
+
+    try {
+      const hasCache = await audioCache.isCacheValid()
+
+      if (hasCache) {
+        // 缓存命中：IndexedDB → Blob URL → Audio
+        console.log('[音频] 使用本地缓存')
+        setIsUsingCache(true)
+        const audioBuffer = await audioCache.getAudioBuffer()
+
+        if (audioBuffer) {
+          const blob = new Blob([audioBuffer], { type: 'audio/mp4' })
+          const url = URL.createObjectURL(blob)
+          audioBlobUrlRef.current = url // 追踪 Blob URL
+
+          const audio = new Audio()
+          audio.src = url
+
+          setupAudioEvents(audio, (e) => {
+            console.error('[音频] 缓存播放失败:', e)
+            audioCache.clearCache()
+            setAudioError('音频播放失败，请重试')
+            setIsAudioLoading(false)
+          })
+
+          setAudioElement(audio)
+        } else {
+          throw new Error('缓存数据无效')
+        }
+      } else {
+        // 缓存未命中：直接流式播放 + 后台缓存
+        console.log('[音频] 流式播放 + 后台缓存')
+        setIsUsingCache(false)
+
+        const audio = new Audio(GUIDED_AUDIO_OPTION.audio_src)
+
+        setupAudioEvents(audio, (e) => {
+          console.error('[音频] 流式播放失败:', e)
+          setIsAudioLoading(false)
+          setAudioError('音频播放失败，请检查网络连接')
+        })
+
+        setAudioElement(audio)
+
+        // 后台缓存到 IndexedDB（不阻塞播放）
+        setIsBackgroundCaching(true)
+        audioCache.downloadAndCache(
+          GUIDED_AUDIO_OPTION.audio_src,
+          (loaded, total) => {
+            if (total > 0) {
+              const progress = Math.round((loaded / total) * 100)
+              setAudioDownloadProgress(progress)
+            }
+          },
+          { priority: 'low' } // 低优先级，不抢 Audio 流式播放带宽
+        ).then(() => {
+          console.log('[音频] 后台缓存完成')
+          setIsBackgroundCaching(false)
+        }).catch((err) => {
+          console.error('[音频] 后台缓存失败（不影响播放）:', err)
+          setIsBackgroundCaching(false)
+        })
+      }
+    } catch (err) {
+      console.error('[音频] 加载失败:', err)
+      setAudioError('音频加载失败')
+      setIsAudioLoading(false)
+    }
+  }
+
   const handleStartPractice = async () => {
     if (selectedOption) {
       // 锁定选项不可开始练习
@@ -5227,119 +5334,9 @@ export default function AshtangaTracker() {
       setPauseStartTime(null)
       setElapsedTime(0)
 
-      // 口令跟练模式：加载音频（使用 IndexedDB 缓存）
+      // 口令跟练模式：加载音频
       if (selectedOption === 'guided_audio') {
-        setIsAudioLoading(true)
-        setAudioError(null)
-        setAudioDownloadProgress(0)
-        // 先暂停，等音频加载完成后再开始
-        setIsPaused(true)
-
-        try {
-          // 检查是否有缓存
-          const hasCache = await audioCache.isCacheValid()
-
-          if (hasCache) {
-            // 使用缓存
-            console.log('[音频] 使用本地缓存')
-            setIsUsingCache(true)
-            const audioBuffer = await audioCache.getAudioBuffer()
-
-            if (audioBuffer) {
-              // 创建 Blob URL
-              const blob = new Blob([audioBuffer], { type: 'audio/mp4' })
-              const url = URL.createObjectURL(blob)
-
-              const audio = new Audio()
-              audio.src = url
-
-              audio.addEventListener('loadedmetadata', () => {
-                setAudioDuration(audio.duration)
-                setIsAudioLoaded(true)
-                setIsAudioLoading(false)
-                setIsPaused(false)
-                audio.play()
-              })
-
-              audio.addEventListener('timeupdate', () => {
-                setAudioCurrentTime(audio.currentTime)
-                setAudioProgress((audio.currentTime / audio.duration) * 100)
-              })
-
-              audio.addEventListener('ended', () => {
-                handleEndRequest()
-              })
-
-              audio.addEventListener('error', (e) => {
-                console.error('[音频] 缓存播放失败:', e)
-                // 缓存可能损坏，清除后重试
-                audioCache.clearCache()
-                setAudioError('音频播放失败，请重试')
-                setIsAudioLoading(false)
-              })
-
-              setAudioElement(audio)
-            } else {
-              throw new Error('缓存数据无效')
-            }
-          } else {
-            // 从网络下载并缓存
-            console.log('[音频] 从网络下载')
-            setIsUsingCache(false)
-
-            try {
-              const arrayBuffer = await audioCache.downloadAndCache(
-                GUIDED_AUDIO_OPTION.audio_src,
-                (loaded, total) => {
-                  if (total > 0) {
-                    const progress = Math.round((loaded / total) * 100)
-                    setAudioDownloadProgress(progress)
-                  }
-                }
-              )
-
-              // 创建 Blob URL 播放
-              const blob = new Blob([arrayBuffer], { type: 'audio/mp4' })
-              const url = URL.createObjectURL(blob)
-
-              const audio = new Audio()
-              audio.src = url
-
-              audio.addEventListener('loadedmetadata', () => {
-                setAudioDuration(audio.duration)
-                setIsAudioLoaded(true)
-                setIsAudioLoading(false)
-                setIsPaused(false)
-                audio.play()
-              })
-
-              audio.addEventListener('timeupdate', () => {
-                setAudioCurrentTime(audio.currentTime)
-                setAudioProgress((audio.currentTime / audio.duration) * 100)
-              })
-
-              audio.addEventListener('ended', () => {
-                handleEndRequest()
-              })
-
-              audio.addEventListener('error', (e) => {
-                console.error('[音频] 播放失败:', e)
-                setIsAudioLoading(false)
-                setAudioError('音频播放失败')
-              })
-
-              setAudioElement(audio)
-            } catch (downloadErr) {
-              console.error('[音频] 下载失败:', downloadErr)
-              setAudioError('音频下载失败，请检查网络连接')
-              setIsAudioLoading(false)
-            }
-          }
-        } catch (err) {
-          console.error('[音频] 加载失败:', err)
-          setAudioError('音频加载失败')
-          setIsAudioLoading(false)
-        }
+        await loadGuidedAudio()
       }
 
       trackEvent('start_practice', { type: getSelectedLabel() })
@@ -5443,6 +5440,11 @@ export default function AshtangaTracker() {
       setAudioProgress(0)
       setAudioCurrentTime(0)
       setAudioDuration(0)
+      // 释放 Blob URL（防内存泄漏）
+      if (audioBlobUrlRef.current) {
+        URL.revokeObjectURL(audioBlobUrlRef.current)
+        audioBlobUrlRef.current = null
+      }
     }
   }
 
@@ -5478,6 +5480,11 @@ export default function AshtangaTracker() {
       setAudioProgress(0)
       setAudioCurrentTime(0)
       setAudioDuration(0)
+      // 释放 Blob URL（防内存泄漏）
+      if (audioBlobUrlRef.current) {
+        URL.revokeObjectURL(audioBlobUrlRef.current)
+        audioBlobUrlRef.current = null
+      }
     }
   }
 
@@ -5763,7 +5770,7 @@ export default function AshtangaTracker() {
               <button
                 onClick={() => {
                   setAudioError(null)
-                  loadAudioAndStart()
+                  loadGuidedAudio()
                 }}
                 className="mt-4 px-6 py-2 rounded-full green-gradient text-white text-sm font-serif"
               >

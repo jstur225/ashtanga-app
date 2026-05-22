@@ -77,6 +77,12 @@ self.addEventListener('fetch', event => {
     return
   }
 
+  // 音频文件不缓存，直接走网络（支持 Range 流式播放）
+  if (url.pathname.startsWith('/audio/')) {
+    event.respondWith(fetch(event.request))
+    return
+  }
+
   // 对于静态资源（图标等），使用Cache First（优先缓存，提升性能）
   event.respondWith(
     caches.match(event.request)

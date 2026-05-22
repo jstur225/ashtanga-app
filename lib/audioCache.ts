@@ -128,9 +128,10 @@ class AudioCacheService {
   // 下载并缓存音频，带进度回调
   async downloadAndCache(
     url: string,
-    onProgress?: (loaded: number, total: number) => void
+    onProgress?: (loaded: number, total: number) => void,
+    options?: { priority?: 'high' | 'low' | 'auto' }
   ): Promise<ArrayBuffer> {
-    const response = await fetch(url);
+    const response = await fetch(new Request(url, { priority: options?.priority || 'auto' }));
 
     if (!response.ok) {
       throw new Error(`下载失败: ${response.status}`);
