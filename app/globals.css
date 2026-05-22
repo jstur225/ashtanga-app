@@ -78,7 +78,7 @@
   --font-sans: var(--font-inter), 'Inter', 'Inter Fallback', system-ui, sans-serif;
   --font-serif: var(--font-noto-serif-sc), 'Noto Serif SC', 'SimSun', 'STSong', serif;
   --font-playfair: var(--font-playfair), 'Playfair Display', serif;
-  --font-mono: var(--font-jetbrains-mono), 'JetBrains Mono', 'JetBrains Mono Fallback', monospace;
+  --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
 
   /* Classic/Retro Palette */
   --color-cream: #F9F7F2;

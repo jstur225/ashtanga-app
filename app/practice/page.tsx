@@ -3,42 +3,48 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { useLocalStorage, useInterval } from 'react-use';
 import { motion, AnimatePresence } from "framer-motion"
+import dynamic from 'next/dynamic'
 import { usePracticeData, type PracticeRecord, type PracticeOption, type UserProfile, GUIDED_AUDIO_OPTION, MAX_SLOTS_FREE, MAX_SLOTS_PRO } from "@/hooks/usePracticeData"
 import { useMembership } from "@/hooks/useMembership"
 import { useAnnotations } from "@/hooks/useAnnotations"
-import { AnnotationManagerModal } from "@/components/CalendarAnnotation/AnnotationManagerModal"
 import { usePWAInstall } from "@/hooks/usePWAInstall"
 import { useAuth } from "@/hooks/useAuth"
 import { useSync } from "@/hooks/useSync"
 import { BookOpen, BarChart3, Calendar, X, Camera, Pause, Play, Trash2, User, Settings, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Cloud, Download, Upload, Plus, Minus, Share2, Sparkles, Check, Copy, ClipboardPaste, MessageCircle, Bug, AlertCircle, SkipBack, SkipForward, Volume, Volume2, Crown, Ticket, Loader2, Lock, Users, Pencil } from "lucide-react"
 import { cn } from '@/lib/utils'
-import { FakeDoorModal } from "@/components/FakeDoorModal"
 import { VoiceButton } from "@/components/VoiceButton"
 import { PracticeForm, type PracticeFormData } from "@/components/PracticeForm"
 import { PhotoUploadButton } from "@/components/PhotoUploadButton"
-import { ImportModal } from "@/components/ImportModal"
-import { ExportModal } from "@/components/ExportModal"
-import { XiaohongshuInviteModal, INVITE_VERSION } from "@/components/XiaohongshuInviteModal"
 import { PWAInstallBanner } from "@/components/PWAInstallBanner"
-import { PWAInstallTutorialModal } from "@/components/PWAInstallTutorialModal"
 import { AccountBindingSection } from "@/components/AccountBindingSection"
-import { AuthModal } from "@/components/AuthModal"
-import { DataConflictModal } from "@/components/DataConflictModal"
-import { DebugLogModal } from "@/components/DebugLogModal"
+import { MembershipCard } from "@/components/Membership/MembershipCard"
+import { MembershipActions } from "@/components/Membership/MembershipActions"
 import { toast } from 'sonner'
 import { trackEvent, setUserProfile } from '@/lib/analytics'
 import { captureWithFallback, formatErrorForUser } from '@/lib/screenshot'
 import { MOON_DAYS_2026 } from '@/lib/moon-phase-data'
-import { ActivateModal } from '@/components/Membership/ActivateModal'
-import { MembershipCard } from '@/components/Membership/MembershipCard'
-import { MembershipActions } from '@/components/Membership/MembershipActions'
-import { MembershipPromptModal } from '@/components/Membership/MembershipPromptModal'
-import { PurchaseGuideModal } from '@/components/Membership/PurchaseGuideModal'
 import { supabase } from '@/lib/supabase'
 import { deletePracticeRecord } from '@/lib/database'
 import { useRouter } from 'next/navigation'
 import { getVersionInfo } from '@/lib/version'
 import { audioCache } from '@/lib/audioCache'
+
+// 懒加载弹窗（不阻塞首屏渲染）
+const AnnotationManagerModal = dynamic(() => import('@/components/CalendarAnnotation/AnnotationManagerModal').then(m => ({ default: m.AnnotationManagerModal })), { ssr: false })
+const FakeDoorModal = dynamic(() => import('@/components/FakeDoorModal').then(m => ({ default: m.FakeDoorModal })), { ssr: false })
+const ImportModal = dynamic(() => import('@/components/ImportModal').then(m => ({ default: m.ImportModal })), { ssr: false })
+const ExportModal = dynamic(() => import('@/components/ExportModal').then(m => ({ default: m.ExportModal })), { ssr: false })
+const XiaohongshuInviteModal = dynamic(() => import('@/components/XiaohongshuInviteModal').then(m => ({ default: m.XiaohongshuInviteModal })), { ssr: false })
+const PWAInstallTutorialModal = dynamic(() => import('@/components/PWAInstallTutorialModal').then(m => ({ default: m.PWAInstallTutorialModal })), { ssr: false })
+const AuthModal = dynamic(() => import('@/components/AuthModal').then(m => ({ default: m.AuthModal })), { ssr: false })
+const DataConflictModal = dynamic(() => import('@/components/DataConflictModal').then(m => ({ default: m.DataConflictModal })), { ssr: false })
+const DebugLogModal = dynamic(() => import('@/components/DebugLogModal').then(m => ({ default: m.DebugLogModal })), { ssr: false })
+const ActivateModal = dynamic(() => import('@/components/Membership/ActivateModal').then(m => ({ default: m.ActivateModal })), { ssr: false })
+const MembershipPromptModal = dynamic(() => import('@/components/Membership/MembershipPromptModal').then(m => ({ default: m.MembershipPromptModal })), { ssr: false })
+const PurchaseGuideModal = dynamic(() => import('@/components/Membership/PurchaseGuideModal').then(m => ({ default: m.PurchaseGuideModal })), { ssr: false })
+
+// INVITE_VERSION 是常量，需要直接导入
+import { INVITE_VERSION } from "@/components/XiaohongshuInviteModal"
 
 // 月相图标路径
 const NEW_MOON_ICON = '/moon-phase/new-moon.png'

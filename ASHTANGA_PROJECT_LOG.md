@@ -2744,3 +2744,42 @@ export const INVITE_VERSION = 'v2'  // 从 v1 更新到 v2
 - `763c034` - 修复：全年显示12个月、恢复绿色渐变圆点样式
 - `22bc1a8` - 热力图简化：固定年视图、圆点、12月→1月倒序
 - `5d7990a` - 重构热力图：按月分组、统一16列、年/季视图
+
+---
+
+## 2026-05-22: 草稿云端清理修复 + 同步日志增强
+
+**类型**: Bug 修复
+
+### 修复：取消弹窗草稿时同步删除云端孤立记录
+
+**背景**: 用户反馈选择「使用云端数据」后，刚写的觉察笔记被空白内容覆盖。
+
+**根因**:
+1. CompletionSheet / AddPracticeModal 打开时通过 `addRecord` 创建草稿记录（用于照片上传）
+2. `autoSync` 将草稿上传到云端 Supabase
+3. 用户取消弹窗 → 草稿仅通过 `deleteRecord` 从本地 localStorage 删除
+4. 云端孤立草稿累积 → 触发「本地1条，云端N条」假冲突
+5. 用户选择「云端」→ 云端空白草稿覆盖本地实际笔记
+
+**修复**: 所有取消草稿路径改为调用 `handleDeleteRecord`（执行本地删除 + Supabase 软删除），而非仅 `deleteRecord`。
+
+### 增强：同步日志记录触发原因和数量
+
+**背景**: 数据冲突时无法追踪同步触发原因和两端数据量。
+
+**变更**:
+- `SyncLogEntry` 新增 `triggerReason`, `localCount`, `remoteCount` 字段
+- `addLog` 新增 `extra` 参数传入以上字段
+- `autoSync` 接受 `triggerReason` 参数，传递到所有子步骤
+- 所有 8 个同步触发点均已标注原因（保存后同步/编辑后同步/应用启动自动同步等）
+- Debug log 导出所有练习记录（含完整 notes/photos URL），不限最近 10 条
+
+### 涉及文件
+- `app/practice/page.tsx` — 取消草稿路径改为 handleDeleteRecord；全部 8 个 autoSync 触发点标注原因
+- `hooks/useSync.ts` — SyncLogEntry 增强；addLog 支持 extra 参数；autoSync 传递 triggerReason
+- `components/DataConflictModal.tsx` — UI 优化（无功能变更）
+- `components/DebugLogModal.tsx` — 简化 UI，去掉复制按钮
+
+### 提交记录
+- `89c0e9a` - fix: 取消草稿时同步删除云端孤立记录，防止假冲突覆盖用户笔记
