@@ -600,6 +600,23 @@ export function useSync(
       setLastSyncStatus('error')
       return false
     } finally {
+      // 兜底：确保今天有练习记录时 has_practiced 被标记
+      try {
+        const uuid = typeof window !== 'undefined' ? localStorage.getItem('ashtanga_uuid') : null
+        if (uuid && localDataRef.current?.records?.length > 0) {
+          const beijingNow = new Date(Date.now() + 8 * 3600 * 1000)
+          const today = beijingNow.toISOString().slice(0, 10)
+          const practicedToday = localDataRef.current.records.some(r => r.date === today)
+          if (practicedToday) {
+            fetch('/api/stats/record-practice', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ uuid }),
+            }).catch(() => {})
+          }
+        }
+      } catch {}
+
       // 清理同步标志，允许下次同步
       isSyncingRef.current = false
       console.error('[autoSync] 同步完成，清理标志')
