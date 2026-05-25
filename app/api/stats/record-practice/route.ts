@@ -11,8 +11,9 @@ export async function POST(request: NextRequest) {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
-    // 用北京时间生成今日日期（与 heartbeat 一致用 UTC，避免日期不匹配）
-    const today = new Date().toISOString().split('T')[0]
+    // 用北京时间生成今日日期（与 practice_records 客户端时区一致）
+    const beijingNow = new Date(Date.now() + 8 * 60 * 60 * 1000)
+    const today = beijingNow.toISOString().split('T')[0]
 
     // 先尝试 update 已有记录
     const { data, error: updateError } = await supabase

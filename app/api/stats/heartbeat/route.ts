@@ -10,7 +10,8 @@ export async function POST(request: NextRequest) {
     if (!uuid) return NextResponse.json({ error: 'Missing uuid' }, { status: 400 })
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
-    const today = new Date().toISOString().split('T')[0]
+    const beijingNow = new Date(Date.now() + 8 * 60 * 60 * 1000)
+    const today = beijingNow.toISOString().split('T')[0]
 
     // 尝试插入（每用户每天只写一次）
     const { error: insertError } = await supabase
