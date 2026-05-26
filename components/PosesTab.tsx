@@ -147,14 +147,14 @@ export function PosesTab({ onDetailOpen, onDetailClose }: PosesTabProps) {
             {/* 整页滚动：图片 + 步骤 + 切换一起滚动 */}
             <div className="flex-1 overflow-y-auto">
               {/* 体式图 */}
-              <div className="flex items-center justify-center py-10 bg-gradient-to-b from-[#faf8f5] to-white">
+              <div className="flex items-center justify-center bg-gradient-to-b from-[#faf8f5] to-white">
                 {!imagesLoaded[selectedPose.id] && (
-                  <div className="w-56 aspect-[4/5] bg-stone-100 rounded-xl animate-pulse" />
+                  <div className="w-full aspect-[4/5] bg-stone-100 animate-pulse" />
                 )}
                 <img
                   src={selectedPose.image}
                   alt={selectedPose.name}
-                  className={`w-full max-w-[220px] h-auto object-contain ${imagesLoaded[selectedPose.id] ? '' : 'hidden'}`}
+                  className={`w-full h-auto object-contain ${imagesLoaded[selectedPose.id] ? '' : 'hidden'}`}
                   onLoad={() => setImagesLoaded(prev => ({ ...prev, [selectedPose.id]: true }))}
                 />
               </div>
