@@ -51,16 +51,16 @@ export function PosesTab({ onDetailOpen, onDetailClose }: PosesTabProps) {
     <div className="h-full flex flex-col bg-gradient-to-b from-[#faf8f5] to-white">
       {/* 分类导航 + 搜索 */}
       <div className="sticky top-0 z-10 bg-[#faf8f5]/90 backdrop-blur-sm border-b border-stone-100">
-        <div className="flex items-center px-3 pt-2.5 pb-2 gap-1.5">
+        <div className="flex items-center px-2 pt-2.5 pb-2 gap-1">
           <div className="flex gap-1 flex-1 min-w-0">
             {POSE_CATEGORIES.map(cat => (
               <button
                 key={cat.id}
                 onClick={() => setActiveCategory(cat.id)}
-                className={`px-2.5 py-1 rounded-full text-[11px] font-serif transition-all ${
+                className={`px-3 py-1.5 rounded-full text-xs font-serif transition-all ${
                   activeCategory === cat.id
                     ? 'bg-[#5B7553] text-white shadow-sm'
-                    : 'bg-stone-100 text-stone-400 hover:text-stone-600'
+                    : 'bg-stone-100 text-stone-500 hover:text-stone-600'
                 }`}
               >
                 {cat.name}
@@ -68,12 +68,12 @@ export function PosesTab({ onDetailOpen, onDetailClose }: PosesTabProps) {
             ))}
           </div>
           <div className="relative flex-shrink-0">
-            <Search className="w-3.5 h-3.5 absolute left-2 top-1/2 -translate-y-1/2 text-stone-400 pointer-events-none" />
+            <Search className="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-stone-400 pointer-events-none" />
             <input
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="搜索"
-              className="w-20 focus:w-32 transition-all pl-7 pr-2 py-1 text-[11px] font-serif rounded-full bg-stone-100 text-stone-600 placeholder:text-stone-300 outline-none focus:bg-white focus:ring-1 focus:ring-stone-200"
+              className="w-24 focus:w-32 transition-all pl-8 pr-2.5 py-1.5 text-xs font-serif rounded-full bg-stone-100 text-stone-600 placeholder:text-stone-300 outline-none focus:bg-white focus:ring-1 focus:ring-stone-200"
             />
           </div>
         </div>
@@ -144,15 +144,15 @@ export function PosesTab({ onDetailOpen, onDetailClose }: PosesTabProps) {
               </button>
             </div>
 
-            {/* 体式图 — 至少占半屏 */}
-            <div className="flex-shrink-0 min-h-[50vh] flex items-center justify-center bg-gradient-to-b from-[#faf8f5] to-white px-6 py-4">
+            {/* 体式图 — 占上半屏 */}
+            <div className="flex-shrink-0 h-[50vh] flex items-center justify-center bg-gradient-to-b from-[#faf8f5] to-white px-4">
               {!imagesLoaded[selectedPose.id] && (
-                <div className="w-full max-w-[200px] aspect-[5/6] bg-stone-100 rounded-xl animate-pulse" />
+                <div className="w-full max-w-[250px] aspect-[4/5] bg-stone-100 rounded-xl animate-pulse" />
               )}
               <img
                 src={selectedPose.image}
                 alt={selectedPose.name}
-                className={`w-full max-w-[200px] h-auto max-h-[55vh] object-contain ${imagesLoaded[selectedPose.id] ? '' : 'hidden'}`}
+                className={`w-full h-full object-contain ${imagesLoaded[selectedPose.id] ? '' : 'hidden'}`}
                 onLoad={() => setImagesLoaded(prev => ({ ...prev, [selectedPose.id]: true }))}
               />
             </div>
@@ -173,23 +173,23 @@ export function PosesTab({ onDetailOpen, onDetailClose }: PosesTabProps) {
             </div>
 
             {/* 左右切换 */}
-            <div className="flex items-center justify-between px-6 py-4 border-t border-stone-100 bg-white">
+            <div className="flex items-center justify-between px-6 py-5 border-t border-stone-100 bg-white">
               <button
                 onClick={() => navigatePose('prev')}
-                className="flex items-center gap-1 text-stone-400 hover:text-stone-600 transition-colors"
+                className="flex items-center gap-1.5 text-stone-500 hover:text-stone-700 transition-colors active:scale-95"
               >
-                <ChevronLeft className="w-4 h-4" />
-                <span className="text-xs font-serif">上一个</span>
+                <ChevronLeft className="w-5 h-5" />
+                <span className="text-sm font-serif">上一个</span>
               </button>
-              <span className="text-[10px] text-stone-300 font-serif">
+              <span className="text-xs text-stone-300 font-serif">
                 {poseIndex + 1} / {filteredPoses.length}
               </span>
               <button
                 onClick={() => navigatePose('next')}
-                className="flex items-center gap-1 text-stone-400 hover:text-stone-600 transition-colors"
+                className="flex items-center gap-1.5 text-stone-500 hover:text-stone-700 transition-colors active:scale-95"
               >
-                <span className="text-xs font-serif">下一个</span>
-                <ChevronRight className="w-4 h-4" />
+                <span className="text-sm font-serif">下一个</span>
+                <ChevronRight className="w-5 h-5" />
               </button>
             </div>
           </motion.div>
