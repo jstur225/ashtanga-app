@@ -4,6 +4,7 @@ import { useState, useCallback, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useMembership } from './useMembership'
 import type { AnnotationType, EnrichedAnnotation } from '@/lib/annotation-types'
+import { isAnnotationDuplicate } from '@/lib/annotation-types'
 
 const ANNOTATION_COLORS = [
   '#D4A5A5', // Dusty Rose — 生理期
@@ -173,13 +174,14 @@ export function useAnnotations() {
       const monthKey = date.slice(0, 7)
       const typeInfo = types.find(t => t.id === typeId)
       if (typeInfo) {
-        setAnnotationsByMonth(prev => ({
-          ...prev,
-          [monthKey]: [
-            ...(prev[monthKey] || []),
-            { id: result.data?.id || `a-${Date.now()}`, annotation_type_id: typeId, date, created_at: new Date().toISOString(), type: { label: typeInfo.label, color: typeInfo.color, id: typeId } } as EnrichedAnnotation,
-          ],
-        }))
+        setAnnotationsByMonth(prev => {
+          const existing = prev[monthKey] || []
+          if (isAnnotationDuplicate(existing, typeId, date)) return prev
+          return {
+            ...prev,
+            [monthKey]: [...existing, { id: result.data?.id || `a-${Date.now()}`, annotation_type_id: typeId, date, created_at: new Date().toISOString(), type: { label: typeInfo.label, color: typeInfo.color, id: typeId } } as EnrichedAnnotation],
+          }
+        })
       }
     }
     return result

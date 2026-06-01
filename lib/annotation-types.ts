@@ -17,6 +17,11 @@ export interface CalendarAnnotation {
   created_at: string
 }
 
+/** 检查标注是否已存在于本地缓存（同一 typeId + 同一 date） */
+export function isAnnotationDuplicate(existing: EnrichedAnnotation[], typeId: string, date: string): boolean {
+  return existing.some(a => a.annotation_type_id === typeId && a.date === date)
+}
+
 // API 返回的富化标注数据（带类型信息）
 export interface EnrichedAnnotation {
   id: string
