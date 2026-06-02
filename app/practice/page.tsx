@@ -2780,6 +2780,7 @@ function MonthlyStatsShareModal({
 // Monthly Heatmap for Journal - Now with CIRCLES instead of squares
 function MonthlyHeatmap({
   practiceHistory,
+  practiceOptions,
   onDayClick,
   onOpenFakeDoor,
   onAddRecord,
@@ -2794,6 +2795,7 @@ function MonthlyHeatmap({
   onReadInvite,
 }: {
   practiceHistory: PracticeRecord[]
+  practiceOptions: PracticeOption[]
   onDayClick: (dateStr: string) => void
   onOpenFakeDoor: () => void
   onAddRecord: () => void
@@ -3331,6 +3333,7 @@ function JournalTab({
         )}
         <MonthlyHeatmap
           practiceHistory={practiceHistory}
+          practiceOptions={practiceOptions}
           onDayClick={handleDayClick}
           onOpenFakeDoor={onOpenFakeDoor}
           onAddRecord={() => onSetShowAddModal(true)}
