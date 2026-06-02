@@ -12,6 +12,7 @@ import { useAuth } from "@/hooks/useAuth"
 import { useSync } from "@/hooks/useSync"
 import { BookOpen, BarChart3, Calendar, X, Camera, Pause, Play, Trash2, User, Settings, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Cloud, Download, Upload, Plus, Minus, Share2, Sparkles, Check, Copy, ClipboardPaste, MessageCircle, Bug, AlertCircle, SkipBack, SkipForward, Volume, Volume2, Crown, Ticket, Loader2, Lock, Users, Pencil } from "lucide-react"
 import { cn } from '@/lib/utils'
+import { getColorClass } from '@/lib/sync-utils'
 import { VoiceButton } from "@/components/VoiceButton"
 import { PracticeForm, type PracticeFormData } from "@/components/PracticeForm"
 import { PhotoUploadButton } from "@/components/PhotoUploadButton"
@@ -247,6 +248,7 @@ function MoonDayButton({
   isPast,
   hasBreakthrough,
   annotationColors = [],
+  colorLevel,
   className,
   ...props
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -256,6 +258,7 @@ function MoonDayButton({
   isPast?: boolean
   hasBreakthrough?: boolean
   annotationColors?: string[]
+  colorLevel?: number // 色阶等级 1-4（默认3）
 }) {
   // 修复：已练习的月相日期应该优先显示绿色，而不是月相图标
   const isMoonDayNotPracticed = moonInfo && !practiced
@@ -264,13 +267,15 @@ function MoonDayButton({
   const hasMoonDot = moonInfo && practiced
   const hasBreakthroughDot = hasBreakthrough && !moonInfo
 
+  const greenClass = getColorClass(colorLevel ?? 3)
+
   return (
     <button
       {...props}
       className={`aspect-square rounded-full flex items-center justify-center text-[9px] font-serif transition-all relative ${
         // 已练习：绿色背景（优先级最高）
         practiced
-          ? 'green-gradient-deep border border-white/20 shadow-[0_2px_8px_rgba(45,90,39,0.3)] text-white cursor-pointer hover:shadow-[0_2px_12px_rgba(45,90,39,0.45)]'
+          ? `${greenClass} border border-white/20 shadow-[0_2px_8px_rgba(45,90,39,0.3)] text-white cursor-pointer hover:shadow-[0_2px_12px_rgba(45,90,39,0.45)]`
           : isMoonDayNotPracticed
             ? 'bg-background border-0' // 未练习月相日期：灰色圆圈背景
             : className || ''
@@ -412,28 +417,32 @@ function EditOptionModal({
   onSave,
   onDelete,
   canDelete,
+  membership,
 }: {
   isOpen: boolean
   onClose: () => void
   option: PracticeOption | null
-  onSave: (id: string, name: string, notes: string) => void
+  onSave: (id: string, name: string, notes: string, colorLevel?: number) => void
   onDelete: (id: string) => void
   canDelete: boolean
+  membership?: { is_active: boolean } | null
 }) {
   const [name, setName] = useState("")
   const [notes, setNotes] = useState("")
+  const [colorLevel, setColorLevel] = useState(3)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   useEffect(() => {
     if (option) {
       setName(option.label)
       setNotes(option.notes || "")
+      setColorLevel((option as any).color_level ?? 3)
     }
   }, [option])
 
   const handleSave = () => {
     if (option && name.trim()) {
-      onSave(option.id, name.slice(0, 10), notes.slice(0, 14))
+      onSave(option.id, name.slice(0, 10), notes.slice(0, 14), colorLevel)
       onClose()
     }
   }
@@ -520,6 +529,38 @@ function EditOptionModal({
                     className="w-full px-4 py-3 rounded-2xl bg-secondary text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-serif"
                   />
                   <div className="text-right text-xs text-muted-foreground mt-1">{notes.length}/14</div>
+                </div>
+
+                {/* 色阶选择 */}
+                <div>
+                  <label className="block text-sm font-serif text-foreground mb-2">
+                    日历颜色 <span className="text-muted-foreground text-xs">（练习日显示的深浅）</span>
+                  </label>
+                  <div className="flex gap-3 justify-center">
+                    {[1, 2, 3, 4].map((level) => {
+                      const isPro = membership?.is_active
+                      const locked = !isPro && (level === 1 || level === 4)
+                      const selected = colorLevel === level
+                      return (
+                        <button
+                          key={level}
+                          onClick={() => {
+                            if (locked) {
+                              toast.info('升级 Pro 解锁全部色阶')
+                              return
+                            }
+                            setColorLevel(level)
+                          }}
+                          className={`w-10 h-10 rounded-full transition-all relative ${
+                            selected ? 'ring-2 ring-foreground ring-offset-2 ring-offset-card scale-110' : ''
+                          } ${locked ? 'opacity-40' : ''}`}
+                        >
+                          <div className={`w-full h-full rounded-full ${getColorClass(level)} border border-white/20`} />
+                          {locked && <Lock className="w-3 h-3 absolute inset-0 m-auto text-white" />}
+                        </button>
+                      )
+                    })}
+                  </div>
                 </div>
 
                 <button
@@ -2777,14 +2818,27 @@ function MonthlyHeatmap({
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate()
   const startDayOfWeek = firstDayOfMonth.getDay() // 0 = Sunday
   
-  // Create practice map - only practiced days
-  const practiceMap = useMemo(() => {
-    const map: Record<string, boolean> = {}
-    practiceHistory.forEach((p) => {
-      map[p.date] = true
+  // 练习类型 → 色阶等级 映射
+  const typeColorMap = useMemo(() => {
+    const map: Record<string, number> = {}
+    practiceOptions.forEach(o => {
+      map[o.label] = (o as any).color_level ?? 3
     })
     return map
-  }, [practiceHistory])
+  }, [practiceOptions])
+
+  // 日期 → { 是否有练习, 色阶等级 } 映射
+  const practiceMap = useMemo(() => {
+    const map: Record<string, { practiced: boolean; colorLevel: number }> = {}
+    practiceHistory.forEach((p) => {
+      const existing = map[p.date]
+      const level = typeColorMap[p.type] ?? 3
+      if (!existing || level > existing.colorLevel) {
+        map[p.date] = { practiced: true, colorLevel: level }
+      }
+    })
+    return map
+  }, [practiceHistory, typeColorMap])
 
   // 突破日映射
   const breakthroughMap = useMemo(() => {
@@ -2841,7 +2895,7 @@ function MonthlyHeatmap({
     const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
 
     // 如果是月相日期且未练习，显示弹窗
-    if (moonPhaseMap[dateStr] && !practiceMap[dateStr]) {
+    if (moonPhaseMap[dateStr] && !practiceMap[dateStr]?.practiced) {
       setMoonDayDialog({
         open: true,
         type: moonPhaseMap[dateStr].type
@@ -2850,7 +2904,7 @@ function MonthlyHeatmap({
     }
 
     // 正常练习记录跳转
-    if (practiceMap[dateStr]) {
+    if (practiceMap[dateStr]?.practiced) {
       onDayClick(dateStr)
     }
   }
@@ -2918,7 +2972,7 @@ function MonthlyHeatmap({
         ))}
         {calendarDays.map((day, idx) => {
           const dateStr = day ? `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}` : ''
-          const practiced = day ? practiceMap[dateStr] : false
+          const practiced = day ? !!practiceMap[dateStr]?.practiced : false
           const isPast = day ? dateStr <= todayStr : false
           const moonInfo = day ? moonPhaseMap[dateStr] : null
           const hasBreakthrough = day ? breakthroughMap[dateStr] : false
@@ -2935,6 +2989,7 @@ function MonthlyHeatmap({
               isPast={isPast}
               hasBreakthrough={hasBreakthrough}
               annotationColors={annotationColors}
+              colorLevel={practiceMap[dateStr]?.colorLevel}
               onClick={() => handleDayClick(day)}
               disabled={!moonInfo && !practiced}
               className={
@@ -3589,6 +3644,7 @@ function ProBadge({ isPro, daysRemaining }: { isPro: boolean; daysRemaining?: nu
 
 function StatsTab({
   practiceHistory,
+  practiceOptions,
   profile,
   membership,
   membershipLoading,
@@ -3602,6 +3658,7 @@ function StatsTab({
   setShowPWAInstallTutorial,
 }: {
   practiceHistory: PracticeRecord[]
+  practiceOptions: PracticeOption[]
   profile: UserProfile
   membership: { is_active: boolean; expires_at_formatted: string | null; days_remaining: number; type: 'quarter' | 'year' | null } | null
   membershipLoading: boolean
@@ -3721,6 +3778,7 @@ function StatsTab({
   interface HeatmapDot {
     date: string
     count: number
+    colorLevel: number
   }
 
   interface MonthGroup {
@@ -3732,14 +3790,27 @@ function StatsTab({
   // 按月份分组，固定显示当前年份，统一16列，1月→12月正序
   const currentYear = today.getFullYear()
   const moonPhaseMap = useMemo(() => getMoonPhaseMap(), [])
+
+  // 练习类型 → 色阶等级
+  const typeColorMap = useMemo(() => {
+    const map: Record<string, number> = {}
+    practiceOptions.forEach(o => {
+      map[o.label] = (o as any).color_level ?? 3
+    })
+    return map
+  }, [practiceOptions])
+
   const monthGroups = useMemo(() => {
     if (!practiceHistory.length) return []
 
-    // 建立 date → totalSeconds 映射
-    const durationMap = new Map<string, number>()
+    // 建立 date → { totalSeconds, maxColorLevel } 映射
+    const dayDataMap = new Map<string, { totalSeconds: number; maxColorLevel: number }>()
     practiceHistory.forEach((r) => {
-      const prev = durationMap.get(r.date) ?? 0
-      durationMap.set(r.date, prev + r.duration)
+      const prev = dayDataMap.get(r.date) ?? { totalSeconds: 0, maxColorLevel: 0 }
+      prev.totalSeconds += r.duration
+      const level = typeColorMap[r.type] ?? 3
+      if (level > prev.maxColorLevel) prev.maxColorLevel = level
+      dayDataMap.set(r.date, prev)
     })
 
     const startDate = new Date(currentYear, 0, 1)  // 1月1日
@@ -3752,9 +3823,11 @@ function StatsTab({
       if (!groups.has(monthKey)) groups.set(monthKey, [])
 
       const dateStr = getLocalDateStr(cursor)
-      const totalSeconds = durationMap.get(dateStr) ?? 0
+      const data = dayDataMap.get(dateStr)
+      const totalSeconds = data?.totalSeconds ?? 0
       const count = Math.round(totalSeconds / 60)
-      groups.get(monthKey)!.push({ date: dateStr, count })
+      const colorLevel = data?.maxColorLevel ?? 0
+      groups.get(monthKey)!.push({ date: dateStr, count, colorLevel })
 
       cursor.setDate(cursor.getDate() + 1)
     }
@@ -3767,7 +3840,7 @@ function StatsTab({
         monthLabel: `${parseInt(monthKey.split('-')[1])}月`,
         days,
       }))
-  }, [practiceHistory, currentYear])
+  }, [practiceHistory, currentYear, typeColorMap])
 
   // Dot config — 固定值，不依赖 viewMode
   const dotConfig = {
@@ -3778,10 +3851,6 @@ function StatsTab({
     labelWidth: 32,
     labelFontSize: 11,
     sectionGap: 8,
-    levels: [
-      { threshold: 0, color: 'bg-stone-200' },
-      { threshold: 1, color: 'green-gradient-deep shadow-[0_2px_8px_rgba(45,90,39,0.3)]' },
-    ],
   } as const
 
   return (
@@ -3970,17 +4039,17 @@ function StatsTab({
                           if (isMoonDay) {
                             return (
                               <div key={day.date} className="relative w-[12px] h-[12px] flex items-center justify-center" title={`${day.date}: ${day.count} 分钟 · ${moonInfo!.name}`}>
-                                <div className="green-gradient-deep rounded-full w-[12px] h-[12px] shadow-[0_2px_8px_rgba(45,90,39,0.3)]" />
+                                <div className={`${getColorClass(day.colorLevel || 3)} rounded-full w-[12px] h-[12px] shadow-[0_2px_8px_rgba(45,90,39,0.3)]`} />
                                 <div className="absolute w-[2px] h-[2px] rounded-full bg-[#FFE066] shadow-[0_0_4px_rgba(255,224,102,0.8)]" />
                               </div>
                             )
                           }
                           // 普通日
-                          const level = [...dotConfig.levels].reverse().find(l => day.count >= l.threshold) ?? dotConfig.levels[0]
+                          const dayColor = day.colorLevel > 0 ? getColorClass(day.colorLevel) : 'bg-stone-200'
                           return (
                             <div
                               key={day.date}
-                              className={`${level.color} rounded-full w-[12px] h-[12px]`}
+                              className={`${dayColor} rounded-full w-[12px] h-[12px]`}
                               title={`${day.date}: ${day.count} 分钟`}
                             />
                           )
@@ -4500,13 +4569,13 @@ export default function AshtangaTracker() {
     }
   }
 
-  const handleEditSave = (id: string, name: string, notes: string) => {
+  const handleEditSave = (id: string, name: string, notes: string, colorLevel?: number) => {
     // Update localStorage
     updateOption(id, name, notes)
 
-    // Update local state
+    // Update local state (including color_level)
     setPracticeOptions(prev => prev.map(o =>
-      o.id === id ? { ...o, label: name, notes } : o
+      o.id === id ? { ...o, label: name, notes, color_level: colorLevel ?? 3 } : o
     ))
 
     toast.success('已保存修改')
@@ -6046,6 +6115,7 @@ export default function AshtangaTracker() {
         <motion.div key="stats" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="flex-1 flex flex-col min-h-0">
         <StatsTab
           practiceHistory={practiceHistory}
+          practiceOptions={practiceOptions}
           profile={userProfile}
           membership={membership}
           membershipLoading={membershipLoading}
@@ -6132,6 +6202,7 @@ export default function AshtangaTracker() {
         onSave={handleEditSave}
         onDelete={handleEditDelete}
         canDelete={canDeleteOption && editingOption?.id !== "custom"}
+        membership={membership}
       />
 
       {/* Settings Modal */}

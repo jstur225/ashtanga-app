@@ -1,5 +1,28 @@
 # 阿斯汤加打卡 app - 项目记录
 
+## 2026-06-02: 同步模块纯函数提取 + 测试
+
+### 背景
+`hooks/useSync.ts`（1300+ 行）是整个应用最复杂的 hook，核心逻辑（diff 计算、合并策略、profile 构建）全部内嵌在闭包里，无法测试。同时存在 DRY 违规 —— 同样的 diff/merge 逻辑在 `autoSync` 和 `resolveConflict` 中重复实现。
+
+### 改动
+提取 4 个纯函数到 `lib/sync-utils.ts`：
+- `diffRecords` — 对比本地/云端记录，按 ID 和时间戳分为 4 类
+- `buildProfileFromRemote` — 从远端 profile 构建完整对象，缺字段用默认值填充
+- `mergeRecords` — 合并记录（基础 + 追加 + 覆盖）
+- `mergeOptions` — 合并选项，保留本地字段（is_preset/audio_src/can_edit）
+
+`hooks/useSync.ts` 中 6 处内联逻辑替换为导入函数调用。新增 25 个单元测试（`__tests__/sync-utils.test.ts`）。
+
+### 同时修复
+TODO 中"智能合并死循环"Step 1：`resolveConflict` 的 merge 分支现在用 `diffRecords()` 计算 4 种差异，不再丢失 `localNewer/remoteNewer`。
+
+### 涉及文件
+- `lib/sync-utils.ts` — 新建
+- `__tests__/sync-utils.test.ts` — 新建
+- `hooks/useSync.ts` — 6 处替换（net -115 行）
+- `TODO.md` — Step 1 标记完成
+
 ## 2026-05-15: 匿名练习埋点
 
 ### 背景

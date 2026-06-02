@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useLocalStorage } from 'react-use'
 import { supabase, TABLES } from '@/lib/supabase'
 import type { PracticeRecord, PracticeOption, UserProfile } from '@/lib/supabase'
+import { diffRecords, buildProfileFromRemote, mergeRecords, mergeOptions } from '@/lib/sync-utils'
 
 type SyncStatus = 'idle' | 'syncing' | 'success' | 'error'
 type ConflictStrategy = 'remote' | 'local' | 'merge'
@@ -244,44 +245,7 @@ export function useSync(
 
       if (remoteCount > 0 && localCount > 0) {
         // 两边都有数据，检查是否有差异需要同步
-        const localIds = new Set(effectiveLocalRecords.map(r => r.id))
-        const remoteIds = new Set(effectiveRemoteRecords.map(r => r.id))
-        const remoteMap = new Map(effectiveRemoteRecords.map(r => [r.id, r]))
-
-        // ⭐ 改进的对比逻辑：同时检测内容变化
-        const localOnly: PracticeRecord[] = [] // 本地独有
-        const remoteOnly: PracticeRecord[] = [] // 云端独有
-        const localNewer: PracticeRecord[] = [] // 两边都有，但本地更新
-        const remoteNewer: PracticeRecord[] = [] // 两边都有，但云端更新
-
-        for (const localRecord of effectiveLocalRecords) {
-          if (!remoteIds.has(localRecord.id)) {
-            localOnly.push(localRecord)
-          } else {
-            // ⭐ 两边都有，对比 updated_at
-            const remoteRecord = remoteMap.get(localRecord.id)
-            if (remoteRecord) {
-              const localTime = new Date(localRecord.updated_at || localRecord.created_at).getTime()
-              const remoteTime = new Date(remoteRecord.updated_at || remoteRecord.created_at).getTime()
-
-              if (localTime > remoteTime) {
-                localNewer.push(localRecord)
-                console.error(`📝 [autoSync] 记录 ${localRecord.id} 本地更新，本地时间: ${localTime}, 云端时间: ${remoteTime}`)
-              } else if (remoteTime > localTime) {
-                remoteNewer.push(remoteRecord)
-                console.error(`📝 [autoSync] 记录 ${remoteRecord.id} 云端更新，云端时间: ${remoteTime}, 本地时间: ${localTime}`)
-              }
-              // 时间相同，不需要同步
-            }
-          }
-        }
-
-        // 云端独有的记录
-        for (const remoteRecord of effectiveRemoteRecords) {
-          if (!localIds.has(remoteRecord.id)) {
-            remoteOnly.push(remoteRecord)
-          }
-        }
+        const { localOnly, remoteOnly, localNewer, remoteNewer } = diffRecords(effectiveLocalRecords, effectiveRemoteRecords)
 
         const totalLocalChanges = localOnly.length + localNewer.length
         const totalRemoteChanges = remoteOnly.length + remoteNewer.length
@@ -409,21 +373,7 @@ export function useSync(
           console.error(`📥 [autoSync] 云端有${totalRemoteChanges}条变更（新增${remoteOnly.length}+更新${remoteNewer.length}）`)
 
           // ⭐ 合并：本地记录 + 云端新增 + 云端更新的版本
-          const localMap = new Map(effectiveLocalRecords.map(r => [r.id, r]))
-          const mergedRecords = [...effectiveLocalRecords]
-
-          // 添加云端独有的记录
-          for (const record of remoteOnly) {
-            mergedRecords.push(record)
-          }
-
-          // 更新云端更新的记录
-          for (const record of remoteNewer) {
-            const index = mergedRecords.findIndex(r => r.id === record.id)
-            if (index >= 0) {
-              mergedRecords[index] = record
-            }
-          }
+          const mergedRecords = mergeRecords(effectiveLocalRecords, remoteOnly, remoteNewer)
 
           addLog(`同步云端变更：新增${remoteOnly.length}条，更新${remoteNewer.length}条`, 'success', undefined, undefined, undefined, {
             triggerReason: currentTriggerReasonRef.current,
@@ -432,35 +382,10 @@ export function useSync(
           })
 
           // ⭐ 构建完整的 profile 对象，确保包含 updated_at
-          // 修复：只要云端有 profile 数据，就使用它，不要进行二次判断
-          const mergedProfile = remoteData.profile && remoteData.profile.name
-            ? {
-                id: remoteData.profile.id || '',
-                user_id: remoteData.profile.user_id || '',
-                created_at: remoteData.profile.created_at || new Date().toISOString(),
-                updated_at: remoteData.profile.updated_at || remoteData.profile.created_at || new Date().toISOString(),
-                name: remoteData.profile.name,
-                signature: remoteData.profile.signature || '练习、练习，一切随之而来。',
-                avatar: remoteData.profile?.avatar || null,
-                phone: remoteData.profile.phone,
-                historical_days: remoteData.profile.historical_days || 0,
-                historical_avg_minutes: remoteData.profile.historical_avg_minutes || 0,
-              }
-            : freshLocalData.profile || { name: '阿斯汤加习练者', signature: '练习、练习，一切随之而来。', avatar: null, historical_days: 0, historical_avg_minutes: 0 }
+          const mergedProfile = buildProfileFromRemote(remoteData.profile, freshLocalData.profile)
 
           // ⭐ 合并选项：保留本地的本地字段（is_preset/audio_src/can_edit）
-          const mergedOptions = (remoteData.options || []).map((remoteOpt: any) => {
-            const localOpt = (freshLocalData.options || []).find((o: any) => o.id === remoteOpt.id)
-            if (localOpt) {
-              return {
-                ...remoteOpt,
-                is_preset: (localOpt as any).is_preset,
-                audio_src: (localOpt as any).audio_src,
-                can_edit: (localOpt as any).can_edit,
-              }
-            }
-            return remoteOpt
-          })
+          const mergedOptions = mergeOptions(remoteData.options, freshLocalData.options)
 
           onSyncComplete({
             records: mergedRecords,
@@ -655,22 +580,10 @@ export function useSync(
     }
 
     // 合并记录：本地基础 + 云端独有 + 云端更新的覆盖本地旧版本
-    const remoteNewerMap = new Map(remoteNewer.map(r => [r.id, r]))
-    const mergedRecords = [...freshLocalData.records, ...remoteOnly].map(r => remoteNewerMap.get(r.id) || r)
+    const mergedRecords = mergeRecords(freshLocalData.records, remoteOnly, remoteNewer)
 
     // 合并选项：保留本地字段（is_preset/audio_src/can_edit）
-    const mergedOptions = (remoteData.options || []).map((remoteOpt: any) => {
-      const localOpt = (freshLocalData.options || []).find((o: any) => o.id === remoteOpt.id)
-      if (localOpt) {
-        return {
-          ...remoteOpt,
-          is_preset: (localOpt as any).is_preset,
-          audio_src: (localOpt as any).audio_src,
-          can_edit: (localOpt as any).can_edit,
-        }
-      }
-      return remoteOpt
-    })
+    const mergedOptions = mergeOptions(remoteData.options, freshLocalData.options)
 
     const downloadCount = remoteOnly.length + remoteNewer.length
     if (downloadCount > 0) {
@@ -1134,6 +1047,7 @@ export function useSync(
           label: o.label || '',
           notes: o.notes || null,
           is_custom: o.is_custom || false,
+          color_level: (o as any).color_level ?? 3,
         }))
 
         const { error: optionsError } = await supabase
@@ -1287,27 +1201,7 @@ export function useSync(
           })
           // ⭐ 使用 ref 获取最新的 localData
           const freshLocalDataForMerge = localDataRef.current
-          const localIds = new Set(freshLocalDataForMerge.records.map(r => r.id))
-          const remoteIds = new Set(remoteData.records.map(r => r.id))
-          const remoteMap = new Map(remoteData.records.map(r => [r.id, r]))
-
-          const localOnly = freshLocalDataForMerge.records.filter(r => !remoteIds.has(r.id))
-          const remoteOnly = remoteData.records.filter(r => !localIds.has(r.id))
-
-          // 计算 timestamp 差异
-          const localNewer: PracticeRecord[] = []
-          const remoteNewer: PracticeRecord[] = []
-          for (const localRecord of freshLocalDataForMerge.records) {
-            if (remoteIds.has(localRecord.id)) {
-              const remoteRecord = remoteMap.get(localRecord.id)
-              if (remoteRecord) {
-                const localTime = new Date(localRecord.updated_at || localRecord.created_at).getTime()
-                const remoteTime = new Date(remoteRecord.updated_at || remoteRecord.created_at).getTime()
-                if (localTime > remoteTime) localNewer.push(localRecord)
-                else if (remoteTime > localTime) remoteNewer.push(remoteRecord)
-              }
-            }
-          }
+          const { localOnly, remoteOnly, localNewer, remoteNewer } = diffRecords(freshLocalDataForMerge.records, remoteData.records)
 
           await smartMerge(localOnly, remoteOnly, localNewer, remoteNewer, remoteData)
           break
