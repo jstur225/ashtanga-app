@@ -158,26 +158,26 @@
   background-image: linear-gradient(to top left, rgba(74, 122, 68, 0.1), rgba(45, 90, 39, 0.15));
 }
 
-/* 日历色阶：5级绿色 */
+/* 日历色阶：5级绿色（均匀分布） */
 .green-gradient-1 {
-  background-image: -webkit-linear-gradient(bottom right, rgba(74, 122, 68, 0.08), rgba(45, 90, 39, 0.15));
-  background-image: linear-gradient(to top left, rgba(74, 122, 68, 0.08), rgba(45, 90, 39, 0.15));
+  background-image: -webkit-linear-gradient(bottom right, rgba(74, 122, 68, 0.12), rgba(45, 90, 39, 0.20));
+  background-image: linear-gradient(to top left, rgba(74, 122, 68, 0.12), rgba(45, 90, 39, 0.20));
 }
 .green-gradient-2 {
-  background-image: -webkit-linear-gradient(bottom right, rgba(74, 122, 68, 0.30), rgba(45, 90, 39, 0.40));
-  background-image: linear-gradient(to top left, rgba(74, 122, 68, 0.30), rgba(45, 90, 39, 0.40));
+  background-image: -webkit-linear-gradient(bottom right, rgba(74, 122, 68, 0.32), rgba(45, 90, 39, 0.42));
+  background-image: linear-gradient(to top left, rgba(74, 122, 68, 0.32), rgba(45, 90, 39, 0.42));
 }
 .green-gradient-3 {
-  background-image: -webkit-linear-gradient(bottom right, rgba(74, 122, 68, 0.85), rgba(45, 90, 39, 0.95));
-  background-image: linear-gradient(to top left, rgba(74, 122, 68, 0.85), rgba(45, 90, 39, 0.95));
+  background-image: -webkit-linear-gradient(bottom right, rgba(74, 122, 68, 0.52), rgba(45, 90, 39, 0.62));
+  background-image: linear-gradient(to top left, rgba(74, 122, 68, 0.52), rgba(45, 90, 39, 0.62));
 }
 .green-gradient-4 {
-  background-image: -webkit-linear-gradient(bottom right, rgba(74, 122, 68, 0.93), rgba(45, 90, 39, 0.97));
-  background-image: linear-gradient(to top left, rgba(74, 122, 68, 0.93), rgba(45, 90, 39, 0.97));
+  background-image: -webkit-linear-gradient(bottom right, rgba(74, 122, 68, 0.72), rgba(45, 90, 39, 0.82));
+  background-image: linear-gradient(to top left, rgba(74, 122, 68, 0.72), rgba(45, 90, 39, 0.82));
 }
 .green-gradient-5 {
-  background-image: -webkit-linear-gradient(bottom right, rgba(74, 122, 68, 0.98), rgba(45, 90, 39, 1.0));
-  background-image: linear-gradient(to top left, rgba(74, 122, 68, 0.98), rgba(45, 90, 39, 1.0));
+  background-image: -webkit-linear-gradient(bottom right, rgba(74, 122, 68, 0.92), rgba(45, 90, 39, 1.0));
+  background-image: linear-gradient(to top left, rgba(74, 122, 68, 0.92), rgba(45, 90, 39, 1.0));
 }
 
 @layer base {
