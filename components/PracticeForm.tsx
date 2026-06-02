@@ -7,8 +7,9 @@ import { cn } from '@/lib/utils'
 import { supabase, type PracticeRecord, type PracticeOption, type Photo } from '@/lib/supabase'
 import { PhotoPreviewList, PhotoPreview } from './PhotoUpload/PhotoPreview'
 import { toast } from 'sonner'
-import { Expand, Camera, ChevronDown } from 'lucide-react'
+import { Expand, Camera, ChevronDown, Lock } from 'lucide-react'
 import { useMembership } from '@/hooks/useMembership'
+import { getColorClass } from '@/lib/sync-utils'
 
 // 将 URL 数组转换为 Photo 数组的辅助函数
 function convertUrlsToPhotos(urls: string[]): Photo[] {
@@ -34,6 +35,7 @@ export interface PracticeFormData {
   notes: string
   breakthrough?: string
   photos?: string[] // ⭐ 照片URL数组（保存时一起提交）
+  color_level?: number // ⭐ 色阶等级 1-5（可选，不传则用类型默认）
 }
 
 export interface PracticeFormProps {
@@ -261,6 +263,8 @@ export function PracticeForm({
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [breakthroughEnabled, setBreakthroughEnabled] = useState(!!initialData?.breakthrough)
   const [breakthroughText, setBreakthroughText] = useState(initialData?.breakthrough || "")
+  const [colorLevel, setColorLevel] = useState(initialData?.color_level ?? 3)
+  const [showColorPicker, setShowColorPicker] = useState(false)
 
   // 删除确认
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -308,6 +312,7 @@ export function PracticeForm({
         setBreakthroughEnabled(true)
         setBreakthroughText(initialData.breakthrough)
       }
+      if (initialData.color_level !== undefined) setColorLevel(initialData.color_level)
     }
   }, [initialData])
 
@@ -387,6 +392,7 @@ export function PracticeForm({
       notes,
       breakthrough: breakthroughEnabled ? breakthroughText : undefined,
       photos: photos.map(p => p.oss_url), // ⭐ 保存时包含照片
+      color_level: colorLevel, // ⭐ 色阶等级
     })
   }
 
@@ -537,6 +543,57 @@ export function PracticeForm({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* 日历颜色选择器 */}
+      <div className="flex items-center justify-between">
+        <label className="text-xs font-serif text-muted-foreground">日历颜色</label>
+        <div className="relative">
+          {showColorPicker ? (
+            <div className="flex gap-2 items-center">
+              {[1, 2, 3, 4, 5].map((level) => {
+                const locked = !isPro && (level === 1 || level === 4 || level === 5)
+                const selected = colorLevel === level
+                return (
+                  <button
+                    key={level}
+                    type="button"
+                    onClick={() => {
+                      if (locked) {
+                        toast.info('升级 Pro 解锁全部色阶')
+                        return
+                      }
+                      setColorLevel(level)
+                      setShowColorPicker(false)
+                    }}
+                    className={`w-7 h-7 rounded-full transition-all relative ${
+                      selected ? 'ring-2 ring-foreground ring-offset-1 ring-offset-card scale-110' : ''
+                    } ${locked ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer hover:scale-110'}`}
+                  >
+                    <div className={`w-full h-full rounded-full ${getColorClass(level)} border border-white/20`} />
+                    {locked && <Lock className="w-2.5 h-2.5 absolute inset-0 m-auto text-white" />}
+                  </button>
+                )
+              })}
+              <button
+                type="button"
+                onClick={() => setShowColorPicker(false)}
+                className="text-muted-foreground/50 hover:text-muted-foreground transition-colors ml-1"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowColorPicker(true)}
+              className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <div className={`w-5 h-5 rounded-full ${getColorClass(colorLevel)} border border-white/20 shadow-sm`} />
+              <span>选择</span>
+            </button>
+          )}
+        </div>
+      </div>
 
       {/* 觉察/笔记 */}
       <div>

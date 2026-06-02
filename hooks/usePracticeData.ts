@@ -363,10 +363,11 @@ export const usePracticeData = () => {
     id: string,
     label: string,
     notes?: string,
+    color_level?: number, // ⭐ 色阶等级
     onSync?: () => void // ⭐ 新增：同步回调
   ) => {
     setOptions((options || []).map(o =>
-      o.id === id ? { ...o, label, notes } : o
+      o.id === id ? { ...o, label, notes, color_level: color_level ?? 3 } : o
     ));
 
     // ⭐ 触发同步回调（延迟执行，确保状态已更新）

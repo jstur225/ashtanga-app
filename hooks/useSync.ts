@@ -766,6 +766,7 @@ export function useSync(
       photos: r.photos && r.photos.length > 0 ? r.photos : null,
       breakthrough: r.breakthrough || null,
       start_time: r.start_time || null,
+      color_level: r.color_level ?? null, // ⭐ 色阶等级（null=用类型默认）
       updated_at: r.updated_at || r.created_at || new Date().toISOString(),
     }))
 

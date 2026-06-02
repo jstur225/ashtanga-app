@@ -538,9 +538,9 @@ function EditOptionModal({
                     日历颜色 <span className="text-muted-foreground text-xs">（练习日显示的深浅）</span>
                   </label>
                   <div className="flex gap-3 justify-center">
-                    {[1, 2, 3, 4].map((level) => {
+                    {[1, 2, 3, 4, 5].map((level) => {
                       const isPro = membership?.is_active
-                      const locked = !isPro && (level === 1 || level === 4)
+                      const locked = !isPro && (level === 1 || level === 4 || level === 5)
                       const selected = colorLevel === level
                       return (
                         <button
@@ -629,6 +629,11 @@ function EditRecordModal({
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [showTypeSelector, setShowTypeSelector] = useState(false)
 
+  // 类型默认色阶查找
+  const getTypeColorLevel = useCallback((t: string) => {
+    return practiceOptions.find(o => o.label === t)?.color_level ?? 3
+  }, [practiceOptions])
+
   // 表单数据状态（用于 PracticeForm）
   const [formData, setFormData] = useState({
     date: '',
@@ -636,6 +641,7 @@ function EditRecordModal({
     duration: 60,
     notes: '',
     breakthrough: undefined as string | undefined,
+    color_level: 3,
   })
 
   // 当记录变化时，同步表单数据
@@ -647,9 +653,10 @@ function EditRecordModal({
         duration: Math.floor(latestRecord.duration / 60), // 转换为分钟
         notes: latestRecord.notes || '',
         breakthrough: latestRecord.breakthrough,
+        color_level: latestRecord.color_level ?? getTypeColorLevel(latestRecord.type),
       })
     }
-  }, [latestRecord])
+  }, [latestRecord, getTypeColorLevel])
 
   const handleSave = (data: PracticeFormData) => {
     if (latestRecord) {
@@ -660,6 +667,7 @@ function EditRecordModal({
         notes: data.notes,
         breakthrough: data.breakthrough,
         photos: data.photos, // ⭐ 保存时包含照片
+        color_level: data.color_level, // ⭐ 色阶等级
       })
       toast.success('更新成功')
       onClose()
@@ -715,7 +723,7 @@ function EditRecordModal({
               date={formData.date}
               type={formData.type}
               onDateChange={(d) => setFormData(prev => ({ ...prev, date: d }))}
-              onTypeChange={(t) => setFormData(prev => ({ ...prev, type: t }))}
+              onTypeChange={(t) => setFormData(prev => ({ ...prev, type: t, color_level: getTypeColorLevel(t) }))}
               dateEditable={true}
               typeEditable={true}
               durationEditable={true}
@@ -1401,6 +1409,11 @@ function AddPracticeModal({
   user?: { email?: string | null } | null
   userProfile?: UserProfile | null
 }) {
+  // 类型默认色阶查找
+  const getTypeColorLevel = useCallback((t: string) => {
+    return practiceOptions.find(o => o.label === t)?.color_level ?? 3
+  }, [practiceOptions])
+
   // 表单数据状态（用于 PracticeForm）
   const [formData, setFormData] = useState({
     date: getLocalDateStr(),
@@ -1408,6 +1421,7 @@ function AddPracticeModal({
     duration: 60,
     notes: '',
     breakthrough: undefined as string | undefined,
+    color_level: 3,
   })
 
   // 子模态框状态
@@ -1454,6 +1468,7 @@ function AddPracticeModal({
         notes: data.notes || "今日练习完成",
         breakthrough: data.breakthrough,
         photos: data.photos, // ⭐ 保存时包含照片
+        color_level: data.color_level, // ⭐ 色阶等级
       })
       toast.success('补卡成功！')
     }
@@ -1464,6 +1479,7 @@ function AddPracticeModal({
       duration: 60,
       notes: '',
       breakthrough: undefined,
+      color_level: 3,
     })
     setDraftRecord(null)
     onClose()
@@ -1511,7 +1527,7 @@ function AddPracticeModal({
               date={formData.date}
               type={formData.type}
               onDateChange={(d) => setFormData(prev => ({ ...prev, date: d }))}
-              onTypeChange={(t) => setFormData(prev => ({ ...prev, type: t }))}
+              onTypeChange={(t) => setFormData(prev => ({ ...prev, type: t, color_level: getTypeColorLevel(t) }))}
               dateEditable={true}
               typeEditable={true}
               durationEditable={true}
@@ -2292,6 +2308,11 @@ function CompletionSheet({
   userProfile?: UserProfile | null
   practiceOptions: PracticeOption[]
 }) {
+  // 类型默认色阶查找
+  const getTypeColorLevel = useCallback((t: string) => {
+    return practiceOptions.find(o => o.label === t)?.color_level ?? 3
+  }, [practiceOptions])
+
   // 表单数据状态（用于 PracticeForm）
   const [formData, setFormData] = useState({
     date: getLocalDateStr(),
@@ -2299,6 +2320,7 @@ function CompletionSheet({
     duration: parseInt(duration) || 0,
     notes: '',
     breakthrough: undefined as string | undefined,
+    color_level: 3,
   })
 
   // 草稿记录（用于照片上传）
@@ -2325,6 +2347,7 @@ function CompletionSheet({
         duration: parseInt(duration) || 0,
         notes: '',
         breakthrough: undefined,
+        color_level: getTypeColorLevel(practiceType),
       })
 
       // ⭐ 延迟 500ms 同步，确保 localStorage 已完全更新
@@ -2361,6 +2384,7 @@ function CompletionSheet({
         notes: data.notes || "今日练习完成",
         breakthrough: data.breakthrough,
         photos: data.photos, // ⭐ 保存时包含照片
+        color_level: data.color_level, // ⭐ 色阶等级
       })
       toast.success('记录已保存！')
 
@@ -2404,7 +2428,7 @@ function CompletionSheet({
               date={formData.date}
               type={formData.type}
               onDateChange={(d) => setFormData(prev => ({ ...prev, date: d }))}
-              onTypeChange={(t) => setFormData(prev => ({ ...prev, type: t }))}
+              onTypeChange={(t) => setFormData(prev => ({ ...prev, type: t, color_level: getTypeColorLevel(t) }))}
               onDatePickerOpen={() => setShowDatePicker(true)}
               onTypeSelectorOpen={() => setShowTypeSelector(true)}
               dateEditable={true}
@@ -2835,7 +2859,7 @@ function MonthlyHeatmap({
     const map: Record<string, { practiced: boolean; colorLevel: number }> = {}
     practiceHistory.forEach((p) => {
       const existing = map[p.date]
-      const level = typeColorMap[p.type] ?? 3
+      const level = (p as any).color_level ?? typeColorMap[p.type] ?? 3
       if (!existing || level > existing.colorLevel) {
         map[p.date] = { practiced: true, colorLevel: level }
       }
@@ -3812,7 +3836,7 @@ function StatsTab({
     practiceHistory.forEach((r) => {
       const prev = dayDataMap.get(r.date) ?? { totalSeconds: 0, maxColorLevel: 0 }
       prev.totalSeconds += r.duration
-      const level = typeColorMap[r.type] ?? 3
+      const level = (r as any).color_level ?? typeColorMap[r.type] ?? 3
       if (level > prev.maxColorLevel) prev.maxColorLevel = level
       dayDataMap.set(r.date, prev)
     })
@@ -4577,8 +4601,8 @@ export default function AshtangaTracker() {
   }
 
   const handleEditSave = (id: string, name: string, notes: string, colorLevel?: number) => {
-    // Update localStorage
-    updateOption(id, name, notes)
+    // Update localStorage (also persists color_level for type default)
+    updateOption(id, name, notes, colorLevel)
 
     // Update local state (including color_level)
     setPracticeOptions(prev => prev.map(o =>

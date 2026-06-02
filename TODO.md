@@ -1,85 +1,63 @@
 # 待处理问题
 
-## 2026-06-02 - 日历色阶：练习类型 → 绿色深浅 💭 待审核
+## 2026-06-02 - 日历色阶：记录级颜色选择器 ✅ 已完成
 
-**状态**: 代码已实现，待数据库加列后部署
+**状态**: ✅ 全部完成（代码 + 数据库列）
+**提交**: 待提交
 
-### 需求概述
-日历中用不同深浅的绿色来区分练习类型。用户自己配置"什么练习类型用什么绿色深浅"。日记Tab月历和统计Tab全年热力图都加。同一天多次练习取最深色。
+### 改动内容
 
-### 色阶定义（4级 + 会员权限）
+color_level 从 PracticeOption（类型级）扩展到 PracticeRecord（记录级），完成/补录/编辑练习时都可以单独设置颜色。
+
+### 色阶定义（5级 + 会员权限）
 
 | 等级 | CSS class | 效果 | 权限 |
 |------|-----------|------|------|
 | 0 | `bg-stone-200`（已有） | 灰色 — 无练习 | — |
 | 1 | `green-gradient-1`（新增） | 最浅绿 | Pro |
 | 2 | `green-gradient-2`（新增） | 浅绿 | 免费 |
-| 3 | `green-gradient-deep`（已有） | 默认绿（现在的颜色） | 免费 |
+| 3 | `green-gradient-3`（新增） | 中绿（默认） | 免费 |
 | 4 | `green-gradient-4`（新增） | 深绿 | Pro |
+| 5 | `green-gradient-5`（新增） | 最深绿 | Pro |
 
 - 免费用户只能选等级 2（浅绿）和 3（默认）
 - Pro 用户 4 个等级全选
 - 设置 UI 中等级 1 和 4 加锁图标，点击提示升级
 
-### 数据存储与同步
+### 数据存储
 
-**方案：`color_level` 作为 PracticeOption 的字段，跟着选项同步。**
+**颜色优先级：** `record.color_level ?? typeColorMap[record.type] ?? 3`
 
-因为 PracticeOption 已经在同步了，颜色等级跟着选项走就自然同步。不需要单独的 color map。
+- PracticeRecord 新增 `color_level?: number` — 记录级覆盖
+- PracticeOption 保留 `color_level?: number` — 类型默认色（用户在设置中配置）
+- 不配色的用户：所有记录回退到类型默认色（`????`），行为和以前一样
 
-1. Supabase `practice_options` 表加列 `color_level INTEGER DEFAULT 3`
-2. 前端 `PracticeOption` 类型加 `color_level?: number` 字段
-3. 同步时 `mergeOptions` 中像保留 `is_preset`/`can_edit` 一样保留 `color_level`
+### UI 实现
 
-### UI 入口
+- PracticeForm 底部新增折叠式颜色选择器（折叠：小绿点 + "选择" 文字，展开：5 个色阶圆点）
+- 三个入口自动获得：完成练习、补录练习、编辑记录
+- 选择类型时自动填充该类型的默认色阶
+- 免费用户：等级 2/3 可选；Pro 用户：全部 5 级可选
 
-设置弹窗新增「显示」tab：
-- 列出所有练习选项（`practiceOptionsData`）
-- 每个选项右侧 4 个小圆点（4 级绿色），点击即选中
-- 免费用户等级 1、4 灰显 + 锁图标，点击 toast 升级提示
-- 底部说明：「未配置的练习类型统一使用默认色」
+### 数据库
 
-### 改动文件清单
+手动在 Supabase 控制台执行：
+
+```sql
+ALTER TABLE practice_records ADD COLUMN color_level INTEGER DEFAULT 3;
+```
+
+### 已改文件
 
 | 文件 | 改动 |
 |------|------|
-| `app/globals.css` | 新增 `.green-gradient-1/2/4` 三个 CSS class |
-| `lib/supabase.ts` | `PracticeOption` 接口加 `color_level?` 字段 |
-| `hooks/usePracticeData.ts` | 导出 colorLevel 相关逻辑 |
-| `hooks/useSync.ts` | `mergeOptions` 保留 `color_level` 字段 |
-| `app/practice/page.tsx` | 6 处改动（见下方详细说明） |
-| Supabase 控制台 | `practice_options` 表加 `color_level` 列 |
-
-### page.tsx 内 6 处改动
-
-1. **MoonDayButton**（行 242-304）：新增 `colorLevel` prop，`green-gradient-deep` 替换为动态 class
-2. **SettingsModal**（行 1517）：新增「显示」tab，色阶配置 UI
-3. **JournalTab practiceMap**（行 2781-2787）：boolean 扩展为 `{ practiced, colorLevel }`，同天多次取最深
-4. **JournalTab 日历渲染**（行 2920-2950）：传 `colorLevel` 给 MoonDayButton
-5. **StatsTab HeatmapDot**（行 3721-3724）：新增 `colorLevel` 字段
-6. **StatsTab 热力图渲染**（行 3950-3986）：删除 `dotConfig.levels`，用 `colorLevel` 动态取色
-
-### 默认行为
-
-- 新用户 / 未配置 → 所有选项 `color_level = 3`（`green-gradient-deep`），行为和现在完全一致
-- 同一天多次练习取最深色（level 数字越大越深）
-
-### 不在范围内
-
-- ❌ 分享卡片（MonthlyStatsShareModal）不改，保持 `green-gradient-deep`
-- ❌ 数据库迁移脚本（直接在 Supabase 控制台手动加列）
-
-### 验证
-
-| 场景 | 预期 |
-|------|------|
-| 不配置色阶 | 日历行为和现在完全一致 |
-| 设置中选择不同色阶 | 月历和热力图即时反映 |
-| 同一天两种练习 | 显示更深的那个颜色 |
-| 免费用户点等级 1 或 4 | toast 提示升级 Pro |
-| Pro 用户 | 4 个等级全可选 |
-| 跨设备同步 | 颜色设置跟着练习选项一起同步 |
-| `npx next build` | 编译通过 |
+| `app/globals.css` | 4 级改为 5 级 CSS，新增 `.green-gradient-3/5` |
+| `lib/supabase.ts` | `PracticeRecord` 接口加 `color_level?` |
+| `lib/sync-utils.ts` | `getColorClass()` 改为 5 级映射 |
+| `components/PracticeForm.tsx` | 新增折叠式颜色选择器，`color_level` 传入 `onSave` |
+| `app/practice/page.tsx` | 三个表单入口支持 `color_level`，日历/热力图优先用记录级色阶 |
+| `hooks/usePracticeData.ts` | `updateOption` 支持 `color_level` 参数 |
+| `hooks/useSync.ts` | `uploadLocalRecords` 包含 `color_level` 字段 |
 
 ---
 

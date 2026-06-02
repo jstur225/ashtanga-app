@@ -122,11 +122,12 @@ export function mergeOptions(
 
 /**
  * 色阶等级 → CSS class 映射
- * level 1=最浅绿, 2=浅绿, 3=默认绿(deep), 4=深绿
+ * level 1=最浅绿, 2=浅绿, 3=中绿(默认), 4=深绿, 5=最深
  */
 export function getColorClass(level: number): string {
   if (level === 1) return 'green-gradient-1'
   if (level === 2) return 'green-gradient-2'
   if (level === 4) return 'green-gradient-4'
-  return 'green-gradient-deep' // level 3 或 undefined
+  if (level === 5) return 'green-gradient-5'
+  return 'green-gradient-3' // level 3 或 undefined
 }
