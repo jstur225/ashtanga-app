@@ -109,6 +109,7 @@ export interface PracticeOption {
   label: string  // 练习类型名称（中文）
   notes?: string  // 备注说明
   is_custom: boolean
+  color_level?: number // 日历色阶等级 1-4（默认3=green-gradient-deep）
 }
 
 export interface UserProfile {

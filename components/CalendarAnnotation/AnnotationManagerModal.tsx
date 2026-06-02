@@ -41,6 +41,7 @@ export function AnnotationManagerModal({
   annotationDates?: Record<string, Set<string>>
 }) {
   // ===== 选择状态 =====
+  const [isSaving, setIsSaving] = useState(false)
   const [selectedTypeId, setSelectedTypeId] = useState<string | null>(null)
   const lastTapRef = useRef<{ id: string; time: number } | null>(null)
 
@@ -160,7 +161,8 @@ export function AnnotationManagerModal({
   // 判断某日期是否有某类型的标注（原始 + 待添加 - 待移除）
   const getDateAnnotationColors = useCallback((day: number): { color: string; isCurrentType: boolean }[] => {
     const dateStr = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-    const result: { color: string; isCurrentType: boolean }[] = []
+    const withTypeId: { color: string; isCurrentType: boolean; typeId: string }[] = []
+    const seen = new Set<string>()
 
     for (const type of types) {
       const originalHas = annotationDates?.[type.id]?.has(dateStr) ?? false
@@ -168,35 +170,42 @@ export function AnnotationManagerModal({
       const isPendingRemove = pendingRemoves[type.id]?.has(dateStr) ?? false
 
       const has = (originalHas && !isPendingRemove) || isPendingAdd
-      if (has) {
-        result.push({ color: type.color, isCurrentType: type.id === selectedTypeId })
+      if (has && !seen.has(type.id)) {
+        seen.add(type.id)
+        withTypeId.push({ color: type.color, isCurrentType: type.id === selectedTypeId, typeId: type.id })
       }
     }
-    return result
+    return withTypeId
   }, [viewYear, viewMonth, annotationDates, pendingAdds, pendingRemoves, types, selectedTypeId])
 
   // 批量保存
   const handleSave = useCallback(async () => {
-    const promises: Promise<any>[] = []
+    if (isSaving) return
+    setIsSaving(true)
+    try {
+      const promises: Promise<any>[] = []
 
-    // 所有待添加
-    for (const [typeId, dates] of Object.entries(pendingAdds)) {
-      for (const date of dates) {
-        promises.push(onAddAnnotation(typeId, date))
+      // 所有待添加
+      for (const [typeId, dates] of Object.entries(pendingAdds)) {
+        for (const date of dates) {
+          promises.push(onAddAnnotation(typeId, date))
+        }
       }
-    }
-    // 所有待移除
-    for (const [typeId, dates] of Object.entries(pendingRemoves)) {
-      for (const date of dates) {
-        promises.push(onRemoveAnnotation(typeId, date))
+      // 所有待移除
+      for (const [typeId, dates] of Object.entries(pendingRemoves)) {
+        for (const date of dates) {
+          promises.push(onRemoveAnnotation(typeId, date))
+        }
       }
-    }
 
-    await Promise.all(promises)
-    setPendingAdds({})
-    setPendingRemoves({})
-    handleClose()
-  }, [pendingAdds, pendingRemoves, onAddAnnotation, onRemoveAnnotation])
+      await Promise.all(promises)
+    } finally {
+      setIsSaving(false)
+      setPendingAdds({})
+      setPendingRemoves({})
+      handleClose()
+    }
+  }, [isSaving, pendingAdds, pendingRemoves, onAddAnnotation, onRemoveAnnotation])
 
   // 打开创建表单
   const openCreateForm = () => {
@@ -399,9 +408,10 @@ export function AnnotationManagerModal({
                 {hasPendingChanges && (
                   <button
                     onClick={handleSave}
-                    className="w-full mt-2 py-3 rounded-full green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white font-serif transition-all hover:opacity-90 active:scale-[0.98]"
+                    disabled={isSaving}
+                    className="w-full mt-2 py-3 rounded-full green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white font-serif transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
                   >
-                    保存
+                    {isSaving ? '保存中...' : '保存'}
                   </button>
                 )}
               </>

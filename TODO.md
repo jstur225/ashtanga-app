@@ -1,5 +1,239 @@
 # 待处理问题
 
+## 2026-06-02 - 日历色阶：练习类型 → 绿色深浅 💭 待审核
+
+**状态**: 代码已实现，待数据库加列后部署
+
+### 需求概述
+日历中用不同深浅的绿色来区分练习类型。用户自己配置"什么练习类型用什么绿色深浅"。日记Tab月历和统计Tab全年热力图都加。同一天多次练习取最深色。
+
+### 色阶定义（4级 + 会员权限）
+
+| 等级 | CSS class | 效果 | 权限 |
+|------|-----------|------|------|
+| 0 | `bg-stone-200`（已有） | 灰色 — 无练习 | — |
+| 1 | `green-gradient-1`（新增） | 最浅绿 | Pro |
+| 2 | `green-gradient-2`（新增） | 浅绿 | 免费 |
+| 3 | `green-gradient-deep`（已有） | 默认绿（现在的颜色） | 免费 |
+| 4 | `green-gradient-4`（新增） | 深绿 | Pro |
+
+- 免费用户只能选等级 2（浅绿）和 3（默认）
+- Pro 用户 4 个等级全选
+- 设置 UI 中等级 1 和 4 加锁图标，点击提示升级
+
+### 数据存储与同步
+
+**方案：`color_level` 作为 PracticeOption 的字段，跟着选项同步。**
+
+因为 PracticeOption 已经在同步了，颜色等级跟着选项走就自然同步。不需要单独的 color map。
+
+1. Supabase `practice_options` 表加列 `color_level INTEGER DEFAULT 3`
+2. 前端 `PracticeOption` 类型加 `color_level?: number` 字段
+3. 同步时 `mergeOptions` 中像保留 `is_preset`/`can_edit` 一样保留 `color_level`
+
+### UI 入口
+
+设置弹窗新增「显示」tab：
+- 列出所有练习选项（`practiceOptionsData`）
+- 每个选项右侧 4 个小圆点（4 级绿色），点击即选中
+- 免费用户等级 1、4 灰显 + 锁图标，点击 toast 升级提示
+- 底部说明：「未配置的练习类型统一使用默认色」
+
+### 改动文件清单
+
+| 文件 | 改动 |
+|------|------|
+| `app/globals.css` | 新增 `.green-gradient-1/2/4` 三个 CSS class |
+| `lib/supabase.ts` | `PracticeOption` 接口加 `color_level?` 字段 |
+| `hooks/usePracticeData.ts` | 导出 colorLevel 相关逻辑 |
+| `hooks/useSync.ts` | `mergeOptions` 保留 `color_level` 字段 |
+| `app/practice/page.tsx` | 6 处改动（见下方详细说明） |
+| Supabase 控制台 | `practice_options` 表加 `color_level` 列 |
+
+### page.tsx 内 6 处改动
+
+1. **MoonDayButton**（行 242-304）：新增 `colorLevel` prop，`green-gradient-deep` 替换为动态 class
+2. **SettingsModal**（行 1517）：新增「显示」tab，色阶配置 UI
+3. **JournalTab practiceMap**（行 2781-2787）：boolean 扩展为 `{ practiced, colorLevel }`，同天多次取最深
+4. **JournalTab 日历渲染**（行 2920-2950）：传 `colorLevel` 给 MoonDayButton
+5. **StatsTab HeatmapDot**（行 3721-3724）：新增 `colorLevel` 字段
+6. **StatsTab 热力图渲染**（行 3950-3986）：删除 `dotConfig.levels`，用 `colorLevel` 动态取色
+
+### 默认行为
+
+- 新用户 / 未配置 → 所有选项 `color_level = 3`（`green-gradient-deep`），行为和现在完全一致
+- 同一天多次练习取最深色（level 数字越大越深）
+
+### 不在范围内
+
+- ❌ 分享卡片（MonthlyStatsShareModal）不改，保持 `green-gradient-deep`
+- ❌ 数据库迁移脚本（直接在 Supabase 控制台手动加列）
+
+### 验证
+
+| 场景 | 预期 |
+|------|------|
+| 不配置色阶 | 日历行为和现在完全一致 |
+| 设置中选择不同色阶 | 月历和热力图即时反映 |
+| 同一天两种练习 | 显示更深的那个颜色 |
+| 免费用户点等级 1 或 4 | toast 提示升级 Pro |
+| Pro 用户 | 4 个等级全可选 |
+| 跨设备同步 | 颜色设置跟着练习选项一起同步 |
+| `npx next build` | 编译通过 |
+
+---
+
+## 2026-06-02 - 智能合并死循环：冲突反复出现 🐛 待修复
+
+**状态**: Step 1 已完成（纯函数提取 + diffRecords 替换），Step 2-3 待执行
+
+### 用户反馈
+用户（烧冰冰，519216978@qq.com）每次打开 app 都看到"数据冲突"弹窗（本地 35 条，云端 38 条），点了多次"智能合并"后下次登录仍然弹出。
+
+### 根因分析
+
+两个 bug 共同导致：
+
+#### Bug 1：`smartMerge` 不处理「时间戳更新」的记录
+
+**文件**：`hooks/useSync.ts`
+
+**问题**：`autoSync` 检测冲突时计算 4 种差异（line 252-284）：
+
+```
+localOnly   — 仅本地有（ID 不在云端）
+localNewer  — 两边都有，本地时间戳更新
+remoteOnly  — 仅云端有（ID 不在本地）
+remoteNewer — 两边都有，云端时间戳更新
+```
+
+`totalLocalChanges = localOnly + localNewer`
+`totalRemoteChanges = remoteOnly + remoteNewer`
+
+但 `resolveConflict('merge')` 重新计算差异时（line 1289-1290）**只用 ID 比较**：
+
+```typescript
+const localOnly = records.filter(r => !remoteIds.has(r.id))
+const remoteOnly = remoteData.records.filter(r => !localIds.has(r.id))
+```
+
+传给 `smartMerge` 的只有 `localOnly` 和 `remoteOnly`，**丢失了 `localNewer` 和 `remoteNewer`**。
+
+该用户的情况：
+- `localNewer = 1`（1 条记录两边都有，本地 updated_at 更新）→ **永远不会被上传**
+- `remoteOnly = 3`（3 条记录只存在于云端）→ 会被下载
+- 合并后本地应该 38 条，但那条 localNewer 记录永远卡在"有变更"状态
+
+#### Bug 2：合并后数据不持久化
+
+**文件**：`hooks/useSync.ts` + `hooks/usePracticeData.ts`
+
+**问题**：`smartMerge` 的保存链路有冲突：
+
+1. `smartMerge` 调用 `onSyncComplete`（line 672）→ 触发页面的 `clearAllData()` + `importData()`
+2. `clearAllData()` 调用 `setRecords([])` → `useLocalStorage` 的 `set` 写空数组到 localStorage
+3. `importData()` 调用 `setRecords(sortedRecords)` → `useLocalStorage` 的 `set` 写 38 条到 localStorage
+4. `smartMerge` 又直接 `localStorage.setItem('ashtanga_records', ...)`（line 678）— 绕过 hook 直接写
+
+问题在于 `useLocalStorage`（来自 `react-use`）**不监听外部 localStorage 变更**。React state 可能和 localStorage 不同步。当 app 重新加载时，`useLocalStorage` 从 localStorage 读到合并数据，但如果中间有任何 React state 变化触发了 hook 的 `set` 回调，旧的 React state 值会被写回 localStorage，覆盖合并结果。
+
+日志证据：合并后日志显示"下载3条云端记录"（成功），但下次登录 autoSync 仍读到 35 条 → 说明 3 条被覆盖了。
+
+### 修复计划
+
+#### Step 1：`resolveConflict` 传递完整差异给 `smartMerge` ✅ 已完成
+
+**文件**：`hooks/useSync.ts` + `lib/sync-utils.ts`
+
+已将 diff 逻辑提取为纯函数 `diffRecords()`（`lib/sync-utils.ts`），`resolveConflict` 的 merge 分支现在调用 `diffRecords()` 一次性计算 4 种差异（localOnly/remoteOnly/localNewer/remoteNewer），不再丢失时间戳更新的记录。同时 `autoSync` 中同样的逻辑也替换为 `diffRecords()` 调用，消除重复代码。25 个单元测试覆盖。
+
+#### Step 2：`smartMerge` 处理 `localNewer` 和 `remoteNewer`
+
+**文件**：`hooks/useSync.ts` line 635-694
+
+修改函数签名和逻辑：
+
+```typescript
+const smartMerge = async (
+  localOnly: PracticeRecord[],
+  remoteOnly: PracticeRecord[],
+  localNewer: PracticeRecord[],   // 新增
+  remoteNewer: PracticeRecord[],  // 新增
+  remoteData: any
+) => {
+  // ... 现有 profile 合并逻辑 ...
+
+  // 合并记录：本地基础 + 云端独有 + 云端更新的覆盖本地
+  const mergedRecords = (() => {
+    const base = [...freshLocalData.records, ...remoteOnly] // 现有逻辑
+    // 用云端更新的记录覆盖本地旧版本
+    const remoteNewerMap = new Map(remoteNewer.map(r => [r.id, r]))
+    return base.map(r => remoteNewerMap.get(r.id) || r)
+  })()
+
+  // ... options 合并逻辑不变 ...
+
+  onSyncComplete({
+    records: mergedRecords,
+    options: mergedOptions,
+    profile: mergedProfile
+  })
+  // 不再直接 localStorage.setItem（见 Step 3）
+
+  // 上传本地独有 + 本地更新的记录
+  const toUpload = [...localOnly, ...localNewer]
+  if (toUpload.length > 0) {
+    addLog(`上传${toUpload.length}条本地记录`, 'success')
+    const result = await uploadLocalRecords(user.id, toUpload)
+    if (!result.success) {
+      throw new Error('上传本地记录失败')
+    }
+  }
+
+  // ...
+}
+```
+
+#### Step 3：移除 `smartMerge` 中直接 `localStorage.setItem` 调用
+
+**文件**：`hooks/useSync.ts` line 677-679
+
+删除以下 3 行（它们绕过 `useLocalStorage` hook，可能导致 React state 和 localStorage 不同步）：
+
+```typescript
+// 删除：
+localStorage.setItem('ashtanga_records', JSON.stringify(mergedRecords))
+localStorage.setItem('ashtanga_options', JSON.stringify(mergedOptions))
+```
+
+数据持久化统一走 `onSyncComplete` → `clearAllData + importData` → `useLocalStorage` 的 `set` 函数。
+
+#### Step 4：验证
+
+| 场景 | 预期 |
+|------|------|
+| 该用户下次打开 app | 不再出现冲突弹窗 |
+| 智能合并后重新打开 | 本地 38 条，云端 38 条，无冲突 |
+| 其他用户正常同步 | 不受影响 |
+| 只有本地变更 → 上传 | 正常上传（原有逻辑不受影响） |
+| 只有云端变更 → 下载 | 正常下载（原有逻辑不受影响） |
+
+### 涉及文件
+
+| 文件 | 改动 |
+|------|------|
+| `lib/sync-utils.ts` | 新建 — 4 个纯函数（diffRecords/buildProfileFromRemote/mergeRecords/mergeOptions） |
+| `hooks/useSync.ts` | 6 处内联逻辑替换为导入函数调用（autoSync×4 + smartMerge×1 + resolveConflict×1） |
+| `__tests__/sync-utils.test.ts` | 新建 — 25 个单元测试 |
+
+### 风险评估
+
+- **风险**：低。改动集中在 `smartMerge` 和 `resolveConflict` 的 merge 分支，不影响其他同步路径（仅本地变更 / 仅云端变更 / 数据一致）
+- **回滚**：单一提交，可一键 revert
+- **影响范围**：所有遇到"双方都有变更"冲突的用户，不影响正常同步流程
+
+---
+
 ## 2026-05-22 - Tab 级代码分割（性能优化第二期）⏳ 待观察
 
 **状态**: 等第一期优化上线后观察效果再决定
