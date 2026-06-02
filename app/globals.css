@@ -160,24 +160,24 @@
 
 /* 日历色阶：5级绿色 */
 .green-gradient-1 {
-  background-image: -webkit-linear-gradient(bottom right, rgba(74, 122, 68, 0.15), rgba(45, 90, 39, 0.25));
-  background-image: linear-gradient(to top left, rgba(74, 122, 68, 0.15), rgba(45, 90, 39, 0.25));
+  background-image: -webkit-linear-gradient(bottom right, rgba(74, 122, 68, 0.08), rgba(45, 90, 39, 0.15));
+  background-image: linear-gradient(to top left, rgba(74, 122, 68, 0.08), rgba(45, 90, 39, 0.15));
 }
 .green-gradient-2 {
-  background-image: -webkit-linear-gradient(bottom right, rgba(74, 122, 68, 0.35), rgba(45, 90, 39, 0.45));
-  background-image: linear-gradient(to top left, rgba(74, 122, 68, 0.35), rgba(45, 90, 39, 0.45));
+  background-image: -webkit-linear-gradient(bottom right, rgba(74, 122, 68, 0.30), rgba(45, 90, 39, 0.40));
+  background-image: linear-gradient(to top left, rgba(74, 122, 68, 0.30), rgba(45, 90, 39, 0.40));
 }
 .green-gradient-3 {
   background-image: -webkit-linear-gradient(bottom right, rgba(74, 122, 68, 0.55), rgba(45, 90, 39, 0.65));
   background-image: linear-gradient(to top left, rgba(74, 122, 68, 0.55), rgba(45, 90, 39, 0.65));
 }
 .green-gradient-4 {
-  background-image: -webkit-linear-gradient(bottom right, rgba(74, 122, 68, 0.75), rgba(45, 90, 39, 0.85));
-  background-image: linear-gradient(to top left, rgba(74, 122, 68, 0.75), rgba(45, 90, 39, 0.85));
+  background-image: -webkit-linear-gradient(bottom right, rgba(74, 122, 68, 0.78), rgba(45, 90, 39, 0.85));
+  background-image: linear-gradient(to top left, rgba(74, 122, 68, 0.78), rgba(45, 90, 39, 0.85));
 }
 .green-gradient-5 {
-  background-image: -webkit-linear-gradient(bottom right, rgba(74, 122, 68, 0.95), rgba(45, 90, 39, 1.0));
-  background-image: linear-gradient(to top left, rgba(74, 122, 68, 0.95), rgba(45, 90, 39, 1.0));
+  background-image: -webkit-linear-gradient(bottom right, rgba(74, 122, 68, 0.94), rgba(45, 90, 39, 1.0));
+  background-image: linear-gradient(to top left, rgba(74, 122, 68, 0.94), rgba(45, 90, 39, 1.0));
 }
 
 @layer base {
