@@ -636,6 +636,8 @@ export function useSync(
   const smartMerge = async (
     localOnly: PracticeRecord[],
     remoteOnly: PracticeRecord[],
+    localNewer: PracticeRecord[],
+    remoteNewer: PracticeRecord[],
     remoteData: any
   ) => {
     // ⭐ 使用 ref 获取最新的 localData
@@ -652,37 +654,39 @@ export function useSync(
       }
     }
 
-    if (remoteOnly.length > 0) {
-      // 云端有新数据，下载到本地
-      addLog(`下载${remoteOnly.length}条云端记录`, 'success')
-      const mergedRecords = [...freshLocalData.records, ...remoteOnly]
-      // ⭐ 合并选项：保留本地字段（is_preset/audio_src/can_edit）
-      const mergedOptions = (remoteData.options || []).map((remoteOpt: any) => {
-        const localOpt = (freshLocalData.options || []).find((o: any) => o.id === remoteOpt.id)
-        if (localOpt) {
-          return {
-            ...remoteOpt,
-            is_preset: (localOpt as any).is_preset,
-            audio_src: (localOpt as any).audio_src,
-            can_edit: (localOpt as any).can_edit,
-          }
-        }
-        return remoteOpt
-      })
-      onSyncComplete({
-        records: mergedRecords,
-        options: mergedOptions,
-        profile: mergedProfile // ⭐ 添加 profile
-      })
-      // ⭐ 关键修复：直接保存到 localStorage
-      localStorage.setItem('ashtanga_records', JSON.stringify(mergedRecords))
-      localStorage.setItem('ashtanga_options', JSON.stringify(mergedOptions))
-    }
+    // 合并记录：本地基础 + 云端独有 + 云端更新的覆盖本地旧版本
+    const remoteNewerMap = new Map(remoteNewer.map(r => [r.id, r]))
+    const mergedRecords = [...freshLocalData.records, ...remoteOnly].map(r => remoteNewerMap.get(r.id) || r)
 
-    if (localOnly.length > 0) {
-      // 本地有新数据，上传到云端
-      addLog(`上传${localOnly.length}条本地记录`, 'success')
-      const result = await uploadLocalRecords(user.id, localOnly)
+    // 合并选项：保留本地字段（is_preset/audio_src/can_edit）
+    const mergedOptions = (remoteData.options || []).map((remoteOpt: any) => {
+      const localOpt = (freshLocalData.options || []).find((o: any) => o.id === remoteOpt.id)
+      if (localOpt) {
+        return {
+          ...remoteOpt,
+          is_preset: (localOpt as any).is_preset,
+          audio_src: (localOpt as any).audio_src,
+          can_edit: (localOpt as any).can_edit,
+        }
+      }
+      return remoteOpt
+    })
+
+    const downloadCount = remoteOnly.length + remoteNewer.length
+    if (downloadCount > 0) {
+      addLog(`下载${downloadCount}条云端记录（新增${remoteOnly.length}，更新${remoteNewer.length}）`, 'success')
+    }
+    onSyncComplete({
+      records: mergedRecords,
+      options: mergedOptions,
+      profile: mergedProfile
+    })
+
+    // 上传本地独有 + 本地更新的记录
+    const toUpload = [...localOnly, ...localNewer]
+    if (toUpload.length > 0) {
+      addLog(`上传${toUpload.length}条本地记录（新增${localOnly.length}，更新${localNewer.length}）`, 'success')
+      const result = await uploadLocalRecords(user.id, toUpload)
       if (!result.success) {
         throw new Error('上传本地记录失败')
       }
@@ -1285,11 +1289,27 @@ export function useSync(
           const freshLocalDataForMerge = localDataRef.current
           const localIds = new Set(freshLocalDataForMerge.records.map(r => r.id))
           const remoteIds = new Set(remoteData.records.map(r => r.id))
+          const remoteMap = new Map(remoteData.records.map(r => [r.id, r]))
 
           const localOnly = freshLocalDataForMerge.records.filter(r => !remoteIds.has(r.id))
           const remoteOnly = remoteData.records.filter(r => !localIds.has(r.id))
 
-          await smartMerge(localOnly, remoteOnly, remoteData)
+          // 计算 timestamp 差异
+          const localNewer: PracticeRecord[] = []
+          const remoteNewer: PracticeRecord[] = []
+          for (const localRecord of freshLocalDataForMerge.records) {
+            if (remoteIds.has(localRecord.id)) {
+              const remoteRecord = remoteMap.get(localRecord.id)
+              if (remoteRecord) {
+                const localTime = new Date(localRecord.updated_at || localRecord.created_at).getTime()
+                const remoteTime = new Date(remoteRecord.updated_at || remoteRecord.created_at).getTime()
+                if (localTime > remoteTime) localNewer.push(localRecord)
+                else if (remoteTime > localTime) remoteNewer.push(remoteRecord)
+              }
+            }
+          }
+
+          await smartMerge(localOnly, remoteOnly, localNewer, remoteNewer, remoteData)
           break
       }
 
