@@ -599,7 +599,7 @@ export function useSync(
     const toUpload = [...localOnly, ...localNewer]
     if (toUpload.length > 0) {
       addLog(`上传${toUpload.length}条本地记录（新增${localOnly.length}，更新${localNewer.length}）`, 'success')
-      const result = await uploadLocalRecords(user.id, toUpload)
+      const result = await uploadLocalRecords(user.id, toUpload, freshLocalData.options)
       if (!result.success) {
         throw new Error('上传本地记录失败')
       }
@@ -740,7 +740,7 @@ export function useSync(
   }
 
   // ==================== 上传本地记录 ====================
-  const uploadLocalRecords = async (userId: string, records: PracticeRecord[]) => {
+  const uploadLocalRecords = async (userId: string, records: PracticeRecord[], options?: PracticeOption[]) => {
     if (records.length === 0) return { success: true, localOnlyCount: 0 }
 
     // ⭐ 新增：1000条记录限制 - 保留最新的1000条
@@ -766,7 +766,8 @@ export function useSync(
       photos: r.photos && r.photos.length > 0 ? r.photos : null,
       breakthrough: r.breakthrough || null,
       start_time: r.start_time || null,
-      color_level: r.color_level ?? null, // ⭐ 色阶等级（null=用类型默认）
+      // ⭐ 色阶等级：优先用记录自身，其次用选项默认，最后用 3
+      color_level: r.color_level ?? options?.find(o => o.label === r.type)?.color_level ?? 3,
       updated_at: r.updated_at || r.created_at || new Date().toISOString(),
     }))
 
@@ -968,6 +969,8 @@ export function useSync(
           photos: r.photos && r.photos.length > 0 ? r.photos : null, // ⭐ 直接传数组，不 stringify
           breakthrough: r.breakthrough || null,
           start_time: r.start_time || null,
+          // ⭐ 色阶等级：优先用记录自身，其次用选项默认，最后用 3
+          color_level: r.color_level ?? options?.find(o => o.label === r.type)?.color_level ?? 3,
           updated_at: r.updated_at || r.created_at || new Date().toISOString(),
         }))
 

@@ -550,9 +550,9 @@ function EditOptionModal({
                     日历颜色 <span className="text-muted-foreground text-xs">（练习日显示的深浅）</span>
                   </label>
                   <div className="flex gap-3 justify-center">
-                    {[1, 2, 3, 4, 5].map((level) => {
+                    {[1, 2, 3, 4].map((level) => {
                       const isPro = membership?.is_active
-                      const locked = !isPro && (level === 1 || level === 4 || level === 5)
+                      const locked = !isPro && (level === 1 || level === 4)
                       const selected = colorLevel === level
                       return (
                         <button
