@@ -11,7 +11,7 @@ interface MembershipPromptModalProps {
   onClose: () => void
   onActivate?: () => void
   /** 触发来源，用于展示不同提示 */
-  reason?: 'options_full' | 'locked_option' | 'locked_practice' | 'locked_annotation'
+  reason?: 'options_full' | 'locked_option' | 'locked_practice' | 'locked_annotation' | 'color_level'
 }
 
 const REASON_SUBTITLES: Record<string, string> = {
@@ -19,7 +19,7 @@ const REASON_SUBTITLES: Record<string, string> = {
   locked_option: '激活会员可以恢复选项使用',
   locked_practice: '激活会员恢复选项开始练习',
   locked_annotation: '免费用户只能 1 个标注，Pro 最多 9 个',
-}
+  color_level: 'Pro 会员可解锁全部日历颜色',
 
 export function MembershipPromptModal({ isOpen, onClose, onActivate, reason }: MembershipPromptModalProps) {
   const [showPurchase, setShowPurchase] = useState(false)

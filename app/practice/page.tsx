@@ -547,7 +547,8 @@ function EditOptionModal({
                           key={level}
                           onClick={() => {
                             if (locked) {
-                              toast.info('升级 Pro 解锁全部色阶')
+                              setMembershipPromptReason('color_level')
+                              setShowMembershipPrompt(true)
                               return
                             }
                             setColorLevel(level)
@@ -736,6 +737,10 @@ function EditRecordModal({
               onTypeSelectorOpen={() => handleTypeSelectorToggle(true)}
               onChildModalOpen={onChildModalOpen}
               initialPhotos={latestRecord.photos || []}
+              onShowMembershipPrompt={() => {
+                setMembershipPromptReason('color_level')
+                setShowMembershipPrompt(true)
+              }}
             />
           </motion.div>
 
@@ -1538,6 +1543,10 @@ function AddPracticeModal({
               onDatePickerOpen={() => handleDatePickerToggle(true)}
               onTypeSelectorOpen={() => handleTypeSelectorToggle(true)}
               onChildModalOpen={onChildModalOpen}
+              onShowMembershipPrompt={() => {
+                setMembershipPromptReason('color_level')
+                setShowMembershipPrompt(true)
+              }}
             />
           </motion.div>
 
@@ -2438,6 +2447,10 @@ function CompletionSheet({
               showPhotoUpload={true}
               practiceOptions={practiceOptions}
               onSave={handleSave}
+              onShowMembershipPrompt={() => {
+                setMembershipPromptReason('color_level')
+                setShowMembershipPrompt(true)
+              }}
             />
 
             {/* DatePicker Modal */}
@@ -4227,7 +4240,7 @@ export default function AshtangaTracker() {
   const [showActivateModal, setShowActivateModal] = useState(false)
   const [showPurchaseModal, setShowPurchaseModal] = useState(false)
   const [showMembershipPrompt, setShowMembershipPrompt] = useState(false)
-  const [membershipPromptReason, setMembershipPromptReason] = useState<'options_full' | 'locked_option' | 'locked_practice' | 'locked_annotation'>('options_full')
+  const [membershipPromptReason, setMembershipPromptReason] = useState<'options_full' | 'locked_option' | 'locked_practice' | 'locked_annotation' | 'color_level'>('options_full')
   const [showFakeDoor, setShowFakeDoor] = useState<{ type: 'cloud' | 'pro' | 'voice' | 'photo', isOpen: boolean }>({ type: 'cloud', isOpen: false })
   const [showImportModal, setShowImportModal] = useState(false)
   const [showDebugLogModal, setShowDebugLogModal] = useState(false)

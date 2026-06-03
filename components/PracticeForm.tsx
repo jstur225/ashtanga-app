@@ -77,6 +77,9 @@ export interface PracticeFormProps {
 
   // 子模态框状态控制
   onChildModalOpen?: (open: boolean) => void
+
+  // 会员弹窗
+  onShowMembershipPrompt?: () => void
 }
 
 // ==================== 工具函数 ====================
@@ -237,6 +240,7 @@ export function PracticeForm({
   onDatePickerOpen,
   onTypeSelectorOpen,
   onChildModalOpen,
+  onShowMembershipPrompt,
 }: PracticeFormProps) {
   // 表单状态（优先使用受控值）
   const [internalDate, setInternalDate] = useState(initialData?.date || getLocalDateStr())
@@ -559,7 +563,7 @@ export function PracticeForm({
                     type="button"
                     onClick={() => {
                       if (locked) {
-                        toast.info('升级 Pro 解锁全部色阶')
+                        onShowMembershipPrompt?.()
                         return
                       }
                       setColorLevel(level)
