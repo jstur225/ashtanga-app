@@ -566,7 +566,7 @@ function EditOptionModal({
                             setColorLevel(level)
                           }}
                           className={`w-10 h-10 rounded-full transition-all relative ${
-                            selected ? 'ring-2 ring-foreground ring-offset-2 ring-offset-card scale-110' : ''
+                            selected ? 'ring-2 ring-orange-400 ring-offset-2 ring-offset-card scale-110' : ''
                           } ${locked ? 'opacity-40' : ''}`}
                         >
                           <div className={`w-full h-full rounded-full ${getColorClass(level)} border border-white/20`} />

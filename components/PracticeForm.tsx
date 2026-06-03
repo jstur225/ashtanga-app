@@ -570,7 +570,7 @@ export function PracticeForm({
                       setShowColorPicker(false)
                     }}
                     className={`w-7 h-7 rounded-full transition-all relative ${
-                      selected ? 'ring-2 ring-foreground ring-offset-1 ring-offset-card scale-110' : ''
+                      selected ? 'ring-2 ring-orange-400 ring-offset-1 ring-offset-card scale-110' : ''
                     } ${locked ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer hover:scale-110'}`}
                   >
                     <div className={`w-full h-full rounded-full ${getColorClass(level)} border border-white/20`} />
