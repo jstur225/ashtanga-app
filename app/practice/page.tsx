@@ -2760,7 +2760,7 @@ function MonthlyStatsShareModal({
                               ? ''
                               : item.practiced
                               ? 'green-gradient-deep border border-white/20'
-                              : 'bg-stone-200'
+                              : 'bg-stone-100'
                           }`}
                         />
                       ))}
