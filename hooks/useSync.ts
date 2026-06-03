@@ -271,13 +271,28 @@ export function useSync(
             console.error(`📊 [autoSync] 选项云端新增：云端${remoteOptions.length}个，本地${localOptions.length}个`)
           }
         } else {
-          // 数量相同，检查是否有不同的选项ID
+          // 数量相同，检查是否有不同的选项ID 或内容差异（color_level/label/notes）
           const hasDifferentOptions = localOptions.some((o: PracticeOption) => !remoteOptionIds.has(o.id)) ||
                                       remoteOptions.some((o: PracticeOption) => !localOptionIds.has(o.id))
           if (hasDifferentOptions) {
             optionsChanged = true
             optionsChangeSource = 'local' // 默认本地优先
             console.error(`📊 [autoSync] 选项内容不同，需要同步`)
+          } else {
+            // 同 ID 的选项，比较内容差异（color_level/label/notes）
+            const remoteOptionMap = new Map(remoteOptions.map((o: PracticeOption) => [o.id, o]))
+            const hasContentDiff = localOptions.some((localOpt: PracticeOption) => {
+              const remoteOpt = remoteOptionMap.get(localOpt.id)
+              if (!remoteOpt) return false
+              return (localOpt as any).color_level !== (remoteOpt as any).color_level ||
+                     localOpt.label !== remoteOpt.label ||
+                     localOpt.notes !== remoteOpt.notes
+            })
+            if (hasContentDiff) {
+              optionsChanged = true
+              optionsChangeSource = 'local' // 默认本地优先
+              console.error(`📊 [autoSync] 选项内容变更（color_level/label/notes），需要同步`)
+            }
           }
         }
 

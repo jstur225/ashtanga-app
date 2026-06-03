@@ -4615,7 +4615,12 @@ export default function AshtangaTracker() {
 
   const handleEditSave = (id: string, name: string, notes: string, colorLevel?: number) => {
     // Update localStorage (also persists color_level for type default)
-    updateOption(id, name, notes, colorLevel)
+    updateOption(id, name, notes, colorLevel, () => {
+      // 编辑选项后触发同步（包括色阶变更）
+      if (user) {
+        autoSync('编辑选项后同步')
+      }
+    })
 
     // Update local state (including color_level)
     setPracticeOptions(prev => prev.map(o =>
