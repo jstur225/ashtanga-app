@@ -1,5 +1,30 @@
 # 阿斯汤加打卡 app - 项目记录
 
+## 2026-06-03: 颜色同步修复 + 色阶选择器优化
+
+### 问题 1：颜色同步不生效
+旧记录的 `color_level` 上传到云端后全部显示为默认值 3。根因：
+1. `uploadLocalRecords` 和 `uploadLocalData` 未携带 `color_level` 字段
+2. `diffRecords` 只比较 ID 和 `updated_at`，不比较 `color_level`，导致已上传的记录即使色阶不同也不会重传
+
+### 修复
+1. **uploadLocalRecords/uploadLocalData**：补齐 `color_level` 字段，记录无色阶时回退到选项默认色阶再默认 3
+2. **diff 前检测色阶差异**：同步时对比本地和云端的 `color_level`，不同则更新本地 `updated_at`，让 `diffRecords` 自然检测为 localNewer 触发重传
+
+### 问题 2：选项色阶选择器 5 级 → 4 级
+EditOptionModal 颜色选择器仍显示 `[1,2,3,4,5]`，改为 `[1,2,3,4]`
+
+### 问题 3：UI 微调
+- 选中颜色框改为橙色（`ring-orange-400`）替代黑色
+- 4 号色阶加深（`#2D5A27` → `#1A3D1A`）
+- 热力图空白日灰色圆点减淡（`stone-200` → `stone-100`）
+
+### 涉及文件
+- `hooks/useSync.ts` — 颜色上传 + 同步检测
+- `app/practice/page.tsx` — 色阶选择器5→4级、热力图灰色减淡
+- `components/PracticeForm.tsx` — 选中颜色框橙色
+- `app/globals.css` — 4号色阶加深
+
 ## 2026-06-03: 云端孤立草稿导致同步死循环（最终修复）
 
 ### 背景
