@@ -3197,6 +3197,7 @@ function JournalTab({
   onOpenXiaohongshuModal,
   hasNewXhsMessage,
   onReadInvite,
+  isPro,
 }: {
   practiceHistory: PracticeRecord[]
   practiceOptions: PracticeOption[]
@@ -3222,6 +3223,7 @@ function JournalTab({
   onOpenXiaohongshuModal: () => void
   hasNewXhsMessage: boolean
   onReadInvite: () => void
+  isPro?: boolean
 }) {
   const [sharingRecordId, setSharingRecordId] = useState<string | null>(null)
   const [childModalOpen, setChildModalOpen] = useState(false)
@@ -3592,7 +3594,7 @@ function JournalTab({
         onOpenPhotoFakeDoor={onOpenPhotoFakeDoor}
         user={user}
         userProfile={profile}
-        isPro={membershipIsPro}
+        isPro={isPro}
       />
 
       <ShareCardModal
@@ -3623,7 +3625,7 @@ function JournalTab({
         onOpenPhotoFakeDoor={onOpenPhotoFakeDoor}
         user={user}
         userProfile={profile}
-        isPro={membershipIsPro}
+        isPro={isPro}
       />
 
       {/* ⭐ 月度统计分享弹窗 */}
@@ -6274,6 +6276,7 @@ export default function AshtangaTracker() {
           onOpenXiaohongshuModal={() => setShowXiaohongshuModal(true)}
           hasNewXhsMessage={hasNewXhsMessage}
           onReadInvite={() => setReadInviteVersion(INVITE_VERSION)}
+          isPro={membershipIsPro}
         />
         </motion.div>
       )}
