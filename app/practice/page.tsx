@@ -102,6 +102,16 @@ function formatDate(dateStr: string): string {
   return `${month}/${day}`
 }
 
+// 共享辅助函数：获取有效色阶（免费用户不可使用等级 1 和 4）
+function getEffectiveOptionColor(
+  options: PracticeOption[],
+  label: string,
+  isPro: boolean
+): number {
+  const raw = options.find(o => o.label === label)?.color_level ?? 3
+  return (!isPro && (raw === 1 || raw === 4)) ? 3 : raw
+}
+
 // Zen-style Custom Date Picker Component
 function ZenDatePicker({
   value,
@@ -437,9 +447,11 @@ function EditOptionModal({
     if (option) {
       setName(option.label)
       setNotes(option.notes || "")
-      setColorLevel((option as any).color_level ?? 3)
+      const rawColor = (option as any).color_level ?? 3
+      const effectiveColor = (!membership?.is_active && (rawColor === 1 || rawColor === 4)) ? 3 : rawColor
+      setColorLevel(effectiveColor)
     }
-  }, [option])
+  }, [option, membership?.is_active])
 
   const handleSave = () => {
     if (option && name.trim()) {
@@ -606,6 +618,7 @@ function EditRecordModal({
   onOpenPhotoFakeDoor,
   user,
   userProfile,
+  isPro,
 }: {
   isOpen: boolean
   onClose: () => void
@@ -619,6 +632,7 @@ function EditRecordModal({
   onChildModalOpen?: (open: boolean) => void
   user?: { email?: string | null } | null
   userProfile?: UserProfile | null
+  isPro?: boolean
 }) {
   // ⭐ 从最新的 practiceHistory 中获取记录数据（避免照片上传后数据过时）
   const latestRecord = useMemo(() => {
@@ -632,8 +646,8 @@ function EditRecordModal({
 
   // 类型默认色阶查找
   const getTypeColorLevel = useCallback((t: string) => {
-    return practiceOptions.find(o => o.label === t)?.color_level ?? 3
-  }, [practiceOptions])
+    return getEffectiveOptionColor(practiceOptions, t, !!isPro)
+  }, [practiceOptions, isPro])
 
   // 表单数据状态（用于 PracticeForm）
   const [formData, setFormData] = useState({
@@ -1398,6 +1412,7 @@ function AddPracticeModal({
   onOpenPhotoFakeDoor,
   user,
   userProfile,
+  isPro,
 }: {
   isOpen: boolean
   onClose: () => void
@@ -1413,11 +1428,12 @@ function AddPracticeModal({
   onOpenPhotoFakeDoor?: () => void
   user?: { email?: string | null } | null
   userProfile?: UserProfile | null
+  isPro?: boolean
 }) {
   // 类型默认色阶查找
   const getTypeColorLevel = useCallback((t: string) => {
-    return practiceOptions.find(o => o.label === t)?.color_level ?? 3
-  }, [practiceOptions])
+    return getEffectiveOptionColor(practiceOptions, t, !!isPro)
+  }, [practiceOptions, isPro])
 
   // 表单数据状态（用于 PracticeForm）
   const [formData, setFormData] = useState({
@@ -2300,6 +2316,7 @@ function CompletionSheet({
   userProfile,
   practiceOptions,
   onDeleteDraft,
+  isPro,
 }: {
   isOpen: boolean
   practiceType: string
@@ -2316,11 +2333,12 @@ function CompletionSheet({
   user?: { email?: string | null } | null
   userProfile?: UserProfile | null
   practiceOptions: PracticeOption[]
+  isPro?: boolean
 }) {
   // 类型默认色阶查找
   const getTypeColorLevel = useCallback((t: string) => {
-    return practiceOptions.find(o => o.label === t)?.color_level ?? 3
-  }, [practiceOptions])
+    return getEffectiveOptionColor(practiceOptions, t, !!isPro)
+  }, [practiceOptions, isPro])
 
   // 表单数据状态（用于 PracticeForm）
   const [formData, setFormData] = useState({
@@ -2871,10 +2889,10 @@ function MonthlyHeatmap({
   const typeColorMap = useMemo(() => {
     const map: Record<string, number> = {}
     practiceOptions.forEach(o => {
-      map[o.label] = (o as any).color_level ?? 3
+      map[o.label] = getEffectiveOptionColor(practiceOptions, o.label, !!membership?.is_active)
     })
     return map
-  }, [practiceOptions])
+  }, [practiceOptions, membership?.is_active])
 
   // 日期 → { 是否有练习, 色阶等级 } 映射
   const practiceMap = useMemo(() => {
@@ -3574,6 +3592,7 @@ function JournalTab({
         onOpenPhotoFakeDoor={onOpenPhotoFakeDoor}
         user={user}
         userProfile={profile}
+        isPro={membershipIsPro}
       />
 
       <ShareCardModal
@@ -3604,6 +3623,7 @@ function JournalTab({
         onOpenPhotoFakeDoor={onOpenPhotoFakeDoor}
         user={user}
         userProfile={profile}
+        isPro={membershipIsPro}
       />
 
       {/* ⭐ 月度统计分享弹窗 */}
@@ -3845,10 +3865,10 @@ function StatsTab({
   const typeColorMap = useMemo(() => {
     const map: Record<string, number> = {}
     practiceOptions.forEach(o => {
-      map[o.label] = (o as any).color_level ?? 3
+      map[o.label] = getEffectiveOptionColor(practiceOptions, o.label, !!membership?.is_active)
     })
     return map
-  }, [practiceOptions])
+  }, [practiceOptions, membership?.is_active])
 
   const monthGroups = useMemo(() => {
     if (!practiceHistory.length) return []
@@ -4623,12 +4643,14 @@ export default function AshtangaTracker() {
   }
 
   const handleEditSave = (id: string, name: string, notes: string, colorLevel?: number) => {
+    // 免费用户：被锁定的色阶强制降为 3
+    const safeColorLevel = (!membershipIsPro && (colorLevel === 1 || colorLevel === 4)) ? 3 : (colorLevel ?? 3)
     // Update localStorage (also persists color_level for type default)
-    updateOption(id, name, notes, colorLevel)
+    updateOption(id, name, notes, safeColorLevel)
 
     // Update local state (including color_level)
     setPracticeOptions(prev => prev.map(o =>
-      o.id === id ? { ...o, label: name, notes, color_level: colorLevel ?? 3 } : o
+      o.id === id ? { ...o, label: name, notes, color_level: safeColorLevel } : o
     ))
 
     toast.success('已保存修改')
@@ -6715,6 +6737,7 @@ export default function AshtangaTracker() {
         user={user}
         userProfile={userProfile}
         practiceOptions={practiceOptionsData}
+        isPro={membershipIsPro}
       />
 
       {/* Fake Door Modal */}
