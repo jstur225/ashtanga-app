@@ -278,21 +278,6 @@ export function useSync(
             optionsChanged = true
             optionsChangeSource = 'local' // 默认本地优先
             console.error(`📊 [autoSync] 选项内容不同，需要同步`)
-          } else {
-            // 同 ID 的选项，比较内容差异（color_level/label/notes）
-            const remoteOptionMap = new Map(remoteOptions.map((o: PracticeOption) => [o.id, o]))
-            const hasContentDiff = localOptions.some((localOpt: PracticeOption) => {
-              const remoteOpt = remoteOptionMap.get(localOpt.id)
-              if (!remoteOpt) return false
-              return (localOpt as any).color_level !== (remoteOpt as any).color_level ||
-                     localOpt.label !== remoteOpt.label ||
-                     localOpt.notes !== remoteOpt.notes
-            })
-            if (hasContentDiff) {
-              optionsChanged = true
-              optionsChangeSource = 'local' // 默认本地优先
-              console.error(`📊 [autoSync] 选项内容变更（color_level/label/notes），需要同步`)
-            }
           }
         }
 
@@ -1054,19 +1039,15 @@ export function useSync(
         }
       }
 
-      // 3. 批量上传练习选项（上传所有用户选项以同步色阶等字段，过滤掉固定按钮和特殊按钮）
+      // 3. 批量上传练习选项（只同步自定义选项，color_level 不同步，留在本地）
       if (options.length > 0) {
-        // 过滤掉非 UUID 的固定按钮（chant_switch, guided_audio, today_count, custom）
-        const syncableOptions = options.filter(o =>
-          o.id && o.id !== 'custom' && o.id !== 'chant_switch' && o.id !== 'guided_audio' && o.id !== 'today_count' && !o.is_fixed
-        )
-        const optionsToUpload = syncableOptions.map(o => ({
+        const customOptions = options.filter(o => o.is_custom && o.id !== 'custom')
+        const optionsToUpload = customOptions.map(o => ({
           id: o.id,
           user_id: userId,
           label: o.label || '',
           notes: o.notes || null,
           is_custom: o.is_custom || false,
-          color_level: (o as any).color_level ?? 3,
         }))
 
         const { error: optionsError } = await supabase
