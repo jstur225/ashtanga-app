@@ -158,9 +158,9 @@
   background-image: linear-gradient(to top left, rgba(74, 122, 68, 0.1), rgba(45, 90, 39, 0.15));
 }
 
-/* 日历色阶：5级绿色（黄绿→正绿→青绿，色相+明度双变） */
+/* 日历色阶：5级绿色（嫩绿→草绿→正绿→橄榄→深橄榄，色相偏暖） */
 .green-gradient-1 {
-  background-color: #A8CC82;
+  background-color: #B8CC7C;
 }
 .green-gradient-2 {
   background-color: #5DAE4E;
@@ -169,10 +169,10 @@
   background-color: #4A7A44;
 }
 .green-gradient-4 {
-  background-color: #2D7A6E;
+  background-color: #4D6E30;
 }
 .green-gradient-5 {
-  background-color: #1A6858;
+  background-color: #2E4A1E;
 }
 
 @layer base {
