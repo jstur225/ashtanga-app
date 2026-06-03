@@ -5201,10 +5201,86 @@ export default function AshtangaTracker() {
       membershipLogs.error = '收集会员日志失败: ' + (e?.message || String(e))
     }
 
+    // ===== 15. 色阶同步诊断 =====
+    let colorSyncDiag: any = {}
+    try {
+      // 15a. 本地 localStorage 原始数据
+      const localOptsStr = localStorage.getItem('ashtanga_options')
+      const localOpts = localOptsStr ? JSON.parse(localOptsStr) : []
+      colorSyncDiag.localStorageOptions = localOpts.map((o: any) => ({
+        id: o.id?.substring(0, 8),
+        label: o.label,
+        color_level: o.color_level,
+        is_custom: o.is_custom,
+      }))
+
+      // 15b. 本地记录的 color_level 情况（最近10条）
+      const localRecsStr = localStorage.getItem('ashtanga_records')
+      const localRecs = localRecsStr ? JSON.parse(localRecsStr) : []
+      colorSyncDiag.recentRecordColors = localRecs.slice(0, 10).map((r: any) => ({
+        id: r.id?.substring(0, 8),
+        date: r.date,
+        type: r.type?.substring(0, 10),
+        color_level: r.color_level,
+        updated_at: r.updated_at,
+      }))
+
+      // 15c. 云端选项（直接查 Supabase）
+      if (session?.access_token) {
+        try {
+          // 用 user_id 直接查 practice_options 表
+          const userId = user?.id
+          if (userId) {
+            const { data: cloudOpts } = await supabase
+              .from('practice_options')
+              .select('id, label, color_level, is_custom, user_id')
+              .eq('user_id', userId)
+            colorSyncDiag.cloudOptions = (cloudOpts || []).map((o: any) => ({
+              id: o.id?.substring(0, 8),
+              label: o.label,
+              color_level: o.color_level,
+              is_custom: o.is_custom,
+            }))
+
+            // 云端记录的 color_level（最近10条）
+            const { data: cloudRecs } = await supabase
+              .from('practice_records')
+              .select('id, date, type, color_level, updated_at')
+              .eq('user_id', userId)
+              .is('deleted_at', null)
+              .order('date', { ascending: false })
+              .limit(10)
+            colorSyncDiag.cloudRecordColors = (cloudRecs || []).map((r: any) => ({
+              id: r.id?.substring(0, 8),
+              date: r.date,
+              type: r.type?.substring(0, 10),
+              color_level: r.color_level,
+              updated_at: r.updated_at,
+            }))
+          }
+        } catch (e: any) {
+          colorSyncDiag.cloudQueryError = e?.message || String(e)
+        }
+      } else {
+        colorSyncDiag.cloudNote = '未登录，无法查询云端色阶数据'
+      }
+
+      // 15d. 同步日志中与选项相关的条目
+      const storedLogs = localStorage.getItem('sync_logs')
+      if (storedLogs) {
+        const rawLogs = JSON.parse(storedLogs)
+        colorSyncDiag.optionRelatedLogs = rawLogs
+          .filter((l: any) => l.action?.includes('选项') || l.action?.includes('option'))
+          .slice(0, 10)
+      }
+    } catch (e: any) {
+      colorSyncDiag.error = '收集色阶诊断失败: ' + (e?.message || String(e))
+    }
+
     // 生成完整日志
     const debugLog = {
       _meta: {
-        version: '2.4',
+        version: '2.5',
         exportTime: new Date().toISOString(),
         description: '熬汤日记调试日志 - 用于问题排查',
         gitVersion: getVersionInfo()
@@ -5224,7 +5300,8 @@ export default function AshtangaTracker() {
       currentAppState,
       syncLogs,
       photoLogs,
-      membershipLogs
+      membershipLogs,
+      colorSyncDiag
     }
 
     // 转换为JSON字符串并显示在弹窗中
