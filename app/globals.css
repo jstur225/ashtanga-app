@@ -160,19 +160,19 @@
 
 /* 日历色阶：5级绿色 */
 .green-gradient-1 {
-  background-color: #E5E8E1;
+  background-color: #F3F1E8;
 }
 .green-gradient-2 {
-  background-color: #A6B39E;
+  background-color: #C8D2B7;
 }
 .green-gradient-3 {
   background-color: #4A7A44;
 }
 .green-gradient-4 {
-  background-color: #365533;
+  background-color: #395A35;
 }
 .green-gradient-5 {
-  background-color: #1E2F1C;
+  background-color: #233622;
 }
 
 @layer base {
