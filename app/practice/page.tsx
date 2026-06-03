@@ -2343,11 +2343,13 @@ function CompletionSheet({
   useEffect(() => {
     if (isOpen) {
       // 创建草稿记录用于照片上传（使用实际类型，不是'草稿'）
+      const draftColorLevel = getTypeColorLevel(practiceType)
       const draft = addRecord({
         date: getLocalDateStr(),
         type: practiceType,
         duration: parseInt(duration) * 60 || 0,
         notes: '',
+        color_level: draftColorLevel,
       })
       setDraftRecord(draft)
       setFormData({
@@ -2356,7 +2358,7 @@ function CompletionSheet({
         duration: parseInt(duration) || 0,
         notes: '',
         breakthrough: undefined,
-        color_level: getTypeColorLevel(practiceType),
+        color_level: draftColorLevel,
       })
 
       // ⭐ 延迟 500ms 同步，确保 localStorage 已完全更新
@@ -2396,6 +2398,13 @@ function CompletionSheet({
         color_level: data.color_level, // ⭐ 色阶等级
       })
       toast.success('记录已保存！')
+
+      // ⭐ 保存后同步（含 color_level 等变更）
+      if (user?.email && autoSync) {
+        setTimeout(() => {
+          autoSync('完成弹窗保存记录后同步')
+        }, 500)
+      }
 
       // ⭐ 关闭弹窗
       onClose?.()

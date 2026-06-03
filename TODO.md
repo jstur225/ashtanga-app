@@ -40,11 +40,10 @@ color_level 从 PracticeOption（类型级）扩展到 PracticeRecord（记录�
 
 ### 数据库
 
-手动在 Supabase 控制台执行：
-
 ```sql
 ALTER TABLE practice_records ADD COLUMN color_level INTEGER DEFAULT 3;
 ```
+✅ 已执行
 
 ### 已改文件
 
