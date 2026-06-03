@@ -551,7 +551,7 @@ export function PracticeForm({
           {showColorPicker ? (
             <div className="flex gap-2 items-center">
               {[1, 2, 3, 4].map((level) => {
-                const locked = !isPro && level === 4
+                const locked = !isPro && (level === 1 || level === 4)
                 const selected = colorLevel === level
                 return (
                   <button
