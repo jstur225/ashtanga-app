@@ -2857,6 +2857,7 @@ function MonthlyHeatmap({
   onOpenXiaohongshuModal,
   hasNewXhsMessage,
   onReadInvite,
+  isPro,
 }: {
   practiceHistory: PracticeRecord[]
   practiceOptions: PracticeOption[]
@@ -2872,6 +2873,7 @@ function MonthlyHeatmap({
   onOpenXiaohongshuModal: () => void
   hasNewXhsMessage: boolean
   onReadInvite: () => void
+  isPro?: boolean
 }) {
   const today = new Date()
   const todayStr = getLocalDateStr()
@@ -2884,15 +2886,15 @@ function MonthlyHeatmap({
   const firstDayOfMonth = new Date(currentYear, currentMonth, 1)
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate()
   const startDayOfWeek = firstDayOfMonth.getDay() // 0 = Sunday
-  
+
   // 练习类型 → 色阶等级 映射
   const typeColorMap = useMemo(() => {
     const map: Record<string, number> = {}
     practiceOptions.forEach(o => {
-      map[o.label] = getEffectiveOptionColor(practiceOptions, o.label, !!membership?.is_active)
+      map[o.label] = getEffectiveOptionColor(practiceOptions, o.label, !!isPro)
     })
     return map
-  }, [practiceOptions, membership?.is_active])
+  }, [practiceOptions, isPro])
 
   // 日期 → { 是否有练习, 色阶等级 } 映射
   const practiceMap = useMemo(() => {
@@ -3411,6 +3413,7 @@ function JournalTab({
           onOpenXiaohongshuModal={onOpenXiaohongshuModal}
           hasNewXhsMessage={hasNewXhsMessage}
           onReadInvite={onReadInvite}
+          isPro={isPro}
           onMonthChange={(date) => {
             // ⭐ 切换月份时重置加载的月份列表
             setLoadedMonths([date])
