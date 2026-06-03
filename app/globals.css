@@ -158,26 +158,21 @@
   background-image: linear-gradient(to top left, rgba(74, 122, 68, 0.1), rgba(45, 90, 39, 0.15));
 }
 
-/* 日历色阶：5级绿色（3=原色，上下各2级） */
+/* 日历色阶：5级实色绿色（3=原色，上下各2级） */
 .green-gradient-1 {
-  background-image: -webkit-linear-gradient(bottom right, rgba(74, 122, 68, 0.15), rgba(45, 90, 39, 0.25));
-  background-image: linear-gradient(to top left, rgba(74, 122, 68, 0.15), rgba(45, 90, 39, 0.25));
+  background-color: #A8CFA2;
 }
 .green-gradient-2 {
-  background-image: -webkit-linear-gradient(bottom right, rgba(74, 122, 68, 0.45), rgba(45, 90, 39, 0.55));
-  background-image: linear-gradient(to top left, rgba(74, 122, 68, 0.45), rgba(45, 90, 39, 0.55));
+  background-color: #6EAF68;
 }
 .green-gradient-3 {
-  background-image: -webkit-linear-gradient(bottom right, rgba(74, 122, 68, 0.85), rgba(45, 90, 39, 0.95));
-  background-image: linear-gradient(to top left, rgba(74, 122, 68, 0.85), rgba(45, 90, 39, 0.95));
+  background-color: #4A7A44;
 }
 .green-gradient-4 {
-  background-image: -webkit-linear-gradient(bottom right, rgba(40, 95, 35, 0.92), rgba(20, 72, 15, 0.97));
-  background-image: linear-gradient(to top left, rgba(40, 95, 35, 0.92), rgba(20, 72, 15, 0.97));
+  background-color: #2E6B2E;
 }
 .green-gradient-5 {
-  background-image: -webkit-linear-gradient(bottom right, rgba(20, 75, 15, 1.0), rgba(5, 45, 5, 1.0));
-  background-image: linear-gradient(to top left, rgba(20, 75, 15, 1.0), rgba(5, 45, 5, 1.0));
+  background-color: #1C5620;
 }
 
 @layer base {

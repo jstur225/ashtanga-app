@@ -1,5 +1,26 @@
 # 阿斯汤加打卡 app - 项目记录
 
+## 2026-06-03: 云端孤立草稿导致同步死循环（最终修复）
+
+### 背景
+用户（烧冰冰）每次打开 app 都看到"数据冲突"弹窗（本地 35 条，云端 38 条），选智能合并后下次刷新仍然弹出。6/2 修复了 smartMerge 的 localNewer/remoteNewer 处理和 localStorage 双写问题（commit `94f2152`），但 6/3 用户反馈问题依旧。
+
+### 根因分析
+调试日志中找到 3 条 `type: "草稿"` 的云端记录（来自 4/29 和 5/22，取消练习时上传到云端但未清理）：
+
+```
+下载 3 条云端记录 → useEffect 过滤草稿 → localStorage 只剩 35 条
+→ 下次 sync 检测到 remoteOnly=3 + localNewer=1 → 冲突
+→ 智能合并下载 3 条 → 页面刷新 → useEffect 再过滤 → 循环
+```
+
+### 修复
+1. **数据清理**：Supabase 执行 `DELETE FROM practice_records WHERE type = '草稿' AND deleted_at IS NULL`，清理 18 个用户共 18 条孤立草稿
+2. **代码修复**：`downloadRemoteData` 记录查询加 `.neq('type', '草稿')`，防止草稿进入同步流程
+
+### 涉及文件
+- `hooks/useSync.ts` — downloadRemoteData 查询加 `.neq('type', '草稿')`
+
 ## 2026-06-02: 同步模块纯函数提取 + 测试
 
 ### 背景

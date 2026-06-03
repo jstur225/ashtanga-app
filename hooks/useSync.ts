@@ -634,7 +634,7 @@ export function useSync(
       const recordsPromise = queryWithTimeout('记录', async () => {
         console.error('🚀 [downloadRemoteData] 开始执行记录查询...')
         try {
-          const query = supabase.from(TABLES.PRACTICE_RECORDS).select('*').eq('user_id', userId).is('deleted_at', null)
+          const query = supabase.from(TABLES.PRACTICE_RECORDS).select('*').eq('user_id', userId).is('deleted_at', null).neq('type', '草稿')
           console.error('🚀 [downloadRemoteData] 查询对象创建成功，准备执行...')
           const res = await query
           console.error('✅ [downloadRemoteData] 记录查询完成')
