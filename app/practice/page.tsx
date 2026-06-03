@@ -4100,7 +4100,7 @@ function StatsTab({
                             return (
                               <div
                                 key={day.date}
-                                className="rounded-full w-[12px] h-[12px] bg-stone-200"
+                                className="rounded-full w-[12px] h-[12px] bg-stone-100"
                                 style={{
                                   backgroundImage: `url(${moonInfo!.icon})`,
                                   backgroundSize: '115%',
@@ -4120,7 +4120,7 @@ function StatsTab({
                             )
                           }
                           // 普通日
-                          const dayColor = day.colorLevel > 0 ? getColorClass(day.colorLevel) : 'bg-stone-200'
+                          const dayColor = day.colorLevel > 0 ? getColorClass(day.colorLevel) : 'bg-stone-100'
                           return (
                             <div
                               key={day.date}
