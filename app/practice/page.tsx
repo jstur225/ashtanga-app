@@ -5226,38 +5226,45 @@ export default function AshtangaTracker() {
       }))
 
       // 15c. 云端选项（直接查 Supabase）
-      if (session?.access_token) {
+      const userId = user?.id
+      if (userId) {
         try {
-          // 用 user_id 直接查 practice_options 表
-          const userId = user?.id
-          if (userId) {
-            const { data: cloudOpts } = await supabase
-              .from('practice_options')
-              .select('id, label, color_level, is_custom, user_id')
-              .eq('user_id', userId)
-            colorSyncDiag.cloudOptions = (cloudOpts || []).map((o: any) => ({
-              id: o.id?.substring(0, 8),
-              label: o.label,
-              color_level: o.color_level,
-              is_custom: o.is_custom,
-            }))
-
-            // 云端记录的 color_level（最近10条）
-            const { data: cloudRecs } = await supabase
-              .from('practice_records')
-              .select('id, date, type, color_level, updated_at')
-              .eq('user_id', userId)
-              .is('deleted_at', null)
-              .order('date', { ascending: false })
-              .limit(10)
-            colorSyncDiag.cloudRecordColors = (cloudRecs || []).map((r: any) => ({
-              id: r.id?.substring(0, 8),
-              date: r.date,
-              type: r.type?.substring(0, 10),
-              color_level: r.color_level,
-              updated_at: r.updated_at,
-            }))
+          // 先查一次不带 color_level 的列，检测列是否存在
+          const { data: testOpts, error: testError } = await supabase
+            .from('practice_options')
+            .select('id, label, color_level, is_custom, user_id')
+            .eq('user_id', userId)
+            .limit(1)
+          if (testError) {
+            colorSyncDiag.cloudQueryError = `practice_options.color_level 列可能不存在: ${testError.message}`
+            colorSyncDiag.cloudQueryErrorCode = testError.code
           }
+          const { data: cloudOpts } = await supabase
+            .from('practice_options')
+            .select('id, label, color_level, is_custom, user_id')
+            .eq('user_id', userId)
+          colorSyncDiag.cloudOptions = (cloudOpts || []).map((o: any) => ({
+            id: o.id?.substring(0, 8),
+            label: o.label,
+            color_level: o.color_level,
+            is_custom: o.is_custom,
+          }))
+
+          // 云端记录的 color_level（最近10条）
+          const { data: cloudRecs } = await supabase
+            .from('practice_records')
+            .select('id, date, type, color_level, updated_at')
+            .eq('user_id', userId)
+            .is('deleted_at', null)
+            .order('date', { ascending: false })
+            .limit(10)
+          colorSyncDiag.cloudRecordColors = (cloudRecs || []).map((r: any) => ({
+            id: r.id?.substring(0, 8),
+            date: r.date,
+            type: r.type?.substring(0, 10),
+            color_level: r.color_level,
+            updated_at: r.updated_at,
+          }))
         } catch (e: any) {
           colorSyncDiag.cloudQueryError = e?.message || String(e)
         }
