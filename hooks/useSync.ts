@@ -1039,10 +1039,9 @@ export function useSync(
         }
       }
 
-      // 3. 批量上传练习选项（只同步自定义选项）
+      // 3. 批量上传练习选项（上传所有选项以同步色阶等字段）
       if (options.length > 0) {
-        const customOptions = options.filter(o => o.is_custom)
-        const optionsToUpload = customOptions.map(o => ({
+        const optionsToUpload = options.map(o => ({
           id: o.id,
           user_id: userId,
           label: o.label || '',
@@ -1063,7 +1062,7 @@ export function useSync(
           console.error('   上传的数据:', JSON.stringify(optionsToUpload, null, 2))
           addLog('批量上传选项', 'error', undefined, optionsError.message)
         } else {
-          addLog(`批量上传${customOptions.length}个选项`, 'success')
+          addLog(`批量上传${optionsToUpload.length}个选项`, 'success')
         }
       }
 
