@@ -244,23 +244,23 @@ export function useSync(
         : remoteData.records
 
       if (remoteCount > 0 && localCount > 0) {
-        // 两边都有数据，检查是否有差异需要同步
-        const { localOnly, remoteOnly, localNewer, remoteNewer } = diffRecords(effectiveLocalRecords, effectiveRemoteRecords)
-
-        // ⭐ 检查色阶差异：diffRecords 只比较 ID 和时间戳，不比较 color_level
-        // 如果本地记录的 color_level 与云端不同，强制重新上传以修复
-        const colorLevelMismatches: PracticeRecord[] = []
+        // ⭐ 修复色阶同步：对比本地和云端记录的 color_level
+        // 如果不同则更新本地记录的 updated_at，让 diffRecords 自然检测到差异并触发重传
         const remoteRecordsMap = new Map(effectiveRemoteRecords.map(r => [r.id, r]))
+        let colorLevelFixed = false
         for (const localRecord of effectiveLocalRecords) {
           const remoteRecord = remoteRecordsMap.get(localRecord.id)
           if (remoteRecord && (localRecord.color_level ?? 3) !== (remoteRecord.color_level ?? 3)) {
-            colorLevelMismatches.push(localRecord)
+            localRecord.updated_at = new Date().toISOString()
+            colorLevelFixed = true
           }
         }
-        const hasColorLevelMismatch = colorLevelMismatches.length > 0
-        if (hasColorLevelMismatch) {
-          console.error(`📊 [autoSync] 检测到 ${colorLevelMismatches.length} 条记录的色阶不同，需重新上传`)
+        if (colorLevelFixed) {
+          console.error(`📊 [autoSync] 检测到色阶差异，已更新本地记录的 updated_at，将触发重传`)
         }
+
+        // 两边都有数据，检查是否有差异需要同步
+        const { localOnly, remoteOnly, localNewer, remoteNewer } = diffRecords(effectiveLocalRecords, effectiveRemoteRecords)
 
         const totalLocalChanges = localOnly.length + localNewer.length
         const totalRemoteChanges = remoteOnly.length + remoteNewer.length
@@ -350,7 +350,7 @@ export function useSync(
 
         console.error(`📊 [autoSync] 比对结果：本地独有${localOnly.length}条，云端独有${remoteOnly.length}条，本地更新${localNewer.length}条，云端更新${remoteNewer.length}条，profile变化=${profileChanged}，选项变化=${optionsChanged}`)
 
-        if (totalLocalChanges === 0 && totalRemoteChanges === 0 && !profileChanged && !optionsChanged && !hasColorLevelMismatch) {
+        if (totalLocalChanges === 0 && totalRemoteChanges === 0 && !profileChanged && !optionsChanged) {
           // 没有差异，数据已一致
           console.error('[autoSync] 数据已一致，无需同步')
           addLog(`数据一致，无需同步`, 'success', undefined, undefined, undefined, {
@@ -363,7 +363,7 @@ export function useSync(
         }
 
         // 有差异：本地有新增/更新的数据 → 上传到云端
-        if ((totalLocalChanges > 0 || profileChangeSource === 'local' || optionsChangeSource === 'local' || hasColorLevelMismatch) && totalRemoteChanges === 0 && optionsChangeSource !== 'remote') {
+        if ((totalLocalChanges > 0 || profileChangeSource === 'local' || optionsChangeSource === 'local') && totalRemoteChanges === 0 && optionsChangeSource !== 'remote') {
           console.error(`📤 [autoSync] 本地有${totalLocalChanges}条变更（新增${localOnly.length}+更新${localNewer.length}）${profileChanged ? '+ profile变更' : ''}，上传到云端`)
           addLog(`上传本地 ${totalLocalChanges} 条变更新到云端`, 'success', undefined, undefined, undefined, {
             triggerReason: currentTriggerReasonRef.current,
