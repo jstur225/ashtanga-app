@@ -158,21 +158,18 @@
   background-image: linear-gradient(to top left, rgba(74, 122, 68, 0.1), rgba(45, 90, 39, 0.15));
 }
 
-/* 日历色阶：5级绿色 */
+/* 日历色阶：4级绿色 */
 .green-gradient-1 {
-  background-color: #DEE6DC;
+  background-color: #E5E8E1;
 }
 .green-gradient-2 {
-  background-color: #9BB48E;
+  background-color: #A6B39E;
 }
 .green-gradient-3 {
   background-color: #4A7A44;
 }
 .green-gradient-4 {
-  background-color: #365932;
-}
-.green-gradient-5 {
-  background-color: #1B2F1A;
+  background-color: #365533;
 }
 
 @layer base {

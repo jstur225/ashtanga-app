@@ -35,7 +35,7 @@ export interface PracticeFormData {
   notes: string
   breakthrough?: string
   photos?: string[] // ⭐ 照片URL数组（保存时一起提交）
-  color_level?: number // ⭐ 色阶等级 1-5（可选，不传则用类型默认）
+  color_level?: number // ⭐ 色阶等级 1-4（可选，不传则用类型默认）
 }
 
 export interface PracticeFormProps {
@@ -550,8 +550,8 @@ export function PracticeForm({
         <div className="relative">
           {showColorPicker ? (
             <div className="flex gap-2 items-center">
-              {[1, 2, 3, 4, 5].map((level) => {
-                const locked = !isPro && (level === 1 || level === 4 || level === 5)
+              {[1, 2, 3, 4].map((level) => {
+                const locked = !isPro && level === 4
                 const selected = colorLevel === level
                 return (
                   <button
