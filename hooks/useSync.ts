@@ -1054,9 +1054,13 @@ export function useSync(
         }
       }
 
-      // 3. 批量上传练习选项（上传所有选项以同步色阶等字段）
+      // 3. 批量上传练习选项（上传所有用户选项以同步色阶等字段，过滤掉固定按钮和特殊按钮）
       if (options.length > 0) {
-        const optionsToUpload = options.map(o => ({
+        // 过滤掉非 UUID 的固定按钮（chant_switch, guided_audio, today_count, custom）
+        const syncableOptions = options.filter(o =>
+          o.id && o.id !== 'custom' && o.id !== 'chant_switch' && o.id !== 'guided_audio' && o.id !== 'today_count' && !o.is_fixed
+        )
+        const optionsToUpload = syncableOptions.map(o => ({
           id: o.id,
           user_id: userId,
           label: o.label || '',
@@ -1077,7 +1081,7 @@ export function useSync(
           console.error('   上传的数据:', JSON.stringify(optionsToUpload, null, 2))
           addLog('批量上传选项', 'error', undefined, optionsError.message)
         } else {
-          addLog(`批量上传${optionsToUpload.length}个选项`, 'success')
+          addLog(`批量上传${optionsToUpload.length}个选项（已过滤固定按钮）`, 'success')
         }
       }
 
