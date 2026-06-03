@@ -4939,7 +4939,13 @@ export default function AshtangaTracker() {
         dateRange: nonDraftRecords.length > 0 ? {
           earliest: nonDraftRecords[nonDraftRecords.length - 1]?.date,
           latest: nonDraftRecords[0]?.date
-        } : null
+        } : null,
+        colorLevelDistribution: {
+          level1: nonDraftRecords.filter(r => r.color_level === 1).length,
+          level2: nonDraftRecords.filter(r => r.color_level === 2).length,
+          level3: nonDraftRecords.filter(r => r.color_level === 3 || r.color_level === undefined).length,
+          level4: nonDraftRecords.filter(r => r.color_level === 4).length,
+        }
       },
       options: {
         totalCount: practiceOptions.length,
@@ -4949,7 +4955,8 @@ export default function AshtangaTracker() {
           id: o.id,
           label: o.label.substring(0, 50),
           hasNotes: !!o.notes,
-          isCustom: o.is_custom
+          isCustom: o.is_custom,
+          colorLevel: (o as any).color_level ?? 3
         }))
       },
       profile: {
