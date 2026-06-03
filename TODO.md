@@ -1,6 +1,39 @@
 # 待处理问题
 
-## 2026-06-02 - 日历色阶：记录级颜色选择器 🔶 待优化
+## 2026-06-03 - 会员降级色阶锁定处理 ✅ 已实现
+
+**状态**: ✅ 已实现
+
+### 问题
+Pro 用户降级为免费后，选项（PracticeOption）的 `color_level` 可能仍为 1 或 4（Pro 专属）。此时：
+- `typeColorMap` 返回锁定值 → 日历/热力图/新记录默认色都错
+- 编辑选项弹窗打开时，已选中的 1 或 4 不会自动降回 3
+
+### 要求
+- 选项被锁（1 或 4）就自动改为 3
+- 已有练习记录（PracticeRecord）的 `color_level` 不修正
+
+### 修改方案（审查后更新）
+
+| # | 位置 | line | 改动 |
+|---|------|------|------|
+| 0 | 顶层共享函数 | 新增 | 提取 `getEffectiveOptionColor(options, label, isPro)` 共享辅助函数，所有调用统一走此函数 |
+| 1 | `EditOptionModal useEffect` | 436-442 | 免费用户打开弹窗时，原始值 1/4 自动显示为 3 |
+| 2 | `handleEditSave` | 4625-4635 | 免费用户保存时，1/4 强制改为 3 |
+| 3 | `typeColorMap ×2` | 2871 / 3845 | CalendarTab + StatsTab 各有一个 `typeColorMap`，都需过滤 |
+| 4 | `getTypeColorLevel ×3` | 634 / 1418 / 2321 | EditRecordModal + AddPracticeModal + CompletionSheet，改用共享函数 |
+
+### 额外工作
+- 单元测试：`__tests__/color-level.test.ts` — 共享辅助函数 8 个 case 覆盖所有分支
+
+### 不改
+PracticeForm（locked 逻辑已正确）、同步逻辑、CSS、历史记录、数据库
+
+### 涉及文件
+- `app/practice/page.tsx`（仅此一个文件）
+- `__tests__/color-level.test.ts`（新增）
+
+## 2026-06-02 - 日历色阶：记录级颜色选择器 🔶 已部署
 
 **状态**: ✅ 已部署，2026-06-03 改为 4 级实色
 **已推提交**: 4 次 commit 到 `master2`
