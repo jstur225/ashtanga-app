@@ -5,7 +5,7 @@ import Link from "next/link"
 import { Playfair_Display } from 'next/font/google'
 import { useRouter } from "next/navigation"
 import { motion, Variants } from "framer-motion"
-import { ArrowRight, Timer, BookOpen, BarChart3, ChevronDown, Moon, Shield, Coffee, Leaf, Wind, Github } from "lucide-react"
+import { ArrowRight, Timer, BookOpen, BarChart3, ChevronDown, Moon, Shield, Coffee, Leaf, Wind, Github, Loader2 } from "lucide-react"
 
 const playfair = Playfair_Display({
   subsets: ["latin"],
@@ -93,7 +93,11 @@ export default function MobileLandingPage() {
                 >
                     <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                     <span className="text-[10px] font-serif tracking-widest relative z-10">开始练习</span>
-                    <ArrowRight className="w-3 h-3 relative z-10 group-hover:translate-x-0.5 transition-transform" />
+                    {isNavigating ? (
+                        <Loader2 className="w-3 h-3 relative z-10 animate-spin" />
+                    ) : (
+                        <ArrowRight className="w-3 h-3 relative z-10 group-hover:translate-x-0.5 transition-transform" />
+                    )}
                 </Link>
             </nav>
 
@@ -341,7 +345,11 @@ export default function MobileLandingPage() {
                         {/* 按钮内容 */}
                         <div className="flex items-center gap-3 relative z-10">
                             <span className="text-lg font-serif tracking-widest">开始练习</span>
-                            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
+                            {isNavigating ? (
+                                <Loader2 className="w-5 h-5 relative z-10 animate-spin" />
+                            ) : (
+                                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
+                            )}
                         </div>
                     </Link>
                 </div>
