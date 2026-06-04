@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect } from "react"
+import React, { useEffect, useState } from "react"
 import Link from "next/link"
 import { Playfair_Display } from 'next/font/google'
 import { useRouter } from "next/navigation"
@@ -37,15 +37,22 @@ const scaleIn: Variants = {
 
 export default function MobileLandingPage() {
     const router = useRouter()
+    const [isNavigating, setIsNavigating] = useState(false)
 
     // 检查是否已经看过落地页
     useEffect(() => {
         const hasSeenLanding = localStorage.getItem('has_seen_landing')
         if (hasSeenLanding === 'true') {
-            // 已经看过，直接跳转到练习页
             router.replace('/practice')
         }
+        // 提前预加载练习页 JS chunk
+        router.prefetch('/practice')
     }, [router])
+
+    const handleStartPractice = () => {
+        localStorage.setItem('has_seen_landing', 'true')
+        setIsNavigating(true)
+    }
 
     return (
         <div className={`${playfair.variable} min-h-screen bg-[#F9F7F2] text-[#2A4B3C] font-serif selection:bg-[#2A4B3C] selection:text-[#F9F7F2] overflow-x-hidden pb-12`}>
@@ -79,19 +86,15 @@ export default function MobileLandingPage() {
                 </div>
 
                 {/* Top Right: Start Practice Button with Glassmorphism */}
-                <button
-                    onClick={() => {
-                        // 保存已访问标记
-                        localStorage.setItem('has_seen_landing', 'true')
-                        // 跳转到练习页
-                        router.push('/practice')
-                    }}
-                    className="flex items-center gap-2 px-3 py-1 bg-gradient-to-br from-[#2A4B3C] to-[#1a2f26] text-[#C1A268] rounded-full shadow-lg hover:shadow-[#C1A268]/20 border border-[#C1A268]/20 active:scale-95 transition-all duration-300 relative overflow-hidden group backdrop-blur-md"
+                <Link
+                    href="/practice"
+                    onClick={handleStartPractice}
+                    className={`flex items-center gap-2 px-3 py-1 bg-gradient-to-br from-[#2A4B3C] to-[#1a2f26] text-[#C1A268] rounded-full shadow-lg hover:shadow-[#C1A268]/20 border border-[#C1A268]/20 active:scale-95 transition-all duration-300 relative overflow-hidden group backdrop-blur-md ${isNavigating ? 'opacity-50 pointer-events-none' : ''}`}
                 >
                     <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                     <span className="text-[10px] font-serif tracking-widest relative z-10">开始练习</span>
                     <ArrowRight className="w-3 h-3 relative z-10 group-hover:translate-x-0.5 transition-transform" />
-                </button>
+                </Link>
             </nav>
 
             {/* 2. Hero Section */}
@@ -327,12 +330,10 @@ export default function MobileLandingPage() {
 
                 {/* 底部CTA按钮 */}
                 <div className="flex justify-center mt-8 mb-4">
-                    <button
-                        onClick={() => {
-                            localStorage.setItem('has_seen_landing', 'true')
-                            router.push('/practice')
-                        }}
-                        className="group relative px-8 py-4 bg-gradient-to-br from-[#2A4B3C] to-[#1a2f26] text-[#C1A268] rounded-full shadow-xl hover:shadow-[#C1A268]/40 border-2 border-[#C1A268] active:scale-95 transition-all duration-300 overflow-hidden"
+                    <Link
+                        href="/practice"
+                        onClick={handleStartPractice}
+                        className={`group relative px-8 py-4 bg-gradient-to-br from-[#2A4B3C] to-[#1a2f26] text-[#C1A268] rounded-full shadow-xl hover:shadow-[#C1A268]/40 border-2 border-[#C1A268] active:scale-95 transition-all duration-300 overflow-hidden inline-block ${isNavigating ? 'opacity-50 pointer-events-none' : ''}`}
                     >
                         {/* 背景光泽效果 */}
                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-500 ease-in-out"></div>
@@ -342,7 +343,7 @@ export default function MobileLandingPage() {
                             <span className="text-lg font-serif tracking-widest">开始练习</span>
                             <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
                         </div>
-                    </button>
+                    </Link>
                 </div>
 
                 <motion.div
