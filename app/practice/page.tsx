@@ -326,21 +326,27 @@ function CustomPracticeModal({
   onConfirm,
   isFull,
   maxSlots,
+  membership,
+  onShowMembershipPrompt,
 }: {
   isOpen: boolean
   onClose: () => void
-  onConfirm: (name: string, notes: string) => void
+  onConfirm: (name: string, notes: string, colorLevel?: number) => void
   isFull: boolean
   maxSlots: number
+  membership?: { is_active: boolean } | null
+  onShowMembershipPrompt: () => void
 }) {
   const [practiceName, setPracticeName] = useState("")
   const [notes, setNotes] = useState("")
+  const [colorLevel, setColorLevel] = useState(3)
 
   const handleConfirm = () => {
     if (practiceName.trim()) {
-      onConfirm(practiceName.slice(0, 10), notes.slice(0, 14))
+      onConfirm(practiceName.slice(0, 10), notes.slice(0, 14), colorLevel)
       setPracticeName("")
       setNotes("")
+      setColorLevel(3)
     }
   }
 
@@ -402,6 +408,38 @@ function CustomPracticeModal({
                     className="w-full px-4 py-3 rounded-2xl bg-secondary text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-serif"
                   />
                   <div className="text-right text-xs text-muted-foreground mt-1">{notes.length}/14</div>
+                </div>
+
+                {/* 色阶选择 */}
+                <div>
+                  <label className="block text-sm font-serif text-foreground mb-2">
+                    日历颜色 <span className="text-muted-foreground text-xs">（练习日显示的深浅）</span>
+                  </label>
+                  <div className="flex gap-3 justify-center">
+                    {[1, 2, 3, 4].map((level) => {
+                      const isPro = membership?.is_active
+                      const locked = !isPro && (level === 1 || level === 4)
+                      const selected = colorLevel === level
+                      return (
+                        <button
+                          key={level}
+                          onClick={() => {
+                            if (locked) {
+                              onShowMembershipPrompt()
+                              return
+                            }
+                            setColorLevel(level)
+                          }}
+                          className={`w-10 h-10 rounded-full transition-all relative ${
+                            selected ? 'ring-2 ring-orange-400 ring-offset-2 ring-offset-card scale-110' : ''
+                          } ${locked ? 'opacity-40' : ''}`}
+                        >
+                          <div className={`w-full h-full rounded-full ${getColorClass(level)} border border-white/20`} />
+                          {locked && <Lock className="w-3 h-3 absolute inset-0 m-auto text-white" />}
+                        </button>
+                      )
+                    })}
+                  </div>
                 </div>
 
                 <button
@@ -4497,7 +4535,8 @@ export default function AshtangaTracker() {
         notes: o.notes,
         isCustom: o.is_custom,
         is_fixed: false,
-        can_edit: o.can_edit
+        can_edit: o.can_edit,
+        color_level: o.color_level
       })),
       // 自定义按钮
       { id: "custom", label: "自定义", notes: null, isCustom: false }
@@ -4803,7 +4842,7 @@ export default function AshtangaTracker() {
     return newRecord
   }
 
-  const handleAddOption = async (name: string, notes: string) => {
+  const handleAddOption = async (name: string, notes: string, colorLevel?: number) => {
     const maxSlots = membershipIsPro ? MAX_SLOTS_PRO : MAX_SLOTS_FREE
     // Check if we can add more options
     const userOptions = practiceOptions.filter(o => !o.is_fixed && o.id !== "custom")
@@ -4813,7 +4852,7 @@ export default function AshtangaTracker() {
       return
     }
 
-    const result = addOption(name, name, notes, undefined, membershipIsPro)
+    const result = addOption(name, name, notes, undefined, membershipIsPro, colorLevel)
     if (!result) {
       toast.error('添加选项失败，可能已达到上限')
       return
@@ -6379,6 +6418,11 @@ export default function AshtangaTracker() {
         onConfirm={handleAddOption}
         isFull={isOptionsFull}
         maxSlots={membershipIsPro ? MAX_SLOTS_PRO : MAX_SLOTS_FREE}
+        membership={membership}
+        onShowMembershipPrompt={() => {
+          setMembershipPromptReason('color_level')
+          setShowMembershipPrompt(true)
+        }}
       />
 
       {/* Edit Option Modal */}

@@ -332,7 +332,8 @@ export const usePracticeData = () => {
     label_zh?: string,
     notes?: string,
     onSync?: () => void,
-    isPro?: boolean
+    isPro?: boolean,
+    colorLevel?: number
   ) => {
     const existingOptions = options || [];
     const maxSlots = isPro ? MAX_SLOTS_PRO : MAX_SLOTS_FREE;
@@ -349,6 +350,7 @@ export const usePracticeData = () => {
       label: label_zh || label,
       notes,
       is_custom: true,
+      color_level: colorLevel ?? 3,
     };
     setOptions([...existingOptions, newOption]);
 
