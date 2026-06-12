@@ -814,7 +814,7 @@ function EditRecordModal({
             isOpen={showTypeSelector}
             onClose={(selectedType) => {
               if (selectedType) {
-                setFormData(prev => ({ ...prev, type: selectedType }))
+                setFormData(prev => ({ ...prev, type: selectedType, color_level: getTypeColorLevel(selectedType) }))
               }
               handleTypeSelectorToggle(false)
             }}
@@ -1622,7 +1622,7 @@ function AddPracticeModal({
             isOpen={showTypeSelector}
             onClose={(selectedType) => {
               if (selectedType) {
-                setFormData(prev => ({ ...prev, type: selectedType }))
+                setFormData(prev => ({ ...prev, type: selectedType, color_level: getTypeColorLevel(selectedType) }))
               }
               handleTypeSelectorToggle(false)
             }}
@@ -2536,7 +2536,7 @@ function CompletionSheet({
               isOpen={showTypeSelector}
               onClose={(selectedType) => {
                 if (selectedType) {
-                  setFormData(prev => ({ ...prev, type: selectedType }))
+                  setFormData(prev => ({ ...prev, type: selectedType, color_level: getTypeColorLevel(selectedType) }))
                 }
                 setShowTypeSelector(false)
               }}
