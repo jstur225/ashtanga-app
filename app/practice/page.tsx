@@ -10,7 +10,7 @@ import { useAnnotations } from "@/hooks/useAnnotations"
 import { usePWAInstall } from "@/hooks/usePWAInstall"
 import { useAuth } from "@/hooks/useAuth"
 import { useSync } from "@/hooks/useSync"
-import { BookOpen, BarChart3, Calendar, X, Camera, Pause, Play, Trash2, User, Settings, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Cloud, Download, Upload, Plus, Minus, Share2, Sparkles, Check, Copy, ClipboardPaste, MessageCircle, Bug, AlertCircle, SkipBack, SkipForward, Volume, Volume2, Crown, Ticket, Loader2, Lock, Users, Pencil, Library } from "lucide-react"
+import { BookOpen, BarChart3, Calendar, X, Camera, Pause, Play, Trash2, User, Settings, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Cloud, Download, Upload, Plus, Minus, Share2, Sparkles, Check, Copy, ClipboardPaste, MessageCircle, Bug, AlertCircle, SkipBack, SkipForward, Volume, Volume2, Crown, Ticket, Loader2, Lock, Users, Pencil } from "lucide-react"
 import { cn } from '@/lib/utils'
 import { getColorClass, getEffectiveOptionColor } from '@/lib/sync-utils'
 import { VoiceButton } from "@/components/VoiceButton"
@@ -40,7 +40,6 @@ const PWAInstallTutorialModal = dynamic(() => import('@/components/PWAInstallTut
 const AuthModal = dynamic(() => import('@/components/AuthModal').then(m => ({ default: m.AuthModal })), { ssr: false })
 const DataConflictModal = dynamic(() => import('@/components/DataConflictModal').then(m => ({ default: m.DataConflictModal })), { ssr: false })
 const DebugLogModal = dynamic(() => import('@/components/DebugLogModal').then(m => ({ default: m.DebugLogModal })), { ssr: false })
-const PosesTab = dynamic(() => import('@/components/PosesTab').then(m => ({ default: m.PosesTab })), { ssr: false })
 const ActivateModal = dynamic(() => import('@/components/Membership/ActivateModal').then(m => ({ default: m.ActivateModal })), { ssr: false })
 const MembershipPromptModal = dynamic(() => import('@/components/Membership/MembershipPromptModal').then(m => ({ default: m.MembershipPromptModal })), { ssr: false })
 const PurchaseGuideModal = dynamic(() => import('@/components/Membership/PurchaseGuideModal').then(m => ({ default: m.PurchaseGuideModal })), { ssr: false })
@@ -4275,8 +4274,7 @@ export default function AshtangaTracker() {
   const [showConfirmEnd, setShowConfirmEnd] = useState(false)
   const [showCompletion, setShowCompletion] = useState(false)
   const [finalDuration, setFinalDuration] = useState("")
-  const [activeTab, setActiveTab] = useState<'practice' | 'journal' | 'poses' | 'stats'>('practice')
-  const [posesDetailOpen, setPosesDetailOpen] = useState(false)
+  const [activeTab, setActiveTab] = useState<'practice' | 'journal' | 'stats'>('practice')
 
   // ⭐ 读取 URL 参数，切换 Tab（客户端 only，只执行一次）
   useEffect(() => {
@@ -4481,8 +4479,7 @@ export default function AshtangaTracker() {
       childModalOpen ||  // 子组件的弹窗（包含确认删除等）
       editingRecord !== null ||  // 编辑记录弹窗
       showConfirmEnd ||  // 确认结束弹窗
-      showCompletion ||  // 完成练习弹窗
-      posesDetailOpen    // 体式库详情页
+      showCompletion    // 完成练习弹窗
     )
   }, [
     showEditModal,
@@ -4493,8 +4490,7 @@ export default function AshtangaTracker() {
     childModalOpen,
     editingRecord,
     showConfirmEnd,
-    showCompletion,
-    posesDetailOpen
+    showCompletion
   ])
 
   // Initialize practice options from hook data
@@ -6319,14 +6315,6 @@ export default function AshtangaTracker() {
         />
         </motion.div>
       )}
-      {activeTab === 'poses' && (
-        <motion.div key="poses" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="flex-1 flex flex-col min-h-0">
-        <PosesTab
-          onDetailOpen={() => setPosesDetailOpen(true)}
-          onDetailClose={() => setPosesDetailOpen(false)}
-        />
-        </motion.div>
-      )}
       {activeTab === 'stats' && (
         <motion.div key="stats" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="flex-1 flex flex-col min-h-0">
         <StatsTab
@@ -6381,16 +6369,6 @@ export default function AshtangaTracker() {
                 >
                   <BookOpen className="w-5 h-5" />
                   <span className="text-[10px] font-serif whitespace-nowrap">觉察日记</span>
-                </button>
-                <button
-                  onClick={() => {
-                    console.log('[Tab] 点击体式库, 当前:', activeTab)
-                    setActiveTab('poses')
-                  }}
-                  className={`flex flex-col items-center gap-1 px-5 py-2 rounded-full transition-all ${activeTab === 'poses' ? 'green-gradient text-white shadow-sm' : 'text-stone-400 hover:text-stone-600'}`}
-                >
-                  <Library className="w-5 h-5" />
-                  <span className="text-[10px] font-serif whitespace-nowrap">体式库</span>
                 </button>
                 <button
                   onClick={() => {
