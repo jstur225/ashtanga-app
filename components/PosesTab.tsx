@@ -120,8 +120,8 @@ export function PosesTab({ onDetailOpen, onDetailClose }: PosesTabProps) {
             transition={{ duration: 0.2 }}
             className="fixed inset-0 z-50 bg-white flex flex-col"
           >
-            {/* 顶部栏（固定不滚动） */}
-            <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b border-stone-100 bg-white z-10">
+            {/* 顶部栏 */}
+            <div className="flex items-center justify-between px-4 py-3 border-b border-stone-100">
               <button
                 onClick={closePose}
                 className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-stone-100"
@@ -144,56 +144,53 @@ export function PosesTab({ onDetailOpen, onDetailClose }: PosesTabProps) {
               </button>
             </div>
 
-            {/* 整页滚动：图片 + 步骤 + 切换一起滚动 */}
-            <div className="flex-1 overflow-y-auto">
-              {/* 体式图 */}
-              <div className="flex items-center justify-center py-10 bg-gradient-to-b from-[#faf8f5] to-white">
-                {!imagesLoaded[selectedPose.id] && (
-                  <div className="w-56 aspect-[4/5] bg-stone-100 rounded-xl animate-pulse" />
-                )}
-                <img
-                  src={selectedPose.image}
-                  alt={selectedPose.name}
-                  className={`w-full max-w-[220px] h-auto object-contain ${imagesLoaded[selectedPose.id] ? '' : 'hidden'}`}
-                  onLoad={() => setImagesLoaded(prev => ({ ...prev, [selectedPose.id]: true }))}
-                />
-              </div>
+            {/* 体式图 — 占上半屏 */}
+            <div className="flex-shrink-0 h-[50vh] flex items-center justify-center bg-gradient-to-b from-[#faf8f5] to-white px-4">
+              {!imagesLoaded[selectedPose.id] && (
+                <div className="w-full max-w-[250px] aspect-[4/5] bg-stone-100 rounded-xl animate-pulse" />
+              )}
+              <img
+                src={selectedPose.image}
+                alt={selectedPose.name}
+                className={`w-full h-full object-contain ${imagesLoaded[selectedPose.id] ? '' : 'hidden'}`}
+                onLoad={() => setImagesLoaded(prev => ({ ...prev, [selectedPose.id]: true }))}
+              />
+            </div>
 
-              {/* 步骤说明 */}
-              <div className="px-6 pb-6">
-                <div className="text-xs font-serif text-stone-500 mb-3">步骤</div>
-                <ol className="space-y-2.5">
-                  {selectedPose.steps.map((step, i) => (
-                    <li key={i} className="flex gap-2.5 text-sm font-serif text-stone-700 leading-relaxed">
-                      <span className="flex-shrink-0 w-5 h-5 rounded-full bg-[#5B7553]/10 text-[#5B7553] text-[10px] flex items-center justify-center font-medium">
-                        {i + 1}
-                      </span>
-                      <span>{step}</span>
-                    </li>
-                  ))}
-                </ol>
-              </div>
+            {/* 步骤说明 — 滚动 */}
+            <div className="flex-1 overflow-y-auto px-6 pb-4">
+              <div className="text-xs font-serif text-stone-500 mb-3">步骤</div>
+              <ol className="space-y-2.5">
+                {selectedPose.steps.map((step, i) => (
+                  <li key={i} className="flex gap-2.5 text-sm font-serif text-stone-700 leading-relaxed">
+                    <span className="flex-shrink-0 w-5 h-5 rounded-full bg-[#5B7553]/10 text-[#5B7553] text-[10px] flex items-center justify-center font-medium">
+                      {i + 1}
+                    </span>
+                    <span>{step}</span>
+                  </li>
+                ))}
+              </ol>
+            </div>
 
-              {/* 左右切换 */}
-              <div className="flex items-center justify-between px-6 py-5 border-t border-stone-100 bg-white">
-                <button
-                  onClick={() => navigatePose('prev')}
-                  className="flex items-center gap-1.5 text-stone-500 hover:text-stone-700 transition-colors active:scale-95"
-                >
-                  <ChevronLeft className="w-5 h-5" />
-                  <span className="text-sm font-serif">上一个</span>
-                </button>
-                <span className="text-xs text-stone-300 font-serif">
-                  {poseIndex + 1} / {filteredPoses.length}
-                </span>
-                <button
-                  onClick={() => navigatePose('next')}
-                  className="flex items-center gap-1.5 text-stone-500 hover:text-stone-700 transition-colors active:scale-95"
-                >
-                  <span className="text-sm font-serif">下一个</span>
-                  <ChevronRight className="w-5 h-5" />
-                </button>
-              </div>
+            {/* 左右切换 */}
+            <div className="flex items-center justify-between px-6 py-5 border-t border-stone-100 bg-white">
+              <button
+                onClick={() => navigatePose('prev')}
+                className="flex items-center gap-1.5 text-stone-500 hover:text-stone-700 transition-colors active:scale-95"
+              >
+                <ChevronLeft className="w-5 h-5" />
+                <span className="text-sm font-serif">上一个</span>
+              </button>
+              <span className="text-xs text-stone-300 font-serif">
+                {poseIndex + 1} / {filteredPoses.length}
+              </span>
+              <button
+                onClick={() => navigatePose('next')}
+                className="flex items-center gap-1.5 text-stone-500 hover:text-stone-700 transition-colors active:scale-95"
+              >
+                <span className="text-sm font-serif">下一个</span>
+                <ChevronRight className="w-5 h-5" />
+              </button>
             </div>
           </motion.div>
         )}
