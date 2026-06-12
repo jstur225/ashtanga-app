@@ -5069,6 +5069,7 @@ export default function AshtangaTracker() {
       photos: r.photos || [],
       hasPhotos: !!r.photos?.length,
       photosCount: r.photos?.length || 0,
+      colorLevel: (r as any).color_level ?? 3,
       createdAt: r.created_at,
       updatedAt: r.updated_at
     }))
