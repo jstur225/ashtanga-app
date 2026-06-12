@@ -4698,6 +4698,13 @@ export default function AshtangaTracker() {
     ))
 
     toast.success('已保存修改')
+
+    // 如果已登录，自动同步到云端
+    if (user) {
+      setTimeout(async () => {
+        await autoSync('编辑选项后同步')
+      }, 500)
+    }
   }
 
   const handleEditDelete = async (id: string) => {
