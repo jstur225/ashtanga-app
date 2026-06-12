@@ -1,5 +1,23 @@
 # 阿斯汤加打卡 app - 项目记录
 
+## 2026-06-12: 色阶系统推送到生产
+
+### 背景
+master2 上积累了 57 个 commit（色阶 + 体式库 + 小修），用户只需色阶，不要体式库。master3 闲置可覆盖。
+
+### 操作
+1. master2 提交当前改动（注释修正 + 函数提取 + 测试导入修复 + 文档归档）
+2. master3 reset --hard 到 master2
+3. 从新到旧 revert 6 个体式库 commit（f0e92e5 → 9473f0f），无冲突
+4. 105 个测试全部通过
+5. master3 force push 到远端
+6. master reset --hard 到 master3，force push
+7. 运行日志补全 `colorLevel` 字段到每条练习记录
+
+### 涉及文件
+- 删除：`components/PosesTab.tsx`、`lib/pose-data.ts`、`public/poses/*.png`（4 张）
+- 修改：`app/practice/page.tsx`（移除体式库 tab + 补全 colorLevel 日志字段）
+
 ## 2026-06-03: 颜色同步修复 + 色阶选择器优化
 
 ### 问题 1：颜色同步不生效

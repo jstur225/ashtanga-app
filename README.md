@@ -72,6 +72,7 @@
 - ✅ **购买引导**（闲鱼下单 + 激活码，PurchaseGuideModal 统一购买入口）
 - ✅ **日历标注**（自定义日历标记，Pro 9 种标注类型，批量管理）
 - ✅ **Pro 到期降级**（超出免费上限的选项锁定，数据保留不删除）
+- ✅ **色阶系统**（4 级绿色等级，练习记录和类型可单独设色，日历/热力图色阶显示，云端同步，Pro 解锁 4 号深绿）
 - ✅ **全站统计追踪**（每日活跃用户、新设备、绑定用户、练习次数，Supabase SQL 查询）
 - ✅ **匿名练习埋点**（未绑定用户完成练习也记录到 `daily_user_activity.has_practiced`，区分「打开看看」和「确实练了」的设备）
 
@@ -90,7 +91,6 @@
 - ⏳ 错误提示美化（toast替代alert）
 
 ### 未来功能（v2.0+）
-- ⏳ 体式#Tag系统（筛选对比）
 - ⏳ 成就墙（突破时刻汇总）
 
 ---
@@ -107,7 +107,7 @@
 
 **商业模式**：
 - 免费功能：基础打卡、时间记录、文字日记、月相日历、口令跟练（1 张照片、4 个练习选项）
-- Pro 功能：9 张照片/条、10 个练习选项、9 种日历标注
+- Pro 功能：9 张照片/条、10 个练习选项、9 种日历标注、4 号色阶深绿
 
 ---
 
@@ -170,30 +170,43 @@
 ## 📂 文件结构
 
 ```
-Ashtanga_app/
-├── README.md                        # 项目说明（本文件）
-├── PROJECT_LOG.md                   # 开发日志（详细记录）
-├── 阿斯汤加打卡app设计方案.md        # 完整设计文档
-├── SUPABASE_SETUP_GUIDE.md          # Supabase配置指南
-├── yoga-app-homepage/               # Next.js项目（源代码）
-│   ├── app/                         # Next.js App Router
-│   ├── components/                  # React组件
-│   ├── lib/                         # 工具函数
-│   │   ├── database.ts             # 数据库CRUD操作
-│   │   └── supabase.ts             # Supabase连接配置
-│   └── public/                      # 静态资源
-├── docs/                            # 文档目录
-│   ├── research/                    # 竞品调研文档
-│   │   ├── 全平台竞品对比报告_2026-01-16.md
-│   │   ├── 小红书用户洞察报告_2026-01-16.md
-│   │   ├── 竞品调研总报告_2026-01-16.md
-│   │   ├── Chrome_MCP_竞品调研指南.md
-│   │   ├── 竞品体验指南.md
-│   │   ├── 竞品体验_模板.md
-│   │   └── 竞品体验报告/
-│   └── guides/                      # 开发指南
-│       └── app开发流程指南_非技术人员AI开发.md
-└── screenshots/                     # 截图存放
+ashtang-app/
+├── app/                             # Next.js App Router
+│   ├── practice/                    # 练习页（主页面，~6800行）
+│   ├── api/                         # API 路由（stats/membership/auth等）
+│   └── globals.css                  # 全局样式 + 色阶 CSS
+├── components/                      # React 组件
+│   ├── PracticeForm.tsx             # 练习表单（含色阶选择器）
+│   ├── Membership/                  # 会员相关组件
+│   ├── CalendarAnnotation/          # 日历标注组件
+│   ├── PhotoUpload/                 # 照片上传组件
+│   ├── Timeline/                    # 时光轴组件
+│   ├── AuthModal.tsx                # 登录/注册弹窗
+│   ├── DataConflictModal.tsx        # 数据冲突弹窗
+│   ├── DebugLogModal.tsx            # 运行日志弹窗
+│   ├── ExportModal.tsx              # 数据胶囊导出
+│   └── ImportModal.tsx              # 数据胶囊导入
+├── hooks/                           # 自定义 Hooks
+│   ├── usePracticeData.ts           # 练习数据 CRUD
+│   ├── useSync.ts                   # 云端同步逻辑
+│   ├── useAuth.ts                   # 认证
+│   ├── useMembership.ts             # 会员状态
+│   └── useAnnotations.ts            # 日历标注
+├── lib/                             # 工具函数
+│   ├── supabase.ts                  # Supabase 客户端 + 类型定义
+│   ├── sync-utils.ts               # 同步纯函数（diffRecords 等）
+│   ├── oss.ts                       # 阿里云 OSS 上传
+│   ├── analytics.ts                 # 埋点
+│   ├── version.ts                   # 版本信息
+│   └── moon-phase-data.ts           # 月相数据
+├── __tests__/                       # 测试（Vitest）
+├── public/                          # 静态资源（图标/音频/月相图）
+├── scripts/                         # 运维脚本
+├── supabase/migrations/             # 数据库迁移
+├── ASHTANGA_PROJECT_LOG.md          # 项目日志
+├── TODO.md                          # 待办事项
+├── DESIGN.md                        # 设计规范
+└── README_USER.md                   # 用户使用指南
 ```
 
 ---
@@ -365,7 +378,7 @@ vs iOS：
 ---
 
 **创建时间**：2026-01-14
-**最后更新**：2026-05-15
-**当前版本**：v1.2.1（已部署）
+**最后更新**：2026-06-12
+**当前版本**：v1.3.0（色阶系统已部署）
 **项目状态**：🎉 云端运行中
-**下一步行动**：小红书双号运营（品牌号 + 主理人号）
+**下一步行动**：用户回访 + 色阶功能推广
