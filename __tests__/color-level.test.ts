@@ -1,14 +1,5 @@
 import { describe, it, expect } from 'vitest'
-
-// 共享辅助函数：获取有效色阶（免费用户不可使用等级 1 和 4）
-function getEffectiveOptionColor(
-  options: { label: string; color_level?: number }[],
-  label: string,
-  isPro: boolean
-): number {
-  const raw = options.find(o => o.label === label)?.color_level ?? 3
-  return (!isPro && (raw === 1 || raw === 4)) ? 3 : raw
-}
+import { getEffectiveOptionColor } from '@/lib/sync-utils'
 
 const mockOptions = [
   { label: '一序列', color_level: 1 },

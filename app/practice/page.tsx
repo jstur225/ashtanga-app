@@ -12,7 +12,7 @@ import { useAuth } from "@/hooks/useAuth"
 import { useSync } from "@/hooks/useSync"
 import { BookOpen, BarChart3, Calendar, X, Camera, Pause, Play, Trash2, User, Settings, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Cloud, Download, Upload, Plus, Minus, Share2, Sparkles, Check, Copy, ClipboardPaste, MessageCircle, Bug, AlertCircle, SkipBack, SkipForward, Volume, Volume2, Crown, Ticket, Loader2, Lock, Users, Pencil, Library } from "lucide-react"
 import { cn } from '@/lib/utils'
-import { getColorClass } from '@/lib/sync-utils'
+import { getColorClass, getEffectiveOptionColor } from '@/lib/sync-utils'
 import { VoiceButton } from "@/components/VoiceButton"
 import { PracticeForm, type PracticeFormData } from "@/components/PracticeForm"
 import { PhotoUploadButton } from "@/components/PhotoUploadButton"
@@ -100,16 +100,6 @@ function formatDate(dateStr: string): string {
   const month = date.getMonth() + 1
   const day = date.getDate()
   return `${month}/${day}`
-}
-
-// 共享辅助函数：获取有效色阶（免费用户不可使用等级 1 和 4）
-function getEffectiveOptionColor(
-  options: PracticeOption[],
-  label: string,
-  isPro: boolean
-): number {
-  const raw = options.find(o => o.label === label)?.color_level ?? 3
-  return (!isPro && (raw === 1 || raw === 4)) ? 3 : raw
 }
 
 // Zen-style Custom Date Picker Component

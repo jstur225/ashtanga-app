@@ -121,6 +121,18 @@ export function mergeOptions(
 }
 
 /**
+ * 获取有效色阶（免费用户不可使用等级 1 和 4）
+ */
+export function getEffectiveOptionColor(
+  options: { label: string; color_level?: number }[],
+  label: string,
+  isPro: boolean
+): number {
+  const raw = options.find(o => o.label === label)?.color_level ?? 3
+  return (!isPro && (raw === 1 || raw === 4)) ? 3 : raw
+}
+
+/**
  * 色阶等级 → CSS class 映射
  * level 1=最浅绿, 2=浅绿, 3=中绿(默认), 4=深绿
  */
