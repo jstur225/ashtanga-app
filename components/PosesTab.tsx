@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronLeft, ChevronRight, Search } from 'lucide-react'
+import { ChevronLeft, ChevronRight, X, Search } from 'lucide-react'
 import { POSE_CATEGORIES, POSES, type Pose } from '@/lib/pose-data'
 
 interface PosesTabProps {
@@ -124,10 +124,9 @@ export function PosesTab({ onDetailOpen, onDetailClose }: PosesTabProps) {
             <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b border-stone-100 bg-white z-10">
               <button
                 onClick={closePose}
-                className="flex items-center gap-1.5 text-stone-500 hover:text-stone-700 transition-colors"
+                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-stone-100"
               >
-                <ChevronLeft className="w-5 h-5" />
-                <span className="text-sm font-serif">返回</span>
+                <ChevronLeft className="w-5 h-5 text-stone-600" />
               </button>
               <div className="text-center">
                 <div className="text-sm font-serif font-medium text-stone-800">
@@ -137,7 +136,12 @@ export function PosesTab({ onDetailOpen, onDetailClose }: PosesTabProps) {
                   {selectedPose.sanskrit}
                 </div>
               </div>
-              <div className="w-[60px]" />
+              <button
+                onClick={closePose}
+                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-stone-100"
+              >
+                <X className="w-4 h-4 text-stone-400" />
+              </button>
             </div>
 
             {/* 整页滚动：图片 + 步骤 + 切换一起滚动 */}
@@ -155,16 +159,13 @@ export function PosesTab({ onDetailOpen, onDetailClose }: PosesTabProps) {
                 />
               </div>
 
-              {/* 图片 → 步骤间隔 */}
-              <div className="h-6" />
-
               {/* 步骤说明 */}
-              <div className="px-6 pb-8">
-                <div className="text-sm font-serif text-stone-500 mb-4">Vinyasa / 动作呼吸</div>
+              <div className="px-6 pb-6">
+                <div className="text-xs font-serif text-stone-500 mb-3">步骤</div>
                 <ol className="space-y-2.5">
                   {selectedPose.steps.map((step, i) => (
-                    <li key={i} className="flex gap-3 text-base font-serif text-stone-700 leading-relaxed">
-                      <span className="flex-shrink-0 w-6 h-6 rounded-full bg-[#5B7553]/10 text-[#5B7553] text-xs flex items-center justify-center font-medium">
+                    <li key={i} className="flex gap-2.5 text-sm font-serif text-stone-700 leading-relaxed">
+                      <span className="flex-shrink-0 w-5 h-5 rounded-full bg-[#5B7553]/10 text-[#5B7553] text-[10px] flex items-center justify-center font-medium">
                         {i + 1}
                       </span>
                       <span>{step}</span>
