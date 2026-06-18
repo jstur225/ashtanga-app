@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react"
-import { useLocalStorage, useInterval } from 'react-use';
+import { useLocalStorage } from 'react-use';
 import { motion, AnimatePresence } from "framer-motion"
 import dynamic from 'next/dynamic'
 import { usePracticeData, type PracticeRecord, type PracticeOption, type UserProfile, GUIDED_AUDIO_OPTION, MAX_SLOTS_FREE, MAX_SLOTS_PRO } from "@/hooks/usePracticeData"
@@ -9,6 +9,7 @@ import { useMembership } from "@/hooks/useMembership"
 import { useAnnotations } from "@/hooks/useAnnotations"
 import { useAuth } from "@/hooks/useAuth"
 import { useSync } from "@/hooks/useSync"
+import { usePracticeSession } from "@/hooks/usePracticeSession"
 import { BookOpen, BarChart3, Calendar, X, Pause, Play, User, ChevronUp, ChevronDown, Upload, Plus, Minus, Share2, Sparkles, Check, ClipboardPaste, AlertCircle, SkipBack, SkipForward, Volume, Volume2, Crown, Ticket, Loader2, Lock, Users, Library } from "lucide-react"
 import { cn } from '@/lib/utils'
 import { getColorClass } from '@/lib/sync-utils'
@@ -119,20 +120,30 @@ export default function AshtangaTracker() {
   const [selectedOption, setSelectedOption] = useState<string | null>(null)
   const [todayCount, setTodayCount] = useState<number | null>(null)
   const [customPracticeName, setCustomPracticeName] = useState("")
-  const [isPracticing, setIsPracticing] = useLocalStorage('ashtanga_is_practicing', false)
-  const [isPaused, setIsPaused] = useLocalStorage('ashtanga_is_paused', false)
-  const [startTime, setStartTime] = useLocalStorage<number | null>('ashtanga_start_time', null)
-  const [pauseStartTime, setPauseStartTime] = useLocalStorage<number | null>('ashtanga_pause_start_time', null)
-  const [totalPausedTime, setTotalPausedTime] = useLocalStorage<number>('ashtanga_total_paused_time', 0)
-  const [elapsedTime, setElapsedTime] = useState(0)
+  const {
+    isPracticing,
+    isPaused,
+    totalPausedTime,
+    elapsedTime,
+    showConfirmEnd,
+    showCompletion,
+    finalDuration,
+    completedStartTimeRef: startTimeRef,
+    start: startPracticeSession,
+    restartTimer: restartPracticeTimer,
+    pause: pausePracticeSession,
+    resume: resumePracticeSession,
+    requestEnd: requestPracticeEnd,
+    cancelEnd: cancelPracticeEnd,
+    confirmEnd: confirmPracticeEnd,
+    discardEnd: discardPracticeEnd,
+    finishCompletion,
+  } = usePracticeSession()
   const [showEditModal, setShowEditModal] = useState(false)
   const [showCustomModal, setShowCustomModal] = useState(false)
   const [editingOption, setEditingOption] = useState<PracticeOption | null>(null)
   const [editingRecord, setEditingRecord] = useState<PracticeRecord | null>(null)
   const [showAddModal, setShowAddModal] = useState(false)
-  const [showConfirmEnd, setShowConfirmEnd] = useState(false)
-  const [showCompletion, setShowCompletion] = useState(false)
-  const [finalDuration, setFinalDuration] = useState("")
   const [activeTab, setActiveTab] = useState<'practice' | 'journal' | 'poses' | 'stats'>('practice')
   const [posesDetailOpen, setPosesDetailOpen] = useState(false)
 
@@ -215,9 +226,6 @@ export default function AshtangaTracker() {
   // 今日练习人数
   const [todayPracticeCount, setTodayPracticeCount] = useState<number>(0)
   const [todayCountLoading, setTodayCountLoading] = useState(true)
-
-  // ⭐ 用于保存练习开始时间（在 handleConfirmEnd 重置 startTime state 后仍能使用）
-  const startTimeRef = useRef<number | null>(null)
 
   const [exportLogs, setExportLogs] = useLocalStorage<{
     timestamp: string
@@ -438,26 +446,6 @@ export default function AshtangaTracker() {
       }
     }
   }, [isPracticing])
-
-  // Timer logic - Timestamp based for background/lock screen support
-  useInterval(() => {
-    if (isPracticing && !isPaused && startTime) {
-      const now = Date.now()
-      const diff = Math.floor((now - startTime - (totalPausedTime || 0)) / 1000)
-      setElapsedTime(Math.max(0, diff))
-    }
-  }, isPracticing && !isPaused ? 1000 : null)
-
-  // Sync elapsed time on resume/mount
-  useEffect(() => {
-    if (isPracticing && startTime) {
-      const now = Date.now()
-      const pausedAt = isPaused ? (pauseStartTime || now) : now
-      const currentTotalPaused = (totalPausedTime || 0) + (isPaused ? (now - (pauseStartTime || now)) : 0)
-      const diff = Math.floor((pausedAt - startTime - (totalPausedTime || 0)) / 1000)
-      setElapsedTime(Math.max(0, diff))
-    }
-  }, [])
 
   const handleOptionTap = (option: PracticeOption) => {
     const now = Date.now()
@@ -1278,31 +1266,22 @@ export default function AshtangaTracker() {
       chantAudioRef.current = null
       setIsChantPlaying(false)
       const now = Date.now()
-      setStartTime(now)
-      startTimeRef.current = now
-      setElapsedTime(0)
-      setIsPaused(false)
+      restartPracticeTimer(now)
     })
     audio.addEventListener('error', () => {
       chantAudioRef.current = null
       setIsChantPlaying(false)
       const now = Date.now()
-      setStartTime(now)
-      startTimeRef.current = now
-      setElapsedTime(0)
-      setIsPaused(false)
+      restartPracticeTimer(now)
       toast.error('唱诵音频加载失败')
     })
     audio.play().catch(() => {
       chantAudioRef.current = null
       setIsChantPlaying(false)
       const now = Date.now()
-      setStartTime(now)
-      startTimeRef.current = now
-      setElapsedTime(0)
-      setIsPaused(false)
+      restartPracticeTimer(now)
     })
-  }, [])
+  }, [restartPracticeTimer])
 
   // 跳过倒计时，直接播放唱诵
   const skipChantCountdown = useCallback(() => {
@@ -1317,13 +1296,7 @@ export default function AshtangaTracker() {
   const startChantCountdown = useCallback(() => {
     // 先进入练习界面
     const now = Date.now()
-    setStartTime(now)
-    startTimeRef.current = now
-    setIsPracticing(true)
-    setIsPaused(true)
-    setTotalPausedTime(0)
-    setPauseStartTime(null)
-    setElapsedTime(0)
+    startPracticeSession(true, now)
 
     // 启动倒计时
     let remaining = chantDelaySeconds
@@ -1342,7 +1315,7 @@ export default function AshtangaTracker() {
         setChantCountdown(remaining)
       }
     }, 1000)
-  }, [chantDelaySeconds, playChantAudio])
+  }, [chantDelaySeconds, playChantAudio, startPracticeSession])
 
   // 统一设置 Audio 事件监听（DRY）
   const setupAudioEvents = (audio: HTMLAudioElement, onError: (e: Event) => void) => {
@@ -1350,7 +1323,7 @@ export default function AshtangaTracker() {
       setAudioDuration(audio.duration)
       setIsAudioLoaded(true)
       setIsAudioLoading(false)
-      setIsPaused(false)
+      resumePracticeSession()
       audio.play()
     })
 
@@ -1372,7 +1345,7 @@ export default function AshtangaTracker() {
     setAudioError(null)
     setAudioDownloadProgress(0)
     setIsBackgroundCaching(false)
-    setIsPaused(true)
+    pausePracticeSession()
 
     // 释放旧的 Blob URL
     if (audioBlobUrlRef.current) {
@@ -1466,13 +1439,7 @@ export default function AshtangaTracker() {
 
       // 先进入练习界面（立即给用户反馈）
       const now = Date.now()
-      setStartTime(now)
-      startTimeRef.current = now // ⭐ 保存到 ref
-      setIsPracticing(true)
-      setIsPaused(false)
-      setTotalPausedTime(0)
-      setPauseStartTime(null)
-      setElapsedTime(0)
+      startPracticeSession(false, now)
 
       // 口令跟练模式：加载音频
       if (selectedOption === 'guided_audio') {
@@ -1486,25 +1453,18 @@ export default function AshtangaTracker() {
   const handlePauseResume = () => {
     const now = Date.now()
     if (!isPaused) {
-      // Pause
-      setPauseStartTime(now)
+      pausePracticeSession(now)
       // 音频同步暂停
       if (audioElement && selectedOption === 'guided_audio') {
         audioElement.pause()
       }
     } else {
-      // Resume
-      if (pauseStartTime) {
-        const pausedDuration = now - pauseStartTime
-        setTotalPausedTime((totalPausedTime || 0) + pausedDuration)
-      }
-      setPauseStartTime(null)
+      resumePracticeSession(now)
       // 音频同步继续
       if (audioElement && selectedOption === 'guided_audio') {
         audioElement.play()
       }
     }
-    setIsPaused(!isPaused)
     trackEvent(isPaused ? 'resume_practice' : 'pause_practice')
   }
 
@@ -1543,19 +1503,11 @@ export default function AshtangaTracker() {
   const SEEK_STEP_OPTIONS = [10, 15, 30]
 
   const handleEndRequest = () => {
-    setShowConfirmEnd(true)
+    requestPracticeEnd()
   }
 
   const handleConfirmEnd = () => {
-    setShowConfirmEnd(false)
-    setFinalDuration(formatMinutes(elapsedTime))
-    setShowCompletion(true)
-    setIsPracticing(false)
-    // Clear timer persistence
-    setStartTime(null)
-    // ⭐ 注意：不清空 startTimeRef，供 handleSavePractice 使用
-    setPauseStartTime(null)
-    setTotalPausedTime(0)
+    confirmPracticeEnd()
 
     // 清理唱诵资源
     if (chantCountdownRef.current) {
@@ -1590,12 +1542,7 @@ export default function AshtangaTracker() {
 
   // 不保存结束：丢弃记录，直接回到初始状态
   const handleDiscardEnd = () => {
-    setShowConfirmEnd(false)
-    setIsPracticing(false)
-    setStartTime(null)
-    startTimeRef.current = null
-    setPauseStartTime(null)
-    setTotalPausedTime(0)
+    discardPracticeEnd()
 
     // 清理唱诵资源
     if (chantCountdownRef.current) {
@@ -1670,11 +1617,9 @@ export default function AshtangaTracker() {
         }
       }
 
-      setShowCompletion(false)
+      finishCompletion()
       setSelectedOption(null)
       setCustomPracticeName("")
-      setElapsedTime(0)
-      setIsPaused(false)
       setActiveTab('journal') // Switch to 觉察日记 tab
 
       toast.success('✅ 打卡成功！', {
@@ -1704,7 +1649,7 @@ export default function AshtangaTracker() {
     } finally {
       setIsSaving(false)
     }
-  }, [isSaving, fetchTodayCount])
+  }, [isSaving, fetchTodayCount, finishCompletion, startTimeRef])
 
   // Full-screen Timer View with Hero Transition
   if (isPracticing) {
@@ -1934,7 +1879,7 @@ export default function AshtangaTracker() {
           )}
         </div>
 
-        <ConfirmEndDialog isOpen={showConfirmEnd} onClose={() => setShowConfirmEnd(false)} onConfirm={handleConfirmEnd} onDiscard={handleDiscardEnd} />
+        <ConfirmEndDialog isOpen={showConfirmEnd} onClose={cancelPracticeEnd} onConfirm={handleConfirmEnd} onDiscard={handleDiscardEnd} />
 
         <CompletionSheet
           isOpen={showCompletion}
@@ -1943,11 +1888,9 @@ export default function AshtangaTracker() {
           startTime={startTimeRef.current ? new Date(startTimeRef.current).toISOString() : undefined}
           onFinalizeRecord={handleSavePractice}
           onClose={() => {
-            setShowCompletion(false)
+            finishCompletion()
             setSelectedOption(null)
             setCustomPracticeName("")
-            setElapsedTime(0)
-            setIsPaused(false)
             setActiveTab('journal')
           }}
           addRecord={addRecord}
@@ -2597,11 +2540,9 @@ export default function AshtangaTracker() {
         startTime={startTimeRef.current ? new Date(startTimeRef.current).toISOString() : undefined}
         onFinalizeRecord={handleSavePractice}
         onClose={() => {
-          setShowCompletion(false)
+          finishCompletion()
           setSelectedOption(null)
           setCustomPracticeName("")
-          setElapsedTime(0)
-          setIsPaused(false)
           setActiveTab('journal')
         }}
         addRecord={addRecord}
