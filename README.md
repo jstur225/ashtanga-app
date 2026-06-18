@@ -7,7 +7,7 @@
 - ✅ 数据持久化完成
 - ✅ 云端部署成功（Vercel）
 - ✅ `master2` 低风险 UI/工具解耦完成（6476 行 → 2738 行）
-- ✅ 自动检查通过：150 项测试、TypeScript、轻量 lint、生产构建
+- ✅ 自动检查通过：167 项测试、TypeScript、轻量 lint、生产构建
 
 **在线地址**: https://ash.ashtangalife.online
 
