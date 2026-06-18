@@ -10,6 +10,10 @@ export function useAuth() {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
 
+  const loadDeviceInfo = async (_userId: string) => {
+    // Reserved for future device metadata loading.
+  }
+
   // ==================== 初始化：检查登录状态 ====================
   useEffect(() => {
     // ⭐ 检查是否正在退出登录，如果是则强制清除 session

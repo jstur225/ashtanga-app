@@ -225,7 +225,7 @@ export async function POST(request: NextRequest) {
       }
 
       const userEmailExists = existingUser.users.some(
-        (user) => user.email?.toLowerCase() === email.toLowerCase()
+        (user: any) => user.email?.toLowerCase() === email.toLowerCase()
       )
 
       if (userEmailExists) {

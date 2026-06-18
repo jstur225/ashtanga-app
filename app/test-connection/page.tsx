@@ -21,7 +21,7 @@ export default function TestConnectionPage() {
 
   useEffect(() => {
     async function testConnection() {
-      const results = {
+      const results: typeof status = {
         loading: false,
         envVars: false,
         connection: false,

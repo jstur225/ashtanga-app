@@ -4,8 +4,10 @@
   "private": true,
   "scripts": {
     "build": "next build",
-    "dev": "next dev -H 0.0.0.0",
-    "lint": "eslint .",
+    "dev": "next dev --webpack -H 0.0.0.0",
+    "dev:turbo": "next dev --turbo -H 0.0.0.0",
+    "lint": "node scripts/lint-check.mjs",
+    "typecheck": "tsc --noEmit",
     "start": "next start -H 0.0.0.0"
   },
   "dependencies": {

@@ -18,11 +18,11 @@ const getSupabaseAnonKey = () => {
 }
 
 // Create Supabase client (lazy initialization using Proxy)
-let supabaseInstance: ReturnType<typeof createClient> | null = null
+let supabaseInstance: ReturnType<typeof createClient<any>> | null = null
 
 const getSupabaseInstance = () => {
   if (!supabaseInstance) {
-    supabaseInstance = createClient(getSupabaseUrl(), getSupabaseAnonKey(), {
+    supabaseInstance = createClient<any>(getSupabaseUrl(), getSupabaseAnonKey(), {
       global: {
         fetch: (url, options = {}) => {
           // ⭐ 兼容不支持 AbortSignal.timeout 的浏览器
@@ -51,9 +51,9 @@ const getSupabaseInstance = () => {
 }
 
 // Export a Proxy that defers client creation until first use
-export const supabase = new Proxy({} as ReturnType<typeof createClient>, {
+export const supabase = new Proxy({} as ReturnType<typeof createClient<any>>, {
   get(target, prop) {
-    return getSupabaseInstance()[prop as keyof ReturnType<typeof createClient>]
+    return getSupabaseInstance()[prop as keyof ReturnType<typeof createClient<any>>]
   }
 })
 
@@ -68,11 +68,11 @@ const getServiceRoleKey = () => {
   return key
 }
 
-let supabaseServiceInstance: ReturnType<typeof createClient> | null = null
+let supabaseServiceInstance: ReturnType<typeof createClient<any>> | null = null
 
 export const getSupabaseServiceClient = () => {
   if (!supabaseServiceInstance) {
-    supabaseServiceInstance = createClient(
+    supabaseServiceInstance = createClient<any>(
       getSupabaseUrl(),
       getServiceRoleKey(),
       {
@@ -89,7 +89,7 @@ export const getSupabaseServiceClient = () => {
 // Database types
 export interface PracticeRecord {
   id: string // UUID (string)
-  user_id: string // 新增：用户ID，用于数据隔离
+  user_id?: string // 新增：用户ID，用于数据隔离
   created_at: string
   updated_at: string // ⭐ 新增：最后修改时间，用于同步时判断最新版本
   date: string
@@ -105,17 +105,22 @@ export interface PracticeRecord {
 
 export interface PracticeOption {
   id: string // UUID (string)
-  user_id: string // 新增：用户ID，用于数据隔离
+  user_id?: string // 新增：用户ID，用于数据隔离
   created_at: string
   label: string  // 练习类型名称（中文）
   notes?: string  // 备注说明
   is_custom: boolean
+  isCustom?: boolean
+  is_fixed?: boolean
+  is_preset?: boolean
+  visible?: boolean
+  can_edit?: boolean
   color_level?: number // 日历色阶等级 1-4（默认3=green-gradient-deep）
 }
 
 export interface UserProfile {
   id: string // UUID (string)
-  user_id: string // 新增：用户ID，关联到 auth.users
+  user_id?: string // 新增：用户ID，关联到 auth.users
   created_at: string
   updated_at: string // ⭐ 新增：最后修改时间，用于同步时判断最新版本
   name: string
@@ -139,7 +144,7 @@ export interface Photo {
   display_order: number // 显示顺序（支持多照片拖拽排序）
   uploaded_at: string // 上传时间
   deleted_at?: string | null // 软删除时间戳
-  created_at: string // 创建时间
+  created_at?: string // 创建时间
 }
 
 // ⭐ 新增：会员系统类型

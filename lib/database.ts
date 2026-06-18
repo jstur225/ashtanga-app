@@ -5,7 +5,7 @@ import { supabase, TABLES, PracticeRecord, PracticeOption, UserProfile } from '.
 // 获取所有练习记录（添加 user_id 过滤 + 软删除过滤）
 export async function getAllPracticeRecords(userId?: string): Promise<PracticeRecord[]> {
   try {
-    let query = supabase
+    let query: any = supabase
       .from(TABLES.PRACTICE_RECORDS)
       .select('*')
       .is('deleted_at', null) // ⚠️ 只查询未删除的记录
@@ -13,7 +13,7 @@ export async function getAllPracticeRecords(userId?: string): Promise<PracticeRe
     // ⚠️ 重要：只有在提供了 userId 时才应用用户过滤
     // 未登录时（无 userId），不应用过滤，返回所有数据（兼容现有逻辑）
     if (userId) {
-      query = query.eq('user_id', userId)
+      query = (query as any).eq('user_id', userId)
     }
 
     const { data, error } = await query.order('date', { ascending: false })
@@ -250,7 +250,7 @@ export async function deletePracticeOption(id: string): Promise<boolean> { // �
 // 获取用户信息（添加 user_id 过滤）
 export async function getUserProfile(userId?: string): Promise<UserProfile | null> {
   try {
-    let query = supabase
+    let query: any = supabase
       .from(TABLES.USER_PROFILES)
       .select('*')
       .order('created_at', { ascending: false })

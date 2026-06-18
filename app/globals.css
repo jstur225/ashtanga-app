@@ -75,9 +75,9 @@
 }
 
 @theme inline {
-  --font-sans: var(--font-inter), 'Inter', 'Inter Fallback', system-ui, sans-serif;
-  --font-serif: var(--font-noto-serif-sc), 'Noto Serif SC', 'SimSun', 'STSong', serif;
-  --font-playfair: var(--font-playfair), 'Playfair Display', serif;
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-serif: 'Songti SC', 'STSong', 'SimSun', 'Noto Serif CJK SC', serif;
+  --font-playfair: Georgia, 'Times New Roman', serif;
   --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
 
   /* Classic/Retro Palette */

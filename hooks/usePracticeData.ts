@@ -6,6 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 export interface PracticeRecord {
   id: string;
+  user_id?: string;
   created_at: string;
   updated_at: string; // ⭐ 新增：最后修改时间，用于同步时判断最新版本
   date: string;
@@ -15,22 +16,29 @@ export interface PracticeRecord {
   photos: string[];
   breakthrough?: string;
   start_time?: string; // ⭐ 新增：练习开始时间，ISO 8601 格式（如 2026-03-05T11:53:00+08:00）
+  color_level?: number;
 }
 
 export interface PracticeOption {
   id: string;
+  user_id?: string;
   created_at: string;
   label: string;
   notes?: string;
   is_custom: boolean;
+  isCustom?: boolean;
+  is_fixed?: boolean;
   is_preset?: boolean;      // 是否预设特殊选项
+  visible?: boolean;
   audio_src?: string;       // 音频文件路径
   can_edit?: boolean;       // 是否可编辑（默认true）
   updated_at?: string;      // 最后修改时间
+  color_level?: number;
 }
 
 export interface UserProfile {
   id: string;
+  user_id?: string;
   created_at: string;
   updated_at: string; // ⭐ 新增：最后修改时间，用于同步时判断最新版本
   name: string;
@@ -166,6 +174,7 @@ export const usePracticeData = () => {
         {
           id: `tutorial-${Date.now()}-1`,
           created_at: nowStr,
+          updated_at: nowStr,
           date: firstDayOfMonth,
           type: '一序列 Mysore',
           duration: 5400,
@@ -391,7 +400,7 @@ export const usePracticeData = () => {
 
   const exportData = () => {
     // 移除头像，避免 base64 数据过大导致无法复制
-    const { avatar, ...profileWithoutAvatar } = profile;
+    const { avatar, ...profileWithoutAvatar } = profile!;
     // ⭐ 过滤掉草稿记录，只导出正式记录
     const nonDraftRecords = (records || []).filter(r => r.type !== '草稿');
     const data = {

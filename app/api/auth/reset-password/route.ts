@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
     console.log(`   查询到 ${users.length} 个用户`)
 
     // 找到匹配的用户
-    const targetUser = users.find(u => u.email === email)
+    const targetUser = users.find((u: any) => u.email === email)
 
     if (!targetUser) {
       console.log('   ❌ 错误：用户不存在')

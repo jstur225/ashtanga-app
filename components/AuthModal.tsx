@@ -266,7 +266,7 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
 
       // 登录
       if (mode === 'login') {
-        const { error } = await signIn(email, password)
+        const { error } = await signIn(email, password) as any
         if (error) throw error
         onAuthSuccess()
         onClose()

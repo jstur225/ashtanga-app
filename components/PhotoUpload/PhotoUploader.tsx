@@ -246,7 +246,7 @@ export function PhotoUploader({
         setPhotos(prev => {
           if (prev.some(p => p.id === photoId)) return prev
           return photoToDelete ? [...prev, photoToDelete].sort((a, b) =>
-            new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+            new Date(a.created_at ?? a.uploaded_at).getTime() - new Date(b.created_at ?? b.uploaded_at).getTime()
           ) : prev
         })
         toast.error('删除失败，请重试')
@@ -257,7 +257,7 @@ export function PhotoUploader({
       setPhotos(prev => {
         if (prev.some(p => p.id === photoId)) return prev
         return photoToDelete ? [...prev, photoToDelete].sort((a, b) =>
-          new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+          new Date(a.created_at ?? a.uploaded_at).getTime() - new Date(b.created_at ?? b.uploaded_at).getTime()
         ) : prev
       })
       toast.error('删除失败，请重试')
