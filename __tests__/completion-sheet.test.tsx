@@ -5,7 +5,7 @@ import { CompletionSheet } from "@/components/practice-record/CompletionSheet"
 import type { PracticeRecord } from "@/hooks/usePracticeData"
 
 const mocks = vi.hoisted(() => ({
-  toast: { success: vi.fn() },
+  toast: { success: vi.fn(), error: vi.fn() },
 }))
 
 vi.mock("sonner", () => ({ toast: mocks.toast }))
@@ -141,5 +141,42 @@ describe("CompletionSheet", () => {
     unmount()
 
     expect(props.onDeleteDraft).toHaveBeenCalledWith("draft-1")
+  })
+
+  it("快速重复保存只提交一次", () => {
+    const { props } = renderCompletion()
+
+    fireEvent.click(screen.getByText("保存练习"))
+    fireEvent.click(screen.getByText("保存练习"))
+
+    expect(props.updateRecord).toHaveBeenCalledTimes(1)
+    expect(props.onFinalizeRecord).toHaveBeenCalledTimes(1)
+    expect(props.onClose).toHaveBeenCalledTimes(1)
+  })
+
+  it("保存失败时保留草稿并允许再次提交", () => {
+    const updateRecord = vi.fn()
+      .mockImplementationOnce(() => { throw new Error("storage unavailable") })
+    const { props } = renderCompletion({ updateRecord })
+
+    fireEvent.click(screen.getByText("保存练习"))
+    expect(mocks.toast.error).toHaveBeenCalledWith("保存失败，请重试")
+    expect(props.onFinalizeRecord).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByText("保存练习"))
+    expect(updateRecord).toHaveBeenCalledTimes(2)
+    expect(props.onFinalizeRecord).toHaveBeenCalledTimes(1)
+  })
+
+  it("关闭时草稿删除失败会在卸载时重试", () => {
+    const onDeleteDraft = vi.fn()
+      .mockImplementationOnce(() => { throw new Error("delete unavailable") })
+    const { props, rerender, unmount } = renderCompletion({ onDeleteDraft })
+
+    rerender(<CompletionSheet {...props} isOpen={false} />)
+    expect(mocks.toast.error).toHaveBeenCalledWith("草稿清理失败，将自动重试")
+
+    unmount()
+    expect(onDeleteDraft).toHaveBeenCalledTimes(2)
   })
 })

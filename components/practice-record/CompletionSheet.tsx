@@ -56,11 +56,13 @@ export function CompletionSheet({
   })
   const [draftRecord, setDraftRecord] = useState<PracticeRecord | null>(null)
   const draftRecordRef = useRef<PracticeRecord | null>(null)
+  const isSavingRef = useRef(false)
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [showTypeSelector, setShowTypeSelector] = useState(false)
 
   useEffect(() => {
     if (isOpen) {
+      isSavingRef.current = false
       const draftColorLevel = getTypeColorLevel(practiceType)
       const draft = addRecord({
         date: getLocalDateStr(),
@@ -89,22 +91,34 @@ export function CompletionSheet({
         }, 500)
       }
     } else if (draftRecord) {
-      onDeleteDraft?.(draftRecord.id)
-      setDraftRecord(null)
-      draftRecordRef.current = null
+      try {
+        onDeleteDraft?.(draftRecord.id)
+        setDraftRecord(null)
+        draftRecordRef.current = null
+      } catch (error) {
+        console.error("[CompletionSheet] 草稿删除失败，卸载时将重试", error)
+        toast.error("草稿清理失败，将自动重试")
+      }
     }
   }, [isOpen, practiceType, duration])
 
   useEffect(() => {
     return () => {
       if (draftRecordRef.current) {
-        onDeleteDraft?.(draftRecordRef.current.id)
+        try {
+          onDeleteDraft?.(draftRecordRef.current.id)
+        } catch (error) {
+          console.error("[CompletionSheet] 卸载时草稿删除失败", error)
+        }
       }
     }
   }, [])
 
   const handleSave = (data: PracticeFormData) => {
-    if (draftRecord) {
+    if (!draftRecord || isSavingRef.current) return
+    isSavingRef.current = true
+
+    try {
       const completedRecord: PracticeRecord = {
         ...draftRecord,
         date: data.date,
@@ -128,18 +142,22 @@ export function CompletionSheet({
 
       onFinalizeRecord(completedRecord)
       onClose?.()
-    }
 
-    setFormData({
-      date: getLocalDateStr(),
-      type: practiceType,
-      duration: parseInt(duration) || 0,
-      notes: "",
-      breakthrough: undefined,
-      color_level: getTypeColorLevel(practiceType),
-    })
-    setDraftRecord(null)
-    draftRecordRef.current = null
+      setFormData({
+        date: getLocalDateStr(),
+        type: practiceType,
+        duration: parseInt(duration) || 0,
+        notes: "",
+        breakthrough: undefined,
+        color_level: getTypeColorLevel(practiceType),
+      })
+      setDraftRecord(null)
+      draftRecordRef.current = null
+    } catch (error) {
+      console.error("[CompletionSheet] 保存失败", error)
+      toast.error("保存失败，请重试")
+      isSavingRef.current = false
+    }
   }
 
   return (
