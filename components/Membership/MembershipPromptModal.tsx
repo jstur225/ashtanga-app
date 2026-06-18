@@ -29,15 +29,15 @@ export function MembershipPromptModal({ isOpen, onClose, onActivate, reason }: M
 
   return (
     <>
-      <div className="fixed inset-0 z-50 bg-black/50" onClick={onClose}>
+      <div className="fixed inset-0 z-[120] bg-black/50" onClick={onClose}>
         <div
-          className="fixed bottom-0 left-0 right-0 bg-card rounded-t-[24px] z-[110] p-6 pb-10 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] animate-in slide-in-from-bottom duration-300 max-h-[85vh] overflow-y-auto"
+          className="fixed bottom-0 left-0 right-0 bg-card rounded-t-[24px] z-[130] p-6 pb-10 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] animate-in slide-in-from-bottom duration-300 max-h-[85vh] overflow-y-auto"
           onClick={e => e.stopPropagation()}
         >
           {/* 关闭按钮 + 标题 */}
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-lg font-serif text-foreground font-semibold">Pro 会员</h2>
-            <button onClick={onClose} className="p-2 -mr-2 text-muted-foreground hover:text-foreground transition-colors">
+            <button type="button" aria-label="关闭会员提示" onClick={onClose} className="p-2 -mr-2 text-muted-foreground hover:text-foreground transition-colors">
               <X className="w-5 h-5" />
             </button>
           </div>
