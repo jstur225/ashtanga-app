@@ -6,8 +6,8 @@
 🎉 **MVP已完成**
 - ✅ 数据持久化完成
 - ✅ 云端部署成功（Vercel）
-- ✅ `master2` 练习页第一阶段解耦完成（6476 行 → 3238 行）
-- ✅ 自动检查通过：131 项测试、TypeScript、轻量 lint、生产构建
+- ✅ `master2` 低风险 UI/工具解耦完成（6476 行 → 2738 行）
+- ✅ 自动检查通过：150 项测试、TypeScript、轻量 lint、生产构建
 
 **在线地址**: https://ash.ashtangalife.online
 
@@ -93,7 +93,7 @@ npx vitest run
 npm run build
 ```
 
-练习页已按功能拆分为 `components/journal`、`components/stats`、`components/settings` 和 `components/practice-record`。当前拆分解决了文件职责和可测试性问题；`JournalTab`、`StatsTab` 的真正按需加载仍属于下一阶段。
+练习页已按功能拆分为 `components/journal`、`components/stats`、`components/settings`、`components/practice-record` 和 `components/practice`。日期/时长/HTML 工具位于 `lib/practice-utils.ts`；下一阶段提取 `usePracticeSession`，之后再处理媒体 Hook 与 Tab 真正按需加载。
 
 长期解耦与测试计划：
 

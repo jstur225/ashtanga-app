@@ -2943,3 +2943,29 @@ export const INVITE_VERSION = 'v2'  // 从 v1 更新到 v2
 - `ff94251` - fix: 流式播放时隐藏下载进度条，后台缓存完全静默
 - `82c7219` - perf: 网站加载速度优化 — 减少初始 JS ~400-500KB
 - `7a65d5f` - feat: 添加 Vercel Speed Insights 性能监控
+
+---
+
+## 2026-06-18 - 完整解耦阶段 1：基础 UI 与工具 ✅ 已完成
+
+**提交**：`0300ad4`、`443f75a`、`917812f`
+
+### 实现
+
+- 新增 `lib/practice-utils.ts`，集中日期、时长和 HTML 清理纯函数。
+- 新增 `components/practice/PracticePickers.tsx`，包含日期选择器与下拉选择器。
+- 新增 `components/practice/OptionModals.tsx`，包含自定义练习与编辑选项弹窗。
+- 新增 `components/practice/PracticeSessionControls.tsx`，包含结束确认与呼吸动画。
+- `practice/page.tsx` 本轮移除 682 行内联实现，当前 2738 行。
+
+### 测试与 QA
+
+- 新增工具、选择器、选项弹窗、结束确认与嵌套弹窗回归测试。
+- 全量结果：18 个测试文件、150 项测试通过；TypeScript、lint、生产构建通过。
+- 隔离浏览器通过落地页导航、选择练习、开始、暂停、继续、结束、放弃、自定义选项及免费色阶锁定。
+- QA 发现会员提示层级低于父弹窗，修复遮罩/内容层级并增加关闭按钮无障碍名称。
+- 修复后二次浏览器刷新被本地 URL 安全策略拦截；永久组件回归测试已通过，下一阶段浏览器回归继续复验。
+
+### 下一步
+
+进入阶段 2：提取 `usePracticeSession`，先覆盖计时、暂停累计、刷新恢复、草稿和幂等保存状态转换。
