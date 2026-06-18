@@ -9,7 +9,9 @@ import { useMembership } from "@/hooks/useMembership"
 import { useAnnotations } from "@/hooks/useAnnotations"
 import { useAuth } from "@/hooks/useAuth"
 import { useSync } from "@/hooks/useSync"
-import { usePracticeSession, type ActivePracticeContext } from "@/hooks/usePracticeSession"
+import { usePracticeSession } from "@/hooks/usePracticeSession"
+import { formatAudioTime, useGuidedAudio } from "@/hooks/useGuidedAudio"
+import { useChantPlayback } from "@/hooks/useChantPlayback"
 import { BookOpen, BarChart3, Calendar, X, Pause, Play, User, ChevronUp, ChevronDown, Upload, Plus, Minus, Share2, Sparkles, Check, ClipboardPaste, AlertCircle, SkipBack, SkipForward, Volume, Volume2, Crown, Ticket, Loader2, Lock, Users, Library } from "lucide-react"
 import { cn } from '@/lib/utils'
 import { getColorClass } from '@/lib/sync-utils'
@@ -25,7 +27,6 @@ import { supabase } from '@/lib/supabase'
 import { deletePracticeRecord } from '@/lib/database'
 import { useRouter } from 'next/navigation'
 import { getVersionInfo } from '@/lib/version'
-import { audioCache } from '@/lib/audioCache'
 import { formatMinutes, formatSeconds, getLocalDateStr } from '@/lib/practice-utils'
 import { CustomPracticeModal, EditOptionModal } from '@/components/practice/OptionModals'
 import { BreathingRipples, ConfirmEndDialog } from '@/components/practice/PracticeSessionControls'
@@ -198,32 +199,50 @@ export default function AshtangaTracker() {
   const [confirmPhrase, setConfirmPhrase] = useState('')
   const [isSaving, setIsSaving] = useState(false)
 
-  // 音频播放器状态
-  const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null)
-  const [audioProgress, setAudioProgress] = useState(0)  // 0-100
-  const [audioDuration, setAudioDuration] = useState(0)  // 总时长（秒）
-  const [audioCurrentTime, setAudioCurrentTime] = useState(0)  // 当前时间（秒）
-  const [isAudioLoaded, setIsAudioLoaded] = useState(false)
-  const [isAudioLoading, setIsAudioLoading] = useState(false)  // 加载中状态
-  const [audioError, setAudioError] = useState<string | null>(null)  // 加载错误
-  const [seekStep, setSeekStep] = useState<number>(15)  // 快进/后退步长（默认15秒）
-  const [audioDownloadProgress, setAudioDownloadProgress] = useState<number>(0)  // 下载进度（0-100）
-  const [isUsingCache, setIsUsingCache] = useState<boolean>(false)  // 是否使用缓存
-  const [isBackgroundCaching, setIsBackgroundCaching] = useState<boolean>(false)  // 后台缓存中
-  const audioBlobUrlRef = useRef<string | null>(null)  // Blob URL 追踪（防内存泄漏）
-
   // 唱诵状态
   const [chantEnabled, setChantEnabled] = useLocalStorage('ashtanga_chant_enabled', false)
   const [chantDelay, setChantDelay] = useLocalStorage('ashtanga_chant_delay', 60) // 秒
   const chantDelaySeconds = chantDelay ?? 60
-  const [isChantCountdown, setIsChantCountdown] = useState(false)
-  const [chantCountdown, setChantCountdown] = useState(0) // 剩余秒数
-  const [isChantPlaying, setIsChantPlaying] = useState(false)
   const [showChantSettings, setShowChantSettings] = useState(false)
   const [chantMins, setChantMins] = useState(1)
   const [chantSecs, setChantSecs] = useState(0)
-  const chantAudioRef = useRef<HTMLAudioElement | null>(null)
-  const chantCountdownRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  const {
+    progress: audioProgress,
+    duration: audioDuration,
+    currentTime: audioCurrentTime,
+    isLoaded: isAudioLoaded,
+    isLoading: isAudioLoading,
+    error: audioError,
+    seekStep,
+    isUsingCache,
+    setSeekStep,
+    load: loadGuidedAudio,
+    retry: retryGuidedAudio,
+    pause: pauseGuidedAudio,
+    play: playGuidedAudio,
+    seek: handleAudioSeek,
+    reset: resetGuidedAudio,
+  } = useGuidedAudio({
+    source: GUIDED_AUDIO_OPTION.audio_src || '',
+    onLoadStart: pausePracticeSession,
+    onReady: resumePracticeSession,
+    onEnded: requestPracticeEnd,
+  })
+
+  const {
+    isCountdown: isChantCountdown,
+    countdown: chantCountdown,
+    isPlaying: isChantPlaying,
+    start: startChantCountdown,
+    skip: skipChantCountdown,
+    reset: resetChantPlayback,
+  } = useChantPlayback({
+    delaySeconds: chantDelaySeconds,
+    onStart: (context, now) => { startPracticeSession(true, now, context) },
+    onFinished: restartPracticeTimer,
+    onError: () => { toast.error('唱诵音频加载失败') },
+  })
 
   // 今日练习人数
   const [todayPracticeCount, setTodayPracticeCount] = useState<number>(0)
@@ -1257,168 +1276,6 @@ export default function AshtangaTracker() {
     return new Set(userOptions.slice(maxSlots).map(o => o.id))
   }, [practiceOptions, membershipIsPro])
 
-  // 唱诵倒计时结束 → 播放唱诵音频
-  const playChantAudio = useCallback(() => {
-    setIsChantCountdown(false)
-    setIsChantPlaying(true)
-    const audio = new Audio('/audio/opening-chant.mp3')
-    chantAudioRef.current = audio
-    audio.addEventListener('ended', () => {
-      // 唱诵结束，重置起始时间，从0开始练习计时
-      chantAudioRef.current = null
-      setIsChantPlaying(false)
-      const now = Date.now()
-      restartPracticeTimer(now)
-    })
-    audio.addEventListener('error', () => {
-      chantAudioRef.current = null
-      setIsChantPlaying(false)
-      const now = Date.now()
-      restartPracticeTimer(now)
-      toast.error('唱诵音频加载失败')
-    })
-    audio.play().catch(() => {
-      chantAudioRef.current = null
-      setIsChantPlaying(false)
-      const now = Date.now()
-      restartPracticeTimer(now)
-    })
-  }, [restartPracticeTimer])
-
-  // 跳过倒计时，直接播放唱诵
-  const skipChantCountdown = useCallback(() => {
-    if (chantCountdownRef.current) {
-      clearInterval(chantCountdownRef.current)
-      chantCountdownRef.current = null
-    }
-    playChantAudio()
-  }, [playChantAudio])
-
-  // 启动唱诵倒计时
-  const startChantCountdown = useCallback((context: ActivePracticeContext) => {
-    // 先进入练习界面
-    const now = Date.now()
-    startPracticeSession(true, now, context)
-
-    // 启动倒计时
-    let remaining = chantDelaySeconds
-    setChantCountdown(remaining)
-    setIsChantCountdown(true)
-
-    chantCountdownRef.current = setInterval(() => {
-      remaining -= 1
-      if (remaining <= 0) {
-        if (chantCountdownRef.current) {
-          clearInterval(chantCountdownRef.current)
-          chantCountdownRef.current = null
-        }
-        playChantAudio()
-      } else {
-        setChantCountdown(remaining)
-      }
-    }, 1000)
-  }, [chantDelaySeconds, playChantAudio, startPracticeSession])
-
-  // 统一设置 Audio 事件监听（DRY）
-  const setupAudioEvents = (audio: HTMLAudioElement, onError: (e: Event) => void) => {
-    audio.addEventListener('loadedmetadata', () => {
-      setAudioDuration(audio.duration)
-      setIsAudioLoaded(true)
-      setIsAudioLoading(false)
-      resumePracticeSession()
-      audio.play()
-    })
-
-    audio.addEventListener('timeupdate', () => {
-      setAudioCurrentTime(audio.currentTime)
-      setAudioProgress((audio.currentTime / audio.duration) * 100)
-    })
-
-    audio.addEventListener('ended', () => {
-      handleEndRequest()
-    })
-
-    audio.addEventListener('error', onError)
-  }
-
-  // 口令跟练音频加载（可独立调用，重试按钮复用）
-  const loadGuidedAudio = async () => {
-    setIsAudioLoading(true)
-    setAudioError(null)
-    setAudioDownloadProgress(0)
-    setIsBackgroundCaching(false)
-    pausePracticeSession()
-
-    // 释放旧的 Blob URL
-    if (audioBlobUrlRef.current) {
-      URL.revokeObjectURL(audioBlobUrlRef.current)
-      audioBlobUrlRef.current = null
-    }
-
-    try {
-      const hasCache = await audioCache.isCacheValid()
-
-      if (hasCache) {
-        // 缓存命中：IndexedDB → Blob URL → Audio
-        console.log('[音频] 使用本地缓存')
-        setIsUsingCache(true)
-        const audioBuffer = await audioCache.getAudioBuffer()
-
-        if (audioBuffer) {
-          const blob = new Blob([audioBuffer], { type: 'audio/mp4' })
-          const url = URL.createObjectURL(blob)
-          audioBlobUrlRef.current = url // 追踪 Blob URL
-
-          const audio = new Audio()
-          audio.src = url
-
-          setupAudioEvents(audio, (e) => {
-            console.error('[音频] 缓存播放失败:', e)
-            audioCache.clearCache()
-            setAudioError('音频播放失败，请重试')
-            setIsAudioLoading(false)
-          })
-
-          setAudioElement(audio)
-        } else {
-          throw new Error('缓存数据无效')
-        }
-      } else {
-        // 缓存未命中：直接流式播放 + 后台缓存
-        console.log('[音频] 流式播放 + 后台缓存')
-        setIsUsingCache(false)
-
-        const audio = new Audio(GUIDED_AUDIO_OPTION.audio_src)
-
-        setupAudioEvents(audio, (e) => {
-          console.error('[音频] 流式播放失败:', e)
-          setIsAudioLoading(false)
-          setAudioError('音频播放失败，请检查网络连接')
-        })
-
-        setAudioElement(audio)
-
-        // 后台缓存到 IndexedDB（不阻塞播放，静默进行）
-        setIsBackgroundCaching(true)
-        audioCache.downloadAndCache(
-          GUIDED_AUDIO_OPTION.audio_src || '',
-          undefined, // 不显示进度——流式播放不需要
-          { priority: 'low' }
-        ).then(() => {
-          console.log('[音频] 后台缓存完成')
-          setIsBackgroundCaching(false)
-        }).catch((err) => {
-          console.error('[音频] 后台缓存失败（不影响播放）:', err)
-          setIsBackgroundCaching(false)
-        })
-      }
-    } catch (err) {
-      console.error('[音频] 加载失败:', err)
-      setAudioError('音频加载失败')
-      setIsAudioLoading(false)
-    }
-  }
-
   const handleStartPractice = async () => {
     if (selectedOption) {
       // 锁定选项不可开始练习
@@ -1465,14 +1322,14 @@ export default function AshtangaTracker() {
     if (!isPaused) {
       pausePracticeSession(now)
       // 音频同步暂停
-      if (audioElement && selectedOption === 'guided_audio') {
-        audioElement.pause()
+      if ((selectedOption ?? activePractice?.optionId) === 'guided_audio') {
+        pauseGuidedAudio()
       }
     } else {
       resumePracticeSession(now)
       // 音频同步继续
-      if (audioElement && selectedOption === 'guided_audio') {
-        audioElement.play()
+      if ((selectedOption ?? activePractice?.optionId) === 'guided_audio') {
+        playGuidedAudio()
       }
     }
     trackEvent(isPaused ? 'resume_practice' : 'pause_practice')
@@ -1497,23 +1354,7 @@ export default function AshtangaTracker() {
     return option?.notes || ""
   }, [selectedOption, activePractice, practiceOptions])
 
-  // 音频时间格式化
-  const formatAudioTime = (seconds: number): string => {
-    if (!seconds || isNaN(seconds)) return '00:00'
-    const mins = Math.floor(seconds / 60)
-    const secs = Math.floor(seconds % 60)
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
-  }
-
-  // 快进/后退功能
-  const handleAudioSeek = (direction: 'forward' | 'backward') => {
-    if (audioElement && isAudioLoaded) {
-      const seconds = direction === 'forward' ? seekStep : -seekStep
-      const newTime = Math.max(0, Math.min(audioElement.duration, audioElement.currentTime + seconds))
-      audioElement.currentTime = newTime
-      setAudioCurrentTime(newTime)
-    }
-  }
+  const activeOptionId = selectedOption ?? activePractice?.optionId ?? null
 
   // 步长选项
   const SEEK_STEP_OPTIONS = [10, 15, 30]
@@ -1525,70 +1366,16 @@ export default function AshtangaTracker() {
   const handleConfirmEnd = () => {
     confirmPracticeEnd()
 
-    // 清理唱诵资源
-    if (chantCountdownRef.current) {
-      clearInterval(chantCountdownRef.current)
-      chantCountdownRef.current = null
-    }
-    if (chantAudioRef.current) {
-      chantAudioRef.current.pause()
-      chantAudioRef.current.src = ''
-      chantAudioRef.current = null
-    }
-    setIsChantCountdown(false)
-    setChantCountdown(0)
-    setIsChantPlaying(false)
-
-    // 清理音频资源
-    if (audioElement) {
-      audioElement.pause()
-      audioElement.src = ''
-      setAudioElement(null)
-      setIsAudioLoaded(false)
-      setAudioProgress(0)
-      setAudioCurrentTime(0)
-      setAudioDuration(0)
-      // 释放 Blob URL（防内存泄漏）
-      if (audioBlobUrlRef.current) {
-        URL.revokeObjectURL(audioBlobUrlRef.current)
-        audioBlobUrlRef.current = null
-      }
-    }
+    resetChantPlayback()
+    resetGuidedAudio()
   }
 
   // 不保存结束：丢弃记录，直接回到初始状态
   const handleDiscardEnd = () => {
     discardPracticeEnd()
 
-    // 清理唱诵资源
-    if (chantCountdownRef.current) {
-      clearInterval(chantCountdownRef.current)
-      chantCountdownRef.current = null
-    }
-    if (chantAudioRef.current) {
-      chantAudioRef.current.pause()
-      chantAudioRef.current.src = ''
-      chantAudioRef.current = null
-    }
-    setIsChantCountdown(false)
-    setChantCountdown(0)
-    setIsChantPlaying(false)
-
-    // 清理音频资源
-    if (audioElement) {
-      audioElement.pause()
-      audioElement.src = ''
-      setAudioElement(null)
-      setIsAudioLoaded(false)
-      setAudioProgress(0)
-      setAudioCurrentTime(0)
-      setAudioDuration(0)
-      // 释放 Blob URL（防内存泄漏）
-      if (audioBlobUrlRef.current) {
-        URL.revokeObjectURL(audioBlobUrlRef.current)
-        audioBlobUrlRef.current = null
-      }
-    }
+    resetChantPlayback()
+    resetGuidedAudio()
   }
 
   const handleSavePractice = useCallback((record: PracticeRecord) => {
@@ -1766,7 +1553,7 @@ export default function AshtangaTracker() {
         </main>
 
         {/* 音频播放器进度条 - 仅在口令跟练模式显示，放在大圆圈和按钮之间 */}
-        {selectedOption === 'guided_audio' && isAudioLoaded && !isAudioLoading && !audioError && (
+        {activeOptionId === 'guided_audio' && isAudioLoaded && !isAudioLoading && !audioError && (
           <motion.div
             className="w-full max-w-sm mx-auto px-6 mb-4"
             initial={{ opacity: 0, y: 20 }}
@@ -1791,7 +1578,7 @@ export default function AshtangaTracker() {
         {/* Control buttons - moved up 30% to avoid clipping on mobile */}
         <div className="px-6 pb-32">
           {/* 音频加载状态 - 仅在口令跟练模式显示 */}
-          {selectedOption === 'guided_audio' && isAudioLoading && (
+          {activeOptionId === 'guided_audio' && isAudioLoading && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -1805,7 +1592,7 @@ export default function AshtangaTracker() {
           )}
 
           {/* 音频错误状态 - 仅在口令跟练模式显示 */}
-          {selectedOption === 'guided_audio' && audioError && (
+          {activeOptionId === 'guided_audio' && audioError && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -1816,10 +1603,7 @@ export default function AshtangaTracker() {
                 {audioError}
               </p>
               <button
-                onClick={() => {
-                  setAudioError(null)
-                  loadGuidedAudio()
-                }}
+                onClick={retryGuidedAudio}
                 className="mt-4 px-6 py-2 rounded-full green-gradient text-white text-sm font-serif"
               >
                 重试
@@ -1828,7 +1612,7 @@ export default function AshtangaTracker() {
           )}
 
           {/* 暂停/结束按钮 - 音频加载完成后显示 */}
-          {(!selectedOption || selectedOption !== 'guided_audio' || (isAudioLoaded && !isAudioLoading && !audioError)) && (
+          {(activeOptionId !== 'guided_audio' || (isAudioLoaded && !isAudioLoading && !audioError)) && (
           <>
           {/* 暂停/结束按钮 - 恢复原始样式 */}
           <div className="flex gap-4 justify-center">
@@ -1859,7 +1643,7 @@ export default function AshtangaTracker() {
           </div>
 
           {/* 步长选择器 + 前进/后退按钮 - 仅在口令跟练模式显示 */}
-          {selectedOption === 'guided_audio' && isAudioLoaded && !isAudioLoading && !audioError && (
+          {activeOptionId === 'guided_audio' && isAudioLoaded && !isAudioLoading && !audioError && (
             <div className="flex items-center justify-center gap-3 mt-4 bg-white/20 backdrop-blur-[8px] rounded-full px-3 py-1.5 border border-white/30">
               {/* 后退按钮 */}
               <motion.button

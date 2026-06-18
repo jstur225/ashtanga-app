@@ -3013,3 +3013,15 @@ export const INVITE_VERSION = 'v2'  // 从 v1 更新到 v2
 - 20 个测试文件 / 170 项测试通过；TypeScript、轻量 lint、Next.js 生产构建全部通过。
 
 **结论**：解耦阶段 2 完成。下一阶段只处理 `useGuidedAudio` 与 `useChantPlayback`，不提前混入同步拆分。
+
+## 2026-06-18 - 完整解耦阶段 3：媒体 Hook 🚧 进行中
+
+### 第一检查点
+
+- 新增 `hooks/useGuidedAudio.ts`：口令音频元素、缓存决策、进度、跳转、失败恢复和 Blob URL 清理全部移出页面。
+- 新增 `hooks/useChantPlayback.ts`：唱诵倒计时、跳过、播放、失败降级、单次完成保护和 interval 清理全部移出页面。
+- 页面不再持有任何 `HTMLAudioElement`，结束保存与放弃统一调用两个 Hook 的 `reset`，删除两段重复清理代码。
+- 口令音频加载失败会恢复普通练习计时，不再让用户停在暂停状态；加载中的重复启动被拒绝。
+- `practice/page.tsx` 从 2701 行降至 2500 行，页面 `useState` 从 57 个降至 43 个。
+- 新增 2 个测试文件、6 项 Hook 测试；全量为 22 文件 / 176 项通过，TypeScript、轻量 lint、生产构建通过。
+- 生产浏览器验证普通练习与唱诵倒计时、跳过、音频失败降级。口令 Hook 的 L3 测试通过，但口令卡片的 L4 开始链路仍待复验，因此阶段 3 保持进行中。

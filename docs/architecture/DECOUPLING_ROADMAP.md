@@ -24,7 +24,7 @@
 | `app/practice/page.tsx` | 2701 行 | 已明显下降，但距离 800–1200 行目标仍远 |
 | 页面 `useState` | 57 个 | 计时状态已移出，认证、会员、媒体、弹窗和页面编排仍高度集中 |
 | `hooks/useSync.ts` | 1348 行 | 阶段 5 尚未开始，是后半程最大风险 |
-| Vitest | 20 文件 / 170 项通过 | 包含真实 hydration、刷新恢复和损坏存储回退测试 |
+| Vitest | 22 文件 / 176 项通过 | 新增口令音频与唱诵 Hook 生命周期测试 |
 | TypeScript / lint | 通过 | 2026-06-18 本地复验 |
 | 生产构建 | 通过 | Next.js 16 生产构建成功，22 个路由完成生成 |
 
@@ -45,7 +45,7 @@
 | 0 | 基线、路线图、测试矩阵 | 已完成 `ecb9a13` | 文档可追踪全部阶段与缺口 |
 | 1 | 工具函数、选择器、选项弹窗、结束确认、呼吸动画 | 已完成 `0300ad4` | 页面 2738 行，拆出组件有行为测试 |
 | 2 | `usePracticeSession` + 计时视图 | 已完成（阶段检查点） | 计时状态转换独立测试，页面不计算时长 |
-| 3 | `useGuidedAudio` + `useChantPlayback` | 待开始 | 页面不持有 `HTMLAudioElement` |
+| 3 | `useGuidedAudio` + `useChantPlayback` | 进行中（Hook 已提取，口令 L4 待复验） | 页面不持有 `HTMLAudioElement` |
 | 4 | Dashboard、导航、ModalHost、Tab 动态加载 | 待开始 | 页面 800–1200 行，首屏 JS 下降至少 20% |
 | 5 | 同步仓库、映射、编排、冲突、日志分层 | 待开始 | `useSync` 250–350 行，同步矩阵通过 |
 | 6 | 大型组件职责审计与最终归档 | 待开始 | 只保留职责单一的大文件，文档与代码一致 |
@@ -110,6 +110,14 @@ useSync (React facade)
 ## 下次启动入口
 
 不要重新做全项目排查。先阅读 [`REFACTOR_RESUME.md`](./REFACTOR_RESUME.md)，下一轮直接进入阶段 3 的媒体 Hook 拆分。
+
+### 阶段 3 进展
+
+- 新增 `useGuidedAudio`，封装缓存命中、流式播放、后台缓存、失败恢复、进度、跳转和资源释放。
+- 新增 `useChantPlayback`，封装倒计时、跳过、播放、失败降级、单次完成保护和资源释放。
+- `practice/page.tsx` 不再持有 `HTMLAudioElement`、Blob URL 或唱诵 interval；页面从 2701 行降至 2500 行，`useState` 从 57 个降至 43 个。
+- 22 个测试文件 / 176 项测试、TypeScript、轻量 lint、生产构建通过。
+- 生产浏览器通过普通练习和唱诵倒计时/跳过/失败降级；口令模式的 Hook 集成测试通过，但卡片到开始圆钮的 L4 自动化尚未进入计时页，阶段 3 暂不标记完成。
 
 ## 完成定义
 
