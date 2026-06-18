@@ -15,6 +15,12 @@ describe("practice session state", () => {
     expect(calculateElapsedSeconds(state, 61_999)).toBe(60)
   })
 
+  it("跨越自然日仍按时间戳连续计时", () => {
+    const beforeMidnight = new Date(2026, 5, 18, 23, 59, 0).getTime()
+    const afterMidnight = new Date(2026, 5, 19, 0, 1, 0).getTime()
+    expect(calculateElapsedSeconds(startPracticeSession(beforeMidnight), afterMidnight)).toBe(120)
+  })
+
   it("暂停期间不计时，恢复后累计多次暂停时长", () => {
     let state = startPracticeSession(0)
     state = pausePracticeSession(state, 10_000)

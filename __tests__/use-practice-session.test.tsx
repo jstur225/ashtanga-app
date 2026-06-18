@@ -73,4 +73,13 @@ describe("usePracticeSession", () => {
     expect(result.current.showCompletion).toBe(false)
     expect(result.current.completedStartTimeRef.current).toBeNull()
   })
+
+  it("立即结束时生成 0 分钟完成记录", () => {
+    const { result } = renderHook(() => usePracticeSession())
+    act(() => { result.current.start(false, 1_000) })
+    act(() => { result.current.confirmEnd() })
+
+    expect(result.current.finalDuration).toBe("0")
+    expect(result.current.showCompletion).toBe(true)
+  })
 })
