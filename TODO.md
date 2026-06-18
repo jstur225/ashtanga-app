@@ -116,29 +116,42 @@ ALTER TABLE practice_records ADD COLUMN color_level INTEGER DEFAULT 3;
 
 ---
 
-## 2026-05-22 - Tab 级代码分割（性能优化第二期）⏳ 待观察
+## 2026-06-18 - 练习页第一阶段解耦 ✅ 已完成
 
-**状态**: 等第一期优化上线后观察效果再决定
+**状态**: 组件文件拆分和测试覆盖已完成；真正按需加载待下一阶段
 
 ### 背景
 第一期已完成：删除 recharts/html2canvas、12 个弹窗懒加载、字体优化（预计减少初始 JS ~400-500KB）。
 
-### 待做内容
-`practice/page.tsx` 中以下大型内联组件仍在初始 bundle 中，可进一步拆分为独立文件 + `dynamic()` 懒加载：
+### 已完成
+
+`practice/page.tsx` 从 6476 行降至 3238 行，以下组件已移出页面：
 
 | 组件 | 行数 | 说明 |
 |------|------|------|
-| StatsTab | ~410 行 | 统计页，只在用户点"我的数据"标签时才需要 |
-| JournalTab | ~520 行 | 日记页，包含分享/编辑/补录等，只在"日记"标签时才需要 |
-| SettingsModal | ~560 行 | 设置页，只在用户点设置时才需要 |
+| StatsTab | `components/stats/StatsTab.tsx` | 已拆分，仍为静态导入 |
+| JournalTab | `components/journal/JournalTab.tsx` | 已拆分，仍为静态导入 |
+| SettingsModal | `components/settings/SettingsModal.tsx` | 已拆分并使用 `dynamic()` |
+| 记录弹窗 | `components/practice-record/` | 完成、补录、编辑和选择器已拆分 |
+
+自动验证：131 项测试、TypeScript、lint、生产构建全部通过；浏览器核心练习与日记流程通过。
+
+### 下一步
+
+1. 提取页面顶部日期选择器、选项弹窗、结束确认框和格式化工具。
+2. 提取练习会话状态与音频逻辑。
+3. 将 JournalTab、StatsTab 改为动态加载，比较首屏构建产物。
+4. 页面降至 1500 行以内后，再单独规划 `useSync` 拆分。
 
 ### 风险
 - 涉及大量 props 传递和状态管理，6800 行文件的拆分有中高风险
 - 需要仔细处理共享状态（计时器状态、同步状态、用户信息等）
 
-### 推进条件
-- Vercel Speed Insights 数据显示 LCP > 2.5 秒
-- 或者首屏 JS 仍超过 500KB
+### 验收要求
+
+- 每阶段独立提交，保持 131 项现有测试持续通过。
+- 浏览器回归不写真实云端；登录同步使用专用测试账号后另测。
+- 解耦完成后更新 README、项目日志和本 TODO。
 
 ---
 

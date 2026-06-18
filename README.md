@@ -6,6 +6,8 @@
 🎉 **MVP已完成**
 - ✅ 数据持久化完成
 - ✅ 云端部署成功（Vercel）
+- ✅ `master2` 练习页第一阶段解耦完成（6476 行 → 3238 行）
+- ✅ 自动检查通过：131 项测试、TypeScript、轻量 lint、生产构建
 
 **在线地址**: https://ash.ashtangalife.online
 
@@ -81,6 +83,17 @@
 - ✅ Radix UI组件库 + Tailwind CSS
 - ✅ 响应式设计（移动端优先）
 - ✅ **阿里云OSS**（预签名URL上传，安全高效）
+
+### 本地验证
+
+```bash
+npm run typecheck
+npm run lint
+npx vitest run
+npm run build
+```
+
+练习页已按功能拆分为 `components/journal`、`components/stats`、`components/settings` 和 `components/practice-record`。当前拆分解决了文件职责和可测试性问题；`JournalTab`、`StatsTab` 的真正按需加载仍属于下一阶段。
 
 ---
 
@@ -172,16 +185,15 @@
 ```
 Ashtanga_app/
 ├── README.md                        # 项目说明（本文件）
-├── PROJECT_LOG.md                   # 开发日志（详细记录）
-├── 阿斯汤加打卡app设计方案.md        # 完整设计文档
+├── ASHTANGA_PROJECT_LOG.md          # 开发日志（详细记录）
+├── TODO.md                          # 当前进度与后续任务
 ├── SUPABASE_SETUP_GUIDE.md          # Supabase配置指南
-├── yoga-app-homepage/               # Next.js项目（源代码）
-│   ├── app/                         # Next.js App Router
-│   ├── components/                  # React组件
-│   ├── lib/                         # 工具函数
-│   │   ├── database.ts             # 数据库CRUD操作
-│   │   └── supabase.ts             # Supabase连接配置
-│   └── public/                      # 静态资源
+├── app/                             # Next.js App Router
+├── components/                      # React组件（按 journal/stats/settings 等功能拆分）
+├── hooks/                           # 数据、认证、同步等 Hooks
+├── lib/                             # 纯函数与服务封装
+├── __tests__/                       # Vitest 自动化测试
+├── public/                          # 静态资源
 ├── docs/                            # 文档目录
 │   ├── research/                    # 竞品调研文档
 │   │   ├── 全平台竞品对比报告_2026-01-16.md
@@ -193,7 +205,7 @@ Ashtanga_app/
 │   │   └── 竞品体验报告/
 │   └── guides/                      # 开发指南
 │       └── app开发流程指南_非技术人员AI开发.md
-└── screenshots/                     # 截图存放
+└── archive/                         # 历史文档归档
 ```
 
 ---
