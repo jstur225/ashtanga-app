@@ -2,7 +2,7 @@
 
 > 当前解耦阶段与完整测试缺口以 `docs/architecture/DECOUPLING_ROADMAP.md` 和 `docs/architecture/DECOUPLING_TEST_MATRIX.md` 为准。本文件只保留当前执行项。
 
-## 2026-06-18 - 解耦阶段 2：练习会话模块 🚧 进行中
+## 2026-06-18 - 解耦阶段 2：练习会话模块 ✅ 已完成
 
 - [x] 记录代码、测试与构建基线
 - [x] 建立完整解耦路线图
@@ -13,8 +13,18 @@
 - [x] 建立练习会话状态转换模型与保护测试
 - [x] 提取 `usePracticeSession`，保持现有 LocalStorage 键兼容（`30a5700`）
 - [x] 完成保存幂等、失败重试和草稿删除补偿（`ba7824a`）
-- [ ] 修复刷新恢复时练习类型丢失与 hydration mismatch（当前阻塞项）
-- [ ] 完成阶段 2 全量门禁与隔离浏览器回归
+- [x] 完成刷新恢复：持久化练习类型快照并使用 SSR 安全的 LocalStorage 适配器
+- [x] 增加真实 hydration、练习类型刷新恢复和损坏存储回退测试；20 文件 / 170 项通过
+- [x] 使用生产版浏览器复验：开始练习 → 刷新 → 类型、计时、暂停状态均正确且控制台无 hydration mismatch
+- [x] 完成 `npm.cmd run build`，Next.js 生产构建通过
+- [x] 完成阶段 2 全量门禁与隔离浏览器回归
+
+## 下一执行项 - 解耦阶段 3：媒体 Hook
+
+- [ ] 先补唱诵倒计时、音频失败和模式切换保护测试
+- [ ] 提取 `useGuidedAudio`
+- [ ] 提取 `useChantPlayback`
+- [ ] 确保页面不再持有 `HTMLAudioElement`
 
 ## 2026-06-03 - 会员降级色阶锁定处理 ✅ 已实现
 

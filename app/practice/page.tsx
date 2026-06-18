@@ -9,7 +9,7 @@ import { useMembership } from "@/hooks/useMembership"
 import { useAnnotations } from "@/hooks/useAnnotations"
 import { useAuth } from "@/hooks/useAuth"
 import { useSync } from "@/hooks/useSync"
-import { usePracticeSession } from "@/hooks/usePracticeSession"
+import { usePracticeSession, type ActivePracticeContext } from "@/hooks/usePracticeSession"
 import { BookOpen, BarChart3, Calendar, X, Pause, Play, User, ChevronUp, ChevronDown, Upload, Plus, Minus, Share2, Sparkles, Check, ClipboardPaste, AlertCircle, SkipBack, SkipForward, Volume, Volume2, Crown, Ticket, Loader2, Lock, Users, Library } from "lucide-react"
 import { cn } from '@/lib/utils'
 import { getColorClass } from '@/lib/sync-utils'
@@ -128,6 +128,8 @@ export default function AshtangaTracker() {
     showConfirmEnd,
     showCompletion,
     finalDuration,
+    isHydrated: sessionHydrated,
+    activePractice,
     completedStartTimeRef: startTimeRef,
     start: startPracticeSession,
     restartTimer: restartPracticeTimer,
@@ -1293,10 +1295,10 @@ export default function AshtangaTracker() {
   }, [playChantAudio])
 
   // 启动唱诵倒计时
-  const startChantCountdown = useCallback(() => {
+  const startChantCountdown = useCallback((context: ActivePracticeContext) => {
     // 先进入练习界面
     const now = Date.now()
-    startPracticeSession(true, now)
+    startPracticeSession(true, now, context)
 
     // 启动倒计时
     let remaining = chantDelaySeconds
@@ -1432,14 +1434,22 @@ export default function AshtangaTracker() {
         return
       }
       if (chantEnabled) {
-        startChantCountdown()
+        startChantCountdown({
+          optionId: selectedOption,
+          label: getSelectedLabel(),
+          notes: getSelectedNotes(),
+        })
         trackEvent('start_practice', { type: getSelectedLabel(), chant: true })
         return
       }
 
       // 先进入练习界面（立即给用户反馈）
       const now = Date.now()
-      startPracticeSession(false, now)
+      startPracticeSession(false, now, {
+        optionId: selectedOption,
+        label: getSelectedLabel(),
+        notes: getSelectedNotes(),
+      })
 
       // 口令跟练模式：加载音频
       if (selectedOption === 'guided_audio') {
@@ -1469,17 +1479,23 @@ export default function AshtangaTracker() {
   }
 
   const getSelectedLabel = useCallback(() => {
+    if (!selectedOption && activePractice) {
+      return activePractice.label
+    }
     if ((selectedOption === "custom" || selectedOption === "custom-temp") && customPracticeName) {
       return customPracticeName
     }
     const option = practiceOptions.find((o) => o.id === selectedOption)
     return option?.label || ""
-  }, [selectedOption, customPracticeName, practiceOptions])
+  }, [selectedOption, activePractice, customPracticeName, practiceOptions])
 
   const getSelectedNotes = useCallback(() => {
+    if (!selectedOption && activePractice) {
+      return activePractice.notes
+    }
     const option = practiceOptions.find((o) => o.id === selectedOption)
     return option?.notes || ""
-  }, [selectedOption, practiceOptions])
+  }, [selectedOption, activePractice, practiceOptions])
 
   // 音频时间格式化
   const formatAudioTime = (seconds: number): string => {
@@ -1650,6 +1666,12 @@ export default function AshtangaTracker() {
       setIsSaving(false)
     }
   }, [isSaving, fetchTodayCount, finishCompletion, startTimeRef])
+
+  // Keep the server HTML and the first client render identical. Persisted
+  // practice state is revealed only after the client has mounted.
+  if (!sessionHydrated) {
+    return <div className="h-screen bg-background" aria-label="正在恢复练习" />
+  }
 
   // Full-screen Timer View with Hero Transition
   if (isPracticing) {

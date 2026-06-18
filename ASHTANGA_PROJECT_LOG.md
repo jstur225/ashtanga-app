@@ -2970,7 +2970,7 @@ export const INVITE_VERSION = 'v2'  // 从 v1 更新到 v2
 
 进入阶段 2：提取 `usePracticeSession`，先覆盖计时、暂停累计、刷新恢复、草稿和幂等保存状态转换。
 
-## 2026-06-18 - 完整解耦阶段 2：练习会话 🚧 进行中
+## 2026-06-18 - 完整解耦阶段 2：练习会话 ✅ 已完成
 
 **提交**：`30a5700`、`ba7824a`、`dfbcadf`
 
@@ -2980,3 +2980,36 @@ export const INVITE_VERSION = 'v2'  // 从 v1 更新到 v2
 - 浏览器刷新后计时恢复，但练习类型丢失，且控制台报告 hydration mismatch。
 - 三轮候选修复均未通过真实浏览器复验，已全部撤回，未将猜测性改动提交到 `master2`。
 - 下一步先独立审计 SSR/客户端持久化初始化顺序，再完成阶段 2；阶段 3 音频拆分暂不提前。
+
+### 2026-06-18 续：刷新恢复第四版候选修复（未提交）
+
+**工作区状态**：`master2@edb1e93`，3 个代码/测试文件有未提交修改。
+
+- `hooks/usePracticeSession.ts` 新增 `activePractice` 持久化快照，记录选项 ID、显示名称和备注。
+- Hook 新增 `isHydrated`，页面在客户端挂载前渲染确定性空壳，避免服务端 HTML 与客户端首屏不同。
+- `app/practice/page.tsx` 在刷新恢复时优先使用持久化练习快照，不再依赖异步加载的选项列表。
+- `__tests__/use-practice-session.test.tsx` 新增首屏一致和练习类型恢复两个回归场景。
+- 验证：TypeScript 通过，轻量 lint 通过，20 个测试文件 / 169 项测试通过。
+- 生产构建未完成：`.next/server/chunks/ssr` 文件被运行中的 Node 进程占用，报 `EBUSY`。停止开发服务后重跑即可判断构建结果。
+- 尚未完成真实浏览器刷新复验，因此没有提交，也没有把阶段 2 标成完成。
+
+**下次直接执行**：阅读 `docs/architecture/REFACTOR_RESUME.md`，先保留现有未提交修改，完成浏览器刷新回归和生产构建。通过后再提交阶段 2；不要先进入音频拆分。
+
+### 2026-06-18 续：阶段 2 完成 ✅
+
+**最终根因**：`react-use/useLocalStorage` 根据运行环境条件性调用 Hook。服务端直接返回默认值，客户端调用 `useRef/useState/useLayoutEffect/useCallback`，因此页面恢复壳仍可能在真实 Next.js hydration 中失配。
+
+**最终实现**：
+
+- `usePracticeSession` 内新增 SSR 安全的 LocalStorage 适配器，服务端和客户端首次渲染统一使用默认状态。
+- 客户端挂载后读取原有五个计时键和新增的 `ashtanga_active_practice`，保持历史数据格式兼容。
+- 练习快照保存 `optionId`、`label`、`notes`，刷新恢复不再依赖选项列表的异步加载顺序。
+- 完成或放弃后清理练习快照；存储不可用时仍保留内存会话，非法 JSON 自动回退为空会话。
+
+**验收**：
+
+- 生产版隔离浏览器完成正常计时刷新、暂停后刷新、练习类型恢复和不保存退出清理。
+- 每次刷新后检查新产生的浏览器日志，均无 hydration mismatch。
+- 20 个测试文件 / 170 项测试通过；TypeScript、轻量 lint、Next.js 生产构建全部通过。
+
+**结论**：解耦阶段 2 完成。下一阶段只处理 `useGuidedAudio` 与 `useChantPlayback`，不提前混入同步拆分。

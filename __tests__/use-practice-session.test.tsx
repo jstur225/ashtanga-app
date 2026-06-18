@@ -1,4 +1,6 @@
-import { act, renderHook } from "@testing-library/react"
+import React from "react"
+import { act, render, renderHook } from "@testing-library/react"
+import { renderToString } from "react-dom/server"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { PRACTICE_SESSION_STORAGE_KEYS, usePracticeSession } from "@/hooks/usePracticeSession"
 
@@ -13,6 +15,31 @@ afterEach(() => {
 })
 
 describe("usePracticeSession", () => {
+  it("使用真实 hydration 从恢复壳切换到持久会话且不产生 mismatch", () => {
+    localStorage.setItem(PRACTICE_SESSION_STORAGE_KEYS.isPracticing, 'true')
+    localStorage.setItem(PRACTICE_SESSION_STORAGE_KEYS.startTime, '1000')
+
+    function SessionSurface() {
+      const session = usePracticeSession() as ReturnType<typeof usePracticeSession> & { isHydrated?: boolean }
+      if (!session.isHydrated) return <div>恢复中</div>
+      return <div>{session.isPracticing ? '计时中' : '练习首页'}</div>
+    }
+
+    const serverHtml = renderToString(<SessionSurface />)
+    expect(serverHtml).toContain("恢复中")
+
+    const container = document.createElement("div")
+    container.innerHTML = serverHtml
+    document.body.appendChild(container)
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined)
+
+    const view = render(<SessionSurface />, { container, hydrate: true })
+
+    expect(view.getByText("计时中")).toBeTruthy()
+    expect(consoleError.mock.calls.flat().join("\n")).not.toContain("Hydration failed")
+    consoleError.mockRestore()
+  })
+
   it("使用兼容的 LocalStorage 键开始并持久化会话", () => {
     const { result } = renderHook(() => usePracticeSession())
 
@@ -81,5 +108,29 @@ describe("usePracticeSession", () => {
 
     expect(result.current.finalDuration).toBe("0")
     expect(result.current.showCompletion).toBe(true)
+  })
+
+  it("开始时持久化练习类型快照，刷新后不依赖选项列表恢复", () => {
+    const context = { optionId: "primary-id", label: "一序列", notes: "Mysore" }
+    const first = renderHook(() => usePracticeSession())
+    act(() => { (first.result.current.start as Function)(false, 1_000, context) })
+    first.unmount()
+
+    const restored = renderHook(() => usePracticeSession())
+    expect((restored.result.current as typeof restored.result.current & { activePractice?: unknown }).activePractice).toEqual(context)
+  })
+
+  it("LocalStorage 损坏时回退到安全的空会话", () => {
+    Object.values(PRACTICE_SESSION_STORAGE_KEYS).forEach((key) => {
+      localStorage.setItem(key, "not-json")
+    })
+
+    const { result } = renderHook(() => usePracticeSession())
+
+    expect(result.current.isHydrated).toBe(true)
+    expect(result.current.isPracticing).toBe(false)
+    expect(result.current.isPaused).toBe(false)
+    expect(result.current.startTime).toBeNull()
+    expect(result.current.activePractice).toBeNull()
   })
 })
