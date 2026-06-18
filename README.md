@@ -95,6 +95,11 @@ npm run build
 
 练习页已按功能拆分为 `components/journal`、`components/stats`、`components/settings` 和 `components/practice-record`。当前拆分解决了文件职责和可测试性问题；`JournalTab`、`StatsTab` 的真正按需加载仍属于下一阶段。
 
+长期解耦与测试计划：
+
+- [解耦路线图](./docs/architecture/DECOUPLING_ROADMAP.md)
+- [自动化测试矩阵](./docs/architecture/DECOUPLING_TEST_MATRIX.md)
+
 ---
 
 ## 🚧 开发中功能
