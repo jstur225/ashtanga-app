@@ -34,7 +34,7 @@
 
 ## 下一执行项 - 解耦阶段 4：页面编排与按需加载
 
-- [ ] 提取 `PracticeDashboard`
+- [x] 提取 `PracticeDashboard`，保留页面中的选择与启动业务决策
 - [x] 提取 `PracticeNavigation`，统一顶层覆盖层的导航显隐策略
 - [ ] 提取 `PracticeSessionView` 与 `PracticeModalHost`
 - [x] 将 Journal/Stats/Poses Tab 真正改为按需加载

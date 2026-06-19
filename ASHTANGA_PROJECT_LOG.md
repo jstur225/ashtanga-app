@@ -3045,3 +3045,12 @@ export const INVITE_VERSION = 'v2'  // 从 v1 更新到 v2
 - 生产浏览器复验：弹窗打开后等待退出动画，导航数量为 0；关闭后恢复为 1。
 - 当前规模：`practice/page.tsx` 2456 行、43 个 `useState`；23 个测试文件 / 185 项测试通过，typecheck、lint、生产 build 通过。
 - 阶段 4 仍在进行：下一刀提取 `PracticeDashboard` 和 `PracticeSessionView`，之后处理 `PracticeModalHost` 与首屏 JS 基线。
+
+### 第二检查点：PracticeDashboard
+
+- 新增 `components/practice/PracticeDashboard.tsx`，承接首页标题、练习选项网格、锁定/口令提示和开始按钮。
+- 页面仅传入选项、选择状态、锁定集合、唱诵状态与两个事件；会员判断、双击编辑和会话启动仍由页面负责。
+- 新增组件测试，覆盖选项事件、会员锁定、口令提示，以及开始按钮禁用/启用。
+- 页面从 2456 行降至 2342 行；24 个测试文件 / 187 项测试、typecheck、lint、生产 build 通过。
+- 生产浏览器完成选择、开始、计时、结束和放弃回归，控制台 0 错误。
+- 下一步直接提取 `PracticeSessionView`，不重新调查 Dashboard 边界。
