@@ -86,6 +86,18 @@ describe("usePracticeSession", () => {
     expect(result.current.startTime).toBe(1_000)
   })
 
+  it("口令练习可直接以暂停状态启动，音频就绪后再恢复", () => {
+    const { result } = renderHook(() => usePracticeSession())
+    act(() => { result.current.start(true, 1_000, { optionId: "guided_audio", label: "一序列", notes: "口令" }) })
+
+    expect(result.current.isPracticing).toBe(true)
+    expect(result.current.isPaused).toBe(true)
+
+    act(() => { result.current.resume(2_000) })
+    expect(result.current.isPracticing).toBe(true)
+    expect(result.current.isPaused).toBe(false)
+  })
+
   it("确认结束保留完成记录开始时间，放弃则彻底清理", () => {
     const { result } = renderHook(() => usePracticeSession())
     act(() => { result.current.start(false, 1_000) })

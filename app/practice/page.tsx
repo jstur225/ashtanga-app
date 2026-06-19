@@ -10,7 +10,7 @@ import { useAnnotations } from "@/hooks/useAnnotations"
 import { useAuth } from "@/hooks/useAuth"
 import { useSync } from "@/hooks/useSync"
 import { usePracticeSession } from "@/hooks/usePracticeSession"
-import { formatAudioTime, useGuidedAudio } from "@/hooks/useGuidedAudio"
+import { formatAudioTime, shouldShowPracticeControls, useGuidedAudio } from "@/hooks/useGuidedAudio"
 import { useChantPlayback } from "@/hooks/useChantPlayback"
 import { BookOpen, BarChart3, Calendar, X, Pause, Play, User, ChevronUp, ChevronDown, Upload, Plus, Minus, Share2, Sparkles, Check, ClipboardPaste, AlertCircle, SkipBack, SkipForward, Volume, Volume2, Crown, Ticket, Loader2, Lock, Users, Library } from "lucide-react"
 import { cn } from '@/lib/utils'
@@ -225,7 +225,6 @@ export default function AshtangaTracker() {
     reset: resetGuidedAudio,
   } = useGuidedAudio({
     source: GUIDED_AUDIO_OPTION.audio_src || '',
-    onLoadStart: pausePracticeSession,
     onReady: resumePracticeSession,
     onEnded: requestPracticeEnd,
   })
@@ -1302,14 +1301,15 @@ export default function AshtangaTracker() {
 
       // 先进入练习界面（立即给用户反馈）
       const now = Date.now()
-      startPracticeSession(false, now, {
+      const isGuidedAudio = selectedOption === 'guided_audio'
+      startPracticeSession(isGuidedAudio, now, {
         optionId: selectedOption,
         label: getSelectedLabel(),
         notes: getSelectedNotes(),
       })
 
       // 口令跟练模式：加载音频
-      if (selectedOption === 'guided_audio') {
+      if (isGuidedAudio) {
         await loadGuidedAudio()
       }
 
@@ -1612,7 +1612,7 @@ export default function AshtangaTracker() {
           )}
 
           {/* 暂停/结束按钮 - 音频加载完成后显示 */}
-          {(activeOptionId !== 'guided_audio' || (isAudioLoaded && !isAudioLoading && !audioError)) && (
+          {shouldShowPracticeControls(activeOptionId, isAudioLoaded, isAudioLoading, audioError) && (
           <>
           {/* 暂停/结束按钮 - 恢复原始样式 */}
           <div className="flex gap-4 justify-center">

@@ -5,7 +5,6 @@ import { audioCache } from "@/lib/audioCache"
 
 interface UseGuidedAudioOptions {
   source: string
-  onLoadStart: () => void
   onReady: () => void
   onEnded: () => void
 }
@@ -17,10 +16,23 @@ export function formatAudioTime(seconds: number): string {
   return `${minutes.toString().padStart(2, "0")}:${remainingSeconds.toString().padStart(2, "0")}`
 }
 
-export function useGuidedAudio({ source, onLoadStart, onReady, onEnded }: UseGuidedAudioOptions) {
+export function shouldShowPracticeControls(
+  activeOptionId: string | null,
+  isLoaded: boolean,
+  isLoading: boolean,
+  error: string | null,
+): boolean {
+  return activeOptionId !== "guided_audio" || Boolean(error) || (isLoaded && !isLoading)
+}
+
+export function useGuidedAudio({ source, onReady, onEnded }: UseGuidedAudioOptions) {
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const blobUrlRef = useRef<string | null>(null)
   const loadingRef = useRef(false)
+  const onReadyRef = useRef(onReady)
+  const onEndedRef = useRef(onEnded)
+  onReadyRef.current = onReady
+  onEndedRef.current = onEnded
   const [progress, setProgress] = useState(0)
   const [duration, setDuration] = useState(0)
   const [currentTime, setCurrentTime] = useState(0)
@@ -65,7 +77,7 @@ export function useGuidedAudio({ source, onLoadStart, onReady, onEnded }: UseGui
       setIsLoading(false)
       setError(message)
       if (cacheBacked) void audioCache.clearCache()
-      onReady()
+      onReadyRef.current()
     }
 
     audio.addEventListener("loadedmetadata", () => {
@@ -73,16 +85,16 @@ export function useGuidedAudio({ source, onLoadStart, onReady, onEnded }: UseGui
       setIsLoaded(true)
       setIsLoading(false)
       loadingRef.current = false
-      onReady()
+      onReadyRef.current()
       void audio.play().catch(() => fail("音频播放失败，请重试"))
     })
     audio.addEventListener("timeupdate", () => {
       setCurrentTime(audio.currentTime)
       setProgress(audio.duration > 0 ? (audio.currentTime / audio.duration) * 100 : 0)
     })
-    audio.addEventListener("ended", onEnded)
+    audio.addEventListener("ended", () => onEndedRef.current())
     audio.addEventListener("error", () => fail(cacheBacked ? "音频播放失败，请重试" : "音频播放失败，请检查网络连接"))
-  }, [onEnded, onReady])
+  }, [])
 
   const load = useCallback(async () => {
     if (loadingRef.current) return false
@@ -90,7 +102,6 @@ export function useGuidedAudio({ source, onLoadStart, onReady, onEnded }: UseGui
     setIsLoading(true)
     setError(null)
     setIsBackgroundCaching(false)
-    onLoadStart()
     releaseMedia()
     loadingRef.current = true
 
@@ -121,10 +132,10 @@ export function useGuidedAudio({ source, onLoadStart, onReady, onEnded }: UseGui
       loadingRef.current = false
       setIsLoading(false)
       setError("音频加载失败")
-      onReady()
+      onReadyRef.current()
       return false
     }
-  }, [attachEvents, onLoadStart, onReady, releaseMedia, source])
+  }, [attachEvents, releaseMedia, source])
 
   const pause = useCallback(() => audioRef.current?.pause(), [])
   const play = useCallback(() => {
