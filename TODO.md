@@ -34,9 +34,10 @@
 
 ## 下一执行项 - 解耦阶段 4：页面编排与按需加载
 
-- [ ] 提取 `PracticeDashboard` 与 `PracticeNavigation`
+- [ ] 提取 `PracticeDashboard`
+- [x] 提取 `PracticeNavigation`，统一顶层覆盖层的导航显隐策略
 - [ ] 提取 `PracticeSessionView` 与 `PracticeModalHost`
-- [ ] 将 Journal/Stats/Poses Tab 真正改为按需加载
+- [x] 将 Journal/Stats/Poses Tab 真正改为按需加载
 - [ ] 建立可重复的首屏 JS 基线并比较下降幅度
 
 ## 2026-06-03 - 会员降级色阶锁定处理 ✅ 已实现

@@ -3036,3 +3036,12 @@ export const INVITE_VERSION = 'v2'  // 从 v1 更新到 v2
 - 生产 L4：口令卡片选择 → 开始 → 失败降级 → 暂停 → 继续 → 结束 → 放弃清理全链路通过，无新增控制台错误。
 
 **结论**：阶段 3 完成，下一步进入阶段 4 页面编排与真正按需加载。
+
+## 2026-06-19 - 完整解耦阶段 4：页面编排第一检查点
+
+- 提取 `components/practice/PracticeNavigation.tsx`，页面只传入当前 Tab、显隐状态和切换回调。
+- `JournalTab`、`StatsTab`、`PosesTab` 改为 `next/dynamic` 按需加载，加入统一 loading UI。
+- 浏览器 QA 发现自定义练习弹窗打开后导航仍在背景显示；已将所有页面顶层覆盖层收口到统一显隐策略。
+- 生产浏览器复验：弹窗打开后等待退出动画，导航数量为 0；关闭后恢复为 1。
+- 当前规模：`practice/page.tsx` 2456 行、43 个 `useState`；23 个测试文件 / 185 项测试通过，typecheck、lint、生产 build 通过。
+- 阶段 4 仍在进行：下一刀提取 `PracticeDashboard` 和 `PracticeSessionView`，之后处理 `PracticeModalHost` 与首屏 JS 基线。

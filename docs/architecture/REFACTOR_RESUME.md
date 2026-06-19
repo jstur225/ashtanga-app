@@ -2,6 +2,18 @@
 
 > 下次启动本项目时先读这里。阶段 2 已完成，不需要重新调查刷新恢复问题。
 
+## 2026-06-19 最新恢复点
+
+阶段 4 已开始，第一刀已经完成并通过门禁：
+
+- `JournalTab`、`StatsTab`、`PosesTab` 已改为真正的 `next/dynamic` 按需加载，并有统一 loading 状态。
+- 底部导航已提取为 `components/practice/PracticeNavigation.tsx`。
+- 页面顶层覆盖层统一决定导航显隐；真实浏览器已验证“打开自定义练习弹窗后导航退出，关闭后恢复”。
+- 当前 `app/practice/page.tsx` 为 2456 行、43 个 `useState`。
+- 当前门禁：23 个测试文件 / 185 项测试，typecheck、lint、生产 build 全部通过。
+
+下次不要重新排查阶段 1–3，也不要重做 Tab/导航。直接从阶段 4 的 `PracticeDashboard` 与 `PracticeSessionView` 边界继续，随后再提取 `PracticeModalHost`；首屏 JS 可重复基线尚未建立，仍是本阶段硬门槛。
+
 ## 一句话状态
 
 解耦阶段 1、2、3 已完成。会话与媒体生命周期已经移出页面，下一轮直接进入阶段 4 的页面编排与真正按需加载。

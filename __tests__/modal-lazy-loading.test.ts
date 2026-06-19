@@ -27,6 +27,8 @@ const EAGER_COMPONENTS = [
   "PWAInstallBanner",
 ]
 
+const LAZY_TABS = ["JournalTab", "StatsTab", "PosesTab"]
+
 describe("弹窗懒加载", () => {
   const pageContent = fs.readFileSync(path.join(ROOT, "app/practice/page.tsx"), "utf-8")
   const statsTabPath = path.join(ROOT, "components/stats/StatsTab.tsx")
@@ -58,6 +60,18 @@ describe("弹窗懒加载", () => {
       it(`${name} 不应被 dynamic() 懒加载`, () => {
         const dynamicPattern = new RegExp(`const\\s+${name}\\s*=\\s*dynamic\\(`, "m")
         expect(dynamicPattern.test(pageContent), `${name} 不应该用 dynamic()`).toBe(false)
+      })
+    })
+  })
+
+  describe("低频 Tab 按需加载", () => {
+    LAZY_TABS.forEach((name) => {
+      it(`${name} 使用 dynamic()，不进入练习首屏依赖`, () => {
+        const directImportPattern = new RegExp(`import\\s+.*\\{\\s*${name}\\s*\\}.*from`, "m")
+        const dynamicPattern = new RegExp(`const\\s+${name}\\s*=\\s*dynamic\\(`, "m")
+        expect(directImportPattern.test(pageContent)).toBe(false)
+        expect(dynamicPattern.test(pageContent)).toBe(true)
+        expect(pageContent).toContain("loading: TabLoading")
       })
     })
   })

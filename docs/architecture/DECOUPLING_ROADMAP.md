@@ -46,7 +46,7 @@
 | 1 | 工具函数、选择器、选项弹窗、结束确认、呼吸动画 | 已完成 `0300ad4` | 页面 2738 行，拆出组件有行为测试 |
 | 2 | `usePracticeSession` + 计时视图 | 已完成（阶段检查点） | 计时状态转换独立测试，页面不计算时长 |
 | 3 | `useGuidedAudio` + `useChantPlayback` | 已完成（阶段检查点） | 页面不持有 `HTMLAudioElement` |
-| 4 | Dashboard、导航、ModalHost、Tab 动态加载 | 待开始 | 页面 800–1200 行，首屏 JS 下降至少 20% |
+| 4 | Dashboard、导航、ModalHost、Tab 动态加载 | 进行中（导航与动态 Tab 已完成） | 页面 800–1200 行，首屏 JS 下降至少 20% |
 | 5 | 同步仓库、映射、编排、冲突、日志分层 | 待开始 | `useSync` 250–350 行，同步矩阵通过 |
 | 6 | 大型组件职责审计与最终归档 | 待开始 | 只保留职责单一的大文件，文档与代码一致 |
 
@@ -120,6 +120,14 @@ useSync (React facade)
 - 音频失败后保留普通计时的暂停/继续/结束控制，不再把用户困在重试界面。
 - 22 个测试文件 / 179 项测试、TypeScript、轻量 lint、生产构建通过。
 - 生产浏览器通过普通练习、唱诵，以及口令选择、启动、失败降级、暂停、继续、结束和清理。阶段 3 完成。
+
+### 阶段 4 第一检查点（2026-06-19）
+
+- 提取 `PracticeNavigation`，四个 Tab 的当前态与切换行为已有组件测试。
+- `JournalTab`、`StatsTab`、`PosesTab` 使用 `next/dynamic` 按需加载，并共用可访问的 loading 状态。
+- 统一页面覆盖层导航显隐策略，补齐自定义练习等顶层弹窗；生产浏览器验证打开隐藏、关闭恢复。
+- `practice/page.tsx` 当前 2456 行、43 个 `useState`；全量为 23 个测试文件 / 185 项测试，typecheck、lint、build 通过。
+- 尚未完成：`PracticeDashboard`、`PracticeSessionView`、`PracticeModalHost`，以及可重复的首屏 JS 基线和至少 20% 降幅验收。
 
 ## 完成定义
 

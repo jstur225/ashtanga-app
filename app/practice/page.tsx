@@ -12,14 +12,12 @@ import { useSync } from "@/hooks/useSync"
 import { usePracticeSession } from "@/hooks/usePracticeSession"
 import { formatAudioTime, shouldShowPracticeControls, useGuidedAudio } from "@/hooks/useGuidedAudio"
 import { useChantPlayback } from "@/hooks/useChantPlayback"
-import { BookOpen, BarChart3, Calendar, X, Pause, Play, User, ChevronUp, ChevronDown, Upload, Plus, Minus, Share2, Sparkles, Check, ClipboardPaste, AlertCircle, SkipBack, SkipForward, Volume, Volume2, Crown, Ticket, Loader2, Lock, Users, Library } from "lucide-react"
+import { X, Pause, Play, User, ChevronUp, ChevronDown, Upload, Plus, Minus, Share2, Sparkles, Check, ClipboardPaste, AlertCircle, SkipBack, SkipForward, Volume, Volume2, Crown, Ticket, Loader2, Lock, Users } from "lucide-react"
 import { cn } from '@/lib/utils'
 import { getColorClass } from '@/lib/sync-utils'
 import { VoiceButton } from "@/components/VoiceButton"
 import { CompletionSheet } from "@/components/practice-record/CompletionSheet"
 import { AccountSyncModal } from "@/components/AccountSyncModal"
-import { JournalTab } from "@/components/journal/JournalTab"
-import { StatsTab } from "@/components/stats/StatsTab"
 import { PhotoUploadButton } from "@/components/PhotoUploadButton"
 import { toast } from 'sonner'
 import { trackEvent, setUserProfile } from '@/lib/analytics'
@@ -30,8 +28,15 @@ import { getVersionInfo } from '@/lib/version'
 import { formatMinutes, formatSeconds, getLocalDateStr } from '@/lib/practice-utils'
 import { CustomPracticeModal, EditOptionModal } from '@/components/practice/OptionModals'
 import { BreathingRipples, ConfirmEndDialog } from '@/components/practice/PracticeSessionControls'
+import { hasOpenPracticeOverlay, PracticeNavigation, type PracticeTab } from '@/components/practice/PracticeNavigation'
 
 // 懒加载弹窗（不阻塞首屏渲染）
+const TabLoading = () => (
+  <div className="flex-1 flex items-center justify-center" role="status" aria-label="正在加载页面">
+    <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+  </div>
+)
+
 const AnnotationManagerModal = dynamic(() => import('@/components/CalendarAnnotation/AnnotationManagerModal').then(m => ({ default: m.AnnotationManagerModal })), { ssr: false })
 const FakeDoorModal = dynamic(() => import('@/components/FakeDoorModal').then(m => ({ default: m.FakeDoorModal })), { ssr: false })
 const ImportModal = dynamic(() => import('@/components/ImportModal').then(m => ({ default: m.ImportModal })), { ssr: false })
@@ -40,7 +45,9 @@ const XiaohongshuInviteModal = dynamic(() => import('@/components/XiaohongshuInv
 const AuthModal = dynamic(() => import('@/components/AuthModal').then(m => ({ default: m.AuthModal })), { ssr: false })
 const DataConflictModal = dynamic(() => import('@/components/DataConflictModal').then(m => ({ default: m.DataConflictModal })), { ssr: false })
 const DebugLogModal = dynamic(() => import('@/components/DebugLogModal').then(m => ({ default: m.DebugLogModal })), { ssr: false })
-const PosesTab = dynamic(() => import('@/components/PosesTab').then(m => ({ default: m.PosesTab })), { ssr: false })
+const PosesTab = dynamic(() => import('@/components/PosesTab').then(m => ({ default: m.PosesTab })), { ssr: false, loading: TabLoading })
+const JournalTab = dynamic(() => import('@/components/journal/JournalTab').then(m => ({ default: m.JournalTab })), { ssr: false, loading: TabLoading })
+const StatsTab = dynamic(() => import('@/components/stats/StatsTab').then(m => ({ default: m.StatsTab })), { ssr: false, loading: TabLoading })
 const SettingsModal = dynamic(() => import('@/components/settings/SettingsModal').then(m => ({ default: m.SettingsModal })), { ssr: false })
 const ActivateModal = dynamic(() => import('@/components/Membership/ActivateModal').then(m => ({ default: m.ActivateModal })), { ssr: false })
 const MembershipPromptModal = dynamic(() => import('@/components/Membership/MembershipPromptModal').then(m => ({ default: m.MembershipPromptModal })), { ssr: false })
@@ -147,7 +154,7 @@ export default function AshtangaTracker() {
   const [editingOption, setEditingOption] = useState<PracticeOption | null>(null)
   const [editingRecord, setEditingRecord] = useState<PracticeRecord | null>(null)
   const [showAddModal, setShowAddModal] = useState(false)
-  const [activeTab, setActiveTab] = useState<'practice' | 'journal' | 'poses' | 'stats'>('practice')
+  const [activeTab, setActiveTab] = useState<PracticeTab>('practice')
   const [posesDetailOpen, setPosesDetailOpen] = useState(false)
 
   // ⭐ 读取 URL 参数，切换 Tab（客户端 only，只执行一次）
@@ -359,30 +366,33 @@ export default function AshtangaTracker() {
   const [childModalOpen, setChildModalOpen] = useState(false)
 
   // 派生状态：判断是否有需要隐藏导航栏的弹窗打开
-  const hasAnyModalOpen = useMemo(() => {
-    return (
-      showEditModal ||
-      editingOption !== null ||
-      showAddModal ||
-      showSettings ||
-      childModalOpen ||  // 子组件的弹窗（包含确认删除等）
-      editingRecord !== null ||  // 编辑记录弹窗
-      showConfirmEnd ||  // 确认结束弹窗
-      showCompletion ||  // 完成练习弹窗
-      posesDetailOpen    // 体式库详情页
-    )
-  }, [
+  const hasAnyModalOpen = hasOpenPracticeOverlay({
     showEditModal,
-    showEditModal,
-    editingOption,
+    showCustomModal,
+    editingOption: editingOption !== null,
     showAddModal,
     showSettings,
     childModalOpen,
-    editingRecord,
+    editingRecord: editingRecord !== null,
     showConfirmEnd,
     showCompletion,
-    posesDetailOpen
-  ])
+    posesDetailOpen,
+    showAnnotationManager,
+    showAccountSync,
+    showActivateModal,
+    showPurchaseModal,
+    showMembershipPrompt,
+    showFakeDoor: showFakeDoor.isOpen,
+    showImportModal,
+    showDebugLogModal,
+    showExportModal,
+    showAuthModal,
+    showPWAInstallTutorial,
+    showDataConflict,
+    showClearDataConfirm,
+    showChantSettings,
+    showXiaohongshuModal,
+  })
 
   // Initialize practice options from hook data
   useEffect(() => {
@@ -1925,62 +1935,7 @@ export default function AshtangaTracker() {
       )}
       </AnimatePresence>
       </div>
-      <AnimatePresence>
-
-        {!hasAnyModalOpen && (
-          <motion.nav
-            initial={{ y: 0, opacity: 1 }}
-            exit={{ y: 100, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="fixed bottom-5 left-1/2 -translate-x-1/2 z-30"
-          >
-            <div className="bg-white/30 backdrop-blur-[8px] rounded-full px-1 py-1 shadow-[0_4px_20px_rgba(0,0,0,0.08)] border border-white/30">
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => {
-                    console.log('[Tab] 点击今日练习, 当前:', activeTab)
-                    setActiveTab('practice')
-                  }}
-                  className={`flex flex-col items-center gap-1 px-3 py-2 rounded-full transition-all ${activeTab === 'practice' ? 'green-gradient text-white shadow-sm' : 'text-stone-400 hover:text-stone-600'}`}
-                >
-                  <Calendar className="w-5 h-5" />
-                  <span className="text-[10px] font-serif whitespace-nowrap">今日练习</span>
-                </button>
-                <button
-                  onClick={() => {
-                    console.log('[Tab] 点击觉察日记, 当前:', activeTab)
-                    setActiveTab('journal')
-                  }}
-                  className={`flex flex-col items-center gap-1 px-3 py-2 rounded-full transition-all ${activeTab === 'journal' ? 'green-gradient text-white shadow-sm' : 'text-stone-400 hover:text-stone-600'}`}
-                >
-                  <BookOpen className="w-5 h-5" />
-                  <span className="text-[10px] font-serif whitespace-nowrap">觉察日记</span>
-                </button>
-                <button
-                  onClick={() => {
-                    console.log('[Tab] 点击体式库, 当前:', activeTab)
-                    setActiveTab('poses')
-                  }}
-                  className={`flex flex-col items-center gap-1 px-3 py-2 rounded-full transition-all ${activeTab === 'poses' ? 'green-gradient text-white shadow-sm' : 'text-stone-400 hover:text-stone-600'}`}
-                >
-                  <Library className="w-5 h-5" />
-                  <span className="text-[10px] font-serif whitespace-nowrap">体式库</span>
-                </button>
-                <button
-                  onClick={() => {
-                    console.log('[Tab] 点击我的数据, 当前:', activeTab)
-                    setActiveTab('stats')
-                  }}
-                  className={`flex flex-col items-center gap-1 px-3 py-2 rounded-full transition-all ${activeTab === 'stats' ? 'green-gradient text-white shadow-sm' : 'text-stone-400 hover:text-stone-600'}`}
-                >
-                  <BarChart3 className="w-5 h-5" />
-                  <span className="text-[10px] font-serif whitespace-nowrap">我的数据</span>
-                </button>
-              </div>
-            </div>
-          </motion.nav>
-        )}
-      </AnimatePresence>
+      <PracticeNavigation activeTab={activeTab} hidden={hasAnyModalOpen} onChange={setActiveTab} />
 
       {/* Custom Practice Modal */}
       <CustomPracticeModal
