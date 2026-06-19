@@ -37,7 +37,7 @@ npx.cmd vitest run
 npm.cmd run build
 ```
 
-当前结果：23 个测试文件 / 185 项测试、TypeScript、lint、Next.js 生产构建全部通过。
+当前结果：24 个测试文件 / 187 项测试、TypeScript、lint、Next.js 生产构建全部通过。
 
 ## 阶段 3 当前结果
 
@@ -53,6 +53,17 @@ npm.cmd run build
 2. ✅ Journal、Stats、Poses Tab 已改为真正按需加载。
 3. ✅ `PracticeDashboard` 已提取；下一刀直接提取 `PracticeSessionView`。
 4. ⏳ 最后提取 `PracticeModalHost`，建立首屏 JS 可重复基线并验收相对下降至少 20%。
+
+## 明日优化目标
+
+第一刀只处理 `PracticeSessionView`，从 `app/practice/page.tsx` 的 `if (isPracticing)` 全屏计时分支开始：
+
+1. 提取倒计时、计时圆环、暂停/继续、结束和口令进度/跳转视图；页面保留会话、完成保存和同步决策。
+2. 覆盖唱诵倒计时、普通计时、音频 loading/error/progress、暂停/继续、前进/后退和结束请求。
+3. 跑 4 道门禁，并在生产浏览器复验普通练习与口令失败降级。
+4. SessionView 稳定并独立提交后，再开始 `PracticeModalHost`，不要两刀混在同一提交。
+
+阶段 4 最终门槛仍是：页面降至 800–1200 行，并建立可重复的 `/practice` 首屏 JS 基线，确认相对下降至少 20%。
 
 不要提前混入 `useSync` 拆分。同步属于阶段 5，是独立的高风险工作。
 
