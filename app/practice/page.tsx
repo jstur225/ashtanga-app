@@ -10,9 +10,9 @@ import { useAnnotations } from "@/hooks/useAnnotations"
 import { useAuth } from "@/hooks/useAuth"
 import { useSync } from "@/hooks/useSync"
 import { usePracticeSession } from "@/hooks/usePracticeSession"
-import { formatAudioTime, shouldShowPracticeControls, useGuidedAudio } from "@/hooks/useGuidedAudio"
+import { useGuidedAudio } from "@/hooks/useGuidedAudio"
 import { useChantPlayback } from "@/hooks/useChantPlayback"
-import { X, Pause, Play, User, ChevronUp, ChevronDown, Upload, Plus, Minus, Share2, Sparkles, Check, ClipboardPaste, AlertCircle, SkipBack, SkipForward, Volume2, Crown, Ticket, Loader2, Lock, Users } from "lucide-react"
+import { X, User, ChevronUp, ChevronDown, Upload, Plus, Minus, Share2, Sparkles, Check, ClipboardPaste, Volume2, Crown, Ticket, Loader2, Lock, Users } from "lucide-react"
 import { cn } from '@/lib/utils'
 import { getColorClass } from '@/lib/sync-utils'
 import { VoiceButton } from "@/components/VoiceButton"
@@ -25,11 +25,11 @@ import { supabase } from '@/lib/supabase'
 import { deletePracticeRecord } from '@/lib/database'
 import { useRouter } from 'next/navigation'
 import { getVersionInfo } from '@/lib/version'
-import { formatMinutes, formatSeconds, getLocalDateStr } from '@/lib/practice-utils'
+import { getLocalDateStr } from '@/lib/practice-utils'
 import { CustomPracticeModal, EditOptionModal } from '@/components/practice/OptionModals'
-import { BreathingRipples, ConfirmEndDialog } from '@/components/practice/PracticeSessionControls'
 import { hasOpenPracticeOverlay, PracticeNavigation, type PracticeTab } from '@/components/practice/PracticeNavigation'
 import { PracticeDashboard } from '@/components/practice/PracticeDashboard'
+import { PracticeSessionView } from '@/components/practice/PracticeSessionView'
 
 // 懒加载弹窗（不阻塞首屏渲染）
 const TabLoading = () => (
@@ -1474,229 +1474,36 @@ export default function AshtangaTracker() {
   // Full-screen Timer View with Hero Transition
   if (isPracticing) {
     return (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="min-h-screen bg-background flex flex-col relative"
-      >
-        {/* 唱诵倒计时全屏覆盖 */}
-        <AnimatePresence>
-          {isChantCountdown && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-white/30 backdrop-blur-[8px] z-50 flex flex-col items-center border border-white/30"
-            >
-              <main className="flex-1 flex items-center justify-center px-6">
-                <div className="w-[200px] h-[200px] sm:w-[220px] sm:h-[220px] rounded-full border border-white/40 bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                  <span className="text-5xl sm:text-6xl font-light text-foreground font-serif">
-                    {chantCountdown}
-                  </span>
-                </div>
-              </main>
-              <div className="px-6 pb-32 flex justify-center">
-                <button
-                  onClick={skipChantCountdown}
-                  className="flex items-center gap-2 px-8 py-4 rounded-full bg-card/80 backdrop-blur-md border border-white/10 text-foreground font-serif shadow-[0_4px_20px_rgba(0,0,0,0.05)] hover:bg-card transition-colors"
-                >
-                  跳过
-                </button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-        {/* 唱诵播放中提示 */}
-        {isChantPlaying && (
-          <div className="absolute top-4 left-0 right-0 flex justify-center z-10">
-            <span className="text-xs text-foreground/70 font-serif bg-white/30 backdrop-blur-[8px] border border-white/30 px-4 py-1.5 rounded-full">
-              唱诵中...
-            </span>
-          </div>
-        )}
-        <main className="flex-1 flex items-center justify-center px-6">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 1.05 }}
-            transition={{ type: "spring", damping: 20, stiffness: 200 }}
-            className="relative"
-          >
-            {/* Breathing Ripples - paused when timer is paused */}
-            <div className="absolute inset-[-20px]">
-              <BreathingRipples isPaused={isPaused ?? false} />
-            </div>
-            
-            {/* Main circle with glassmorphism gradient border - scaled down 30% */}
-            <div className={`w-[200px] h-[200px] sm:w-[220px] sm:h-[220px] rounded-full green-gradient p-[2px] shadow-[0_12px_48px_rgba(45,90,39,0.45)] ${!isPaused ? 'animate-breathe' : ''}`}>
-              <div className="w-full h-full rounded-full bg-background/95 backdrop-blur-[16px] flex flex-col items-center justify-center border border-white/30 relative">
-                {/* Timer display - Minutes large, unit below */}
-                <div className="flex flex-col items-center">
-                  <span className="text-5xl sm:text-6xl font-light text-foreground tracking-wider font-serif">
-                    {formatMinutes(elapsedTime)}
-                  </span>
-                  <div className="flex items-baseline gap-0.5">
-                    <span className="text-foreground text-lg font-serif">
-                      分
-                    </span>
-                    {formatSeconds(elapsedTime) !== '00' && (
-                      <span className="text-muted-foreground text-sm font-serif">
-                        {formatSeconds(elapsedTime)}秒
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Practice type and notes below */}
-                <div className="flex flex-col items-center mt-2">
-                  <span className="text-[14px] leading-snug text-center text-foreground font-serif">
-                    {getSelectedLabel()}
-                  </span>
-                  {getSelectedNotes() && (
-                    <span className="text-[11px] leading-snug text-center text-muted-foreground/70 font-serif mt-0.5">
-                      {getSelectedNotes()}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        </main>
-
-        {/* 音频播放器进度条 - 仅在口令跟练模式显示，放在大圆圈和按钮之间 */}
-        {activeOptionId === 'guided_audio' && isAudioLoaded && !isAudioLoading && !audioError && (
-          <motion.div
-            className="w-full max-w-sm mx-auto px-6 mb-4"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            {/* 进度条 */}
-            <div className="relative h-1.5 bg-white/20 backdrop-blur-sm rounded-full overflow-hidden border border-white/10">
-              <div
-                className="absolute inset-y-0 left-0 bg-primary/80 rounded-full transition-all duration-300"
-                style={{ width: `${audioProgress}%` }}
-              />
-            </div>
-
-            {/* 时间显示 */}
-            <div className="flex justify-between text-xs text-foreground/50 mt-2 font-serif">
-              <span>{formatAudioTime(audioCurrentTime)}</span>
-              <span>{formatAudioTime(audioDuration)}</span>
-            </div>
-          </motion.div>
-        )}
-
-        {/* Control buttons - moved up 30% to avoid clipping on mobile */}
-        <div className="px-6 pb-32">
-          {/* 音频加载状态 - 仅在口令跟练模式显示 */}
-          {activeOptionId === 'guided_audio' && isAudioLoading && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex flex-col items-center justify-center py-3 bg-white/20 backdrop-blur-[8px] rounded-2xl border border-white/30"
-            >
-              <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-              <p className="text-sm text-foreground/70 mt-4 font-serif">
-                {isUsingCache ? '从缓存读取...' : '加载音频中...'}
-              </p>
-            </motion.div>
-          )}
-
-          {/* 音频错误状态 - 仅在口令跟练模式显示 */}
-          {activeOptionId === 'guided_audio' && audioError && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex flex-col items-center justify-center py-6 bg-white/20 backdrop-blur-[8px] rounded-2xl border border-white/30"
-            >
-              <AlertCircle className="w-12 h-12 text-destructive mb-3" />
-              <p className="text-sm text-destructive font-serif text-center">
-                {audioError}
-              </p>
-              <button
-                onClick={retryGuidedAudio}
-                className="mt-4 px-6 py-2 rounded-full green-gradient text-white text-sm font-serif"
-              >
-                重试
-              </button>
-            </motion.div>
-          )}
-
-          {/* 暂停/结束按钮 - 音频加载完成后显示 */}
-          {shouldShowPracticeControls(activeOptionId, isAudioLoaded, isAudioLoading, audioError) && (
-          <>
-          {/* 暂停/结束按钮 - 恢复原始样式 */}
-          <div className="flex gap-4 justify-center">
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={handlePauseResume}
-              className="flex items-center gap-2 px-8 py-4 rounded-full bg-card/80 backdrop-blur-md border border-white/10 text-foreground font-serif shadow-[0_4px_20px_rgba(0,0,0,0.05)] hover:bg-card transition-colors"
-            >
-              {isPaused ? (
-                <>
-                  <Play className="w-5 h-5" />
-                  继续
-                </>
-              ) : (
-                <>
-                  <Pause className="w-5 h-5" />
-                  暂停
-                </>
-              )}
-            </motion.button>
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={handleEndRequest}
-              className="px-8 py-4 rounded-full green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white font-serif shadow-[0_4px_20px_rgba(45,90,39,0.2)] hover:opacity-90 transition-opacity"
-            >
-              结束
-            </motion.button>
-          </div>
-
-          {/* 步长选择器 + 前进/后退按钮 - 仅在口令跟练模式显示 */}
-          {activeOptionId === 'guided_audio' && isAudioLoaded && !isAudioLoading && !audioError && (
-            <div className="flex items-center justify-center gap-3 mt-4 bg-white/20 backdrop-blur-[8px] rounded-full px-3 py-1.5 border border-white/30">
-              {/* 后退按钮 */}
-              <motion.button
-                whileTap={{ scale: 0.9 }}
-                onClick={() => handleAudioSeek('backward')}
-                className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-foreground/50 hover:text-foreground transition-all"
-              >
-                <SkipBack className="w-3.5 h-3.5" />
-              </motion.button>
-
-              {/* 步长选择器 */}
-              <div className="flex items-center gap-1">
-                {SEEK_STEP_OPTIONS.map((step) => (
-                  <button
-                    key={step}
-                    onClick={() => setSeekStep(step)}
-                    className={`px-2 py-1 rounded-full text-xs font-mono transition-all ${
-                      seekStep === step
-                        ? 'green-gradient text-white shadow-sm'
-                        : 'text-foreground/50 hover:text-foreground'
-                    }`}
-                  >
-                    {step}秒
-                  </button>
-                ))}
-              </div>
-
-              {/* 前进按钮 */}
-              <motion.button
-                whileTap={{ scale: 0.9 }}
-                onClick={() => handleAudioSeek('forward')}
-                className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-foreground/50 hover:text-foreground transition-all"
-              >
-                <SkipForward className="w-3.5 h-3.5" />
-              </motion.button>
-            </div>
-          )}
-          </>
-          )}
-        </div>
-
-        <ConfirmEndDialog isOpen={showConfirmEnd} onClose={cancelPracticeEnd} onConfirm={handleConfirmEnd} onDiscard={handleDiscardEnd} />
+      <>
+        <PracticeSessionView
+          elapsedTime={elapsedTime}
+          isPaused={Boolean(isPaused)}
+          practiceLabel={getSelectedLabel()}
+          practiceNotes={getSelectedNotes()}
+          activeOptionId={activeOptionId}
+          isChantCountdown={isChantCountdown}
+          chantCountdown={chantCountdown}
+          onSkipChantCountdown={skipChantCountdown}
+          isChantPlaying={isChantPlaying}
+          isAudioLoaded={isAudioLoaded}
+          isAudioLoading={isAudioLoading}
+          audioError={audioError}
+          isUsingCache={isUsingCache}
+          audioProgress={audioProgress}
+          audioCurrentTime={audioCurrentTime}
+          audioDuration={audioDuration}
+          onRetryAudio={retryGuidedAudio}
+          onPauseResume={handlePauseResume}
+          onRequestEnd={handleEndRequest}
+          seekStepOptions={SEEK_STEP_OPTIONS}
+          seekStep={seekStep}
+          onSeekStepChange={setSeekStep}
+          onAudioSeek={handleAudioSeek}
+          showConfirmEnd={showConfirmEnd}
+          onCancelEnd={cancelPracticeEnd}
+          onConfirmEnd={handleConfirmEnd}
+          onDiscardEnd={handleDiscardEnd}
+        />
 
         <CompletionSheet
           isOpen={showCompletion}
@@ -1722,10 +1529,9 @@ export default function AshtangaTracker() {
           practiceOptions={practiceOptionsData}
           isPro={membershipIsPro}
         />
-      </motion.div>
+      </>
     )
   }
-
   // Dashboard View
   return (
     <div className="h-screen bg-background flex flex-col">

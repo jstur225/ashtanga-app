@@ -46,7 +46,7 @@
 | 1 | 工具函数、选择器、选项弹窗、结束确认、呼吸动画 | 已完成 `0300ad4` | 页面 2738 行，拆出组件有行为测试 |
 | 2 | `usePracticeSession` + 计时视图 | 已完成（阶段检查点） | 计时状态转换独立测试，页面不计算时长 |
 | 3 | `useGuidedAudio` + `useChantPlayback` | 已完成（阶段检查点） | 页面不持有 `HTMLAudioElement` |
-| 4 | Dashboard、导航、ModalHost、Tab 动态加载 | 进行中（Dashboard、导航与动态 Tab 已完成） | 页面 800–1200 行，首屏 JS 下降至少 20% |
+| 4 | Dashboard、导航、ModalHost、Tab 动态加载 | 进行中（Dashboard、SessionView、导航与动态 Tab 已完成） | 页面 800–1200 行，首屏 JS 下降至少 20% |
 | 5 | 同步仓库、映射、编排、冲突、日志分层 | 待开始 | `useSync` 250–350 行，同步矩阵通过 |
 | 6 | 大型组件职责审计与最终归档 | 待开始 | 只保留职责单一的大文件，文档与代码一致 |
 
@@ -127,7 +127,7 @@ useSync (React facade)
 - `JournalTab`、`StatsTab`、`PosesTab` 使用 `next/dynamic` 按需加载，并共用可访问的 loading 状态。
 - 统一页面覆盖层导航显隐策略，补齐自定义练习等顶层弹窗；生产浏览器验证打开隐藏、关闭恢复。
 - `practice/page.tsx` 当前 2456 行、43 个 `useState`；全量为 23 个测试文件 / 185 项测试，typecheck、lint、build 通过。
-- 尚未完成：`PracticeSessionView`、`PracticeModalHost`，以及可重复的首屏 JS 基线和至少 20% 降幅验收。
+- 尚未完成：`PracticeModalHost`，以及可重复的首屏 JS 基线和至少 20% 降幅验收。
 
 ### 阶段 4 第二检查点（2026-06-19）
 
@@ -135,7 +135,15 @@ useSync (React facade)
 - 开始按钮改为原生可访问按钮：未选择时禁用，选择后启用，视觉和交互路径保持一致。
 - 页面从 2456 行降至 2342 行；24 个测试文件 / 187 项测试、typecheck、lint、生产 build 全部通过。
 - 生产浏览器通过“选择 Mysore → 开始 → 计时 → 结束 → 放弃”链路，控制台 0 错误。
-- 下一刀：`PracticeSessionView`；之后提取 `PracticeModalHost` 并建立首屏 JS 基线。
+- 当时下一刀为 `PracticeSessionView`；现已在第三检查点完成。
+
+### 阶段 4 第三检查点（2026-06-20）
+
+- 提取 `PracticeSessionView`，承接唱诵倒计时、计时圆环、口令加载/错误/进度、暂停/继续、跳转和结束确认。
+- `CompletionSheet`、完成保存、统计上报和同步仍由页面负责，避免视图组件吸收业务副作用。
+- 页面从 2342 行降至 2151 行；25 个测试文件 / 191 项测试、typecheck、lint、生产 build 全部通过。
+- 生产浏览器通过普通练习的开始、暂停、继续、结束、放弃；口令媒体失败后降级控制和清理也通过。
+- 下一刀：`PracticeModalHost`；之后建立 `/practice` 首屏 JS 基线并验收至少 20% 降幅。
 
 ## 完成定义
 

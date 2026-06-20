@@ -3054,3 +3054,12 @@ export const INVITE_VERSION = 'v2'  // 从 v1 更新到 v2
 - 页面从 2456 行降至 2342 行；24 个测试文件 / 187 项测试、typecheck、lint、生产 build 通过。
 - 生产浏览器完成选择、开始、计时、结束和放弃回归，控制台 0 错误。
 - 下一步直接提取 `PracticeSessionView`，不重新调查 Dashboard 边界。
+
+### 第三检查点：PracticeSessionView
+
+- 新增 `components/practice/PracticeSessionView.tsx`，承接全屏计时、唱诵倒计时、口令状态、暂停/继续、音频跳转与结束确认。
+- `CompletionSheet` 和完成保存/同步留在页面，SessionView 仅接收状态与事件，不拥有业务副作用。
+- 新增 4 项组件测试，覆盖普通计时、唱诵、口令 loading/error/progress 和跳转控制。
+- 页面从 2342 行降至 2151 行；25 个测试文件 / 191 项测试、typecheck、lint、生产 build 通过。
+- 生产浏览器通过普通练习完整链路；口令媒体失败后暂停、继续、结束和放弃仍可用。仅出现用于触发降级的浏览器媒体 `NotAllowedError`，无新增业务异常。
+- 下一步直接提取 `PracticeModalHost`，不重新调查 SessionView。
