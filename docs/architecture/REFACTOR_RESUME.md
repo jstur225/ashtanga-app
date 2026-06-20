@@ -2,20 +2,21 @@
 
 > 下次启动本项目时先读这里。阶段 1–3 已完成，阶段 4 正在进行，不需要重新调查刷新恢复或媒体生命周期问题。
 
-## 2026-06-19 最新恢复点
+## 2026-06-20 最新恢复点
 
-阶段 4 已开始，导航、动态 Tab、Dashboard 与 SessionView 四刀已经完成并通过门禁：
+阶段 4 已开始，导航、动态 Tab、Dashboard、SessionView 与 ModalHost 第一部分已经完成并通过门禁：
 
 - `JournalTab`、`StatsTab`、`PosesTab` 已改为真正的 `next/dynamic` 按需加载，并有统一 loading 状态。
 - 底部导航已提取为 `components/practice/PracticeNavigation.tsx`。
 - 练习首页已提取为 `components/practice/PracticeDashboard.tsx`；页面只保留选项选择与开始练习的业务决策。
-- 全屏练习已提取为 `components/practice/PracticeSessionView.tsx`；完成保存与同步仍留在页面编排层。
+- 全屏练习已提取为 `components/practice/PracticeSessionView.tsx`（`4fea12a`）；完成保存与同步仍留在页面编排层。
+- `PracticeModalHost` 已承接三步清空数据与唱诵设置；其余独立弹窗接线仍待收拢。
 - 页面顶层覆盖层统一决定导航显隐；真实浏览器已验证“打开自定义练习弹窗后导航退出，关闭后恢复”。
-- 当前 `app/practice/page.tsx` 为 2151 行、43 个 `useState`。
-- 当前门禁：25 个测试文件 / 191 项测试，typecheck、lint、生产 build 全部通过。
-- 生产浏览器已验证：选择 Mysore → 开始按钮启用 → 进入计时 → 结束并放弃，控制台 0 错误。
+- 当前 `app/practice/page.tsx` 为 1883 行、43 个 `useState`。
+- 当前门禁：26 个测试文件 / 194 项测试，typecheck、lint、生产 build 全部通过。
+- 生产浏览器已验证普通练习的开始、暂停、继续、结束和放弃；口令媒体失败后降级控制与清理通过，仅出现用于触发降级的浏览器媒体错误，无新增业务异常。
 
-下次不要重新排查阶段 1–3，也不要重做 Tab、导航、Dashboard 或 SessionView。直接提取阶段 4 的 `PracticeModalHost`；首屏 JS 可重复基线尚未建立，仍是本阶段硬门槛。
+下次不要重新排查阶段 1–3，也不要重做 Tab、导航、Dashboard、SessionView 或 ModalHost 内联状态机。直接把其余独立弹窗接线收拢进 `PracticeModalHost`；首屏 JS 可重复基线尚未建立，仍是本阶段硬门槛。
 
 ## 一句话状态
 
@@ -38,7 +39,7 @@ npx.cmd vitest run
 npm.cmd run build
 ```
 
-当前结果：25 个测试文件 / 191 项测试、TypeScript、lint、Next.js 生产构建全部通过。
+当前结果：26 个测试文件 / 194 项测试、TypeScript、lint、Next.js 生产构建全部通过。
 
 ## 阶段 3 当前结果
 
@@ -53,16 +54,16 @@ npm.cmd run build
 1. ✅ `PracticeNavigation` 已提取，顶层覆盖层导航显隐已统一。
 2. ✅ Journal、Stats、Poses Tab 已改为真正按需加载。
 3. ✅ `PracticeDashboard` 与 `PracticeSessionView` 已提取。
-4. ⏳ 下一刀提取 `PracticeModalHost`，随后建立首屏 JS 可重复基线并验收相对下降至少 20%。
+4. 🟡 `PracticeModalHost` 第一部分完成；剩余独立弹窗接线收拢后，再建立首屏 JS 基线并验收相对下降至少 20%。
 
 ## 下一次优化目标
 
-第一刀只处理 `PracticeModalHost`：
+第一刀继续完成 `PracticeModalHost`：
 
-1. 先按弹窗职责分组，提取纯展示和事件转发，不把认证、会员、导入导出或同步决策搬进组件。
-2. 保持嵌套弹窗层级、导航显隐和父子弹窗切换行为不变。
-3. 跑 4 道门禁，并在生产浏览器复验自定义练习、设置、会员提示与结束完成链路。
-4. ModalHost 稳定并独立提交后，再建立首屏 JS 基线，不要两刀混在同一提交。
+1. 将 Custom/Edit、Settings、会员、账户、导入导出、Auth、FakeDoor、邀请和冲突弹窗的渲染接线移入宿主。
+2. 页面继续保留认证、会员、导入导出和同步决策，只向宿主传状态、数据和事件。
+3. 保持嵌套弹窗层级、导航显隐和父子弹窗切换行为不变，并复验自定义练习、设置、会员提示与结束完成链路。
+4. 完整 ModalHost 独立提交后，再建立首屏 JS 基线，不要两刀混在同一提交。
 
 阶段 4 最终门槛仍是：页面降至 800–1200 行，并建立可重复的 `/practice` 首屏 JS 基线，确认相对下降至少 20%。
 
@@ -70,9 +71,9 @@ npm.cmd run build
 
 ## 当前规模
 
-- `app/practice/page.tsx`：2151 行，仍是后续拆分主体
+- `app/practice/page.tsx`：1883 行，仍是后续拆分主体
 - `hooks/useSync.ts`：1348 行，阶段 5 再处理
-- 核心阶段 1–6：阶段 1–3 完成、阶段 4 进行中，约 55%
+- 核心阶段 1–6：阶段 1–3 完成、阶段 4 进行中，约 60%
 
 ## 真源文档
 

@@ -138,6 +138,7 @@ export function StatsTab({
 
         <button
           type="button"
+          aria-label="打开设置"
           onClick={onOpenSettings}
           className="p-2 text-muted-foreground hover:text-foreground transition-colors"
         >

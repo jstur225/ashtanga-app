@@ -37,7 +37,8 @@
 - [x] 提取 `PracticeDashboard`，保留页面中的选择与启动业务决策
 - [x] 提取 `PracticeNavigation`，统一顶层覆盖层的导航显隐策略
 - [x] 提取 `PracticeSessionView`：全屏计时、唱诵倒计时与口令控制已移出，完成保存/同步仍在页面
-- [ ] 提取 `PracticeModalHost`：等待 SessionView 检查点稳定后再开始
+- [x] `PracticeModalHost` 第一部分：提取三步清空数据与唱诵设置状态机
+- [ ] `PracticeModalHost` 第二部分：收拢其余独立弹窗渲染接线，业务决策继续留在页面
 - [x] 将 Journal/Stats/Poses Tab 真正改为按需加载
 - [ ] 建立可重复的首屏 JS 基线并比较下降幅度
 

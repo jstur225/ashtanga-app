@@ -12,7 +12,7 @@ import { useSync } from "@/hooks/useSync"
 import { usePracticeSession } from "@/hooks/usePracticeSession"
 import { useGuidedAudio } from "@/hooks/useGuidedAudio"
 import { useChantPlayback } from "@/hooks/useChantPlayback"
-import { X, User, ChevronUp, ChevronDown, Upload, Plus, Minus, Share2, Sparkles, Check, ClipboardPaste, Volume2, Crown, Ticket, Loader2, Lock, Users } from "lucide-react"
+import { User, Upload, Plus, Minus, Share2, Sparkles, Check, ClipboardPaste, Volume2, Ticket, Loader2, Users } from "lucide-react"
 import { cn } from '@/lib/utils'
 import { getColorClass } from '@/lib/sync-utils'
 import { VoiceButton } from "@/components/VoiceButton"
@@ -30,6 +30,7 @@ import { CustomPracticeModal, EditOptionModal } from '@/components/practice/Opti
 import { hasOpenPracticeOverlay, PracticeNavigation, type PracticeTab } from '@/components/practice/PracticeNavigation'
 import { PracticeDashboard } from '@/components/practice/PracticeDashboard'
 import { PracticeSessionView } from '@/components/practice/PracticeSessionView'
+import { PracticeModalHost } from '@/components/practice/PracticeModalHost'
 
 // 懒加载弹窗（不阻塞首屏渲染）
 const TabLoading = () => (
@@ -1628,6 +1629,43 @@ export default function AshtangaTracker() {
       </AnimatePresence>
       </div>
       <PracticeNavigation activeTab={activeTab} hidden={hasAnyModalOpen} onChange={setActiveTab} />
+      <PracticeModalHost
+        clearData={{
+          isOpen: showClearDataConfirm,
+          step: clearDataStep,
+          confirmPhrase,
+          onClose: () => setShowClearDataConfirm(false),
+          onStepChange: setClearDataStep,
+          onConfirmPhraseChange: setConfirmPhrase,
+          onInvalidConfirmPhrase: () => toast.error('确认词输入错误，请重新输入'),
+          onComplete: async () => {
+            localStorage.clear()
+            if (user && clearAllData) {
+              await clearAllData()
+            }
+            setShowClearDataConfirm(false)
+            setClearDataStep(1)
+            await supabase.auth.signOut()
+            router.push('/')
+          },
+        }}
+        chantSettings={{
+          isOpen: showChantSettings,
+          isPro: membershipIsPro,
+          minutes: chantMins,
+          seconds: chantSecs,
+          delaySeconds: chantDelaySeconds,
+          onMinutesChange: setChantMins,
+          onSecondsChange: setChantSecs,
+          onDelayChange: setChantDelay,
+          onClose: () => setShowChantSettings(false),
+          onUpgrade: () => {
+            setShowChantSettings(false)
+            setMembershipPromptReason('options_full')
+            setShowMembershipPrompt(true)
+          },
+        }}
+      />
 
       {/* Custom Practice Modal */}
       <CustomPracticeModal
@@ -1790,161 +1828,6 @@ export default function AshtangaTracker() {
         user={user}
       />
 
-      {/* 清空数据确认弹窗 - 居中显示 */}
-      {showClearDataConfirm && (
-        <>
-          <div
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50"
-            onClick={() => setShowClearDataConfirm(false)}
-          />
-          {/* Modal - 居中显示 */}
-          <div className="fixed inset-0 flex items-center justify-center z-50 p-4 pointer-events-none">
-            <div className="bg-card rounded-[24px] shadow-[0_8px_32px_rgba(0,0,0,0.12)] w-full max-w-md pointer-events-auto">
-              <div className="p-6 pb-10">
-              {/* 第一层：警告 */}
-              {clearDataStep === 1 && (
-                <>
-                  <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-lg font-serif text-foreground">⚠️ 危险操作警告</h2>
-                    <button onClick={() => setShowClearDataConfirm(false)} className="p-2 -mr-2 text-muted-foreground hover:text-foreground transition-colors">
-                      <X className="w-5 h-5" />
-                    </button>
-                  </div>
-
-                  <div className="space-y-4">
-                    <p className="text-sm font-serif text-foreground text-center leading-relaxed">
-                      您正在尝试清空本地数据胶囊。
-                    </p>
-
-                    <div className="bg-red-50 rounded-xl p-4 border border-red-200">
-                      <p className="text-sm font-serif text-red-700 font-medium mb-2">此操作将永久删除：</p>
-                      <ul className="text-sm font-serif text-red-600 space-y-1 pl-4">
-                        <li>• 所有练习记录</li>
-                        <li>• 练习选项</li>
-                        <li>• 个人信息</li>
-                        <li>• 同步日志</li>
-                      </ul>
-                    </div>
-
-                    <p className="text-sm font-serif text-red-600 text-center font-medium">
-                      ⚠️ 此操作不可撤销！
-                    </p>
-
-                    <div className="flex gap-3 pt-2">
-                      <button
-                        onClick={() => setShowClearDataConfirm(false)}
-                        className="flex-1 px-4 py-3 bg-secondary text-foreground rounded-xl border border-border hover:bg-secondary/80 transition-all font-serif"
-                      >
-                        取消
-                      </button>
-                      <button
-                        onClick={() => setClearDataStep(2)}
-                        className="flex-1 px-4 py-3 bg-gradient-to-r from-red-500/80 to-red-600/80 backdrop-blur-md text-white rounded-xl border border-white/20 shadow-[0_4px_16px_rgba(220,38,38,0.25)] hover:from-red-600/80 hover:to-red-700/80 transition-all font-serif"
-                      >
-                        继续操作
-                      </button>
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {/* 第二层：输入确认词 */}
-              {clearDataStep === 2 && (
-                <>
-                  <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-lg font-serif text-foreground">⚠️ 二次确认</h2>
-                    <button onClick={() => setShowClearDataConfirm(false)} className="p-2 -mr-2 text-muted-foreground hover:text-foreground transition-colors">
-                      <X className="w-5 h-5" />
-                    </button>
-                  </div>
-
-                  <div className="space-y-4">
-                    <p className="text-sm font-serif text-foreground text-center leading-relaxed">
-                      为防止误操作，请输入确认词。
-                    </p>
-
-                    <div className="bg-red-50 rounded-xl p-4 border border-red-200">
-                      <p className="text-sm font-serif text-red-700 text-center mb-2">确认词：</p>
-                      <p className="text-lg font-serif text-red-800 text-center font-bold">确认删除</p>
-                    </div>
-
-                    <input
-                      type="text"
-                      value={confirmPhrase}
-                      onChange={(e) => setConfirmPhrase(e.target.value)}
-                      placeholder="请输入确认词（不含引号）"
-                      className="w-full px-4 py-3 border border-border rounded-xl focus:ring-2 focus:ring-red-500/20 focus:border-red-500 bg-secondary font-serif"
-                      autoFocus
-                    />
-
-                    <div className="flex gap-3 pt-2">
-                      <button
-                        onClick={() => setClearDataStep(1)}
-                        className="flex-1 px-4 py-3 bg-secondary text-foreground rounded-xl border border-border hover:bg-secondary/80 transition-all font-serif"
-                      >
-                        返回
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (confirmPhrase === '确认删除') {
-                            setClearDataStep(3)
-                          } else {
-                            toast.error('确认词输入错误，请重新输入')
-                          }
-                        }}
-                        className="flex-1 px-4 py-3 bg-gradient-to-r from-red-500/80 to-red-600/80 backdrop-blur-md text-white rounded-xl border border-white/20 shadow-[0_4px_16px_rgba(220,38,38,0.25)] hover:from-red-600/80 hover:to-red-700/80 transition-all font-serif"
-                      >
-                        确认
-                      </button>
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {/* 第三层：完成 */}
-              {clearDataStep === 3 && (
-                <>
-                  <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-lg font-serif text-foreground">✅ 数据已清空</h2>
-                    <button onClick={() => setShowClearDataConfirm(false)} className="p-2 -mr-2 text-muted-foreground hover:text-foreground transition-colors">
-                      <X className="w-5 h-5" />
-                    </button>
-                  </div>
-
-                  <div className="space-y-4">
-                    <p className="text-sm font-serif text-foreground text-center leading-relaxed">
-                      所有本地数据已成功删除。
-                    </p>
-
-                    <p className="text-sm font-serif text-muted-foreground text-center">
-                      点击完成后将退出登录并返回首页。
-                    </p>
-
-                    <div className="flex gap-3 pt-2">
-                      <button
-                        onClick={async () => {
-                          localStorage.clear()
-                          if (user && clearAllData) {
-                            await clearAllData()
-                          }
-                          setShowClearDataConfirm(false)
-                          setClearDataStep(1)
-                          await supabase.auth.signOut() // 确保退出登录
-                          router.push('/')
-                        }}
-                        className="w-full px-4 py-3 green-gradient backdrop-blur-md text-white rounded-xl border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] hover:opacity-90 transition-all font-serif"
-                      >
-                        完成
-                      </button>
-                    </div>
-                  </div>
-                </>
-              )}
-              </div>
-            </div>
-          </div>
-        </>
-      )}
       {/* Import Modal */}
       <ImportModal
         isOpen={showImportModal}
@@ -2037,169 +1920,6 @@ export default function AshtangaTracker() {
         onAuthSuccess={() => { setShowAuthModal(false); refreshMembership() }}
         onModeChange={(newMode) => setAuthMode(newMode)}
       />
-
-      {/* 唱诵设置 Sheet */}
-      <AnimatePresence>
-        {showChantSettings && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/30 z-[100]"
-              onClick={() => setShowChantSettings(false)}
-            />
-            <motion.div
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="fixed bottom-0 left-0 right-0 bg-card rounded-t-[24px] z-[110] p-6 pb-10 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]"
-              onAnimationComplete={() => {
-                // 动画完成（保留 ref 以备后用）
-              }}
-            >
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-serif text-foreground">唱诵设置</h2>
-                <button onClick={() => {
-                  // 关闭时同步到 chantDelay
-                  const total = chantMins * 60 + chantSecs
-                  if (total >= 5) setChantDelay(total)
-                  setShowChantSettings(false)
-                }} className="p-2 -mr-2 text-muted-foreground hover:text-foreground transition-colors">
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              {membershipIsPro ? (
-                <div className="space-y-5">
-                  <label className="block text-sm font-serif text-foreground">
-                    倒计时时长
-                  </label>
-                  <div className="flex items-center justify-center gap-3">
-                    <div className="flex flex-col items-center">
-                      <button
-                        onClick={() => {
-                          const v = Math.min(180, chantMins + 1)
-                          setChantMins(v)
-                          const total = v * 60 + chantSecs
-                          if (total >= 5) setChantDelay(total)
-                        }}
-                        className="w-[72px] h-9 flex items-center justify-center text-muted-foreground hover:text-foreground active:scale-90 transition-transform rounded-lg hover:bg-secondary/60"
-                      >
-                        <ChevronUp className="w-5 h-5" />
-                      </button>
-                      <input
-                        type="number"
-                        min={0}
-                        max={180}
-                        value={chantMins}
-                        onChange={(e) => {
-                          const v = Math.min(180, Math.max(0, parseInt(e.target.value) || 0))
-                          setChantMins(v)
-                          const total = v * 60 + chantSecs
-                          if (total >= 5) setChantDelay(total)
-                        }}
-                        className="w-[72px] h-16 text-center text-3xl font-light text-foreground bg-secondary/60 rounded-2xl border border-border/30 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:bg-secondary appearance-none [moz-appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                        inputMode="numeric"
-                      />
-                      <button
-                        onClick={() => {
-                          const v = Math.max(0, chantMins - 1)
-                          setChantMins(v)
-                          const total = v * 60 + chantSecs
-                          if (total >= 5) setChantDelay(total)
-                        }}
-                        className="w-[72px] h-9 flex items-center justify-center text-muted-foreground hover:text-foreground active:scale-90 transition-transform rounded-lg hover:bg-secondary/60"
-                      >
-                        <ChevronDown className="w-5 h-5" />
-                      </button>
-                    </div>
-                    <span className="text-base font-serif text-muted-foreground mt-1">分</span>
-                    <div className="flex flex-col items-center">
-                      <button
-                        onClick={() => {
-                          const v = Math.min(59, chantSecs + 1)
-                          setChantSecs(v)
-                          const total = chantMins * 60 + v
-                          if (total >= 5) setChantDelay(total)
-                        }}
-                        className="w-[72px] h-9 flex items-center justify-center text-muted-foreground hover:text-foreground active:scale-90 transition-transform rounded-lg hover:bg-secondary/60"
-                      >
-                        <ChevronUp className="w-5 h-5" />
-                      </button>
-                      <input
-                        type="number"
-                        min={0}
-                        max={59}
-                        value={chantSecs}
-                        onChange={(e) => {
-                          const v = Math.min(59, Math.max(0, parseInt(e.target.value) || 0))
-                          setChantSecs(v)
-                          const total = chantMins * 60 + v
-                          if (total >= 5) setChantDelay(total)
-                        }}
-                        className="w-[72px] h-16 text-center text-3xl font-light text-foreground bg-secondary/60 rounded-2xl border border-border/30 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:bg-secondary appearance-none [moz-appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                        inputMode="numeric"
-                      />
-                      <button
-                        onClick={() => {
-                          const v = Math.max(0, chantSecs - 1)
-                          setChantSecs(v)
-                          const total = chantMins * 60 + v
-                          if (total >= 5) setChantDelay(total)
-                        }}
-                        className="w-[72px] h-9 flex items-center justify-center text-muted-foreground hover:text-foreground active:scale-90 transition-transform rounded-lg hover:bg-secondary/60"
-                      >
-                        <ChevronDown className="w-5 h-5" />
-                      </button>
-                    </div>
-                    <span className="text-base font-serif text-muted-foreground mt-1">秒</span>
-                  </div>
-                  <p className="text-center text-xs text-muted-foreground/60 font-serif">
-                    当前：{Math.floor(chantDelaySeconds / 60)}分{String(chantDelaySeconds % 60).padStart(2, '0')}秒（最少5秒，最长3小时）
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-5">
-                  <div className="flex items-center gap-2">
-                    <Lock className="w-4 h-4 text-muted-foreground/40" />
-                    <span className="text-xs text-muted-foreground/60 font-serif">Pro 功能</span>
-                  </div>
-                  <label className="block text-sm font-serif text-foreground">
-                    倒计时时长
-                  </label>
-                  {/* 灰色滚轮预览（静态展示当前值） */}
-                  <div className="flex items-center justify-center gap-3 opacity-40 pointer-events-none">
-                    <div className="w-20 h-[160px] flex items-center justify-center">
-                      <span className="text-4xl font-serif text-foreground">{Math.floor(chantDelaySeconds / 60)}</span>
-                    </div>
-                    <span className="text-sm font-serif text-muted-foreground">分</span>
-                    <div className="w-20 h-[160px] flex items-center justify-center">
-                      <span className="text-4xl font-serif text-foreground">{String(chantDelaySeconds % 60).padStart(2, '0')}</span>
-                    </div>
-                    <span className="text-sm font-serif text-muted-foreground">秒</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground font-serif leading-relaxed">
-                    开启后，开始练习前会先全屏倒计时，然后播放开篇唱诵音频，结束后自动开始练习计时。
-                  </p>
-                  <button
-                    onClick={() => {
-                      setShowChantSettings(false)
-                      setMembershipPromptReason('options_full')
-                      setShowMembershipPrompt(true)
-                    }}
-                    className="w-full mt-2 px-6 py-2.5 rounded-full bg-gradient-to-r from-amber-500 to-yellow-500 text-white text-sm font-serif shadow-[0_4px_12px_rgba(245,158,11,0.3)]"
-                  >
-                    <Crown className="w-4 h-4 inline mr-1" />
-                    升级 Pro 解锁自定义时长
-                  </button>
-                </div>
-              )}
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
 
       {/* Data Conflict Modal - 数据冲突处理 */}
       <DataConflictModal
