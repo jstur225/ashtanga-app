@@ -41,8 +41,7 @@ const PosesTab = dynamic(() => import('@/components/PosesTab').then(m => ({ defa
 const JournalTab = dynamic(() => import('@/components/journal/JournalTab').then(m => ({ default: m.JournalTab })), { ssr: false, loading: TabLoading })
 const StatsTab = dynamic(() => import('@/components/stats/StatsTab').then(m => ({ default: m.StatsTab })), { ssr: false, loading: TabLoading })
 
-// INVITE_VERSION 是常量，需要直接导入
-import { INVITE_VERSION } from "@/components/XiaohongshuInviteModal"
+import { INVITE_VERSION } from "@/lib/invite-version"
 
 // 固定功能栏按钮（不计入用户选项名额）
 const FIXED_BUTTONS = [

@@ -7,6 +7,7 @@
     "dev": "next dev --webpack -H 0.0.0.0",
     "dev:turbo": "next dev --turbo -H 0.0.0.0",
     "lint": "node scripts/lint-check.mjs",
+    "measure:initial-js": "node scripts/measure-initial-js.mjs",
     "typecheck": "tsc --noEmit",
     "start": "next start -H 0.0.0.0"
   },

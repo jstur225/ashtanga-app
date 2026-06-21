@@ -95,6 +95,11 @@ describe("弹窗懒加载", () => {
   })
 
   describe("弹窗渲染统一由 PracticeModalHost 承接", () => {
+    it("邀请版本常量不会静态拉入小红书弹窗模块", () => {
+      expect(pageContent).not.toMatch(/import\s+.*from\s+["']@\/components\/XiaohongshuInviteModal["']/)
+      expect(pageContent).toContain('from "@/lib/invite-version"')
+    })
+
     HOSTED_MODALS.forEach((name) => {
       it(`${name} 不再由练习页面直接渲染`, () => {
         expect(pageContent).not.toContain(`<${name}`)
