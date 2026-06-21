@@ -28,12 +28,30 @@ const EAGER_COMPONENTS = [
 ]
 
 const LAZY_TABS = ["JournalTab", "StatsTab", "PosesTab"]
+const HOSTED_MODALS = [
+  "CustomPracticeModal",
+  "EditOptionModal",
+  "SettingsModal",
+  "AnnotationManagerModal",
+  "ActivateModal",
+  "MembershipPromptModal",
+  "PurchaseGuideModal",
+  "AccountSyncModal",
+  "ImportModal",
+  "ExportModal",
+  "DebugLogModal",
+  "FakeDoorModal",
+  "XiaohongshuInviteModal",
+  "AuthModal",
+  "DataConflictModal",
+]
 
 describe("弹窗懒加载", () => {
   const pageContent = fs.readFileSync(path.join(ROOT, "app/practice/page.tsx"), "utf-8")
+  const modalHostContent = fs.readFileSync(path.join(ROOT, "components/practice/PracticeModalHost.tsx"), "utf-8")
   const statsTabPath = path.join(ROOT, "components/stats/StatsTab.tsx")
   const statsTabContent = fs.existsSync(statsTabPath) ? fs.readFileSync(statsTabPath, "utf-8") : ""
-  const lazySourceContent = `${pageContent}\n${statsTabContent}`
+  const lazySourceContent = `${pageContent}\n${modalHostContent}\n${statsTabContent}`
 
   describe("弹窗组件文件", () => {
     LAZY_MODALS.forEach(({ name, file }) => {
@@ -72,6 +90,15 @@ describe("弹窗懒加载", () => {
         expect(directImportPattern.test(pageContent)).toBe(false)
         expect(dynamicPattern.test(pageContent)).toBe(true)
         expect(pageContent).toContain("loading: TabLoading")
+      })
+    })
+  })
+
+  describe("弹窗渲染统一由 PracticeModalHost 承接", () => {
+    HOSTED_MODALS.forEach((name) => {
+      it(`${name} 不再由练习页面直接渲染`, () => {
+        expect(pageContent).not.toContain(`<${name}`)
+        expect(modalHostContent).toContain(`<${name}`)
       })
     })
   })

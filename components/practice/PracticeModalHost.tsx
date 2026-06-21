@@ -1,7 +1,25 @@
 "use client"
 
+import type { ComponentProps } from "react"
+import dynamic from "next/dynamic"
 import { AnimatePresence, motion } from "framer-motion"
 import { ChevronDown, ChevronUp, Crown, Lock, X } from "lucide-react"
+import { CustomPracticeModal, EditOptionModal } from "@/components/practice/OptionModals"
+import { AccountSyncModal } from "@/components/AccountSyncModal"
+import { CompletionSheet } from "@/components/practice-record/CompletionSheet"
+
+const AnnotationManagerModal = dynamic(() => import("@/components/CalendarAnnotation/AnnotationManagerModal").then((module) => ({ default: module.AnnotationManagerModal })), { ssr: false })
+const FakeDoorModal = dynamic(() => import("@/components/FakeDoorModal").then((module) => ({ default: module.FakeDoorModal })), { ssr: false })
+const ImportModal = dynamic(() => import("@/components/ImportModal").then((module) => ({ default: module.ImportModal })), { ssr: false })
+const ExportModal = dynamic(() => import("@/components/ExportModal").then((module) => ({ default: module.ExportModal })), { ssr: false })
+const XiaohongshuInviteModal = dynamic(() => import("@/components/XiaohongshuInviteModal").then((module) => ({ default: module.XiaohongshuInviteModal })), { ssr: false })
+const AuthModal = dynamic(() => import("@/components/AuthModal").then((module) => ({ default: module.AuthModal })), { ssr: false })
+const DataConflictModal = dynamic(() => import("@/components/DataConflictModal").then((module) => ({ default: module.DataConflictModal })), { ssr: false })
+const DebugLogModal = dynamic(() => import("@/components/DebugLogModal").then((module) => ({ default: module.DebugLogModal })), { ssr: false })
+const SettingsModal = dynamic(() => import("@/components/settings/SettingsModal").then((module) => ({ default: module.SettingsModal })), { ssr: false })
+const ActivateModal = dynamic(() => import("@/components/Membership/ActivateModal").then((module) => ({ default: module.ActivateModal })), { ssr: false })
+const MembershipPromptModal = dynamic(() => import("@/components/Membership/MembershipPromptModal").then((module) => ({ default: module.MembershipPromptModal })), { ssr: false })
+const PurchaseGuideModal = dynamic(() => import("@/components/Membership/PurchaseGuideModal").then((module) => ({ default: module.PurchaseGuideModal })), { ssr: false })
 
 interface ClearDataDialogProps {
   isOpen: boolean
@@ -30,6 +48,24 @@ interface ChantSettingsSheetProps {
 interface PracticeModalHostProps {
   clearData: ClearDataDialogProps
   chantSettings: ChantSettingsSheetProps
+  external?: {
+    customPractice: ComponentProps<typeof CustomPracticeModal>
+    editOption: ComponentProps<typeof EditOptionModal>
+    settings: ComponentProps<typeof SettingsModal>
+    annotationManager: ComponentProps<typeof AnnotationManagerModal>
+    activate: ComponentProps<typeof ActivateModal>
+    membershipPrompt: ComponentProps<typeof MembershipPromptModal>
+    purchaseGuide: ComponentProps<typeof PurchaseGuideModal>
+    accountSync: ComponentProps<typeof AccountSyncModal>
+    importModal: ComponentProps<typeof ImportModal>
+    exportModal: ComponentProps<typeof ExportModal>
+    debugLogModal: ComponentProps<typeof DebugLogModal>
+    completion: ComponentProps<typeof CompletionSheet>
+    fakeDoor: ComponentProps<typeof FakeDoorModal>
+    xiaohongshu: ComponentProps<typeof XiaohongshuInviteModal>
+    auth: ComponentProps<typeof AuthModal>
+    dataConflict: ComponentProps<typeof DataConflictModal>
+  }
 }
 
 function ClearDataDialog({
@@ -192,9 +228,29 @@ function ChantSettingsSheet({
   )
 }
 
-export function PracticeModalHost({ clearData, chantSettings }: PracticeModalHostProps) {
+export function PracticeModalHost({ clearData, chantSettings, external }: PracticeModalHostProps) {
   return (
     <>
+      {external && (
+        <>
+          <CustomPracticeModal {...external.customPractice} />
+          <EditOptionModal {...external.editOption} />
+          <SettingsModal {...external.settings} />
+          <AnnotationManagerModal {...external.annotationManager} />
+          <ActivateModal {...external.activate} />
+          <MembershipPromptModal {...external.membershipPrompt} />
+          <PurchaseGuideModal {...external.purchaseGuide} />
+          <AccountSyncModal {...external.accountSync} />
+          <ImportModal {...external.importModal} />
+          <ExportModal {...external.exportModal} />
+          <DebugLogModal {...external.debugLogModal} />
+          <CompletionSheet {...external.completion} />
+          <FakeDoorModal {...external.fakeDoor} />
+          <XiaohongshuInviteModal {...external.xiaohongshu} />
+          <AuthModal {...external.auth} />
+          <DataConflictModal {...external.dataConflict} />
+        </>
+      )}
       <ClearDataDialog {...clearData} />
       <ChantSettingsSheet {...chantSettings} />
     </>

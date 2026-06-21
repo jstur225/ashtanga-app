@@ -17,7 +17,6 @@ import { cn } from '@/lib/utils'
 import { getColorClass } from '@/lib/sync-utils'
 import { VoiceButton } from "@/components/VoiceButton"
 import { CompletionSheet } from "@/components/practice-record/CompletionSheet"
-import { AccountSyncModal } from "@/components/AccountSyncModal"
 import { PhotoUploadButton } from "@/components/PhotoUploadButton"
 import { toast } from 'sonner'
 import { trackEvent, setUserProfile } from '@/lib/analytics'
@@ -26,7 +25,6 @@ import { deletePracticeRecord } from '@/lib/database'
 import { useRouter } from 'next/navigation'
 import { getVersionInfo } from '@/lib/version'
 import { getLocalDateStr } from '@/lib/practice-utils'
-import { CustomPracticeModal, EditOptionModal } from '@/components/practice/OptionModals'
 import { hasOpenPracticeOverlay, PracticeNavigation, type PracticeTab } from '@/components/practice/PracticeNavigation'
 import { PracticeDashboard } from '@/components/practice/PracticeDashboard'
 import { PracticeSessionView } from '@/components/practice/PracticeSessionView'
@@ -39,21 +37,9 @@ const TabLoading = () => (
   </div>
 )
 
-const AnnotationManagerModal = dynamic(() => import('@/components/CalendarAnnotation/AnnotationManagerModal').then(m => ({ default: m.AnnotationManagerModal })), { ssr: false })
-const FakeDoorModal = dynamic(() => import('@/components/FakeDoorModal').then(m => ({ default: m.FakeDoorModal })), { ssr: false })
-const ImportModal = dynamic(() => import('@/components/ImportModal').then(m => ({ default: m.ImportModal })), { ssr: false })
-const ExportModal = dynamic(() => import('@/components/ExportModal').then(m => ({ default: m.ExportModal })), { ssr: false })
-const XiaohongshuInviteModal = dynamic(() => import('@/components/XiaohongshuInviteModal').then(m => ({ default: m.XiaohongshuInviteModal })), { ssr: false })
-const AuthModal = dynamic(() => import('@/components/AuthModal').then(m => ({ default: m.AuthModal })), { ssr: false })
-const DataConflictModal = dynamic(() => import('@/components/DataConflictModal').then(m => ({ default: m.DataConflictModal })), { ssr: false })
-const DebugLogModal = dynamic(() => import('@/components/DebugLogModal').then(m => ({ default: m.DebugLogModal })), { ssr: false })
 const PosesTab = dynamic(() => import('@/components/PosesTab').then(m => ({ default: m.PosesTab })), { ssr: false, loading: TabLoading })
 const JournalTab = dynamic(() => import('@/components/journal/JournalTab').then(m => ({ default: m.JournalTab })), { ssr: false, loading: TabLoading })
 const StatsTab = dynamic(() => import('@/components/stats/StatsTab').then(m => ({ default: m.StatsTab })), { ssr: false, loading: TabLoading })
-const SettingsModal = dynamic(() => import('@/components/settings/SettingsModal').then(m => ({ default: m.SettingsModal })), { ssr: false })
-const ActivateModal = dynamic(() => import('@/components/Membership/ActivateModal').then(m => ({ default: m.ActivateModal })), { ssr: false })
-const MembershipPromptModal = dynamic(() => import('@/components/Membership/MembershipPromptModal').then(m => ({ default: m.MembershipPromptModal })), { ssr: false })
-const PurchaseGuideModal = dynamic(() => import('@/components/Membership/PurchaseGuideModal').then(m => ({ default: m.PurchaseGuideModal })), { ssr: false })
 
 // INVITE_VERSION 是常量，需要直接导入
 import { INVITE_VERSION } from "@/components/XiaohongshuInviteModal"
@@ -1665,269 +1651,226 @@ export default function AshtangaTracker() {
             setShowMembershipPrompt(true)
           },
         }}
-      />
-
-      {/* Custom Practice Modal */}
-      <CustomPracticeModal
-        isOpen={showCustomModal}
-        onClose={() => setShowCustomModal(false)}
-        onConfirm={handleAddOption}
-        isFull={isOptionsFull}
-        maxSlots={membershipIsPro ? MAX_SLOTS_PRO : MAX_SLOTS_FREE}
-        membership={membership}
-        onShowMembershipPrompt={() => {
-          setMembershipPromptReason('color_level')
-          setShowMembershipPrompt(true)
-        }}
-      />
-
-      {/* Edit Option Modal */}
-      <EditOptionModal
-        isOpen={showEditModal}
-        onClose={() => {
-          setShowEditModal(false)
-          setEditingOption(null)
-        }}
-        option={editingOption}
-        onSave={handleEditSave}
-        onDelete={handleEditDelete}
-        canDelete={canDeleteOption && editingOption?.id !== "custom"}
-        membership={membership}
-        onShowMembershipPrompt={() => {
-          setMembershipPromptReason('color_level')
-          setShowMembershipPrompt(true)
-        }}
-      />
-
-      {/* Settings Modal */}
-      <SettingsModal
-        isOpen={showSettings}
-        onClose={() => {
-          setShowSettings(false)
-          setSettingsInitialSection('profile') // 重置初始标签页
-        }}
-        initialSection={settingsInitialSection}
-        profile={userProfile}
-        onSave={async (profile) => {
-          // 先保存到本地
-          updateProfile(profile)
-          // 如果已登录，自动同步到云端
-          if (user) {
-            toast.loading('正在同步到云端...', { id: 'sync-profile' })
-            try {
-              const result = await autoSync('保存个人资料后同步')
-              toast.dismiss('sync-profile')
-              if (result) {
-                toast.success('✅ 资料已同步到云端')
-              } else {
-                toast.error('❌ 同步失败，请稍后重试')
-              }
-            } catch (e) {
-              toast.dismiss('sync-profile')
-              toast.error('❌ 同步失败')
-            }
-          }
-        }}
-        onOpenExport={() => {
-          const data = exportData()
-          setExportedData(data)
-          setShowExportModal(true)
-        }}
-        onOpenImport={() => setShowImportModal(true)}
-        onExportLog={handleExportDebugLog}
-        onClearData={clearAllData}
-        user={user}
-        practiceHistory={practiceHistory}
-        practiceOptionsData={practiceOptionsData}
-        onShowClearDataConfirm={() => {
-          setClearDataStep(1)
-          setConfirmPhrase('')
-          setShowClearDataConfirm(true)
-        }}
-        onOpenLoginModal={() => {
-          setShowAuthModal(true)
-          setAuthMode('login')
-        }}
-        onOpenRegisterModal={() => {
-          setShowAuthModal(true)
-          setAuthMode('register')
-        }}
-        membership={membership}
-        onActivateMembership={() => {
-          setShowActivateModal(true)
-        }}
-        onPurchaseMembership={() => setShowPurchaseModal(true)}
-        onUpdateProfile={updateProfile}
-      />
-
-      {/* Annotation Manager Modal */}
-      <AnnotationManagerModal
-        isOpen={showAnnotationManager}
-        onClose={() => setShowAnnotationManager(false)}
-        types={annotationTypes}
-        maxTypes={maxAnnotationTypes}
-        isPro={membershipIsPro}
-        onCreateType={createAnnotationType}
-        onUpdateType={updateAnnotationType}
-        onDeleteType={deleteAnnotationType}
-        onAddAnnotation={addAnnotation}
-        onRemoveAnnotation={removeAnnotation}
-        onLockedClick={() => {
-          setMembershipPromptReason('locked_annotation')
-          setShowMembershipPrompt(true)
-        }}
-        annotationDates={annotationDates}
-      />
-
-      {/* Activate Membership Modal */}
-      <ActivateModal
-        isOpen={showActivateModal}
-        onClose={() => setShowActivateModal(false)}
-        onSuccess={async () => {
-          // ⭐ 刷新会员状态，等待完成后再关闭弹窗
-          console.log('[Practice] 激活成功，准备刷新会员状态')
-          await refreshMembership()
-          console.log('[Practice] refreshMembership 完成')
-        }}
-      />
-
-      {/* Membership Prompt Modal - 纯转化弹窗 */}
-      <MembershipPromptModal
-        isOpen={showMembershipPrompt}
-        onClose={() => setShowMembershipPrompt(false)}
-        reason={membershipPromptReason}
-        onActivate={() => setShowActivateModal(true)}
-      />
-
-      {/* Purchase Guide Modal */}
-      <PurchaseGuideModal
-        isOpen={showPurchaseModal}
-        onClose={() => setShowPurchaseModal(false)}
-      />
-
-      {/* Account & Sync Modal */}
-      <AccountSyncModal
-        isOpen={showAccountSync}
-        onClose={() => setShowAccountSync(false)}
-        profile={userProfile}
-        practiceHistory={practiceHistory}
-        practiceOptionsData={practiceOptionsData}
-        onOpenLoginModal={() => {
-          setShowAuthModal(true)
-          setAuthMode('login')
-        }}
-        onOpenRegisterModal={() => {
-          setShowAuthModal(true)
-          setAuthMode('register')
-        }}
-        onShowClearDataConfirm={() => {
-          setShowClearDataConfirm(true)
-          setClearDataStep(2) // 直接从 Step 2（输入确认词）开始
-        }}
-        onUpdateProfile={updateProfile}
-        user={user}
-      />
-
-      {/* Import Modal */}
-      <ImportModal
-        isOpen={showImportModal}
-        onClose={() => setShowImportModal(false)}
-        onImport={(json) => {
-          const result = importData(json)
-
-          if (result) {
-            toast.success('✅ 数据导入成功！', {
-              duration: 3000,
-              position: 'top-center'
-            })
-            trackEvent('import_data')
-            setTimeout(() => {
-              setShowImportModal(false)
+        external={{
+          customPractice: {
+            isOpen: showCustomModal,
+            onClose: () => setShowCustomModal(false),
+            onConfirm: handleAddOption,
+            isFull: isOptionsFull,
+            maxSlots: membershipIsPro ? MAX_SLOTS_PRO : MAX_SLOTS_FREE,
+            membership,
+            onShowMembershipPrompt: () => {
+              setMembershipPromptReason('color_level')
+              setShowMembershipPrompt(true)
+            },
+          },
+          editOption: {
+            isOpen: showEditModal,
+            onClose: () => {
+              setShowEditModal(false)
+              setEditingOption(null)
+            },
+            option: editingOption,
+            onSave: handleEditSave,
+            onDelete: handleEditDelete,
+            canDelete: canDeleteOption && editingOption?.id !== 'custom',
+            membership,
+            onShowMembershipPrompt: () => {
+              setMembershipPromptReason('color_level')
+              setShowMembershipPrompt(true)
+            },
+          },
+          settings: {
+            isOpen: showSettings,
+            onClose: () => {
               setShowSettings(false)
-            }, 500)
-          } else {
-            toast.error('❌ 数据导入失败，请检查格式', {
-              duration: 3000,
-              position: 'top-center'
-            })
-          }
+              setSettingsInitialSection('profile')
+            },
+            initialSection: settingsInitialSection,
+            profile: userProfile,
+            onSave: async (profile) => {
+              updateProfile(profile)
+              if (user) {
+                toast.loading('正在同步到云端...', { id: 'sync-profile' })
+                try {
+                  const result = await autoSync('保存个人资料后同步')
+                  toast.dismiss('sync-profile')
+                  if (result) toast.success('✅ 资料已同步到云端')
+                  else toast.error('❌ 同步失败，请稍后重试')
+                } catch {
+                  toast.dismiss('sync-profile')
+                  toast.error('❌ 同步失败')
+                }
+              }
+            },
+            onOpenExport: () => {
+              setExportedData(exportData())
+              setShowExportModal(true)
+            },
+            onOpenImport: () => setShowImportModal(true),
+            onExportLog: handleExportDebugLog,
+            onClearData: clearAllData,
+            user,
+            practiceHistory,
+            practiceOptionsData,
+            onShowClearDataConfirm: () => {
+              setClearDataStep(1)
+              setConfirmPhrase('')
+              setShowClearDataConfirm(true)
+            },
+            onOpenLoginModal: () => {
+              setShowAuthModal(true)
+              setAuthMode('login')
+            },
+            onOpenRegisterModal: () => {
+              setShowAuthModal(true)
+              setAuthMode('register')
+            },
+            membership,
+            onActivateMembership: () => setShowActivateModal(true),
+            onPurchaseMembership: () => setShowPurchaseModal(true),
+            onUpdateProfile: updateProfile,
+          },
+          annotationManager: {
+            isOpen: showAnnotationManager,
+            onClose: () => setShowAnnotationManager(false),
+            types: annotationTypes,
+            maxTypes: maxAnnotationTypes,
+            isPro: membershipIsPro,
+            onCreateType: createAnnotationType,
+            onUpdateType: updateAnnotationType,
+            onDeleteType: deleteAnnotationType,
+            onAddAnnotation: addAnnotation,
+            onRemoveAnnotation: removeAnnotation,
+            onLockedClick: () => {
+              setMembershipPromptReason('locked_annotation')
+              setShowMembershipPrompt(true)
+            },
+            annotationDates,
+          },
+          activate: {
+            isOpen: showActivateModal,
+            onClose: () => setShowActivateModal(false),
+            onSuccess: async () => {
+              console.log('[Practice] 激活成功，准备刷新会员状态')
+              await refreshMembership()
+              console.log('[Practice] refreshMembership 完成')
+            },
+          },
+          membershipPrompt: {
+            isOpen: showMembershipPrompt,
+            onClose: () => setShowMembershipPrompt(false),
+            reason: membershipPromptReason,
+            onActivate: () => setShowActivateModal(true),
+          },
+          purchaseGuide: {
+            isOpen: showPurchaseModal,
+            onClose: () => setShowPurchaseModal(false),
+          },
+          accountSync: {
+            isOpen: showAccountSync,
+            onClose: () => setShowAccountSync(false),
+            profile: userProfile,
+            practiceHistory,
+            practiceOptionsData,
+            onOpenLoginModal: () => {
+              setShowAuthModal(true)
+              setAuthMode('login')
+            },
+            onOpenRegisterModal: () => {
+              setShowAuthModal(true)
+              setAuthMode('register')
+            },
+            onShowClearDataConfirm: () => {
+              setShowClearDataConfirm(true)
+              setClearDataStep(2)
+            },
+            onUpdateProfile: updateProfile,
+            user,
+          },
+          importModal: {
+            isOpen: showImportModal,
+            onClose: () => setShowImportModal(false),
+            onImport: (json) => {
+              const result = importData(json)
+              if (result) {
+                toast.success('✅ 数据导入成功！', { duration: 3000, position: 'top-center' })
+                trackEvent('import_data')
+                setTimeout(() => {
+                  setShowImportModal(false)
+                  setShowSettings(false)
+                }, 500)
+              } else {
+                toast.error('❌ 数据导入失败，请检查格式', { duration: 3000, position: 'top-center' })
+              }
+            },
+          },
+          exportModal: {
+            isOpen: showExportModal,
+            onClose: () => setShowExportModal(false),
+            data: exportedData,
+          },
+          debugLogModal: {
+            isOpen: showDebugLogModal,
+            onClose: () => setShowDebugLogModal(false),
+            logContent: debugLogContent,
+          },
+          completion: {
+            isOpen: showCompletion,
+            practiceType: getSelectedLabel(),
+            duration: finalDuration,
+            startTime: startTimeRef.current ? new Date(startTimeRef.current).toISOString() : undefined,
+            onFinalizeRecord: handleSavePractice,
+            onClose: () => {
+              finishCompletion()
+              setSelectedOption(null)
+              setCustomPracticeName('')
+              setActiveTab('journal')
+            },
+            addRecord,
+            updateRecord,
+            autoSync,
+            onDeleteDraft: handleDeleteRecord,
+            onShowMembershipPrompt: () => {
+              setMembershipPromptReason('color_level')
+              setShowMembershipPrompt(true)
+            },
+            user,
+            practiceOptions: practiceOptionsData,
+            isPro: membershipIsPro,
+          },
+          fakeDoor: {
+            type: showFakeDoor.type,
+            isOpen: showFakeDoor.isOpen,
+            onClose: () => setShowFakeDoor({ ...showFakeDoor, isOpen: false }),
+            onVote: handleVoteCloud,
+          },
+          xiaohongshu: {
+            isOpen: showXiaohongshuModal,
+            onClose: () => {
+              setShowXiaohongshuModal(false)
+              setReadInviteVersion(INVITE_VERSION)
+            },
+          },
+          auth: {
+            isOpen: showAuthModal,
+            onClose: () => setShowAuthModal(false),
+            mode: authMode,
+            onAuthSuccess: () => {
+              setShowAuthModal(false)
+              refreshMembership()
+            },
+            onModeChange: setAuthMode,
+          },
+          dataConflict: {
+            isOpen: showDataConflict,
+            localCount: conflictLocalCount,
+            remoteCount: conflictRemoteCount,
+            onSelect: handleResolveConflict,
+          },
         }}
       />
 
-      {/* Export Modal */}
-      <ExportModal
-        isOpen={showExportModal}
-        onClose={() => setShowExportModal(false)}
-        data={exportedData}
-      />
-
-      {/* Debug Log Modal */}
-      <DebugLogModal
-        isOpen={showDebugLogModal}
-        onClose={() => setShowDebugLogModal(false)}
-        logContent={debugLogContent}
-      />
-
-      {/* Completion Sheet */}
-      <CompletionSheet
-        isOpen={showCompletion}
-        practiceType={getSelectedLabel()}
-        duration={finalDuration}
-        startTime={startTimeRef.current ? new Date(startTimeRef.current).toISOString() : undefined}
-        onFinalizeRecord={handleSavePractice}
-        onClose={() => {
-          finishCompletion()
-          setSelectedOption(null)
-          setCustomPracticeName("")
-          setActiveTab('journal')
-        }}
-        addRecord={addRecord}
-        updateRecord={updateRecord}
-        autoSync={autoSync}
-        onDeleteDraft={handleDeleteRecord}
-        onShowMembershipPrompt={() => {
-          setMembershipPromptReason('color_level')
-          setShowMembershipPrompt(true)
-        }}
-        user={user}
-        practiceOptions={practiceOptionsData}
-        isPro={membershipIsPro}
-      />
-
-      {/* Fake Door Modal */}
-      <FakeDoorModal
-        type={showFakeDoor.type}
-        isOpen={showFakeDoor.isOpen}
-        onClose={() => setShowFakeDoor({ ...showFakeDoor, isOpen: false })}
-        onVote={handleVoteCloud}
-      />
-
-      {/* 小红书群邀请弹窗 */}
-      <XiaohongshuInviteModal
-        isOpen={showXiaohongshuModal}
-        onClose={() => {
-          setShowXiaohongshuModal(false)
-          // 关闭时再次确保标记为已读（双重保险）
-          setReadInviteVersion(INVITE_VERSION)
-        }}
-      />
-
-      {/* Auth Modal - 登录/注册/忘记密码 */}
-      <AuthModal
-        isOpen={showAuthModal}
-        onClose={() => setShowAuthModal(false)}
-        mode={authMode}
-        onAuthSuccess={() => { setShowAuthModal(false); refreshMembership() }}
-        onModeChange={(newMode) => setAuthMode(newMode)}
-      />
-
-      {/* Data Conflict Modal - 数据冲突处理 */}
-      <DataConflictModal
-        isOpen={showDataConflict}
-        localCount={conflictLocalCount}
-        remoteCount={conflictRemoteCount}
-        onSelect={handleResolveConflict}
-      />
     </div>
   )
 }
