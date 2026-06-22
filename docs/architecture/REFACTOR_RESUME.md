@@ -12,12 +12,13 @@
 - 全屏练习已提取为 `components/practice/PracticeSessionView.tsx`（`4fea12a`）；完成保存与同步仍留在页面编排层。
 - `PracticeModalHost` 已承接三步清空数据、唱诵设置，以及 Custom/Edit、Settings、会员、账户、导入导出、Auth、FakeDoor、邀请与冲突等独立弹窗的懒加载和渲染接线；认证、会员、同步等业务决策仍留在页面。
 - 页面顶层覆盖层统一决定导航显隐；真实浏览器已验证“打开自定义练习弹窗后导航退出，关闭后恢复”。
-- 当前 `app/practice/page.tsx` 为 1829 行、43 个 `useState`。
-- 首屏 JS 已有可重复脚本：427.9 KiB → 333.8 KiB gzip，下降 22.0%；Mixpanel 保留为异步 chunk，在浏览器空闲期加载。
-- 当前门禁：27 个测试文件 / 213 项测试，typecheck、lint、生产 build 全部通过。
+- 当前 `app/practice/page.tsx` 为 1406 行、43 个 `useState`。
+- 调试日志采集已移入 `lib/practice-debug-log.ts`；页面只保留快照传参、JSON 格式化、弹窗与错误提示。
+- 首屏 JS 已有可重复脚本：当前 427.9 KiB → 334.1 KiB gzip，下降 21.9%；Mixpanel 保留为异步 chunk，在浏览器空闲期加载。
+- 当前门禁：28 个测试文件 / 218 项测试，typecheck、lint、生产 build 全部通过。
 - 生产浏览器已验证普通练习的开始、暂停、继续、结束和放弃；口令媒体失败后降级控制与清理通过，仅出现用于触发降级的浏览器媒体错误，无新增业务异常。
 
-下次不要重新排查阶段 1–3，也不要重做 Tab、导航、Dashboard、SessionView、ModalHost 或首屏 JS 基线。直接提取 `handleExportDebugLog` 中约 480 行调试日志采集逻辑，页面只保留触发、显示和下载编排。
+下次不要重新排查阶段 1–3，也不要重做 Tab、导航、Dashboard、SessionView、ModalHost、首屏 JS 基线或调试日志采集。直接提取记录/选项命令处理器，显式接收 `autoSync` 等能力，但不要拆分 `useSync` 内部行为。
 
 ## 一句话状态
 
@@ -40,7 +41,7 @@ npx.cmd vitest run
 npm.cmd run build
 ```
 
-当前结果：27 个测试文件 / 213 项测试、TypeScript、lint、Next.js 生产构建全部通过。
+当前结果：28 个测试文件 / 218 项测试、TypeScript、lint、Next.js 生产构建全部通过。
 
 ## 阶段 3 当前结果
 
@@ -55,16 +56,16 @@ npm.cmd run build
 1. ✅ `PracticeNavigation` 已提取，顶层覆盖层导航显隐已统一。
 2. ✅ Journal、Stats、Poses Tab 已改为真正按需加载。
 3. ✅ `PracticeDashboard` 与 `PracticeSessionView` 已提取。
-4. ✅ `PracticeModalHost` 与首屏 JS 基线已完成；427.9 KiB → 333.8 KiB gzip，下降 22.0%。
+4. ✅ `PracticeModalHost` 与首屏 JS 基线已完成；当前 427.9 KiB → 334.1 KiB gzip，下降 21.9%。
 
 ## 下一次优化目标
 
-第一刀提取页面调试日志采集：
+第一刀提取记录/选项命令处理器：
 
-1. 将 `handleExportDebugLog` 中 Service Worker、环境、LocalStorage、同步摘要、照片、会员与色阶诊断采集移入独立模块。
-2. 用显式输入快照传入页面状态，不让新模块反向持有 React setter，也不改变 `useSync` 行为。
-3. 页面只保留“开始采集、显示结果、下载日志”的编排和错误提示。
-4. 为纯快照组装与失败降级补测试，目标一次减少约 480 行，把页面推进到约 1350 行；之后再选最后一刀进入 800–1200 行。
+1. 收拢选项点击/编辑/删除/新增，以及记录编辑/删除/新增的命令处理。
+2. 把 `autoSync`、toast、会员门槛和数据 Hook 能力作为显式依赖传入，不导入或改写 `useSync` 内部逻辑。
+3. 页面保留选择、练习启动、完成保存和弹窗编排；不要把所有状态塞进万能 Hook。
+4. 为删除补偿、会员上限和同步触发条件补行为测试，目标将页面推进到 800–1200 行。
 
 阶段 4 性能门槛已经通过；剩余最终门槛是把页面降至 800–1200 行。
 
@@ -72,7 +73,7 @@ npm.cmd run build
 
 ## 当前规模
 
-- `app/practice/page.tsx`：1829 行，仍是后续拆分主体
+- `app/practice/page.tsx`：1406 行，下一刀后应进入 800–1200 行目标区间
 - `hooks/useSync.ts`：1348 行，阶段 5 再处理
 - 核心阶段 1–6：阶段 1–3 完成、阶段 4 进行中，约 60%
 

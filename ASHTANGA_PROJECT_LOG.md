@@ -3089,3 +3089,12 @@ export const INVITE_VERSION = 'v2'  // 从 v1 更新到 v2
 - Mixpanel 代码仍在独立异步 chunk 中，没有删除分析能力；真实浏览器开始/放弃练习与控制台检查通过。
 - 当前门禁：27 个测试文件 / 213 项测试、typecheck、lint、生产 build 全部通过。
 - 下一次直接提取 `handleExportDebugLog` 内约 480 行采集逻辑，不重新排查性能基线；页面保留触发、显示和下载编排。
+
+### 第七检查点：调试日志采集模块
+
+- 新增 `lib/practice-debug-log.ts`，调试采集与 React 页面解耦；页面通过显式快照传参，不改变 `useSync`。
+- `app/practice/page.tsx` 从 1829 行降至 1406 行；页面 handler 只负责调用、JSON、弹窗和错误提示。
+- 首屏复测 334.1 KiB gzip，相比拆分前 +0.3 KiB，阶段累计降幅仍为 21.9%。
+- 28 个测试文件 / 218 项测试、typecheck、lint、生产 build 通过；完整采集测试覆盖未登录降级、照片/同步摘要和 JSON 序列化。
+- 浏览器插件三次阻塞在本地导航，未把真实浏览器回归冒充为通过；端口已清理。
+- 下一次直接提取记录/选项命令处理器，接收 `autoSync` 回调但不拆 `useSync`，目标让页面进入 800–1200 行。

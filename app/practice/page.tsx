@@ -23,8 +23,8 @@ import { trackEvent, setUserProfile } from '@/lib/analytics'
 import { supabase } from '@/lib/supabase'
 import { deletePracticeRecord } from '@/lib/database'
 import { useRouter } from 'next/navigation'
-import { getVersionInfo } from '@/lib/version'
 import { getLocalDateStr } from '@/lib/practice-utils'
+import { collectPracticeDebugLog, type PracticeExportLog } from '@/lib/practice-debug-log'
 import { hasOpenPracticeOverlay, PracticeNavigation, type PracticeTab } from '@/components/practice/PracticeNavigation'
 import { PracticeDashboard } from '@/components/practice/PracticeDashboard'
 import { PracticeSessionView } from '@/components/practice/PracticeSessionView'
@@ -241,13 +241,7 @@ export default function AshtangaTracker() {
   const [todayPracticeCount, setTodayPracticeCount] = useState<number>(0)
   const [todayCountLoading, setTodayCountLoading] = useState(true)
 
-  const [exportLogs, setExportLogs] = useLocalStorage<{
-    timestamp: string
-    success: boolean
-    error?: string
-    userAgent: string
-    recordDate?: string
-  }[]>('ashtanga_export_logs', [])
+  const [exportLogs, setExportLogs] = useLocalStorage<PracticeExportLog[]>('ashtanga_export_logs', [])
 
   // ⭐ 页面可见性变化时刷新会员状态（从设置页返回时）
   useEffect(() => {
@@ -745,511 +739,48 @@ export default function AshtangaTracker() {
   }
 
   const handleExportDebugLog = async () => {
-    // ⭐ 先发起 Supabase 连接测试（异步）
-    let supabaseConnectionTest = { status: 'testing', latency: -1, error: null as string | null }
     try {
-      const testStart = Date.now()
-      // 执行一个简单的查询来测试连接
-      const { data, error } = await supabase.from('user_profiles').select('count', { count: 'exact', head: true })
-      const latency = Date.now() - testStart
-      if (error) {
-        supabaseConnectionTest = { status: 'error', latency, error: error.message }
-      } else {
-        supabaseConnectionTest = { status: 'success', latency, error: null }
-      }
-    } catch (e: any) {
-      supabaseConnectionTest = { status: 'exception', latency: -1, error: e?.message || String(e) }
+      const debugLog = await collectPracticeDebugLog({
+        user,
+        syncStatus,
+        lastSyncTime,
+        failedSyncIds,
+        conflictLocalCount,
+        conflictRemoteCount,
+        showDataConflict,
+        practiceHistory,
+        practiceOptions,
+        userProfile,
+        membership,
+        membershipIsPro,
+        membershipLoading,
+        exportLogs,
+        activeTab,
+        showSettings,
+        showAccountSync,
+        showAuthModal,
+        authMode,
+        showClearDataConfirm,
+        clearDataStep,
+        selectedOption,
+        isPaused,
+        elapsedTime,
+        totalPausedTime,
+        customPracticeName,
+        showImportModal,
+        showExportModal,
+        showDebugLogModal,
+        showCompletion,
+        showFakeDoor: showFakeDoor.isOpen,
+        chantEnabled,
+        chantDelaySeconds,
+      })
+      setDebugLogContent(JSON.stringify(debugLog, null, 2))
+      setShowDebugLogModal(true)
+    } catch (error) {
+      console.error('[Practice] 生成调试日志失败:', error)
+      toast.error('生成调试日志失败')
     }
-
-    // ===== 1. Service Worker 状态 =====
-    let serviceWorkerStatus: any = { supported: false, controller: null, state: null, scope: null }
-    if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
-      serviceWorkerStatus.supported = true
-      const controller = navigator.serviceWorker.controller
-      if (controller) {
-        serviceWorkerStatus.controller = true
-        serviceWorkerStatus.state = controller.state
-        serviceWorkerStatus.scope = controller.scriptURL
-      } else {
-        serviceWorkerStatus.controller = false
-      }
-      // 尝试获取注册信息
-      try {
-        const registrations = await navigator.serviceWorker.getRegistrations()
-        serviceWorkerStatus.registrations = registrations.map(r => ({
-          scope: r.scope,
-          active: !!r.active,
-          installing: !!r.installing,
-          waiting: !!r.waiting,
-          updateViaCache: r.updateViaCache
-        }))
-      } catch (e) {
-        serviceWorkerStatus.registrationsError = String(e)
-      }
-    }
-
-    // ===== 2. 环境信息 =====
-    const environment = {
-      userAgent: navigator.userAgent,
-      browser: {
-        language: navigator.language,
-        languages: navigator.languages,
-        onLine: navigator.onLine,
-        cookieEnabled: navigator.cookieEnabled,
-        pdfViewerEnabled: navigator.pdfViewerEnabled
-      },
-      deviceType: /mobile|tablet|android|iphone/i.test(navigator.userAgent) ? 'mobile' : 'desktop',
-      screen: {
-        width: window.screen.width,
-        height: window.screen.height,
-        availWidth: window.screen.availWidth,
-        availHeight: window.screen.availHeight,
-        colorDepth: window.screen.colorDepth,
-        pixelRatio: window.devicePixelRatio,
-        orientation: window.screen.orientation?.type || 'unknown'
-      },
-      viewport: {
-        width: window.innerWidth,
-        height: window.innerHeight,
-        visualViewport: {
-          width: window.visualViewport?.width,
-          height: window.visualViewport?.height,
-          scale: window.visualViewport?.scale
-        }
-      },
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      timezoneOffset: new Date().getTimezoneOffset(),
-      exportTime: new Date().toISOString(),
-      appVersion: '1.0.1'
-    }
-
-    // ===== 2. 网络状态 =====
-    const networkInfo = {
-      onLine: navigator.onLine,
-      connection: (navigator as any).connection ? {
-        effectiveType: (navigator as any).connection.effectiveType,
-        downlink: (navigator as any).connection.downlink,
-        rtt: (navigator as any).connection.rtt,
-        saveData: (navigator as any).connection.saveData
-      } : 'Not supported'
-    }
-
-    // ⭐ 2.5 Supabase 连接测试
-    const supabaseConnection = {
-      testStatus: supabaseConnectionTest.status,
-      latency: supabaseConnectionTest.latency,
-      error: supabaseConnectionTest.error,
-      timestamp: new Date().toISOString()
-    }
-
-    // ===== 3. 认证状态 =====
-    const authState = {
-      isLoggedIn: !!user,
-      userId: user?.id || null,
-      email: user?.email || null,
-      lastSignInAt: user?.last_sign_in_at || null,
-      createdAt: user?.created_at || null,
-      appMetadata: user?.app_metadata || null,
-      userMetadata: user?.user_metadata || null
-    }
-
-    // ===== 4. 同步状态 =====
-    const syncState = {
-      syncStatus,
-      lastSyncTime,
-      failedSyncIds: failedSyncIds || [],
-      failedSyncCount: failedSyncIds?.length || 0,
-      conflictLocalCount,
-      conflictRemoteCount,
-      showDataConflict
-    }
-
-    // ===== 5. 应用数据状态 =====
-    const nonDraftRecords = practiceHistory.filter(r => r.type !== '草稿')
-    const appState = {
-      records: {
-        totalCount: nonDraftRecords.length,
-        withPhotos: nonDraftRecords.filter(r => r.photos?.length > 0).length,
-        withNotes: nonDraftRecords.filter(r => r.notes?.trim()).length,
-        withBreakthrough: nonDraftRecords.filter(r => r.breakthrough).length,
-        totalDuration: nonDraftRecords.reduce((sum, r) => sum + (r.duration || 0), 0),
-        averageDuration: nonDraftRecords.length > 0
-          ? Math.round(nonDraftRecords.reduce((sum, r) => sum + (r.duration || 0), 0) / nonDraftRecords.length)
-          : 0,
-        dateRange: nonDraftRecords.length > 0 ? {
-          earliest: nonDraftRecords[nonDraftRecords.length - 1]?.date,
-          latest: nonDraftRecords[0]?.date
-        } : null,
-        colorLevelDistribution: {
-          level1: nonDraftRecords.filter(r => r.color_level === 1).length,
-          level2: nonDraftRecords.filter(r => r.color_level === 2).length,
-          level3: nonDraftRecords.filter(r => r.color_level === 3 || r.color_level === undefined).length,
-          level4: nonDraftRecords.filter(r => r.color_level === 4).length,
-        }
-      },
-      options: {
-        totalCount: practiceOptions.length,
-        customCount: practiceOptions.filter(o => o.is_custom).length,
-        systemCount: practiceOptions.filter(o => !o.is_custom).length,
-        list: practiceOptions.map(o => ({
-          id: o.id,
-          label: o.label.substring(0, 50),
-          hasNotes: !!o.notes,
-          isCustom: o.is_custom,
-          colorLevel: (o as any).color_level ?? 3
-        }))
-      },
-      profile: {
-        name: userProfile?.name || '未设置',
-        hasSignature: !!userProfile?.signature,
-        hasAvatar: !!userProfile?.avatar,
-        isPro: membershipIsPro
-      }
-    }
-
-    // ===== 6. LocalStorage 完整分析 =====
-    const allKeys = Object.keys(localStorage)
-    const storageState = {
-      totalKeys: allKeys.length,
-      appKeys: allKeys.filter(key => key.startsWith('ashtanga_') || key.includes('practice')),
-      otherKeys: allKeys.filter(key => !key.startsWith('ashtanga_') && !key.includes('practice')).slice(0, 20),
-      keyDetails: allKeys
-        .filter(key => key.startsWith('ashtanga_') || key.includes('practice'))
-        .map(key => {
-          try {
-            const value = localStorage.getItem(key)
-            return {
-              key,
-              size: value ? new Blob([value]).size : 0,
-              type: value?.startsWith('{') || value?.startsWith('[') ? 'json' : 'string'
-            }
-          } catch (e) {
-            return { key, size: 0, type: 'error', error: String(e) }
-          }
-        }),
-      estimatedTotalSize: new Blob(Object.values(localStorage)).size
-    }
-
-    // ===== 7. 所有练习记录（含完整觉察内容、照片URL用于排查） =====
-    const recentRecords = practiceHistory.map(r => ({
-      id: r.id,
-      date: r.date,
-      type: r.type?.substring(0, 30),
-      duration: r.duration,
-      notes: r.notes || '',
-      breakthrough: r.breakthrough || '',
-      photos: r.photos || [],
-      hasPhotos: !!r.photos?.length,
-      photosCount: r.photos?.length || 0,
-      createdAt: r.created_at,
-      updatedAt: r.updated_at
-    }))
-
-    // ===== 8. 导出历史（最近10条） =====
-    const recentExportLogs = (exportLogs || []).slice(-10).map(log => ({
-      timestamp: log.timestamp,
-      success: log.success,
-      error: log.error,
-      recordDate: log.recordDate,
-      deviceType: log.userAgent ?
-        (/mobile|tablet|android|iphone/i.test(log.userAgent) ? 'mobile' : 'desktop') : 'unknown'
-    }))
-
-    // ===== 9. 错误历史（从 localStorage 读取） =====
-    let errorHistory: any[] = []
-    try {
-      const storedErrors = localStorage.getItem('__errorHistory')
-      if (storedErrors) {
-        errorHistory = JSON.parse(storedErrors)
-      }
-    } catch (e) {
-      errorHistory = [{ error: '读取错误历史失败', details: String(e) }]
-    }
-
-    // ===== 10. 性能指标 =====
-    const performanceInfo = {
-      navigation: performance.getEntriesByType('navigation')[0] ? {
-        domComplete: Math.round((performance.getEntriesByType('navigation')[0] as any).domComplete),
-        loadEventEnd: Math.round((performance.getEntriesByType('navigation')[0] as any).loadEventEnd),
-        domInteractive: Math.round((performance.getEntriesByType('navigation')[0] as any).domInteractive)
-      } : 'Not available',
-      memory: (performance as any).memory ? {
-        usedJSHeapSize: Math.round((performance as any).memory.usedJSHeapSize / 1024 / 1024) + ' MB',
-        totalJSHeapSize: Math.round((performance as any).memory.totalJSHeapSize / 1024 / 1024) + ' MB'
-      } : 'Not available'
-    }
-
-    // ===== 11. 当前应用状态 =====
-    const currentAppState = {
-      activeTab,
-      isPracticing: false,
-      showSettings,
-      showAccountSync,
-      showAuthModal,
-      authMode,
-      showDataConflict,
-      showClearDataConfirm,
-      clearDataStep,
-      currentPath: window.location.pathname,
-      currentHash: window.location.hash,
-      // 练习状态
-      selectedOption,
-      isPaused,
-      elapsedTime,
-      totalPausedTime,
-      // 选项状态（用于诊断新增选项问题）
-      optionsStatus: {
-        totalCount: practiceOptions.length,
-        customCount: practiceOptions.filter(o => o.is_custom).length,
-        systemCount: practiceOptions.filter(o => !o.is_custom).length,
-        isFull: practiceOptions.filter(o => o.id !== "custom").length >= 8,
-        canDelete: practiceOptions.filter(o => o.id !== "custom").length > 2,
-        selectedOptionId: selectedOption,
-        customPracticeName: customPracticeName || null
-      },
-      // 弹窗状态
-      modals: {
-        showImportModal: showImportModal,
-        showExportModal: showExportModal,
-        showDebugLogModal: showDebugLogModal,
-        showCompletion: showCompletion,
-        showFakeDoor: showFakeDoor.isOpen
-      },
-      // 数据存储状态
-      storage: {
-        hasLocalData: practiceHistory.length > 0,
-        localStorageKeysCount: Object.keys(localStorage).length,
-        sessionStorageKeysCount: Object.keys(sessionStorage).length
-      }
-    }
-
-    // ===== 12. 同步日志（从 localStorage 读取） =====
-    let syncLogs: any = { entries: [], summary: {} }
-    try {
-      const storedLogs = localStorage.getItem('sync_logs')
-      if (storedLogs) {
-        const rawLogs = JSON.parse(storedLogs)
-        // ⭐ 提取同步摘要：统计各触发原因下的本地/云端数量
-        const triggers = rawLogs.filter((l: any) => l.triggerReason && l.triggerReason !== '未知触发原因')
-        const conflictLogs = rawLogs.filter((l: any) => l.action.includes('冲突') || l.status === 'warning')
-        const uploadLogs = rawLogs.filter((l: any) => l.action.includes('上传') || l.action.includes('仅本地'))
-        const downloadLogs = rawLogs.filter((l: any) => l.action.includes('云端') || l.action.includes('下载'))
-        syncLogs = {
-          entries: rawLogs,
-          summary: {
-            total: rawLogs.length,
-            conflicts: conflictLogs.length,
-            uploadCount: uploadLogs.length,
-            downloadCount: downloadLogs.length,
-            lastTriggerReason: triggers[0]?.triggerReason || '未知',
-            lastLocalCount: triggers[0]?.localCount,
-            lastRemoteCount: triggers[0]?.remoteCount,
-            lastSyncTime: rawLogs[0]?.timestamp,
-          }
-        }
-      }
-    } catch (e) {
-      syncLogs = { entries: [{ action: '读取同步日志失败', error: String(e), timestamp: new Date().toISOString() }], summary: {} }
-    }
-
-    // ===== 13. 照片操作日志 =====
-    let photoLogs: any = []
-    try {
-      const { getPhotoLogs, getPhotoErrorLogs } = await import('@/lib/photo-logger')
-      photoLogs = {
-        all: getPhotoLogs().slice(0, 50),
-        errors: getPhotoErrorLogs().slice(0, 20),
-        summary: {
-          total: getPhotoLogs().length,
-          errors: getPhotoErrorLogs().length,
-        }
-      }
-    } catch (e) {
-      photoLogs = { error: '读取照片日志失败', details: String(e) }
-    }
-
-    // ===== 14. 会员状态日志 =====
-    let membershipLogs: any = { source: 'local_only' }
-    try {
-      // 14a. 本地 hook 状态
-      membershipLogs.localState = {
-        membership: membership ? {
-          is_active: membership.is_active,
-          type: membership.type,
-          expires_at: membership.expires_at,
-          expires_at_formatted: membership.expires_at_formatted,
-          days_remaining: membership.days_remaining,
-        } : null,
-        isPro: membershipIsPro,
-        loading: membershipLoading,
-      }
-
-      // 14b. 从 Supabase session 获取 token，调 API 查询后端会员状态
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session?.access_token) {
-        membershipLogs.hasSession = true
-        membershipLogs.authUserId = user?.id || null
-        membershipLogs.authEmail = user?.email || null
-
-        try {
-          const resp = await fetch('/api/membership/status', {
-            headers: { 'Authorization': `Bearer ${session.access_token}` },
-          })
-          membershipLogs.apiStatus = resp.status
-          const apiResult = await resp.json()
-          membershipLogs.apiResponse = apiResult
-        } catch (e: any) {
-          membershipLogs.apiError = e?.message || String(e)
-        }
-
-        // 14c. 调 debug API 获取全链路数据
-        try {
-          const debugResp = await fetch('/api/debug/membership', {
-            headers: { 'Authorization': `Bearer ${session.access_token}` },
-          })
-          const debugResult = await debugResp.json()
-          // 只取关键信息，避免日志过大
-          if (debugResult.success && debugResult.data) {
-            const d = debugResult.data
-            membershipLogs.debugOverview = {
-              envOk: d.env?.hasUrl && d.env?.hasKey,
-              membershipCount: d.tables?.user_memberships?.count || 0,
-              membershipRecords: d.tables?.user_memberships?.records || [],
-              viewRecords: d.tables?.user_membership_status?.records || [],
-              userSpecific: d.user_specific || null,
-            }
-          }
-        } catch (e: any) {
-          membershipLogs.debugApiError = e?.message || String(e)
-        }
-      } else {
-        membershipLogs.hasSession = false
-        membershipLogs.note = '用户未登录，无法查询后端会员状态'
-      }
-
-      // 14d. 唱诵相关状态
-      membershipLogs.chantState = {
-        enabled: chantEnabled,
-        delay: chantDelaySeconds,
-      }
-    } catch (e: any) {
-      membershipLogs.error = '收集会员日志失败: ' + (e?.message || String(e))
-    }
-
-    // ===== 15. 色阶同步诊断 =====
-    let colorSyncDiag: any = {}
-    try {
-      // 15a. 本地 localStorage 原始数据
-      const localOptsStr = localStorage.getItem('ashtanga_options')
-      const localOpts = localOptsStr ? JSON.parse(localOptsStr) : []
-      colorSyncDiag.localStorageOptions = localOpts.map((o: any) => ({
-        id: o.id?.substring(0, 8),
-        label: o.label,
-        color_level: o.color_level,
-        is_custom: o.is_custom,
-      }))
-
-      // 15b. 本地记录的 color_level 情况（最近10条）
-      const localRecsStr = localStorage.getItem('ashtanga_records')
-      const localRecs = localRecsStr ? JSON.parse(localRecsStr) : []
-      colorSyncDiag.recentRecordColors = localRecs.slice(0, 10).map((r: any) => ({
-        id: r.id?.substring(0, 8),
-        date: r.date,
-        type: r.type?.substring(0, 10),
-        color_level: r.color_level,
-        updated_at: r.updated_at,
-      }))
-
-      // 15c. 云端选项（直接查 Supabase）
-      const userId = user?.id
-      if (userId) {
-        try {
-          // 先查一次不带 color_level 的列，检测列是否存在
-          const { data: testOpts, error: testError } = await supabase
-            .from('practice_options')
-            .select('id, label, color_level, is_custom, user_id')
-            .eq('user_id', userId)
-            .limit(1)
-          if (testError) {
-            colorSyncDiag.cloudQueryError = `practice_options.color_level 列可能不存在: ${testError.message}`
-            colorSyncDiag.cloudQueryErrorCode = testError.code
-          }
-          const { data: cloudOpts } = await supabase
-            .from('practice_options')
-            .select('id, label, color_level, is_custom, user_id')
-            .eq('user_id', userId)
-          colorSyncDiag.cloudOptions = (cloudOpts || []).map((o: any) => ({
-            id: o.id?.substring(0, 8),
-            label: o.label,
-            color_level: o.color_level,
-            is_custom: o.is_custom,
-          }))
-
-          // 云端记录的 color_level（最近10条）
-          const { data: cloudRecs } = await supabase
-            .from('practice_records')
-            .select('id, date, type, color_level, updated_at')
-            .eq('user_id', userId)
-            .is('deleted_at', null)
-            .order('date', { ascending: false })
-            .limit(10)
-          colorSyncDiag.cloudRecordColors = (cloudRecs || []).map((r: any) => ({
-            id: r.id?.substring(0, 8),
-            date: r.date,
-            type: r.type?.substring(0, 10),
-            color_level: r.color_level,
-            updated_at: r.updated_at,
-          }))
-        } catch (e: any) {
-          colorSyncDiag.cloudQueryError = e?.message || String(e)
-        }
-      } else {
-        colorSyncDiag.cloudNote = '未登录，无法查询云端色阶数据'
-      }
-
-      // 15d. 同步日志中与选项相关的条目
-      const storedLogs = localStorage.getItem('sync_logs')
-      if (storedLogs) {
-        const rawLogs = JSON.parse(storedLogs)
-        colorSyncDiag.optionRelatedLogs = rawLogs
-          .filter((l: any) => l.action?.includes('选项') || l.action?.includes('option'))
-          .slice(0, 10)
-      }
-    } catch (e: any) {
-      colorSyncDiag.error = '收集色阶诊断失败: ' + (e?.message || String(e))
-    }
-
-    // 生成完整日志
-    const debugLog = {
-      _meta: {
-        version: '2.5',
-        exportTime: new Date().toISOString(),
-        description: '熬汤日记调试日志 - 用于问题排查',
-        gitVersion: getVersionInfo()
-      },
-      serviceWorkerStatus,
-      environment,
-      networkInfo,
-      supabaseConnection,
-      authState,
-      syncState,
-      appState,
-      storageState,
-      recentRecords,
-      recentExportLogs,
-      errorHistory,
-      performanceInfo,
-      currentAppState,
-      syncLogs,
-      photoLogs,
-      membershipLogs,
-      colorSyncDiag
-    }
-
-    // 转换为JSON字符串并显示在弹窗中
-    const jsonString = JSON.stringify(debugLog, null, 2)
-    setDebugLogContent(jsonString)
-    setShowDebugLogModal(true)
   }
 
   const canDeleteOption = useMemo(() => {
