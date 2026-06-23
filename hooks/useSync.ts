@@ -5,10 +5,15 @@ import { useLocalStorage } from 'react-use'
 import { supabase, TABLES } from '@/lib/supabase'
 import type { PracticeRecord, PracticeOption, UserProfile } from '@/lib/supabase'
 import { diffRecords, buildProfileFromRemote, mergeRecords, mergeOptions } from '@/lib/sync-utils'
+import {
+  buildCompleteProfile,
+  mapRemoteRecord,
+  isValidRemoteOption,
+  mapRemoteProfile,
+} from '@/lib/sync-mappers'
 
 type SyncStatus = 'idle' | 'syncing' | 'success' | 'error'
 type ConflictStrategy = 'remote' | 'local' | 'merge'
-type RemoteProfileInput = Partial<UserProfile> | null | undefined
 type RemoteSyncData = {
   records: PracticeRecord[]
   options: PracticeOption[]
@@ -18,36 +23,6 @@ type RemoteSyncData = {
 // ⭐ 同步限制配置（硬上限1000条，防止攻击）
 const MAX_SYNC_RECORDS = 1000
 const SYNC_DEBUG_STORAGE_KEY = '__debug_sync__'
-
-const DEFAULT_PROFILE_NAME = '阿斯汤加习练者'
-const DEFAULT_PROFILE_SIGNATURE = '练习、练习，一切随之而来。'
-
-function buildCompleteProfile(remoteProfile: RemoteProfileInput): UserProfile {
-  const now = new Date().toISOString()
-  return {
-    id: remoteProfile?.id || '',
-    user_id: remoteProfile?.user_id || '',
-    created_at: remoteProfile?.created_at || now,
-    updated_at: remoteProfile?.updated_at || remoteProfile?.created_at || now,
-    name: remoteProfile?.name || DEFAULT_PROFILE_NAME,
-    signature: remoteProfile?.signature || DEFAULT_PROFILE_SIGNATURE,
-    avatar: remoteProfile?.avatar || null,
-    phone: remoteProfile?.phone,
-    historical_days: remoteProfile?.historical_days || 0,
-    historical_avg_minutes: remoteProfile?.historical_avg_minutes || 0,
-  }
-}
-
-function parseRemotePhotos(photos: unknown): string[] {
-  if (Array.isArray(photos)) return photos.filter((item): item is string => typeof item === 'string')
-  if (typeof photos !== 'string' || !photos) return []
-  try {
-    const parsed = JSON.parse(photos)
-    return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === 'string') : []
-  } catch {
-    return []
-  }
-}
 
 function syncDebug(...args: unknown[]) {
   if (process.env.NODE_ENV === 'production' || typeof window === 'undefined') return
@@ -722,10 +697,7 @@ export function useSync(
       if (profileRes.error && profileRes.error.code !== 'PGRST116') throw profileRes.error // PGRST116 表示没有找到，可以忽略
 
       // 修复：解析 photos JSON 字符串为数组
-      const records = (recordsRes.data || []).map((r: any) => ({
-        ...r,
-        photos: parseRemotePhotos(r.photos)
-      }))
+      const records = (recordsRes.data || []).map((r: any) => mapRemoteRecord(r))
 
       syncDebug('📥 [downloadRemoteData] 记录处理完成，数量:', records.length)
 
@@ -735,7 +707,7 @@ export function useSync(
 
       // 修复：过滤掉无效的选项（id 必须存在）
       const options = (optionsRes.data || []).filter(o => {
-        const isValid = o.id && (o.label || o.notes)
+        const isValid = isValidRemoteOption(o)
         if (!isValid) {
           syncDebug('   ⚠️ 过滤掉无效选项:', o)
         }
@@ -747,26 +719,12 @@ export function useSync(
       syncDebug('   头像字段:', profileRes.data?.avatar ? '有值' : '无值')
 
       // ⭐ 构建返回的 profile，确保包含 updated_at 字段
-      let profile: UserProfile | null = null
-      if (profileRes.data && profileRes.data.name && !profileRes.data.name.match(/^\d+$/)) {
-        profile = {
-          id: profileRes.data.id || '',
-          user_id: profileRes.data.user_id || '',
-          created_at: profileRes.data.created_at || new Date().toISOString(),
-          updated_at: profileRes.data.updated_at || profileRes.data.created_at || new Date().toISOString(), // ⭐ 确保 updated_at
-          name: profileRes.data.name,
-          signature: profileRes.data.signature || '练习、练习，一切随之而来。',
-          avatar: profileRes.data?.avatar || null,
-          phone: profileRes.data.phone,
-          historical_days: profileRes.data.historical_days || 0,           // ⭐ 历史练习天数
-          historical_avg_minutes: profileRes.data.historical_avg_minutes || 0, // ⭐ 历史平均时长
-        }
-      }
+      const profile = mapRemoteProfile(profileRes.data)
 
       return {
         records,
         options,
-        profile: profile || buildCompleteProfile(profileRes.data),
+        profile,
       }
     } catch (error: any) {
       console.error('❌ [downloadRemoteData] 下载失败:', error.message)

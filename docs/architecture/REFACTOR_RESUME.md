@@ -1,10 +1,17 @@
 # 解耦重构恢复入口
 
-> 下次启动本项目时先读这里。阶段 1–3 已完成，阶段 4 正在进行，不需要重新调查刷新恢复或媒体生命周期问题。
+> 下次启动本项目时先读这里。阶段 1–4 已完成、阶段 5 第一刀已完成，下一轮进入阶段 5 第二刀 Supabase 仓库层；不要重新调查页面编排、刷新恢复或媒体生命周期问题。
 
-## 2026-06-21 最新恢复点
+## 2026-06-23 最新恢复点
 
-阶段 4 已开始，导航、动态 Tab、Dashboard、SessionView 与 ModalHost 已经完成并通过门禁：
+阶段 5 第一刀（远端字段映射与输入归一化纯函数）已完成并通过全部门禁：
+
+- 新增 `lib/sync-mappers.ts`：`parseRemotePhotos` / `buildCompleteProfile` / `mapRemoteRecord` / `isValidRemoteOption` / `mapRemoteProfile` 五个纯函数 + `DEFAULT_PROFILE_NAME` / `DEFAULT_PROFILE_SIGNATURE` / `RemoteProfileInput`。
+- `hooks/useSync.ts` 删除三个内联函数与两个常量，改为 import；`downloadRemoteData` 中 records photos 解析、options 过滤、profile 数字名兼容三段内联逻辑替换为纯函数。
+- 零行为变化：`buildCompleteProfile`（宽松）供 conflict/merge 路径继续使用，`mapRemoteProfile`（叠加数字名脏数据兼容）仅供下载路径使用。
+- 当前 `useSync.ts` 为 1306 行；新增 45 个纯函数测试，全量 30 个测试文件 / 268 项测试、typecheck、lint、生产 build 全部通过。
+
+阶段 4 已完成并通过全部门禁（保留如下供回溯）：
 
 - `JournalTab`、`StatsTab`、`PosesTab` 已改为真正的 `next/dynamic` 按需加载，并有统一 loading 状态。
 - 底部导航已提取为 `components/practice/PracticeNavigation.tsx`。
@@ -12,17 +19,20 @@
 - 全屏练习已提取为 `components/practice/PracticeSessionView.tsx`（`4fea12a`）；完成保存与同步仍留在页面编排层。
 - `PracticeModalHost` 已承接三步清空数据、唱诵设置，以及 Custom/Edit、Settings、会员、账户、导入导出、Auth、FakeDoor、邀请与冲突等独立弹窗的懒加载和渲染接线；认证、会员、同步等业务决策仍留在页面。
 - 页面顶层覆盖层统一决定导航显隐；真实浏览器已验证“打开自定义练习弹窗后导航退出，关闭后恢复”。
-- 当前 `app/practice/page.tsx` 为 1406 行、43 个 `useState`。
+- 当前 `app/practice/page.tsx` 为 1157 行、43 个 `useState`，已进入 800–1200 行目标区间。
+- 记录/选项命令已移入 `hooks/usePracticeCommands.ts`；`autoSync` 仅作为外部能力注入，没有改动同步算法。
 - 调试日志采集已移入 `lib/practice-debug-log.ts`；页面只保留快照传参、JSON 格式化、弹窗与错误提示。
-- 首屏 JS 已有可重复脚本：当前 427.9 KiB → 334.1 KiB gzip，下降 21.9%；Mixpanel 保留为异步 chunk，在浏览器空闲期加载。
-- 当前门禁：28 个测试文件 / 218 项测试，typecheck、lint、生产 build 全部通过。
+- 首屏 JS 已有可重复脚本：当前 427.9 KiB → 334.6 KiB gzip，下降 21.8%；Mixpanel 保留为异步 chunk，在浏览器空闲期加载。
+- 当前门禁：30 个测试文件 / 268 项测试，typecheck、lint、生产 build 全部通过。
 - 生产浏览器已验证普通练习的开始、暂停、继续、结束和放弃；口令媒体失败后降级控制与清理通过，仅出现用于触发降级的浏览器媒体错误，无新增业务异常。
 
-下次不要重新排查阶段 1–3，也不要重做 Tab、导航、Dashboard、SessionView、ModalHost、首屏 JS 基线或调试日志采集。直接提取记录/选项命令处理器，显式接收 `autoSync` 等能力，但不要拆分 `useSync` 内部行为。
+真实生产浏览器已补齐：选项选择、自定义弹窗、数据管理、运行日志完整 JSON、父子弹窗关闭与导航恢复通过，控制台 0 应用错误。
+
+下次不要重新排查阶段 1–4 或阶段 5 第一刀。直接进入阶段 5 第二刀：把 Supabase 查询与上传提取为 repository 模块（带超时、重试、批量限制），目标 `useSync.ts` 进入 1000 行以内；暂不改冲突决策与本地存储键。
 
 ## 一句话状态
 
-解耦阶段 1、2、3 已完成。会话与媒体生命周期已经移出页面，下一轮直接进入阶段 4 的页面编排与真正按需加载。
+阶段 1–4 已完成、阶段 5 第一刀已完成。下一轮把 Supabase I/O 提取为 repository 层。
 
 ## 阶段 2 最终结果
 
@@ -41,7 +51,7 @@ npx.cmd vitest run
 npm.cmd run build
 ```
 
-当前结果：28 个测试文件 / 218 项测试、TypeScript、lint、Next.js 生产构建全部通过。
+当前结果：30 个测试文件 / 268 项测试、TypeScript、lint、Next.js 生产构建全部通过。
 
 ## 阶段 3 当前结果
 
@@ -56,26 +66,26 @@ npm.cmd run build
 1. ✅ `PracticeNavigation` 已提取，顶层覆盖层导航显隐已统一。
 2. ✅ Journal、Stats、Poses Tab 已改为真正按需加载。
 3. ✅ `PracticeDashboard` 与 `PracticeSessionView` 已提取。
-4. ✅ `PracticeModalHost` 与首屏 JS 基线已完成；当前 427.9 KiB → 334.1 KiB gzip，下降 21.9%。
+4. ✅ `PracticeModalHost` 与首屏 JS 基线已完成；当前 427.9 KiB → 334.6 KiB gzip，下降 21.8%。
+5. ✅ 调试日志采集和记录/选项命令已移出页面；页面最终 1157 行。
 
 ## 下一次优化目标
 
-第一刀提取记录/选项命令处理器：
+阶段 5 第二刀提取 Supabase 仓库层：
 
-1. 收拢选项点击/编辑/删除/新增，以及记录编辑/删除/新增的命令处理。
-2. 把 `autoSync`、toast、会员门槛和数据 Hook 能力作为显式依赖传入，不导入或改写 `useSync` 内部逻辑。
-3. 页面保留选择、练习启动、完成保存和弹窗编排；不要把所有状态塞进万能 Hook。
-4. 为删除补偿、会员上限和同步触发条件补行为测试，目标将页面推进到 800–1200 行。
+1. 把 `useSync.ts` 中 `downloadRemoteData`、上传记录/选项/profile 的 Supabase 调用提取为 `lib/supabase-repository.ts`。
+2. 仓库层负责超时、重试、批量限制和错误归一化；`useSync` 只保留编排与 React 状态。
+3. 仍不改变 local/remote/merge 冲突决策和本地存储键。
+4. 验证：`useSync.ts` 进入 1000 行以内；测试矩阵补全 1000 条限制、超时、重试、部分失败恢复。
 
-阶段 4 性能门槛已经通过；剩余最终门槛是把页面降至 800–1200 行。
-
-不要提前混入 `useSync` 拆分。同步属于阶段 5，是独立的高风险工作。
+阶段 5 第一刀已完成。阶段 5 的硬门槛是：`useSync.ts` 降到 250–350 行，同步矩阵通过，真实测试账户云端冒烟通过。
 
 ## 当前规模
 
-- `app/practice/page.tsx`：1406 行，下一刀后应进入 800–1200 行目标区间
-- `hooks/useSync.ts`：1348 行，阶段 5 再处理
-- 核心阶段 1–6：阶段 1–3 完成、阶段 4 进行中，约 60%
+- `app/practice/page.tsx`：1157 行，阶段 4 完成
+- `hooks/useSync.ts`：1306 行，阶段 5 第一刀完成
+- `lib/sync-mappers.ts`：96 行，5 个纯函数
+- 核心阶段 1–6：阶段 1–4 完成、阶段 5 第一刀完成，约 73%
 
 ## 真源文档
 

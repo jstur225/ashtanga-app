@@ -1,5 +1,24 @@
 # 阿斯汤加打卡 app - 项目记录
 
+## 2026-06-23: 阶段 5 第一刀 — 远端映射纯函数提取
+
+### 完成内容
+
+- 新增 `lib/sync-mappers.ts`，承接 5 个纯函数：`parseRemotePhotos` / `buildCompleteProfile` / `mapRemoteRecord` / `isValidRemoteOption` / `mapRemoteProfile`，以及 `DEFAULT_PROFILE_NAME` / `DEFAULT_PROFILE_SIGNATURE` / `RemoteProfileInput`。
+- `hooks/useSync.ts` 删除三个内联函数和两个常量，改为 import；`downloadRemoteData` 中三段内联归一化（records photos、options 过滤、profile 数字名兼容）替换为对应纯函数。
+- 行为零变化：`buildCompleteProfile`（宽松）继续供 conflict/merge 路径（514/1190 行）使用；`mapRemoteProfile`（叠加数字名脏数据兼容）仅供下载路径使用，保留原历史兼容逻辑。
+- `useSync.ts` 从 1348 行降至 1306 行；新增 45 个纯函数测试，全量 30 个测试文件 / 268 项通过；typecheck、lint、生产 build 全部通过。
+
+### 设计决策
+
+- `mapRemoteRecord` 用 `Omit<T, 'photos'> & { photos: string[] }` 而不是 `T & { photos: string[] }`，避免传入 `{ photos: null }` 时返回类型归约为 `never`。
+- 没有把 Supabase I/O 移入新模块（暂保持下载路径不变），下一刀再单独提取仓库层。
+- 没有合并 `buildCompleteProfile` 与 `mapRemoteProfile`，因为两个调用路径行为差异（脏数据兼容）是历史结果，不能改动。
+
+### 下一刀
+
+阶段 5 第二刀：把 Supabase 下载、上传、重试和超时提取为 `lib/supabase-repository.ts`，目标 `useSync.ts` 进入 1000 行以内。
+
 ## 2026-06-18: master2 练习页第一阶段解耦收尾
 
 ### 完成内容
@@ -3098,3 +3117,11 @@ export const INVITE_VERSION = 'v2'  // 从 v1 更新到 v2
 - 28 个测试文件 / 218 项测试、typecheck、lint、生产 build 通过；完整采集测试覆盖未登录降级、照片/同步摘要和 JSON 序列化。
 - 浏览器插件三次阻塞在本地导航，未把真实浏览器回归冒充为通过；端口已清理。
 - 下一次直接提取记录/选项命令处理器，接收 `autoSync` 回调但不拆 `useSync`，目标让页面进入 800–1200 行。
+
+### 阶段 4 最终检查点：记录/选项命令与正式结项
+
+- 新增 `hooks/usePracticeCommands.ts`，收拢选项交互、会员名额、色阶保护、记录/选项 CRUD 和同步触发条件。
+- `autoSync` 仅作为显式回调注入，没有改动 `useSync`；页面从 1406 行降至 1157 行。
+- 29 个测试文件 / 223 项测试、typecheck、lint、生产 build 通过；首屏 334.6 KiB gzip，累计下降 21.8%。
+- 生产浏览器验证选项选择、自定义弹窗、运行日志完整 JSON、父子弹窗关闭与导航恢复，控制台 0 应用错误。
+- 阶段 4 全部门槛完成。下一次进入阶段 5，先拆远端字段映射与输入归一化纯函数，再处理 Supabase 仓库层。

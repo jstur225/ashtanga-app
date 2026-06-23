@@ -15,7 +15,7 @@
 | `hooks/useSync.ts` | 1173 行 | 250–350 行 React 外壳 |
 | Vitest | 13 文件 / 131 项通过 | 高风险矩阵全部覆盖 |
 | TypeScript / lint / build | 通过 | 持续通过 |
-| `/practice` 首屏 JS | 334.1 KiB gzip（脚本自动测量） | 427.9 KiB → 334.1 KiB，下降 21.9% |
+| `/practice` 首屏 JS | 334.6 KiB gzip（脚本自动测量） | 427.9 KiB → 334.6 KiB，下降 21.8% |
 
 ## 当前快照（2026-06-18，阶段 2 完成检查点）
 
@@ -46,7 +46,7 @@
 | 1 | 工具函数、选择器、选项弹窗、结束确认、呼吸动画 | 已完成 `0300ad4` | 页面 2738 行，拆出组件有行为测试 |
 | 2 | `usePracticeSession` + 计时视图 | 已完成（阶段检查点） | 计时状态转换独立测试，页面不计算时长 |
 | 3 | `useGuidedAudio` + `useChantPlayback` | 已完成（阶段检查点） | 页面不持有 `HTMLAudioElement` |
-| 4 | Dashboard、导航、ModalHost、Tab 动态加载 | 进行中（性能门槛完成，页面瘦身待继续） | 页面 800–1200 行，首屏 JS 下降至少 20% |
+| 4 | Dashboard、导航、ModalHost、Tab 动态加载 | 已完成（2026-06-22） | 页面 1157 行，首屏 JS 下降 21.8% |
 | 5 | 同步仓库、映射、编排、冲突、日志分层 | 待开始 | `useSync` 250–350 行，同步矩阵通过 |
 | 6 | 大型组件职责审计与最终归档 | 待开始 | 只保留职责单一的大文件，文档与代码一致 |
 
@@ -179,6 +179,22 @@ useSync (React facade)
 - 新增纯摘要与完整采集集成测试；28 个测试文件 / 218 项测试、typecheck、lint、生产 build 通过。
 - 浏览器插件三次阻塞在本地导航，生产端口已清理；本检查点不把真实浏览器回归标记为通过，下一次可补“设置→导出日志→关闭”链路。
 - 下一刀：提取记录/选项命令处理器，显式接收 `autoSync`，但不拆 `useSync` 内部行为，目标进入 800–1200 行。
+
+### 阶段 4 最终检查点（2026-06-22）
+
+- 新增 `hooks/usePracticeCommands.ts`，承接选项交互、容量/锁定规则和记录/选项 CRUD 命令；`autoSync` 作为依赖注入。
+- 页面从 1406 行降至 1157 行，阶段 4 的 800–1200 行门槛完成。
+- 29 个测试文件 / 223 项测试、typecheck、lint、生产 build 通过；首屏 334.6 KiB gzip，阶段累计下降 21.8%。
+- 生产浏览器验证选项、自定义弹窗、运行日志完整 JSON、关闭层级和导航恢复，控制台 0 应用错误。
+- 阶段 4 正式完成；阶段 5 第一刀先提取远端字段映射与输入归一化纯函数，不混入 Supabase I/O 或冲突决策。
+
+### 阶段 5 第一检查点（2026-06-23，远端映射纯函数）
+
+- 新增 `lib/sync-mappers.ts`，承接 `parseRemotePhotos` / `buildCompleteProfile` / `mapRemoteRecord` / `isValidRemoteOption` / `mapRemoteProfile` 五个纯函数、两个默认值常量（`DEFAULT_PROFILE_NAME`、`DEFAULT_PROFILE_SIGNATURE`）和一个 `RemoteProfileInput` 类型。
+- `hooks/useSync.ts` 删除内联定义，改为 import；`downloadRemoteData` 中三段内联归一化（records photos、options 过滤、profile 数字名兼容）替换为对应纯函数。
+- 行为零变化：`buildCompleteProfile` 保留宽松行为供 conflict/merge 路径（514/1190 行）继续使用；`mapRemoteProfile` 在下载路径上叠加「数字名视为脏数据」的历史兼容逻辑。
+- `useSync.ts` 从 1348 行降至 1306 行；新增 45 个纯函数测试，全量 30 个测试文件 / 268 项通过；typecheck、lint、生产 build 通过。
+- 下一刀：Supabase I/O 提取为 repository 层，目标 `useSync` 进入 1000 行以内。
 
 ## 完成定义
 
