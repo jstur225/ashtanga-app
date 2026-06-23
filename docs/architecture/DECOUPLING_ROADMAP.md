@@ -17,18 +17,20 @@
 | TypeScript / lint / build | 通过 | 持续通过 |
 | `/practice` 首屏 JS | 334.6 KiB gzip（脚本自动测量） | 427.9 KiB → 334.6 KiB，下降 21.8% |
 
-## 当前快照（2026-06-18，阶段 2 完成检查点）
+## 当前快照（2026-06-23，阶段 5 第二刀完成）
 
 | 指标 | 当前值 | 判断 |
 |---|---:|---|
-| `app/practice/page.tsx` | 2701 行 | 已明显下降，但距离 800–1200 行目标仍远 |
-| 页面 `useState` | 57 个 | 计时状态已移出，认证、会员、媒体、弹窗和页面编排仍高度集中 |
-| `hooks/useSync.ts` | 1348 行 | 阶段 5 尚未开始，是后半程最大风险 |
-| Vitest | 22 文件 / 179 项通过 | 新增口令启动协调、最新回调与失败降级控制测试 |
-| TypeScript / lint | 通过 | 2026-06-18 本地复验 |
+| `app/practice/page.tsx` | 1157 行 | 阶段 4 门槛完成，等待阶段 6 重新审计 |
+| 页面 `useState` | 43 个 | 认证、会员、媒体、弹窗和页面编排仍高度集中 |
+| `hooks/useSync.ts` | 1244 行 | 阶段 5 第二刀完成（mappers + repository 已提取），目标 250–350 行 |
+| `lib/sync-mappers.ts` | 96 行 | 5 个纯函数，45 个测试 |
+| `lib/supabase-repository.ts` | 147 行 | 7 个仓库原语 |
+| Vitest | 30 文件 / 268 项通过 | 纯函数覆盖充实，编排/仓库层待补 |
+| TypeScript / lint | 通过 | 2026-06-23 本地复验 |
 | 生产构建 | 通过 | Next.js 16 生产构建成功，22 个路由完成生成 |
 
-按核心阶段 1–6 估算，当前整体完成约 33%：阶段 1、2 已完成，阶段 3–6 未开始。
+按核心阶段 1–6 估算，当前整体完成约 76%：阶段 1–4 完成，阶段 5 第二刀完成。
 
 ## 约束
 
@@ -47,7 +49,7 @@
 | 2 | `usePracticeSession` + 计时视图 | 已完成（阶段检查点） | 计时状态转换独立测试，页面不计算时长 |
 | 3 | `useGuidedAudio` + `useChantPlayback` | 已完成（阶段检查点） | 页面不持有 `HTMLAudioElement` |
 | 4 | Dashboard、导航、ModalHost、Tab 动态加载 | 已完成（2026-06-22） | 页面 1157 行，首屏 JS 下降 21.8% |
-| 5 | 同步仓库、映射、编排、冲突、日志分层 | 待开始 | `useSync` 250–350 行，同步矩阵通过 |
+| 5 | 同步仓库、映射、编排、冲突、日志分层 | 进行中（第二刀完成） | `useSync` 250–350 行，同步矩阵通过 |
 | 6 | 大型组件职责审计与最终归档 | 待开始 | 只保留职责单一的大文件，文档与代码一致 |
 
 ## 目标架构
@@ -188,13 +190,18 @@ useSync (React facade)
 - 生产浏览器验证选项、自定义弹窗、运行日志完整 JSON、关闭层级和导航恢复，控制台 0 应用错误。
 - 阶段 4 正式完成；阶段 5 第一刀先提取远端字段映射与输入归一化纯函数，不混入 Supabase I/O 或冲突决策。
 
-### 阶段 5 第一检查点（2026-06-23，远端映射纯函数）
+### 阶段 5 第二检查点（2026-06-23，Supabase 仓库层）
 
-- 新增 `lib/sync-mappers.ts`，承接 `parseRemotePhotos` / `buildCompleteProfile` / `mapRemoteRecord` / `isValidRemoteOption` / `mapRemoteProfile` 五个纯函数、两个默认值常量（`DEFAULT_PROFILE_NAME`、`DEFAULT_PROFILE_SIGNATURE`）和一个 `RemoteProfileInput` 类型。
-- `hooks/useSync.ts` 删除内联定义，改为 import；`downloadRemoteData` 中三段内联归一化（records photos、options 过滤、profile 数字名兼容）替换为对应纯函数。
-- 行为零变化：`buildCompleteProfile` 保留宽松行为供 conflict/merge 路径（514/1190 行）继续使用；`mapRemoteProfile` 在下载路径上叠加「数字名视为脏数据」的历史兼容逻辑。
-- `useSync.ts` 从 1348 行降至 1306 行；新增 45 个纯函数测试，全量 30 个测试文件 / 268 项通过；typecheck、lint、生产 build 通过。
-- 下一刀：Supabase I/O 提取为 repository 层，目标 `useSync` 进入 1000 行以内。
+- 新增 `lib/supabase-repository.ts`，将 useSync 中分散的 Supabase I/O 调用提取为 7 个仓库原语：
+  - `fetchAllUserData`（并发下载记录/选项/资料，各带 30s 超时）
+  - `fetchCloudRecordsForMerge`（上传前安全合并查询）
+  - `repoUpsertRecords` / `repoUpsertOptions`（单次 upsert）
+  - `repoDeleteAllUserRecords` / `repoDeleteAllUserOptions`（冲突策略清空）
+- `hooks/useSync.ts` 删除 `supabase` 和 `TABLES` 直接导入以及 `queryWithTimeout` 内联函数，改用仓库原语。
+- 行为零变化：重试、安全合并、批量分片、日志等业务逻辑保留在 useSync。
+- `useSync.ts` 从 1306 行降至 1244 行（累计从 1348 → 1244，降 104 行）。
+- 全量门禁通过：30 个测试文件 / 268 项测试、typecheck、lint、生产 build 通过。
+- 下一刀：（a）Duplicated safe-merge logic 合并，或（b）uploadLocalData 批量 upsert 提取，目标 < 1000 行。
 
 ## 完成定义
 

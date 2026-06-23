@@ -1,5 +1,24 @@
 # 阿斯汤加打卡 app - 项目记录
 
+## 2026-06-23: 阶段 5 第二刀 — Supabase 仓库层提取
+
+### 完成内容
+
+- 新增 `lib/supabase-repository.ts`，承接 7 个仓库原语：`fetchAllUserData`（并发下载+超时）、`fetchCloudRecordsForMerge`（安全合并查询）、`repoUpsertRecords` / `repoUpsertOptions`（单次 upsert）、`repoDeleteAllUserRecords` / `repoDeleteAllUserOptions`（冲突策略清空）、`withQueryTimeout`（通用超时保护）。
+- `hooks/useSync.ts` 删除 `supabase` / `TABLES` 直接导入和内联 `queryWithTimeout`，7 处 Supabase 调用替换为仓库原语。重试、安全合并、批量分片、日志等业务逻辑保留在 useSync。
+- 修复类型问题：`CloudRecordForMerge` 类型、`withQueryTimeout` 对 Supabase thenable 的支持、merge updated_at 可空性。
+- `useSync.ts` 从 1306 行降至 1244 行（累计从 1348 → 1244，降 104 行）。全量 30 个测试文件 / 268 项通过；typecheck、lint、生产 build 通过。
+
+### 设计决策
+
+- 仓库层只做 I/O 原语，不做业务决策：不重试、不分批、不安全合并、不归一化。
+- `fetchAllUserData` 返回 `any` 风格的响应（与原 useSync 内联实现一致），因为 downloadRemoteData 后续会有自己的归一化。
+- `fetchCloudRecordsForMerge` 用 `await` + 显式 `as unknown as` 转换来获得类型安全的响应，而不是让 Supabase 推断。
+
+### 下一刀
+
+阶段 5 第三刀：安全合并逻辑在 uploadLocalRecords 和 uploadLocalData 中几乎完全重复（~160 行），提取为共享函数后可再节省 ~80 行，目标 `useSync.ts` < 1000 行。
+
 ## 2026-06-23: 阶段 5 第一刀 — 远端映射纯函数提取
 
 ### 完成内容

@@ -1,15 +1,15 @@
 # 解耦重构恢复入口
 
-> 下次启动本项目时先读这里。阶段 1–4 已完成、阶段 5 第一刀已完成，下一轮进入阶段 5 第二刀 Supabase 仓库层；不要重新调查页面编排、刷新恢复或媒体生命周期问题。
+> 下次启动本项目时先读这里。阶段 1–4 已完成、阶段 5 第一、二刀已完成，下一轮进入阶段 5 第三刀（合并安全合并 + 批量上传精简）；不要重新调查页面编排、刷新恢复或媒体生命周期问题。
 
 ## 2026-06-23 最新恢复点
 
-阶段 5 第一刀（远端字段映射与输入归一化纯函数）已完成并通过全部门禁：
+阶段 5 第二刀（Supabase 仓库层 I/O 原语）已完成并通过全部门禁：
 
-- 新增 `lib/sync-mappers.ts`：`parseRemotePhotos` / `buildCompleteProfile` / `mapRemoteRecord` / `isValidRemoteOption` / `mapRemoteProfile` 五个纯函数 + `DEFAULT_PROFILE_NAME` / `DEFAULT_PROFILE_SIGNATURE` / `RemoteProfileInput`。
-- `hooks/useSync.ts` 删除三个内联函数与两个常量，改为 import；`downloadRemoteData` 中 records photos 解析、options 过滤、profile 数字名兼容三段内联逻辑替换为纯函数。
-- 零行为变化：`buildCompleteProfile`（宽松）供 conflict/merge 路径继续使用，`mapRemoteProfile`（叠加数字名脏数据兼容）仅供下载路径使用。
-- 当前 `useSync.ts` 为 1306 行；新增 45 个纯函数测试，全量 30 个测试文件 / 268 项测试、typecheck、lint、生产 build 全部通过。
+- 新增 `lib/supabase-repository.ts`：`fetchAllUserData` / `fetchCloudRecordsForMerge` / `repoUpsertRecords` / `repoUpsertOptions` / `repoDeleteAllUserRecords` / `repoDeleteAllUserOptions` + `withQueryTimeout` + `CloudRecordForMerge` 类型。
+- `hooks/useSync.ts` 删除 `supabase` / `TABLES` 直接导入和内联 `queryWithTimeout`，7 处 Supabase 调用替换为仓库原语。
+- 行为零变化：重试、安全合并、批量分片、addLog 等业务逻辑保留在 useSync。
+- 当前 `useSync.ts` 为 1244 行；全量 30 个测试文件 / 268 项测试、typecheck、lint、生产 build 全部通过。
 
 阶段 4 已完成并通过全部门禁（保留如下供回溯）：
 
@@ -28,11 +28,11 @@
 
 真实生产浏览器已补齐：选项选择、自定义弹窗、数据管理、运行日志完整 JSON、父子弹窗关闭与导航恢复通过，控制台 0 应用错误。
 
-下次不要重新排查阶段 1–4 或阶段 5 第一刀。直接进入阶段 5 第二刀：把 Supabase 查询与上传提取为 repository 模块（带超时、重试、批量限制），目标 `useSync.ts` 进入 1000 行以内；暂不改冲突决策与本地存储键。
+下次不要重新排查阶段 1–4 或阶段 5 第一、二刀。直接进入阶段 5 第三刀：把 `uploadLocalRecords` 和 `uploadLocalData` 中重复的 safe-merge 逻辑提取为共享函数，精简批量上传循环，目标 `useSync.ts` 进入 < 1000 行。
 
 ## 一句话状态
 
-阶段 1–4 已完成、阶段 5 第一刀已完成。下一轮把 Supabase I/O 提取为 repository 层。
+阶段 1–4 已完成、阶段 5 第一刀和第二刀已完成。下一轮合并 safe-merge 重复逻辑，目标 < 1000 行。
 
 ## 阶段 2 最终结果
 
@@ -71,21 +71,22 @@ npm.cmd run build
 
 ## 下一次优化目标
 
-阶段 5 第二刀提取 Supabase 仓库层：
+阶段 5 第三刀：合并安全合并与精简批量上传逻辑：
 
-1. 把 `useSync.ts` 中 `downloadRemoteData`、上传记录/选项/profile 的 Supabase 调用提取为 `lib/supabase-repository.ts`。
-2. 仓库层负责超时、重试、批量限制和错误归一化；`useSync` 只保留编排与 React 状态。
+1. `uploadLocalRecords` 和 `uploadLocalData` 中 safe-merge 逻辑几乎完全重复（~160 行）。提取共享的 `safeMergeRecords(local, cloud)` 函数，合并为两处共用的引用。
+2. 把 uploadLocalData 中的批量上传循环提纯，使 batch loop 只做编排，具体 upsert 调用委托给仓库层。
 3. 仍不改变 local/remote/merge 冲突决策和本地存储键。
-4. 验证：`useSync.ts` 进入 1000 行以内；测试矩阵补全 1000 条限制、超时、重试、部分失败恢复。
+4. 验证：`useSync.ts` 进入 < 1000 行。
 
-阶段 5 第一刀已完成。阶段 5 的硬门槛是：`useSync.ts` 降到 250–350 行，同步矩阵通过，真实测试账户云端冒烟通过。
+阶段 5 第一、二刀已完成。阶段 5 的硬门槛是：`useSync.ts` 降到 250–350 行，同步矩阵通过，真实测试账户云端冒烟通过。
 
 ## 当前规模
 
 - `app/practice/page.tsx`：1157 行，阶段 4 完成
-- `hooks/useSync.ts`：1306 行，阶段 5 第一刀完成
+- `hooks/useSync.ts`：1244 行，阶段 5 第二刀完成
 - `lib/sync-mappers.ts`：96 行，5 个纯函数
-- 核心阶段 1–6：阶段 1–4 完成、阶段 5 第一刀完成，约 73%
+- `lib/supabase-repository.ts`：147 行，7 个仓库原语
+- 核心阶段 1–6：阶段 1–4 完成、阶段 5 第二刀完成，约 76%
 
 ## 真源文档
 

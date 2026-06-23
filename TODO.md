@@ -48,7 +48,8 @@
 ## 下一执行项 - 解耦阶段 5：同步分层
 
 - [x] 第一刀：提取远端记录/选项/profile 的字段映射与归一化纯函数到 `lib/sync-mappers.ts`，新增 45 个纯函数测试（2026-06-23 完成）
-- [ ] 第二刀：把 Supabase 下载、上传、重试和超时移入 `lib/supabase-repository.ts`，目标 `useSync.ts` 进入 1000 行以内
+- [x] 第二刀：Supabase I/O 提取到 `lib/supabase-repository.ts`：`fetchAllUserData` / `fetchCloudRecordsForMerge` / `upsertRecords/Option` / `deleteAllUserRecords/Option`（2026-06-23 完成）
+- [ ] 第三刀：合并 `uploadLocalRecords` 与 `uploadLocalData` 重复的 safe-merge 逻辑，精简批量上传循环；目标 `useSync.ts` < 1000 行
 - [ ] 最后保留 250–350 行 `useSync` React facade，只负责编排状态、冲突选择和日志
 
 ## 2026-06-03 - 会员降级色阶锁定处理 ✅ 已实现

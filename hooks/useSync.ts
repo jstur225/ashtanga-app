@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useLocalStorage } from 'react-use'
-import { supabase, TABLES } from '@/lib/supabase'
 import type { PracticeRecord, PracticeOption, UserProfile } from '@/lib/supabase'
 import { diffRecords, buildProfileFromRemote, mergeRecords, mergeOptions } from '@/lib/sync-utils'
 import {
@@ -11,6 +10,14 @@ import {
   isValidRemoteOption,
   mapRemoteProfile,
 } from '@/lib/sync-mappers'
+import {
+  fetchAllUserData,
+  fetchCloudRecordsForMerge,
+  upsertRecords as repoUpsertRecords,
+  upsertOptions as repoUpsertOptions,
+  deleteAllUserRecords as repoDeleteAllUserRecords,
+  deleteAllUserOptions as repoDeleteAllUserOptions,
+} from '@/lib/supabase-repository'
 
 type SyncStatus = 'idle' | 'syncing' | 'success' | 'error'
 type ConflictStrategy = 'remote' | 'local' | 'merge'
@@ -640,51 +647,7 @@ export function useSync(
     try {
       syncDebug('📥 [downloadRemoteData] 开始下载，userId:', userId, '重试次数:', retryCount)
 
-      syncDebug('📥 [downloadRemoteData] 准备发送查询...')
-
-      // ⭐ 为每个查询添加单独的超时保护（30秒，失败会重试）
-      const queryWithTimeout = async (queryName: string, queryFn: () => Promise<any>) => {
-        const startTime = Date.now()
-        const queryPromise = queryFn()
-        const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => {
-            const elapsed = Date.now() - startTime
-            reject(new Error(`${queryName} 查询超时 (${elapsed}ms)`))
-          }, 30000) // 单个查询30秒超时，失败后重试
-        })
-        return Promise.race([queryPromise, timeoutPromise])
-      }
-
-      // 分别包装每个查询，以便追踪哪个卡住了
-      const recordsPromise = queryWithTimeout('记录', async () => {
-        syncDebug('🚀 [downloadRemoteData] 开始执行记录查询...')
-        try {
-          const query = supabase.from(TABLES.PRACTICE_RECORDS).select('*').eq('user_id', userId).is('deleted_at', null).neq('type', '草稿')
-          syncDebug('🚀 [downloadRemoteData] 查询对象创建成功，准备执行...')
-          const res = await query
-          syncDebug('✅ [downloadRemoteData] 记录查询完成')
-          return res
-        } catch (err) {
-          console.error('❌ [downloadRemoteData] 记录查询失败:', err)
-          throw err
-        }
-      })
-
-      const optionsPromise = queryWithTimeout('选项', () =>
-        Promise.resolve(supabase.from(TABLES.PRACTICE_OPTIONS).select('*').eq('user_id', userId))
-          .then(res => { syncDebug('✅ [downloadRemoteData] 选项查询完成'); return res })
-          .catch(err => { console.error('❌ [downloadRemoteData] 选项查询失败:', err); throw err })
-      )
-
-      const profilePromise = queryWithTimeout('资料', () =>
-        Promise.resolve(supabase.from(TABLES.USER_PROFILES).select('*').eq('user_id', userId).maybeSingle())
-          .then(res => { syncDebug('✅ [downloadRemoteData] 资料查询完成'); return res })
-          .catch(err => { console.error('❌ [downloadRemoteData] 资料查询失败:', err); throw err })
-      )
-
-      const fetchPromise = Promise.all([recordsPromise, optionsPromise, profilePromise])
-
-      const [recordsRes, optionsRes, profileRes] = await fetchPromise as any
+      const { recordsRes, optionsRes, profileRes } = await fetchAllUserData(userId)
 
       syncDebug('📥 [downloadRemoteData] 查询完成')
       syncDebug('   recordsRes.error:', recordsRes.error)
@@ -700,8 +663,6 @@ export function useSync(
       const records = (recordsRes.data || []).map((r: any) => mapRemoteRecord(r))
 
       syncDebug('📥 [downloadRemoteData] 记录处理完成，数量:', records.length)
-
-      // 调试：打印云端选项数据
       syncDebug('📦 [downloadRemoteData] 云端选项数据:', optionsRes.data)
       syncDebug('   选项数量:', optionsRes.data?.length)
 
@@ -782,10 +743,7 @@ export function useSync(
     // ⭐ 安全合并：上传前查询云端已有记录，防止本地空白覆盖云端有内容的记录
     try {
       const localIds = recordsToUpload.map(r => r.id)
-      const { data: cloudRecords } = await supabase
-        .from(TABLES.PRACTICE_RECORDS)
-        .select('id, notes, breakthrough, photos, duration, updated_at')
-        .in('id', localIds)
+      const { data: cloudRecords } = await fetchCloudRecordsForMerge(localIds)
 
       if (cloudRecords && cloudRecords.length > 0) {
         const cloudMap = new Map(cloudRecords.map(r => [r.id, r]))
@@ -825,7 +783,7 @@ export function useSync(
               ? cloud.photos
               : local.photos,
             // updated_at: 使用较新的时间戳
-            updated_at: localTime > cloudTime ? local.updated_at : cloud.updated_at,
+            updated_at: localTime > cloudTime ? local.updated_at : (cloud.updated_at ?? local.updated_at),
           }
         })
 
@@ -859,9 +817,7 @@ export function useSync(
 
       addLog(`上传第 ${batchNum}/${totalBatches} 批 (${batch.length}条)`, 'success')
 
-      const { error } = await supabase
-        .from(TABLES.PRACTICE_RECORDS)
-        .upsert(batch, { onConflict: 'id' })
+      const { error } = await repoUpsertRecords(batch as unknown as Record<string, unknown>[])
 
       if (error) {
         lastError = error
@@ -985,10 +941,7 @@ export function useSync(
         // ⭐ 安全合并：上传前查询云端已有记录，防止本地空白覆盖云端有内容的记录
         try {
           const localIds = recordsToUpload.map(r => r.id)
-          const { data: cloudRecords } = await supabase
-            .from(TABLES.PRACTICE_RECORDS)
-            .select('id, notes, breakthrough, photos, duration, updated_at')
-            .in('id', localIds)
+          const { data: cloudRecords } = await fetchCloudRecordsForMerge(localIds)
 
           if (cloudRecords && cloudRecords.length > 0) {
             const cloudMap = new Map(cloudRecords.map(r => [r.id, r]))
@@ -1032,12 +985,7 @@ export function useSync(
         syncDebug(`📤 [uploadLocalData] 准备上传${recordsToUpload.length}条记录`)
         syncDebug('📤 [uploadLocalData] 记录IDs:', recordsToUpload.map(r => r.id))
 
-        const { error: recordsError, data: upsertData } = await supabase
-          .from(TABLES.PRACTICE_RECORDS)
-          .upsert(recordsToUpload, {
-            onConflict: 'id'
-          })
-          .select()
+        const { error: recordsError, data: upsertData } = await repoUpsertRecords(recordsToUpload as unknown as Record<string, unknown>[])
 
         if (recordsError) {
           // 记录失败的记录ID
@@ -1061,11 +1009,7 @@ export function useSync(
           is_custom: o.is_custom || false,
         }))
 
-        const { error: optionsError } = await supabase
-          .from(TABLES.PRACTICE_OPTIONS)
-          .upsert(optionsToUpload, {
-            onConflict: 'id'
-          })
+        const { error: optionsError } = await repoUpsertOptions(optionsToUpload as unknown as Record<string, unknown>[])
 
         if (optionsError) {
           console.error('❌ 批量上传选项失败:', optionsError)
@@ -1166,20 +1110,14 @@ export function useSync(
           })
 
           // 1. 先删除云端所有数据（包括记录和选项）
-          const { error: deleteError } = await supabase
-            .from(TABLES.PRACTICE_RECORDS)
-            .delete()
-            .eq('user_id', user.id)
+          const { error: deleteError } = await repoDeleteAllUserRecords(user.id)
 
           if (deleteError) {
             throw new Error(`删除云端数据失败: ${deleteError.message}`)
           }
 
           // 同时删除云端所有选项
-          await supabase
-            .from(TABLES.PRACTICE_OPTIONS)
-            .delete()
-            .eq('user_id', user.id)
+          await repoDeleteAllUserOptions(user.id)
 
           addLog('云端数据已清空', 'success')
 
