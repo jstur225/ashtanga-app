@@ -60,10 +60,22 @@ export function buildCompleteProfile(remoteProfile: RemoteProfileInput): UserPro
  * 把远端记录归一化：保留所有字段，把 photos 字段统一转为 string[]。
  */
 export function mapRemoteRecord<T extends object>(raw: T): Omit<T, 'photos'> & { photos: string[] } {
+  if (!raw || typeof raw !== 'object') {
+    return { photos: [] } as unknown as Omit<T, 'photos'> & { photos: string[] }
+  }
   return {
     ...raw,
     photos: parseRemotePhotos((raw as { photos?: unknown }).photos),
   }
+}
+
+/**
+ * 判断远端记录是否有效（id、date 必须存在）。
+ */
+export function isValidRemoteRecord(raw: unknown): boolean {
+  if (!raw || typeof raw !== 'object') return false
+  const record = raw as Record<string, unknown>
+  return typeof record.id === 'string' && record.id.length > 0 && record.date != null
 }
 
 /**

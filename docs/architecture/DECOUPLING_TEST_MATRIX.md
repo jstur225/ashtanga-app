@@ -6,7 +6,7 @@
 
 ## 当前覆盖概览
 
-当前自动化基线：30 个测试文件、268 项测试通过（2026-06-23，阶段 5 第五刀完成）。
+当前自动化基线：32 个测试文件、291 项测试通过（2026-06-23，同步弹性三刀完成）。
 
 | 领域 | 当前状态 | 主要缺口 | 计划阶段 |
 |---|---|---|---|
@@ -94,7 +94,7 @@
 | 1000 条限制与排序 | L1/L3 | 缺失 |
 | 超时、重试、部分失败恢复 | L1/L3 | 部分覆盖（`withRetry` + batch 每批重试 + autoSync 顶层重试 + 失败 ID 持久化；`__tests__/sync-retry.test.ts` 10 项 + `sync-upload.test.ts` 4 项） |
 | 重复/并发同步锁 | L3 | 部分覆盖（`pendingSyncRef` 排队补调，不再静默丢弃；已有 `isSyncingRef` 防止重复） |
-| 损坏本地数据和异常远端响应 | L3 | 缺失 |
+| 损坏本地数据和异常远端响应 | L1/L3 | 部分覆盖（`isValidRemoteRecord` / `isValidRemoteOption` 双重过滤 + `mapRemoteRecord` 安全 fallback + `fetchCloudRecordsForMerge` 返回过滤 + profile 上传 JSON 格式校验） |
 | 用户隔离与未登录禁止上传 | L3/L5 | 缺失 |
 | 删除的本地成功/云端失败补偿 | L3/L5 | 缺失 |
 | 日志数量、大小、敏感信息过滤 | L1/L3 | 部分覆盖 |

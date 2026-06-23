@@ -103,7 +103,12 @@ export async function fetchCloudRecordsForMerge(ids: string[]): Promise<{
     .from(TABLES.PRACTICE_RECORDS)
     .select('id, notes, breakthrough, photos, duration, updated_at')
     .in('id', ids)
-  return { data: (res.data as unknown as CloudRecordForMerge[]) ?? null, error: res.error }
+  const rawData = (res.data as unknown as CloudRecordForMerge[]) ?? null
+  // 过滤无效记录（无 id 或 id 不是字符串）
+  const data = rawData
+    ? rawData.filter((r) => r && typeof r.id === 'string')
+    : null
+  return { data, error: res.error }
 }
 
 /**

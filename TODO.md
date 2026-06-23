@@ -64,6 +64,13 @@
 - [x] 第二刀：`pendingSyncRef` 并发排队，同步结束后补调，不再静默丢弃
 - [x] `__tests__/sync-retry.test.ts`（10 项）+ `__tests__/sync-upload.test.ts`（4 项）
 
+## 2026-06-23 — 损坏数据防御 ✅ 已完成
+
+- [x] `isValidRemoteRecord` + `mapRemoteRecord` null/undefined fallback
+- [x] `fetchCloudRecordsForMerge` 返回过滤
+- [x] profile 上传响应 JSON 格式校验
+- [x] 新增 9 项测试（sync-mappers.test.ts）
+
 ## 2026-06-03 - 会员降级色阶锁定处理 ✅ 已实现
 
 **状态**: ✅ 已实现

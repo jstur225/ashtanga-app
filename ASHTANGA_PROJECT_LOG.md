@@ -66,15 +66,24 @@
 - 32 个测试文件 / 282 项测试全部通过
 - TypeScript 编译通过
 - 已有同步行为零变化
+
+### 第三刀：损坏本地数据和异常远端响应
+- 新增 `isValidRemoteRecord` 防御：`downloadRemoteData` 中过滤 id/date 缺失的坏记录，`mapRemoteRecord` 对 null/undefined 安全 fallback
+- 加固 `fetchCloudRecordsForMerge`：返回结果过滤无 id 条目
+- 加固 `uploadLocalData`：profile 上传响应加入 JSON 格式校验，非 2xx 且非 JSON 时使用 statusText
+- 新增 9 项防御性测试
+
+### 验证
+- 32 个测试文件 / 291 项测试全部通过
+
+| 文件 | 行数 |
+|------|-----:|
+| `app/practice/page.tsx` | 1157 |
+| `hooks/useSync.ts` | 897 |
 | `lib/sync-orchestrator.ts` | 252 |
 | `lib/sync-utils.ts` | 496 |
 | `lib/sync-mappers.ts` | 96 |
 | `lib/supabase-repository.ts` | 147 |
-| 测试文件 | 30 文件 / 268 项 |
-
-### 下一刀
-
-阶段 6：大型组件职责审计与最终归档，或继续缩减 useSync（当前 897 行 → 目标 250–350 行）。下一轮应考虑：exerciseConflict 中 'local'/'remote'/'merge' 三分支的执行逻辑提取、smartMerge 的职责归位、以及最终 `uploadLocalRecords`/`uploadLocalData` 中剩余的安全合并和格式检查逻辑。
 
 ## 2026-06-23: 阶段 5 第四刀 — 差异检测/日志/批量上传/options payload 提取（useSync < 1000 行 🎯）
 

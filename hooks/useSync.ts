@@ -8,6 +8,7 @@ import { withRetry, persistFailedSyncIds, loadFailedSyncIds } from '@/lib/sync-r
 import {
   buildCompleteProfile,
   mapRemoteRecord,
+  isValidRemoteRecord,
   isValidRemoteOption,
   mapRemoteProfile,
 } from '@/lib/sync-mappers'
@@ -500,8 +501,14 @@ export function useSync(
       if (optionsRes.error) throw optionsRes.error
       if (profileRes.error && profileRes.error.code !== 'PGRST116') throw profileRes.error // PGRST116 表示没有找到，可以忽略
 
-      // 修复：解析 photos JSON 字符串为数组
-      const records = (recordsRes.data || []).map((r: any) => mapRemoteRecord(r))
+      // 修复：解析 photos JSON 字符串为数组，过滤无效记录
+      const records = (recordsRes.data || []).filter((r: unknown) => {
+        const valid = isValidRemoteRecord(r)
+        if (!valid) {
+          syncDebug('   ⚠️ 过滤掉无效记录:', r)
+        }
+        return valid
+      }).map((r: any) => mapRemoteRecord(r))
 
       syncDebug('📥 [downloadRemoteData] 记录处理完成，数量:', records.length)
       syncDebug('📦 [downloadRemoteData] 云端选项数据:', optionsRes.data)
@@ -677,11 +684,15 @@ export function useSync(
         }),
       })
 
-      const profileResult = await profileResponse.json()
-
+      // 防御：确保远端返回的是合法 JSON，非 2xx 时优先用 statusText
+      let profileResult: any
+      try {
+        profileResult = await profileResponse.json()
+      } catch {
+        throw new Error(`上传用户资料失败: HTTP ${profileResponse.status} ${profileResponse.statusText}`)
+      }
       if (!profileResponse.ok) {
-        console.error('❌ 上传用户资料失败:', profileResult.error)
-        throw new Error(profileResult.error || '上传用户资料失败')
+        throw new Error(profileResult.error || profileResponse.statusText || '上传用户资料失败')
       }
 
       syncDebug('✅ 用户资料上传成功:', profileResult)

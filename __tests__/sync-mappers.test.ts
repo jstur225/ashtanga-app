@@ -3,6 +3,7 @@ import {
   parseRemotePhotos,
   buildCompleteProfile,
   mapRemoteRecord,
+  isValidRemoteRecord,
   isValidRemoteOption,
   mapRemoteProfile,
   DEFAULT_PROFILE_NAME,
@@ -192,6 +193,47 @@ describe('mapRemoteRecord', () => {
     expect(result.notes).toBe('练习笔记')
     expect(result.color_level).toBe(3)
     expect(result.photos).toEqual([])
+  })
+
+  it('null → 不崩溃，返回空对象', () => {
+    const result = mapRemoteRecord(null as any)
+    expect(result.photos).toEqual([])
+  })
+
+  it('undefined → 不崩溃，返回空对象', () => {
+    const result = mapRemoteRecord(undefined as any)
+    expect(result.photos).toEqual([])
+  })
+})
+
+// ==================== isValidRemoteRecord ====================
+describe('isValidRemoteRecord', () => {
+  it('有 id + date → 有效', () => {
+    expect(isValidRemoteRecord({ id: 'rec-1', date: '2026-01-01' })).toBe(true)
+  })
+
+  it('有 id 无 date → 无效', () => {
+    expect(isValidRemoteRecord({ id: 'rec-1' })).toBe(false)
+  })
+
+  it('无 id → 无效', () => {
+    expect(isValidRemoteRecord({ date: '2026-01-01' })).toBe(false)
+  })
+
+  it('null → 无效', () => {
+    expect(isValidRemoteRecord(null)).toBe(false)
+  })
+
+  it('undefined → 无效', () => {
+    expect(isValidRemoteRecord(undefined)).toBe(false)
+  })
+
+  it('非对象 → 无效', () => {
+    expect(isValidRemoteRecord('string')).toBe(false)
+  })
+
+  it('空字符串 id → 无效', () => {
+    expect(isValidRemoteRecord({ id: '', date: '2026-01-01' })).toBe(false)
   })
 })
 
