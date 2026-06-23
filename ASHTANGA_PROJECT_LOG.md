@@ -40,6 +40,32 @@
 |------|-----:|
 | `app/practice/page.tsx` | 1157 |
 | `hooks/useSync.ts` | 897 |
+
+## 2026-06-23: 同步弹性 — 重试+并发锁（第一、二刀）
+
+### 第一刀：超时、重试、部分失败恢复
+- 新增 `lib/sync-retry.ts`：
+  - `withRetry(fn, options)` — 通用指数退避重试包装器（默认 1s, 2s，最多 3 次）
+  - `persistFailedSyncIds` / `loadFailedSyncIds` — 失败记录 ID 持久化到 LocalStorage
+- 加固 `batchUploadRecords`（`lib/sync-utils.ts`）：
+  - 每批自动重试（重试耗尽后才记为失败），不再一次失败丢弃整批
+- 加固 `hooks/useSync.ts`：
+  - `uploadLocalData` 中的 `repoUpsertRecords` / `repoUpsertOptions` 包裹 `withRetry`
+  - 失败 ID 双写（React state + LocalStorage 持久化）
+  - `autoSync` 顶层 catch 自动重试一次（2s 延迟）
+
+### 第二刀：并发同步锁
+- 新增 `pendingSyncRef`：并发调用不再静默丢弃，标记排队
+- finally 块检测排队标记，同步完成后自动补一次
+
+### 新增测试
+- `__tests__/sync-retry.test.ts` — `withRetry` 行为 + 持久化（10 项）
+- `__tests__/sync-upload.test.ts` — `batchUploadRecords` 重试（4 项）
+
+### 验证
+- 32 个测试文件 / 282 项测试全部通过
+- TypeScript 编译通过
+- 已有同步行为零变化
 | `lib/sync-orchestrator.ts` | 252 |
 | `lib/sync-utils.ts` | 496 |
 | `lib/sync-mappers.ts` | 96 |

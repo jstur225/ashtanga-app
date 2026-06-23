@@ -92,8 +92,8 @@
 | 字段映射与照片四种输入 | L1 | 已覆盖（`__tests__/sync-mappers.test.ts` 覆盖 photos 数组/JSON 字符串/null/undefined/对象/数字/混合类型；profile 缺失/空对象/数字名脏数据/默认值；record photos 解析与字段保留；option 三种有效/无效组合） |
 | 草稿、软删除、孤立记录 | L1/L3 | 部分覆盖 |
 | 1000 条限制与排序 | L1/L3 | 缺失 |
-| 超时、重试、部分失败恢复 | L3 | 缺失 |
-| 重复/并发同步锁 | L3 | 缺失 |
+| 超时、重试、部分失败恢复 | L1/L3 | 部分覆盖（`withRetry` + batch 每批重试 + autoSync 顶层重试 + 失败 ID 持久化；`__tests__/sync-retry.test.ts` 10 项 + `sync-upload.test.ts` 4 项） |
+| 重复/并发同步锁 | L3 | 部分覆盖（`pendingSyncRef` 排队补调，不再静默丢弃；已有 `isSyncingRef` 防止重复） |
 | 损坏本地数据和异常远端响应 | L3 | 缺失 |
 | 用户隔离与未登录禁止上传 | L3/L5 | 缺失 |
 | 删除的本地成功/云端失败补偿 | L3/L5 | 缺失 |

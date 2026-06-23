@@ -58,6 +58,12 @@
 
 - [x] body 从 `font-sans` 改为 `font-serif`，全站文字统一宋体
 
+## 2026-06-23 — 同步弹性 ✅ 已完成
+
+- [x] 第一刀：`withRetry` 指数退避重试 + batch 逐批重试 + uploadLocalData 加固 + 失败 ID 持久化
+- [x] 第二刀：`pendingSyncRef` 并发排队，同步结束后补调，不再静默丢弃
+- [x] `__tests__/sync-retry.test.ts`（10 项）+ `__tests__/sync-upload.test.ts`（4 项）
+
 ## 2026-06-03 - 会员降级色阶锁定处理 ✅ 已实现
 
 **状态**: ✅ 已实现

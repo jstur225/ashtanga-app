@@ -1,4 +1,5 @@
 import type { PracticeRecord, UserProfile } from '@/lib/supabase'
+import { withRetry } from './sync-retry'
 
 /** 上传记录的载荷格式（包含索引所需的字段） */
 export interface UploadRecordPayload {
@@ -457,13 +458,23 @@ export async function batchUploadRecords<T extends { id: string }>(
 
   for (let i = 0; i < records.length; i += batchSize) {
     const batch = records.slice(i, i + batchSize)
-    const { error } = await upsertFn(batch)
 
-    if (error) {
-      lastError = error
-      batch.forEach(r => failedIds.push(r.id))
-    } else {
+    // 每批最多重试 2 次（指数退避：1s, 2s）
+    try {
+      await withRetry(
+        async () => {
+          const { error } = await upsertFn(batch)
+          if (error) throw error
+        },
+        {
+          maxRetries: 2,
+          baseDelay: 1000,
+        },
+      )
       successCount += batch.length
+    } catch (error) {
+      lastError = error
+      batch.forEach((r) => failedIds.push(r.id))
     }
   }
 

@@ -37,7 +37,7 @@ describe('字体优化', () => {
   })
 
   it('body className 不含字体变量 class', () => {
-    expect(layoutContent).toContain('className="font-sans antialiased"')
+    expect(layoutContent).toContain('className="font-serif antialiased"')
     expect(layoutContent).not.toContain('inter.variable')
     expect(layoutContent).not.toContain('notoSerifSC.variable')
   })

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useLocalStorage } from 'react-use'
 import type { PracticeRecord, PracticeOption, UserProfile } from '@/lib/supabase'
 import { diffRecords, buildProfileFromRemote, mergeRecords, mergeOptions, applySafeMerge, sortAndLimitRecords, buildUploadRecordPayload, resolveRecordColorLevel, createSyncLogEntry, trimSyncLogs, appendSyncErrorHistory, batchUploadRecords, buildOptionsUploadPayload, type SyncLogEntry } from '@/lib/sync-utils'
+import { withRetry, persistFailedSyncIds, loadFailedSyncIds } from '@/lib/sync-retry'
 import {
   buildCompleteProfile,
   mapRemoteRecord,
@@ -57,6 +58,10 @@ export function useSync(
 
   // 防止重复调用的 ref
   const isSyncingRef = useRef(false)
+  // 自动重试防重复标记（仅允许一次自动重试）
+  const autoRetriedRef = useRef(false)
+  // 并发队列：同步中收到新请求时标记，结束后补一次
+  const pendingSyncRef = useRef(false)
 
   // 使用 ref 保存最新的 localData，修复闭包陷阱
   const localDataRef = useRef(localData)
@@ -175,7 +180,8 @@ export function useSync(
   const autoSync = async (triggerReason?: string) => {
     // 防止重复调用
     if (isSyncingRef.current) {
-      syncDebug('⏸️ [autoSync] 已有同步任务在执行，跳过')
+      pendingSyncRef.current = true
+      syncDebug('⏸️ [autoSync] 已有同步任务在执行，标记后续同步')
       return
     }
 
@@ -203,6 +209,8 @@ export function useSync(
 
     // 设置同步标志
     isSyncingRef.current = true
+    // 每次新同步开始时重置自动重试标记
+    autoRetriedRef.current = false
     syncDebug('[autoSync] 设置同步标志')
 
     syncDebug('[autoSync] 用户已登录，开始同步')
@@ -387,6 +395,14 @@ export function useSync(
       })
       setSyncStatus('error')
       setLastSyncStatus('error')
+      // 自动重试一次（2 秒后），避免单次网络抖动导致失败
+      if (!autoRetriedRef.current) {
+        autoRetriedRef.current = true
+        setTimeout(() => {
+          autoRetriedRef.current = false // 为下次同步重置
+          autoSync('自动重试: ' + currentTriggerReasonRef.current)
+        }, 2000)
+      }
       return false
     } finally {
       // 兜底：确保今天有练习记录时 has_practiced 被标记
@@ -397,6 +413,13 @@ export function useSync(
       syncDebug('[autoSync] 同步完成，清理标志')
       // ⭐ 确保如果状态仍然是 syncing，重置为 idle（防止卡住）
       setSyncStatus(prev => prev === 'syncing' ? 'idle' : prev)
+
+      // 如果有排队请求，触发后续同步
+      if (pendingSyncRef.current) {
+        pendingSyncRef.current = false
+        syncDebug('🔄 [autoSync] 检测到排队请求，启动后续同步')
+        autoSync('后续: ' + currentTriggerReasonRef.current)
+      }
     }
   }
 
@@ -594,11 +617,13 @@ export function useSync(
       }
 
       setFailedSyncIds(failedIds)
+      persistFailedSyncIds(failedIds)
       setLastSyncStatus('error')
       return { success: false, localOnlyCount }
     } else {
       addLog(`全部上传成功: ${successCount} 条`, 'success')
       setFailedSyncIds([])
+      persistFailedSyncIds([])
       setLastSyncStatus('success')
       return { success: true, localOnlyCount }
     }
@@ -687,16 +712,24 @@ export function useSync(
         syncDebug(`📤 [uploadLocalData] 准备上传${recordsToUpload.length}条记录`)
         syncDebug('📤 [uploadLocalData] 记录IDs:', recordsToUpload.map(r => r.id))
 
-        const { error: recordsError, data: upsertData } = await repoUpsertRecords(recordsToUpload as unknown as Record<string, unknown>[])
-
-        if (recordsError) {
+        try {
+          await withRetry(
+            async () => {
+              const { error } = await repoUpsertRecords(recordsToUpload as unknown as Record<string, unknown>[])
+              if (error) throw error
+            },
+            { maxRetries: 2, baseDelay: 1000, onRetry: (attempt) => {
+              syncDebug(`🔄 [uploadLocalData] 记录上传重试 (${attempt}/2)...`)
+              addLog(`记录上传重试 (${attempt}/2)...`, 'warning')
+            }},
+          )
+          addLog(`批量上传${recordsToUpload.length}条记录`, 'success')
+          syncDebug(`✅ [uploadLocalData] upsert 成功`)
+        } catch (error: any) {
           // 记录失败的记录ID
-          records.forEach(r => failedIds.push(r.id))
-          addLog('批量上传记录', 'error', undefined, recordsError.message)
-          console.error('❌ [uploadLocalData] upsert 失败:', recordsError)
-        } else {
-          addLog(`批量上传${recordsToSync.length}条记录`, 'success')
-          syncDebug(`✅ [uploadLocalData] upsert 成功，返回${upsertData?.length || 0}条记录`)
+          recordsToUpload.forEach(r => failedIds.push(r.id))
+          addLog('批量上传记录', 'error', undefined, error.message)
+          console.error('❌ [uploadLocalData] upsert 失败:', error)
         }
       }
 
@@ -704,15 +737,20 @@ export function useSync(
       if (options.length > 0) {
         const optionsToUpload = buildOptionsUploadPayload(options, userId)
 
-        const { error: optionsError } = await repoUpsertOptions(optionsToUpload as unknown as Record<string, unknown>[])
-
-        if (optionsError) {
-          console.error('❌ 批量上传选项失败:', optionsError)
-          console.error('   错误详情:', JSON.stringify(optionsError, null, 2))
-          syncDebug('   上传的数据:', JSON.stringify(optionsToUpload, null, 2))
-          addLog('批量上传选项', 'error', undefined, optionsError.message)
-        } else {
+        try {
+          await withRetry(
+            async () => {
+              const { error } = await repoUpsertOptions(optionsToUpload as unknown as Record<string, unknown>[])
+              if (error) throw error
+            },
+            { maxRetries: 2, baseDelay: 1000, onRetry: (attempt) => {
+              syncDebug(`🔄 [uploadLocalData] 选项上传重试 (${attempt}/2)...`)
+            }},
+          )
           addLog(`批量上传${optionsToUpload.length}个选项（已过滤固定按钮）`, 'success')
+        } catch (error: any) {
+          console.error('❌ 批量上传选项失败:', error)
+          addLog('批量上传选项', 'error', undefined, error.message)
         }
       }
 
@@ -721,6 +759,7 @@ export function useSync(
 
       // 更新失败列表
       setFailedSyncIds(failedIds)
+      persistFailedSyncIds(failedIds)
       setLastSyncStatus(failedIds.length === 0 ? 'success' : 'error')
       setSyncStatus(failedIds.length === 0 ? 'success' : 'error')
       setLastSyncTime(Date.now())
@@ -742,9 +781,6 @@ export function useSync(
       }
     } catch (error: any) {
       console.error('Upload failed:', error)
-      console.error('Error details:', JSON.stringify(error, null, 2))
-      console.error('Error message:', error?.message)
-      console.error('Error name:', error?.name)
       addLog('同步失败', 'error', undefined, error?.message || JSON.stringify(error), {
         stack: error?.stack,
         requestInfo: `user_id: ${userId}, records: ${localData.records.length}`
