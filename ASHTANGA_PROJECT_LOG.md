@@ -1,5 +1,17 @@
 # 阿斯汤加打卡 app - 项目记录
 
+## 2026-06-23: 全站字体修正 — body 改为宋体（font-sans → font-serif）
+
+### 改动
+- `app/layout.tsx` body className 从 `font-sans` 改为 `font-serif`。
+- 全站文字使用宋体（`Songti SC` / `STSong` / `SimSun` / `Noto Serif CJK SC`），对齐项目设计哲学"宋体禅意"。
+- 此前 body 一直使用 `--font-sans`（系统无衬线字体栈），虽然 `app/globals.css` 中已有正确的 `--font-serif` 宋体配置，但未应用到 body。
+
+### 验证
+- TypeScript 编译通过
+- 无需新增测试（纯 CSS class 变更）
+- TODO.md 已跟新
+
 ## 2026-06-23: 阶段 5 第五刀 — sync orchestrator 提取（useSync 897 行）
 
 ### 完成内容

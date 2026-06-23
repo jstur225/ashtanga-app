@@ -54,6 +54,10 @@
 - [x] 第五刀：提取 sync orchestrator（`analyzeSync` / `executeConflictStrategy` / `computeSyncStats` / `recordPracticeIfNeeded`），useSync 897 行（2026-06-23 完成）
 - [ ] 最终精简：exerciseConflict 中 'local'/'remote'/'merge' 三分支的执行逻辑提取、smartMerge 归位、`uploadLocalRecords`/`uploadLocalData` 剩余逻辑提取；目标 250–350 行
 
+## 2026-06-23 — 全站字体修正 ✅ 已完成
+
+- [x] body 从 `font-sans` 改为 `font-serif`，全站文字统一宋体
+
 ## 2026-06-03 - 会员降级色阶锁定处理 ✅ 已实现
 
 **状态**: ✅ 已实现

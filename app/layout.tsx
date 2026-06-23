@@ -45,7 +45,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-CN">
-      <body className="font-sans antialiased">
+      <body className="font-serif antialiased">
         <AnalyticsInitializer />
         <ServiceWorkerRegister />
         {children}
