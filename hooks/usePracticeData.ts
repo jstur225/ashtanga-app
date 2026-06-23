@@ -3,6 +3,12 @@
 import { useState, useEffect } from 'react';
 import { useLocalStorage } from 'react-use';
 import { v4 as uuidv4 } from 'uuid';
+import {
+  parseAndValidateImportData,
+  sortRecordsByDate,
+  migrateOldOptions,
+  serializeExportData,
+} from '@/lib/import-export';
 
 export interface PracticeRecord {
   id: string;
@@ -399,63 +405,32 @@ export const usePracticeData = () => {
   };
 
   const exportData = () => {
-    // 移除头像，避免 base64 数据过大导致无法复制
-    const { avatar, ...profileWithoutAvatar } = profile!;
-    // ⭐ 过滤掉草稿记录，只导出正式记录
-    const nonDraftRecords = (records || []).filter(r => r.type !== '草稿');
-    const data = {
-      records: nonDraftRecords,
-      options,
-      profile: profileWithoutAvatar,
-      export_at: new Date().toISOString(),
-    };
-    const jsonString = JSON.stringify(data, null, 2);
-    return jsonString;
+    return serializeExportData(records || [], options, profile || null);
   };
 
   const importData = (jsonString: string) => {
-    try {
-      const data = JSON.parse(jsonString);
-
-      // 验证数据结构
-      if (!data.records && !data.options && !data.profile) {
-        console.error('Invalid data structure: missing required fields');
-        return false;
-      }
-
-      // 修复：导入记录后按日期倒序排序（最新的日期在上面）
-      if (data.records) {
-        const sortedRecords = [...data.records].sort((a, b) => {
-          return new Date(b.date).getTime() - new Date(a.date).getTime();
-        });
-        setRecords(sortedRecords);
-      }
-
-      // 修复：迁移旧的选项数据结构
-      if (data.options) {
-        const migratedOptions = data.options.map((opt: any) => {
-          const { label_zh, isCustom, ...rest } = opt;  // 移除旧字段
-          return {
-            ...rest,
-            // 如果有 label_zh，用它替换 label（中文覆盖英文）
-            label: label_zh || opt.label || '',
-            // 迁移 isCustom → is_custom
-            is_custom: isCustom !== undefined ? isCustom : (opt.is_custom !== undefined ? opt.is_custom : true),
-            // 确保 notes 字段存在
-            notes: opt.notes || '',
-          };
-        });
-        setOptions(migratedOptions);
-      }
-
-      if (data.profile) setProfile(data.profile);
-
-      console.log('Data imported successfully');
-      return true;
-    } catch (e) {
-      console.error('Failed to import data:', e);
+    const result = parseAndValidateImportData(jsonString);
+    if (!result.valid || !result.data) {
+      console.error('Failed to import data:', result.error);
       return false;
     }
+
+    const { data } = result;
+
+    // 导入记录后按日期倒序排序（最新的日期在上面）
+    if (data.records) {
+      setRecords(sortRecordsByDate(data.records));
+    }
+
+    // 迁移旧的选项数据结构
+    if (data.options) {
+      setOptions(migrateOldOptions(data.options) as any);
+    }
+
+    if (data.profile) setProfile(data.profile);
+
+    console.log('Data imported successfully');
+    return true;
   };
 
   const clearAllData = () => {

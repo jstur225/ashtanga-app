@@ -1,5 +1,25 @@
 # 阿斯汤加打卡 app - 项目记录
 
+## 2026-06-23: 导入导出纯函数提取 + L2 组件测试覆盖
+
+### 完成内容
+
+- 新增 `lib/import-export.ts`，从 `usePracticeData` 提取以下纯函数：
+  - `parseAndValidateImportData` — JSON 解析 + 结构校验（至少含 records/options/profile 之一）
+  - `sortRecordsByDate` — 导入记录按日期倒序
+  - `migrateOldOptions` — 迁移 label_zh→label、isCustom→is_custom
+  - `serializeExportData` — 导出 JSON 构建（过滤草稿、移除头像 base64）
+- 更新 `hooks/usePracticeData.ts`：importData/exportData 改为调用提取的纯函数
+- 新增 `__tests__/import-export-utils.test.ts` — 25 项 L1 纯函数测试（合法/非法 JSON、结构校验、排序、旧字段迁移、导出过滤）
+- 新增 `__tests__/import-modal.test.tsx` — 6 项 L2 组件测试（渲染/隐藏、文本输入、确认回调、清空输入、背景关闭、空文本提示）
+- 新增 `__tests__/export-modal.test.tsx` — 6 项 L2 组件测试（渲染/隐藏、数据显示、只读、复制按钮、提示信息、背景关闭）
+- 新增 `__tests__/data-conflict-modal.test.tsx` — 8 项 L2 组件测试（渲染/隐藏、条数显示、三种策略选择、二次确认逻辑）
+- 三步清空已在 practice-modal-host.test.tsx（`转发清空数据三步确认流程`）覆盖，无需新增
+- 全量 37 个测试文件 / 336 项通过；TypeScript 编译通过
+
+### 状态
+- 测试矩阵「导入合法/非法、导出、三步清空」从「缺失」升级为「已覆盖」
+
 ## 2026-06-23: 动态 Tab error boundary — DynamicTabShell 错误捕获与重试
 
 ### 完成内容

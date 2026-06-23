@@ -79,6 +79,16 @@
 - [x] `__tests__/dynamic-tab-error.test.tsx`（2 项）
 - [x] 测试矩阵「动态模块 loading/success/error」升级为已覆盖
 
+## 2026-06-23 — 导入导出纯函数 + 组件测试 ✅ 已完成
+
+- [x] 提取 `lib/import-export.ts`（parseAndValidateImportData / sortRecordsByDate / migrateOldOptions / serializeExportData）
+- [x] `usePracticeData` importData/exportData 改为调用提取函数
+- [x] `__tests__/import-export-utils.test.ts`（25 项 L1 纯函数测试）
+- [x] `__tests__/import-modal.test.tsx`（6 项 L2）
+- [x] `__tests__/export-modal.test.tsx`（6 项 L2）
+- [x] `__tests__/data-conflict-modal.test.tsx`（8 项 L2）
+- [x] 测试矩阵「导入合法/非法、导出、三步清空」升级为已覆盖
+
 ## 2026-06-03 - 会员降级色阶锁定处理 ✅ 已实现
 
 **状态**: ✅ 已实现
