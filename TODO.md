@@ -71,6 +71,14 @@
 - [x] profile 上传响应 JSON 格式校验
 - [x] 新增 9 项测试（sync-mappers.test.ts）
 
+## 2026-06-23 — 动态 Tab error boundary ✅ 已完成
+
+- [x] 新增 `DynamicTabShell` error boundary 捕获动态模块渲染异常
+- [x] 失败时显示「页面加载失败」+「点击重试」按钮，key 递增强制 remount
+- [x] JournalTab / StatsTab / PosesTab 包裹 DynamicTabShell
+- [x] `__tests__/dynamic-tab-error.test.tsx`（2 项）
+- [x] 测试矩阵「动态模块 loading/success/error」升级为已覆盖
+
 ## 2026-06-03 - 会员降级色阶锁定处理 ✅ 已实现
 
 **状态**: ✅ 已实现

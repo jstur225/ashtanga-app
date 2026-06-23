@@ -26,6 +26,7 @@ import { useRouter } from 'next/navigation'
 import { getLocalDateStr } from '@/lib/practice-utils'
 import { collectPracticeDebugLog, type PracticeExportLog } from '@/lib/practice-debug-log'
 import { hasOpenPracticeOverlay, PracticeNavigation, type PracticeTab } from '@/components/practice/PracticeNavigation'
+import { DynamicTabShell } from '@/components/practice/DynamicTabWrapper'
 import { PracticeDashboard } from '@/components/practice/PracticeDashboard'
 import { PracticeSessionView } from '@/components/practice/PracticeSessionView'
 import { PracticeModalHost } from '@/components/practice/PracticeModalHost'
@@ -37,9 +38,9 @@ const TabLoading = () => (
   </div>
 )
 
-const PosesTab = dynamic(() => import('@/components/PosesTab').then(m => ({ default: m.PosesTab })), { ssr: false, loading: TabLoading })
-const JournalTab = dynamic(() => import('@/components/journal/JournalTab').then(m => ({ default: m.JournalTab })), { ssr: false, loading: TabLoading })
-const StatsTab = dynamic(() => import('@/components/stats/StatsTab').then(m => ({ default: m.StatsTab })), { ssr: false, loading: TabLoading })
+const PosesTab = DynamicTabShell(dynamic(() => import('@/components/PosesTab').then(m => ({ default: m.PosesTab })), { ssr: false, loading: TabLoading }))
+const JournalTab = DynamicTabShell(dynamic(() => import('@/components/journal/JournalTab').then(m => ({ default: m.JournalTab })), { ssr: false, loading: TabLoading }))
+const StatsTab = DynamicTabShell(dynamic(() => import('@/components/stats/StatsTab').then(m => ({ default: m.StatsTab })), { ssr: false, loading: TabLoading }))
 
 import { INVITE_VERSION } from "@/lib/invite-version"
 

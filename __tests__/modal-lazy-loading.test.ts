@@ -86,7 +86,7 @@ describe("弹窗懒加载", () => {
     LAZY_TABS.forEach((name) => {
       it(`${name} 使用 dynamic()，不进入练习首屏依赖`, () => {
         const directImportPattern = new RegExp(`import\\s+.*\\{\\s*${name}\\s*\\}.*from`, "m")
-        const dynamicPattern = new RegExp(`const\\s+${name}\\s*=\\s*dynamic\\(`, "m")
+        const dynamicPattern = new RegExp(`const\\s+${name}\\s*=\\s*DynamicTabShell\\(dynamic\\(`, "m")
         expect(directImportPattern.test(pageContent)).toBe(false)
         expect(dynamicPattern.test(pageContent)).toBe(true)
         expect(pageContent).toContain("loading: TabLoading")

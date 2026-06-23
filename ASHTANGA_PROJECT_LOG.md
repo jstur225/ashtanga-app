@@ -1,5 +1,40 @@
 # 阿斯汤加打卡 app - 项目记录
 
+## 2026-06-23: 动态 Tab error boundary — DynamicTabShell 错误捕获与重试
+
+### 完成内容
+
+- 新增 `components/practice/DynamicTabWrapper.tsx`：
+  - `ErrorBoundaryInner` — class 组件错误边界，`getDerivedStateFromError` 捕获渲染异常
+  - `DynamicTabShell(Component)` — HOC 包装器，key 递增强制卸载/重建触发动 import()
+  - 错误态展示「页面加载失败」+「点击重试」按钮，重试时通过 `setMountKey` 递增强制 remount
+- 更新 `app/practice/page.tsx`：
+  - `JournalTab` / `StatsTab` / `PosesTab` 的 `dynamic()` 调用包裹 `DynamicTabShell()`
+  - 所有 Tab 保留原有 `loading: TabLoading` 和 `ssr: false`
+- 新增 `__tests__/dynamic-tab-error.test.tsx`（2 项）：正常渲染 + 子组件崩溃显示重试
+- 更新 `__tests__/modal-lazy-loading.test.ts`：Tab 动态导入模式匹配更新为 `DynamicTabShell(dynamic(`
+- 全量 33 个测试文件 / 293 项通过；TypeScript 编译通过
+
+### 状态
+
+- 阶段 4 测试矩阵「动态模块 loading/success/error」从「部分覆盖」升级为「已覆盖」
+- 消除 chunk 加载失败白屏风险
+
+## 2026-06-23: 损坏数据防御 — isValidRemoteRecord + 安全 fallback
+
+### 完成内容
+
+- `lib/sync-mappers.ts`：
+  - 新增 `isValidRemoteRecord(raw)` — 严格校验远端记录类型（`typeof id === 'string'` + `date != null`）
+  - `mapRemoteRecord` 增加 null/undefined 参数安全回退（返回空 photos 数组）
+  - 新增 `isValidRemoteOption` 用于选项数据校验
+- `lib/supabase-repository.ts`：
+  - `fetchCloudRecordsForMerge` 返回前过滤非法记录
+- `hooks/useSync.ts`：
+  - `downloadRemoteData` 对远端记录批量调用 `isValidRemoteRecord` 过滤
+- 新增 9 项测试（sync-mappers.test.ts）
+- 全量 31 个测试文件 / 282 项通过
+
 ## 2026-06-23: 全站字体修正 — body 改为宋体（font-sans → font-serif）
 
 ### 改动
