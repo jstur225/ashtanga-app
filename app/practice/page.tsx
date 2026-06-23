@@ -12,6 +12,7 @@ import { useSync } from "@/hooks/useSync"
 import { usePracticeSession } from "@/hooks/usePracticeSession"
 import { useGuidedAudio } from "@/hooks/useGuidedAudio"
 import { useChantPlayback } from "@/hooks/useChantPlayback"
+import { usePracticeCommands } from "@/hooks/usePracticeCommands"
 import { User, Upload, Plus, Minus, Share2, Sparkles, Check, ClipboardPaste, Volume2, Ticket, Loader2, Users } from "lucide-react"
 import { cn } from '@/lib/utils'
 import { getColorClass } from '@/lib/sync-utils'
@@ -21,7 +22,6 @@ import { PhotoUploadButton } from "@/components/PhotoUploadButton"
 import { toast } from 'sonner'
 import { trackEvent, setUserProfile } from '@/lib/analytics'
 import { supabase } from '@/lib/supabase'
-import { deletePracticeRecord } from '@/lib/database'
 import { useRouter } from 'next/navigation'
 import { getLocalDateStr } from '@/lib/practice-utils'
 import { collectPracticeDebugLog, type PracticeExportLog } from '@/lib/practice-debug-log'
@@ -341,7 +341,6 @@ export default function AshtangaTracker() {
   )
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
-  const lastTapRef = useRef<{ id: string; time: number } | null>(null)
 
   // 跟踪子组件内部的弹窗状态（无法直接访问）
   const [childModalOpen, setChildModalOpen] = useState(false)
@@ -458,273 +457,45 @@ export default function AshtangaTracker() {
     }
   }, [isPracticing])
 
-  const handleOptionTap = (option: PracticeOption) => {
-    const now = Date.now()
-    const lastTap = lastTapRef.current
-
-    // Check for double tap (within 300ms on the same option)
-    if (lastTap && lastTap.id === option.id && now - lastTap.time < 300) {
-      lastTapRef.current = null
-      // 固定按钮双击
-      if (option.is_fixed) {
-        if (option.id === 'chant_switch') {
-          setChantMins(Math.floor(chantDelaySeconds / 60))
-          setChantSecs(chantDelaySeconds % 60)
-          setShowChantSettings(true)
-        }
-        return
-      }
-      // Double tap - open edit modal (but not for custom button and preset options)
-      // 预设选项不能编辑
-      if (option.id !== "custom" && !option.is_preset && option.can_edit !== false) {
-        setEditingOption(option)
-        setShowEditModal(true)
-      } else if (option.is_preset || option.can_edit === false) {
-        toast('预设按钮暂不支持编辑')
-      }
-      return
-    }
-
-    // Single tap - store for double tap detection
-    lastTapRef.current = { id: option.id, time: now }
-
-    // 固定按钮特殊处理（单击）
-    if (option.is_fixed) {
-      if (option.id === "guided_audio") {
-        // 口令跟练：直接选中
-        // 互斥：如果唱诵开启，先关闭唱诵
-        if (chantEnabled) {
-          setChantEnabled(false)
-          toast('已关闭唱诵')
-        }
-        setSelectedOption('guided_audio')
-        setCustomPracticeName("")
-      } else if (option.id === 'today_count') {
-        fetchTodayCount()
-        toast('今天你熬汤了吗？')
-      } else if (option.id === 'chant_switch') {
-        const newEnabled = !chantEnabled
-        setChantEnabled(newEnabled)
-        if (newEnabled) {
-          toast('唱诵已开启')
-          // 互斥：如果当前选中口令跟练，取消选中
-          if (selectedOption === 'guided_audio') {
-            setSelectedOption(null)
-            toast('已关闭口令跟练')
-          }
-        } else {
-          toast('唱诵已关闭')
-        }
-      }
-      return
-    }
-
-    // Select the option
-    if (option.id === "custom") {
-      if (isOptionsFull && !membershipIsPro) {
-        // 免费用户已满 → 会员转化弹窗
-        setMembershipPromptReason('options_full')
-        setShowMembershipPrompt(true)
-      } else {
-        setShowCustomModal(true)
-      }
-    } else if (lockedOptionIds.has(option.id)) {
-      // 锁定选项：单击打开会员转化弹窗
-      setMembershipPromptReason('locked_option')
-      setShowMembershipPrompt(true)
-    } else {
-      setSelectedOption(option.id)
-      setCustomPracticeName("")
-    }
-  }
-
-  const handleEditSave = (id: string, name: string, notes: string, colorLevel?: number) => {
-    // 免费用户：被锁定的色阶强制降为 3
-    const safeColorLevel = (!membershipIsPro && (colorLevel === 1 || colorLevel === 4)) ? 3 : (colorLevel ?? 3)
-    // Update localStorage (also persists color_level for type default)
-    updateOption(id, name, notes, safeColorLevel)
-
-    // Update local state (including color_level)
-    setPracticeOptions(prev => prev.map(o =>
-      o.id === id ? { ...o, label: name, notes, color_level: safeColorLevel } : o
-    ))
-
-    toast.success('已保存修改')
-
-    // 如果已登录，自动同步到云端
-    if (user) {
-      setTimeout(async () => {
-        await autoSync('编辑选项后同步')
-      }, 500)
-    }
-  }
-
-  const handleEditDelete = async (id: string) => {
-    // Cannot delete if only 2 non-custom options remain
-    const nonCustomOptions = practiceOptions.filter(o => o.id !== "custom")
-    if (nonCustomOptions.length <= 2) {
-      toast.error('至少需要保留2个练习选项')
-      return
-    }
-
-    // Update localStorage
-    deleteOption(id)
-
-    // Update local state
-    setPracticeOptions(prev => prev.filter(o => o.id !== id))
-    if (selectedOption === id) {
-      setSelectedOption(null)
-    }
-
-    toast.success('已删除选项')
-
-    // ⭐ 新增：如果已登录，从云端删除并触发同步
-    if (user) {
-      console.log('[handleEditDelete] 用户已登录，从云端删除选项...')
-      try {
-        // 调用 Supabase 删除选项
-        const { error } = await supabase
-          .from('practice_options')
-          .delete()
-          .eq('id', id)
-          .eq('user_id', user.id)
-
-        if (error) {
-          console.error('[handleEditDelete] 云端删除失败:', error)
-          toast.error('云端删除失败，选项仅在本设备删除')
-        } else {
-          console.log('[handleEditDelete] 云端删除成功')
-          // 触发同步确保状态一致
-          await autoSync('删除选项后同步')
-        }
-      } catch (err) {
-        console.error('[handleEditDelete] 删除异常:', err)
-        toast.error('删除同步失败，选项仅在本设备删除')
-      }
-    }
-  }
-
-  const handleEditRecord = (id: string, data: Partial<PracticeRecord>) => {
-    updateRecord(id, data, () => {
-      // 编辑后触发同步
-      if (user) {
-        autoSync('编辑记录后同步')
-      }
-    })
-    toast.success('更新成功')
-  }
-
-  const handleDeleteRecord = async (id: string, skipConfirm = false) => {
-    // Confirm before deleting (skip for draft records)
-    if (!skipConfirm && !confirm('确定要删除这条记录吗？')) return
-
-    // 1. 从本地状态移除
-    deleteRecord(id)
-
-    // 2. 软删除 Supabase 中的记录（设置 deleted_at）
-    const success = await deletePracticeRecord(id)
-    if (success) {
-      // 只有正式记录才显示删除成功提示（草稿记录静默删除）
-      if (!skipConfirm) {
-        toast.success('已删除记录')
-      }
-      // 3. 触发同步（如果用户已登录）
-      if (user) {
-        autoSync('删除记录后同步')
-      }
-    } else {
-      toast.error('删除同步失败，记录仅在本设备删除')
-    }
-  }
-
-  const handleAddRecord = (record: Omit<PracticeRecord, 'id' | 'created_at' | 'updated_at' | 'photos'>) => {
-    const newRecord = addRecord(record)
-    trackEvent('add_record', {
-      type: record.type,
-      duration: record.duration,
-      date: record.date,
-      has_breakthrough: !!record.breakthrough,
-      has_notes: !!record.notes && record.notes.length > 0
-    })
-
-    // ⭐ 更新 Mixpanel User Profile（实时同步总数）
-    setTimeout(() => {
-      const recordsData = localStorage.getItem('ashtanga_records')
-      if (recordsData) {
-        try {
-          const records = JSON.parse(recordsData)
-          if (Array.isArray(records)) {
-            const totalRecords = records.length
-            const recordsWithNotes = records.filter((r: any) =>
-              r.notes && r.notes.trim().length > 0
-            ).length
-            const recordsWithBreakthrough = records.filter((r: any) =>
-              r.breakthrough && r.breakthrough.trim().length > 0
-            ).length
-
-            setUserProfile({
-              total_records: totalRecords,
-              records_with_notes: recordsWithNotes,
-              records_with_breakthrough: recordsWithBreakthrough,
-              notes_rate: totalRecords > 0 ? Math.round((recordsWithNotes / totalRecords) * 100) : 0,
-              last_patch_at: new Date().toISOString()
-            })
-          }
-        } catch (e) {
-          console.error('[add_record] 更新 Mixpanel Profile 失败:', e)
-        }
-      }
-    }, 100)
-
-    // 只有非草稿记录才显示 toast
-    if (record.type !== '草稿') {
-      toast.success('补卡成功！')
-    }
-
-    // 记录练习行为到设备活动统计（补卡也记录）
-    const recordUuid = localStorage.getItem('ashtanga_uuid')
-    if (recordUuid) {
-      fetch('/api/stats/record-practice', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ uuid: recordUuid }),
-      }).catch(() => {})
-    }
-
-    // 延迟 500ms 同步，确保 localStorage 已完全更新
-    // ⭐ 只有绑定邮箱的用户才同步到云端
-    if (user?.email) {
-      setTimeout(() => {
-        autoSync('添加记录后同步')
-      }, 500)
-    }
-    return newRecord
-  }
-
-  const handleAddOption = async (name: string, notes: string, colorLevel?: number) => {
-    const maxSlots = membershipIsPro ? MAX_SLOTS_PRO : MAX_SLOTS_FREE
-    // Check if we can add more options
-    const userOptions = practiceOptions.filter(o => !o.is_fixed && o.id !== "custom")
-    if (userOptions.length >= maxSlots) {
-      setMembershipPromptReason('options_full')
-      setShowMembershipPrompt(true)
-      return
-    }
-
-    const result = addOption(name, name, notes, undefined, membershipIsPro, colorLevel)
-    if (!result) {
-      toast.error('添加选项失败，可能已达到上限')
-      return
-    }
-
-    toast.success('已添加自定义选项')
-    // 如果已登录，自动同步到云端
-    if (user) {
-      setTimeout(async () => {
-        await autoSync('添加自定义选项后同步')
-      }, 500)
-    }
-  }
+  const {
+    canDeleteOption,
+    isOptionsFull,
+    lockedOptionIds,
+    handleOptionTap,
+    handleEditSave,
+    handleEditDelete,
+    handleEditRecord,
+    handleDeleteRecord,
+    handleAddRecord,
+    handleAddOption,
+  } = usePracticeCommands({
+    user,
+    practiceOptions,
+    selectedOption,
+    membershipIsPro,
+    chantEnabled,
+    chantDelaySeconds,
+    setPracticeOptions,
+    setSelectedOption,
+    setCustomPracticeName,
+    setChantEnabled,
+    setChantMins,
+    setChantSecs,
+    setShowChantSettings,
+    setEditingOption,
+    setShowEditModal,
+    setShowCustomModal,
+    setMembershipPromptReason,
+    setShowMembershipPrompt,
+    fetchTodayCount,
+    updateOption,
+    deleteOption,
+    addOption,
+    updateRecord,
+    deleteRecord,
+    addRecord,
+    autoSync,
+  })
 
   const handleVoteCloud = () => {
     // Update the votedCloud state directly
@@ -782,26 +553,6 @@ export default function AshtangaTracker() {
       toast.error('生成调试日志失败')
     }
   }
-
-  const canDeleteOption = useMemo(() => {
-    const userOptions = practiceOptions.filter(o => !o.is_fixed && o.id !== "custom")
-    return userOptions.length > 1
-  }, [practiceOptions])
-
-  const isOptionsFull = useMemo(() => {
-    const maxSlots = membershipIsPro ? MAX_SLOTS_PRO : MAX_SLOTS_FREE
-    // 只计算用户自定义选项（排除固定按钮和自定义添加按钮）
-    const userOptions = practiceOptions.filter(o => !o.is_fixed && o.id !== "custom")
-    return userOptions.length >= maxSlots
-  }, [practiceOptions, membershipIsPro])
-
-  const lockedOptionIds = useMemo(() => {
-    if (membershipIsPro) return new Set<string>()
-    const maxSlots = MAX_SLOTS_FREE
-    // 只计算用户自定义选项
-    const userOptions = practiceOptions.filter(o => !o.is_fixed && o.id !== "custom")
-    return new Set(userOptions.slice(maxSlots).map(o => o.id))
-  }, [practiceOptions, membershipIsPro])
 
   const handleStartPractice = async () => {
     if (selectedOption) {

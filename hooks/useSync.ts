@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useLocalStorage } from 'react-use'
 import type { PracticeRecord, PracticeOption, UserProfile } from '@/lib/supabase'
-import { diffRecords, buildProfileFromRemote, mergeRecords, mergeOptions } from '@/lib/sync-utils'
+import { diffRecords, buildProfileFromRemote, mergeRecords, mergeOptions, applySafeMerge, sortAndLimitRecords, buildUploadRecordPayload, resolveRecordColorLevel } from '@/lib/sync-utils'
 import {
   buildCompleteProfile,
   mapRemoteRecord,
@@ -713,10 +713,7 @@ export function useSync(
     if (records.length === 0) return { success: true, localOnlyCount: 0 }
 
     // ⭐ 新增：1000条记录限制 - 保留最新的1000条
-    // 按日期排序（最新的在前），然后截取最新的1000条
-    const sortedRecords = [...records].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    const recordsToSync = sortedRecords.slice(0, MAX_SYNC_RECORDS)
-    const localOnlyCount = records.length - recordsToSync.length
+    const { toSync: recordsToSync, localOnlyCount } = sortAndLimitRecords(records, MAX_SYNC_RECORDS)
 
     if (localOnlyCount > 0) {
       syncDebug(`⚠️ [uploadLocalRecords] 同步限制：只上传最新的${MAX_SYNC_RECORDS}条记录`)
@@ -725,20 +722,7 @@ export function useSync(
 
     const failedIds: string[] = []
 
-    let recordsToUpload = recordsToSync.map(r => ({
-      id: r.id,
-      user_id: userId,
-      date: r.date,
-      type: r.type,
-      duration: Number(r.duration) || 0, // ⭐ 确保是数字
-      notes: r.notes || '',
-      photos: r.photos && r.photos.length > 0 ? r.photos : null,
-      breakthrough: r.breakthrough || null,
-      start_time: r.start_time || null,
-      // ⭐ 色阶等级：优先用记录自身，其次用选项默认，最后用 3
-      color_level: r.color_level ?? options?.find(o => o.label === r.type)?.color_level ?? 3,
-      updated_at: r.updated_at || r.created_at || new Date().toISOString(),
-    }))
+    let recordsToUpload = recordsToSync.map(r => buildUploadRecordPayload(r, userId, resolveRecordColorLevel(r, options)))
 
     // ⭐ 安全合并：上传前查询云端已有记录，防止本地空白覆盖云端有内容的记录
     try {
@@ -747,47 +731,10 @@ export function useSync(
 
       if (cloudRecords && cloudRecords.length > 0) {
         const cloudMap = new Map(cloudRecords.map(r => [r.id, r]))
-        let mergedCount = 0
-
-        recordsToUpload = recordsToUpload.map(local => {
-          const cloud = cloudMap.get(local.id)
-          if (!cloud) return local
-
-          const needsMerge = (
-            // 本地 notes 为空或默认文案，但云端有非空内容
-            (!local.notes || local.notes.trim() === '' || local.notes === '今日练习完成') && cloud.notes
-          ) || (
-            // 本地 breakthrough 为空，但云端有内容
-            !local.breakthrough && cloud.breakthrough
-          ) || (
-            // 本地没有照片但云端有
-            (!local.photos || local.photos.length === 0) && cloud.photos && cloud.photos.length > 0
-          )
-
-          if (!needsMerge) return local
-
-          mergedCount++
-          const cloudTime = new Date(cloud.updated_at || 0).getTime()
-          const localTime = new Date(local.updated_at).getTime()
-
-          return {
-            ...local,
-            // notes: 如果本地为空/默认，但云端有内容 → 保留云端
-            notes: (!local.notes || local.notes.trim() === '' || local.notes === '今日练习完成') && cloud.notes
-              ? cloud.notes
-              : local.notes,
-            // breakthrough: 如果本地为空但云端有 → 保留云端
-            breakthrough: !local.breakthrough && cloud.breakthrough ? cloud.breakthrough : local.breakthrough,
-            // photos: 如果本地为空但云端有 → 保留云端
-            photos: (!local.photos || local.photos.length === 0) && cloud.photos && cloud.photos.length > 0
-              ? cloud.photos
-              : local.photos,
-            // updated_at: 使用较新的时间戳
-            updated_at: localTime > cloudTime ? local.updated_at : (cloud.updated_at ?? local.updated_at),
-          }
-        })
+        const { merged, mergedCount } = applySafeMerge(recordsToUpload, cloudMap, true)
 
         if (mergedCount > 0) {
+          recordsToUpload = merged
           addLog(`安全合并 ${mergedCount} 条云端已有内容的记录`, 'success')
         }
       }
@@ -883,11 +830,8 @@ export function useSync(
         avatar: null,
       }
 
-      // ⭐ 新增：1000条记录限制 - 保留最新的1000条
-      // 按日期排序（最新的在前），然后截取最新的1000条
-      const sortedRecords = [...records].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-      const recordsToSync = sortedRecords.slice(0, MAX_SYNC_RECORDS)
-      const localOnlyCount = records.length - recordsToSync.length // 仅本地保留的记录数
+      // ⭐ 新增：1000条记录限制
+      const { toSync: recordsToSync, localOnlyCount } = sortAndLimitRecords(records, MAX_SYNC_RECORDS)
 
       if (localOnlyCount > 0) {
         syncDebug(`⚠️ [uploadLocalData] 同步限制：只同步最新的${MAX_SYNC_RECORDS}条记录，${localOnlyCount}条旧记录仅保留在本地`)
@@ -923,20 +867,7 @@ export function useSync(
 
       // 2. 批量上传练习记录（使用 upsert）- 使用限制后的 recordsToSync（最新的1000条）
       if (recordsToSync.length > 0) {
-        let recordsToUpload = recordsToSync.map(r => ({
-          id: r.id,
-          user_id: userId,
-          date: r.date,
-          type: r.type,
-          duration: Number(r.duration) || 0, // ⭐ 确保是数字
-          notes: r.notes || '',
-          photos: r.photos && r.photos.length > 0 ? r.photos : null, // ⭐ 直接传数组，不 stringify
-          breakthrough: r.breakthrough || null,
-          start_time: r.start_time || null,
-          // ⭐ 色阶等级：优先用记录自身，其次用选项默认，最后用 3
-          color_level: r.color_level ?? options?.find(o => o.label === r.type)?.color_level ?? 3,
-          updated_at: r.updated_at || r.created_at || new Date().toISOString(),
-        }))
+        let recordsToUpload = recordsToSync.map(r => buildUploadRecordPayload(r, userId, resolveRecordColorLevel(r, options)))
 
         // ⭐ 安全合并：上传前查询云端已有记录，防止本地空白覆盖云端有内容的记录
         try {
@@ -945,36 +876,10 @@ export function useSync(
 
           if (cloudRecords && cloudRecords.length > 0) {
             const cloudMap = new Map(cloudRecords.map(r => [r.id, r]))
-            let mergedCount = 0
-
-            recordsToUpload = recordsToUpload.map(local => {
-              const cloud = cloudMap.get(local.id)
-              if (!cloud) return local
-
-              const needsMerge = (
-                (!local.notes || local.notes.trim() === '' || local.notes === '今日练习完成') && cloud.notes
-              ) || (
-                !local.breakthrough && cloud.breakthrough
-              ) || (
-                (!local.photos || local.photos.length === 0) && cloud.photos && cloud.photos.length > 0
-              )
-
-              if (!needsMerge) return local
-
-              mergedCount++
-              return {
-                ...local,
-                notes: (!local.notes || local.notes.trim() === '' || local.notes === '今日练习完成') && cloud.notes
-                  ? cloud.notes
-                  : local.notes,
-                breakthrough: !local.breakthrough && cloud.breakthrough ? cloud.breakthrough : local.breakthrough,
-                photos: (!local.photos || local.photos.length === 0) && cloud.photos && cloud.photos.length > 0
-                  ? cloud.photos
-                  : local.photos,
-              }
-            })
+            const { merged, mergedCount } = applySafeMerge(recordsToUpload, cloudMap)
 
             if (mergedCount > 0) {
+              recordsToUpload = merged
               syncDebug(`✅ [uploadLocalData] 安全合并 ${mergedCount} 条云端已有内容的记录`)
             }
           }

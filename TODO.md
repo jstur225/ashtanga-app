@@ -49,7 +49,8 @@
 
 - [x] 第一刀：提取远端记录/选项/profile 的字段映射与归一化纯函数到 `lib/sync-mappers.ts`，新增 45 个纯函数测试（2026-06-23 完成）
 - [x] 第二刀：Supabase I/O 提取到 `lib/supabase-repository.ts`：`fetchAllUserData` / `fetchCloudRecordsForMerge` / `upsertRecords/Option` / `deleteAllUserRecords/Option`（2026-06-23 完成）
-- [ ] 第三刀：合并 `uploadLocalRecords` 与 `uploadLocalData` 重复的 safe-merge 逻辑，精简批量上传循环；目标 `useSync.ts` < 1000 行
+- [x] 第三刀：提取共享的 `applySafeMerge` / `sortAndLimitRecords` / `buildUploadRecordPayload` / `resolveRecordColorLevel` 纯函数到 `lib/sync-utils.ts`，去重 ~93 行重复逻辑（2026-06-23 完成）
+- [ ] 第四刀：提取同步编排函数，精简批量上传循环，冲突决策提取；目标 `useSync.ts` < 1000 行
 - [ ] 最后保留 250–350 行 `useSync` React facade，只负责编排状态、冲突选择和日志
 
 ## 2026-06-03 - 会员降级色阶锁定处理 ✅ 已实现

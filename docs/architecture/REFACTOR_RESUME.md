@@ -1,15 +1,21 @@
 # 解耦重构恢复入口
 
-> 下次启动本项目时先读这里。阶段 1–4 已完成、阶段 5 第一、二刀已完成，下一轮进入阶段 5 第三刀（合并安全合并 + 批量上传精简）；不要重新调查页面编排、刷新恢复或媒体生命周期问题。
+> 下次启动本项目时先读这里。阶段 1–4 已完成、阶段 5 前三刀已完成，下一轮进入阶段 5 第四刀（同步编排精简 + 批量上传循环提纯 + 冲突决策提取）；不要重新调查页面编排、刷新恢复或媒体生命周期问题。
 
 ## 2026-06-23 最新恢复点
+
+阶段 5 第三刀（共享纯函数提取）已完成并通过全部门禁：
+
+- `lib/sync-utils.ts` 新增 `applySafeMerge` / `sortAndLimitRecords` / `buildUploadRecordPayload` / `resolveRecordColorLevel` / `UploadRecordPayload` 类型，去重 ~63 行 safe-merge 逻辑 + ~30 行 sort/limit/mapping 逻辑。
+- `hooks/useSync.ts` 两处 safe-merge 块替换为共享 `applySafeMerge` 调用，三处 sort+limit+payload 替换为 `sortAndLimitRecords` + `buildUploadRecordPayload` + `resolveRecordColorLevel`。
+- 行为零变化：合并策略、合并阈值、日志位置、错误处理行为完全一致。
+- 当前 `useSync.ts` 为 1149 行；全量 30 个测试文件 / 268 项测试、typecheck、lint、生产 build 全部通过。
 
 阶段 5 第二刀（Supabase 仓库层 I/O 原语）已完成并通过全部门禁：
 
 - 新增 `lib/supabase-repository.ts`：`fetchAllUserData` / `fetchCloudRecordsForMerge` / `repoUpsertRecords` / `repoUpsertOptions` / `repoDeleteAllUserRecords` / `repoDeleteAllUserOptions` + `withQueryTimeout` + `CloudRecordForMerge` 类型。
 - `hooks/useSync.ts` 删除 `supabase` / `TABLES` 直接导入和内联 `queryWithTimeout`，7 处 Supabase 调用替换为仓库原语。
 - 行为零变化：重试、安全合并、批量分片、addLog 等业务逻辑保留在 useSync。
-- 当前 `useSync.ts` 为 1244 行；全量 30 个测试文件 / 268 项测试、typecheck、lint、生产 build 全部通过。
 
 阶段 4 已完成并通过全部门禁（保留如下供回溯）：
 
@@ -32,7 +38,7 @@
 
 ## 一句话状态
 
-阶段 1–4 已完成、阶段 5 第一刀和第二刀已完成。下一轮合并 safe-merge 重复逻辑，目标 < 1000 行。
+阶段 1–4 已完成、阶段 5 前三刀已完成。下一轮提取同步编排函数 + 精简批量上传循环 + 冲突决策提取，目标 < 1000 行。
 
 ## 阶段 2 最终结果
 
@@ -71,22 +77,24 @@ npm.cmd run build
 
 ## 下一次优化目标
 
-阶段 5 第三刀：合并安全合并与精简批量上传逻辑：
+阶段 5 第四刀：同步编排精简 + 批量上传循环提纯 + 冲突决策提取：
 
-1. `uploadLocalRecords` 和 `uploadLocalData` 中 safe-merge 逻辑几乎完全重复（~160 行）。提取共享的 `safeMergeRecords(local, cloud)` 函数，合并为两处共用的引用。
-2. 把 uploadLocalData 中的批量上传循环提纯，使 batch loop 只做编排，具体 upsert 调用委托给仓库层。
-3. 仍不改变 local/remote/merge 冲突决策和本地存储键。
-4. 验证：`useSync.ts` 进入 < 1000 行。
+1. 把 `uploadLocalRecords` 和 `uploadLocalData` 中的编排逻辑（数据加载、回退、日志输出）提取为共享编排函数。
+2. 批量上传循环仅做分片编排，上传委托给仓库层。
+3. 冲突决策（local vs. remote 选择逻辑）与函数调用层分离。
+4. 仍不改变 local/remote/merge 冲突策略和本地存储键。
+5. 验证：`useSync.ts` 进入 < 1000 行。
 
-阶段 5 第一、二刀已完成。阶段 5 的硬门槛是：`useSync.ts` 降到 250–350 行，同步矩阵通过，真实测试账户云端冒烟通过。
+阶段 5 前三刀已完成。阶段 5 的硬门槛是：`useSync.ts` 降到 250–350 行，同步矩阵通过，真实测试账户云端冒烟通过。
 
 ## 当前规模
 
 - `app/practice/page.tsx`：1157 行，阶段 4 完成
-- `hooks/useSync.ts`：1244 行，阶段 5 第二刀完成
+- `hooks/useSync.ts`：1149 行，阶段 5 第三刀完成
+- `lib/sync-utils.ts`：270 行，12 个纯函数（含 diffRecords、mergeRecords、applySafeMerge、buildUploadRecordPayload 等）
 - `lib/sync-mappers.ts`：96 行，5 个纯函数
 - `lib/supabase-repository.ts`：147 行，7 个仓库原语
-- 核心阶段 1–6：阶段 1–4 完成、阶段 5 第二刀完成，约 76%
+- 核心阶段 1–6：阶段 1–4 完成、阶段 5 第三刀完成，约 78%
 
 ## 真源文档
 

@@ -1,5 +1,86 @@
 import type { PracticeRecord, UserProfile } from '@/lib/supabase'
 
+/** 上传记录的载荷格式（包含索引所需的字段） */
+export interface UploadRecordPayload {
+  id: string
+  user_id: string
+  date: string
+  type: string
+  duration: number
+  notes: string
+  photos: string[] | null
+  breakthrough: string | null
+  start_time: string | null
+  color_level: number
+  updated_at: string
+}
+
+/** 安全合并所需的云端记录字段 */
+export type CloudRecordForMerge = {
+  id: string
+  notes: string | null
+  breakthrough: string | null
+  photos: string[] | null
+  duration: number | null
+  updated_at: string | null
+}
+
+/**
+ * 安全合并：把本地记录与云端记录合并，防止本地空白笔记/突破/照片覆盖云端内容。
+ *
+ * 判断逻辑：
+ * - 本地 notes 为空/默认文案 → 保留云端
+ * - 本地 breakthrough 为空 → 保留云端
+ * - 本地 photos 为空 → 保留云端
+ *
+ * @param localRecords 待上传的本地记录
+ * @param cloudMap 云端记录 Map（id → CloudRecordForMerge）
+ * @param mergeUpdatedAt 是否同时合并 updated_at（取较新时间戳）
+ * @returns { merged, mergedCount } 合并后的记录列表和合并条数
+ */
+export function applySafeMerge<T extends Record<string, any>>(
+  localRecords: T[],
+  cloudMap: Map<string, CloudRecordForMerge>,
+  mergeUpdatedAt = false,
+): { merged: T[]; mergedCount: number } {
+  let mergedCount = 0
+  const merged = localRecords.map(local => {
+    const cloud = cloudMap.get(local.id)
+    if (!cloud) return local
+
+    const needsMerge = (
+      (!local.notes || local.notes.trim() === '' || local.notes === '今日练习完成') && cloud.notes
+    ) || (
+      !local.breakthrough && cloud.breakthrough
+    ) || (
+      (!local.photos || local.photos.length === 0) && cloud.photos && cloud.photos.length > 0
+    )
+
+    if (!needsMerge) return local
+
+    mergedCount++
+    const result = {
+      ...local,
+      notes: (!local.notes || local.notes.trim() === '' || local.notes === '今日练习完成') && cloud.notes
+        ? cloud.notes
+        : local.notes,
+      breakthrough: !local.breakthrough && cloud.breakthrough ? cloud.breakthrough : local.breakthrough,
+      photos: (!local.photos || local.photos.length === 0) && cloud.photos && cloud.photos.length > 0
+        ? cloud.photos
+        : local.photos,
+    }
+
+    if (mergeUpdatedAt) {
+      const cloudTime = new Date(cloud.updated_at || 0).getTime()
+      const localTime = new Date(local.updated_at).getTime()
+      ;(result as any).updated_at = localTime > cloudTime ? local.updated_at : (cloud.updated_at ?? local.updated_at)
+    }
+    return result
+  })
+
+  return { merged, mergedCount }
+}
+
 /**
  * 对比本地和云端记录，按 ID 和时间戳分类
  */
@@ -141,4 +222,49 @@ export function getColorClass(level: number): string {
   if (level === 2) return 'green-gradient-2'
   if (level === 4) return 'green-gradient-4'
   return 'green-gradient-3' // level 3 或 undefined
+}
+
+/**
+ * 把本地记录按日期倒序排序并限制同步数量。
+ */
+export function sortAndLimitRecords<T extends { date: string }>(
+  records: T[],
+  maxSync: number,
+): { toSync: T[]; localOnlyCount: number } {
+  const sorted = [...records].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+  const toSync = sorted.slice(0, maxSync)
+  return { toSync, localOnlyCount: records.length - toSync.length }
+}
+
+/**
+ * 把一条本地练习记录映射为 upsert 格式。
+ */
+export function buildUploadRecordPayload(
+  r: PracticeRecord,
+  userId: string,
+  colorLevel: number,
+): UploadRecordPayload {
+  return {
+    id: r.id,
+    user_id: userId,
+    date: r.date,
+    type: r.type,
+    duration: Number(r.duration) || 0,
+    notes: r.notes || '',
+    photos: r.photos && r.photos.length > 0 ? r.photos : null,
+    breakthrough: r.breakthrough || null,
+    start_time: r.start_time || null,
+    color_level: colorLevel,
+    updated_at: r.updated_at || r.created_at || new Date().toISOString(),
+  }
+}
+
+/**
+ * 获取记录的有效色阶：优先用记录自身，其次用选项默认，最后用 3。
+ */
+export function resolveRecordColorLevel(
+  record: { color_level?: number; type: string },
+  options?: { label: string; color_level?: number }[],
+): number {
+  return record.color_level ?? options?.find(o => o.label === record.type)?.color_level ?? 3
 }

@@ -1,6 +1,25 @@
 # 阿斯汤加打卡 app - 项目记录
 
-## 2026-06-23: 阶段 5 第二刀 — Supabase 仓库层提取
+## 2026-06-23: 阶段 5 第三刀 — 共享纯函数提取
+
+### 完成内容
+
+- `lib/sync-utils.ts` 新增 `applySafeMerge`、`sortAndLimitRecords`、`buildUploadRecordPayload`、`resolveRecordColorLevel`、`UploadRecordPayload` 类型。
+- 去重 ~63 行 safe-merge 逻辑（uploadLocalRecords 和 uploadLocalData 两处重复）和 ~30 行 sort/limit/mapping 逻辑。
+- `hooks/useSync.ts` 两处 safe-merge 块替换为共享 `applySafeMerge` 调用（一处带 mergeUpdatedAt=true，一处不带）；三处 sort+limit+payload 替换为 `sortAndLimitRecords` + `buildUploadRecordPayload` + `resolveRecordColorLevel`。
+- 修复 `buildUploadRecordPayload` 返回 `Record<string, unknown>` 导致下游 `.id` 访问为 `unknown` 的类型问题，改用显式 `UploadRecordPayload` 接口。
+- `useSync.ts` 从 1244 行降至 1149 行。全量 30 个测试文件 / 268 项通过；typecheck、lint 通过。
+
+### 设计决策
+
+- `applySafeMerge` 使用泛型 `<T extends Record<string, any>>` 并设可选的 `mergeUpdatedAt` 参数，单函数服务两个调用点。
+- `sortAndLimitRecords` 使用泛型 `<T extends { date: string }>`，不绑定 PracticeRecord 类型。
+- `buildUploadRecordPayload` 返回具名 `UploadRecordPayload` 接口而非 `Record<string, unknown>`，保持下游 `.id`/`.date` 等字段的类型安全。
+- behavior 零变化：合并策略、合并阈值（notes 为空/'今日练习完成'时保云端）、日志位置完全一致。
+
+### 下一刀
+
+阶段 5 第四刀：提取同步编排函数，精简批量上传循环，冲突决策提取；目标 `useSync.ts` < 1000 行。
 
 ### 完成内容
 
