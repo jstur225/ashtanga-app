@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useLocalStorage } from 'react-use'
 import type { PracticeRecord, PracticeOption, UserProfile } from '@/lib/supabase'
-import { diffRecords, buildProfileFromRemote, mergeRecords, mergeOptions, applySafeMerge, sortAndLimitRecords, buildUploadRecordPayload, resolveRecordColorLevel } from '@/lib/sync-utils'
+import { diffRecords, buildProfileFromRemote, mergeRecords, mergeOptions, applySafeMerge, sortAndLimitRecords, buildUploadRecordPayload, resolveRecordColorLevel, detectOptionChanges, detectProfileChanges, createSyncLogEntry, trimSyncLogs, appendSyncErrorHistory, batchUploadRecords, buildOptionsUploadPayload, type SyncLogEntry } from '@/lib/sync-utils'
 import {
   buildCompleteProfile,
   mapRemoteRecord,
@@ -52,17 +52,12 @@ export function useSync(
   onSyncComplete: (data: any) => void,
   onConflictDetected?: (localCount: number, remoteCount: number) => void
 ) {
-  // 移除这些日志，它们在每次渲染时都会输出
-  // syncDebug('🔍 [useSync] Hook 被调用了')
-  // syncDebug('   user:', user)
-  // syncDebug('   localData.records.length:', localData?.records?.length)
-
   const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle')
 
   // 防止重复调用的 ref
   const isSyncingRef = useRef(false)
 
-  // ⭐ 修复闭包陷阱：使用 ref 保存最新的 localData
+  // 使用 ref 保存最新的 localData，修复闭包陷阱
   const localDataRef = useRef(localData)
   localDataRef.current = localData
 
@@ -70,22 +65,6 @@ export function useSync(
   const [lastSyncTime, setLastSyncTime] = useLocalStorage<number | null>('last_sync_time', null)
   const [lastSyncStatus, setLastSyncStatus] = useLocalStorage<SyncStatus>('last_sync_status', 'idle')
   const [failedSyncIds, setFailedSyncIds] = useLocalStorage<string[]>('failed_sync_ids', [])
-  interface SyncLogEntry {
-    timestamp: string
-    action: string
-    status: 'success' | 'error' | 'warning'
-    triggerReason: string  // 同步触发原因，如"保存练习后同步"、"应用启动自动同步"
-    localCount?: number    // 触发同步时本地记录数
-    remoteCount?: number   // 触发同步时云端记录数
-    recordId?: string
-    error?: string
-    details?: {
-      stack?: string
-      retryCount?: number
-      requestInfo?: string
-      responseStatus?: number
-    }
-  }
   const [syncLogs, setSyncLogs] = useLocalStorage<SyncLogEntry[]>('sync_logs', [])
 
   // 保存当前同步的触发原因，供 autoSync 内各子步骤的 addLog 使用
@@ -298,89 +277,28 @@ export function useSync(
         // ⭐ 检查选项是否有差异（新增/删除/修改）
         const localOptions = freshLocalData.options || []
         const remoteOptions = remoteData.options || []
-        const localOptionIds = new Set(localOptions.map((o: PracticeOption) => o.id))
-        const remoteOptionIds = new Set(remoteOptions.map((o: PracticeOption) => o.id))
+        const optionDiff = detectOptionChanges(localOptions, remoteOptions)
 
-        // 检查选项数量或内容是否不同
-        let optionsChanged = false
-        let optionsChangeSource: 'local' | 'remote' | null = null
-
-        if (localOptions.length !== remoteOptions.length) {
-          optionsChanged = true
-          // 数量不同，判断哪边有新增
-          if (localOptions.length > remoteOptions.length) {
-            optionsChangeSource = 'local'
-            syncDebug(`📊 [autoSync] 选项本地新增：本地${localOptions.length}个，云端${remoteOptions.length}个`)
-          } else {
-            optionsChangeSource = 'remote'
-            syncDebug(`📊 [autoSync] 选项云端新增：云端${remoteOptions.length}个，本地${localOptions.length}个`)
-          }
-        } else {
-          // 数量相同，检查是否有不同的选项ID 或内容差异（color_level/label/notes）
-          const hasDifferentOptions = localOptions.some((o: PracticeOption) => !remoteOptionIds.has(o.id)) ||
-                                      remoteOptions.some((o: PracticeOption) => !localOptionIds.has(o.id))
-          if (hasDifferentOptions) {
-            optionsChanged = true
-            optionsChangeSource = 'local' // 默认本地优先
-            syncDebug(`📊 [autoSync] 选项内容不同，需要同步`)
-          }
+        if (optionDiff.changed) {
+          syncDebug(`📊 [autoSync] 选项${optionDiff.source === 'local' ? '本地新增' : '云端新增'}：本地${localOptions.length}个，云端${remoteOptions.length}个`)
         }
 
-        // ⭐ 检查 profile 是否有差异（基于 updated_at 时间戳）
+        // ⭐ 检查 profile 是否有差异
         const localProfile = freshLocalData.profile
         const remoteProfile = remoteData.profile
-        let profileChanged = false
-        let profileChangeSource: 'local' | 'remote' | null = null
+        const profileDiff = detectProfileChanges(localProfile, remoteProfile)
 
-        if (localProfile && remoteProfile) {
-          // ⭐ 如果本地是默认 profile（id 为空），强制从云端下载
-          if (!localProfile.id || localProfile.id === '') {
-            profileChanged = true
-            profileChangeSource = 'remote'
-            syncDebug(`📊 [autoSync] profile 本地为默认空数据，从云端下载`)
+        if (profileDiff.changed) {
+          if (profileDiff.source === 'remote') {
+            syncDebug(`📊 [autoSync] profile 从云端下载（${localProfile && !localProfile.id ? '本地为空' : '云端更新'}）`)
           } else {
-            // ⭐ 比对 name、signature、avatar 等字段
-            const hasContentDiff = localProfile.name !== remoteProfile.name ||
-                localProfile.signature !== remoteProfile.signature ||
-                localProfile.avatar !== remoteProfile.avatar ||
-                (localProfile.historical_days || 0) !== (remoteProfile.historical_days || 0) ||
-                (localProfile.historical_avg_minutes || 0) !== (remoteProfile.historical_avg_minutes || 0)
-
-            if (hasContentDiff) {
-              profileChanged = true
-
-              // ⭐ 基于时间戳判断谁更新
-              const localTime = new Date(localProfile.updated_at || localProfile.created_at).getTime()
-              const remoteTime = new Date(remoteProfile.updated_at || remoteProfile.created_at).getTime()
-
-              if (localTime > remoteTime) {
-                profileChangeSource = 'local'
-                syncDebug(`📊 [autoSync] profile 本地更新：本地时间=${new Date(localTime).toISOString()}, 云端时间=${new Date(remoteTime).toISOString()}`)
-              } else if (remoteTime > localTime) {
-                profileChangeSource = 'remote'
-                syncDebug(`📊 [autoSync] profile 云端更新：云端时间=${new Date(remoteTime).toISOString()}, 本地时间=${new Date(localTime).toISOString()}`)
-              } else {
-                // 时间相同，默认本地优先
-                profileChangeSource = 'local'
-                syncDebug(`📊 [autoSync] profile 时间相同，默认本地优先`)
-              }
-            }
+            syncDebug(`📊 [autoSync] profile 本地更新，需要上传到云端`)
           }
-        } else if (localProfile && !remoteProfile) {
-          // 只有本地有 profile，上传到云端
-          profileChanged = true
-          profileChangeSource = 'local'
-          syncDebug(`📊 [autoSync] profile 仅本地存在，需要上传`)
-        } else if (!localProfile && remoteProfile) {
-          // 只有云端有 profile，下载到本地
-          profileChanged = true
-          profileChangeSource = 'remote'
-          syncDebug(`📊 [autoSync] profile 仅云端存在，需要下载`)
         }
 
-        syncDebug(`📊 [autoSync] 比对结果：本地独有${localOnly.length}条，云端独有${remoteOnly.length}条，本地更新${localNewer.length}条，云端更新${remoteNewer.length}条，profile变化=${profileChanged}，选项变化=${optionsChanged}`)
+        syncDebug(`📊 [autoSync] 比对结果：本地独有${localOnly.length}条，云端独有${remoteOnly.length}条，本地更新${localNewer.length}条，云端更新${remoteNewer.length}条，profile变化=${profileDiff.changed}，选项变化=${optionDiff.changed}`)
 
-        if (totalLocalChanges === 0 && totalRemoteChanges === 0 && !profileChanged && !optionsChanged) {
+        if (totalLocalChanges === 0 && totalRemoteChanges === 0 && !profileDiff.changed && !optionDiff.changed) {
           // 没有差异，数据已一致
           syncDebug('[autoSync] 数据已一致，无需同步')
           addLog(`数据一致，无需同步`, 'success', undefined, undefined, undefined, {
@@ -393,8 +311,8 @@ export function useSync(
         }
 
         // 有差异：本地有新增/更新的数据 → 上传到云端
-        if ((totalLocalChanges > 0 || profileChangeSource === 'local' || optionsChangeSource === 'local') && totalRemoteChanges === 0 && optionsChangeSource !== 'remote') {
-          syncDebug(`📤 [autoSync] 本地有${totalLocalChanges}条变更（新增${localOnly.length}+更新${localNewer.length}）${profileChanged ? '+ profile变更' : ''}，上传到云端`)
+        if ((totalLocalChanges > 0 || profileDiff.source === 'local' || optionDiff.source === 'local') && totalRemoteChanges === 0 && optionDiff.source !== 'remote') {
+          syncDebug(`📤 [autoSync] 本地有${totalLocalChanges}条变更（新增${localOnly.length}+更新${localNewer.length}）${profileDiff.changed ? '+ profile变更' : ''}，上传到云端`)
           addLog(`上传本地 ${totalLocalChanges} 条变更新到云端`, 'success', undefined, undefined, undefined, {
             triggerReason: currentTriggerReasonRef.current,
             localCount,
@@ -414,7 +332,7 @@ export function useSync(
         }
 
         // 有差异：云端有新增/更新的数据 → 合并到本地
-        if ((totalRemoteChanges > 0 || profileChangeSource === 'remote' || optionsChangeSource === 'remote') && totalLocalChanges === 0 && profileChangeSource !== 'local' && optionsChangeSource !== 'local') {
+        if ((totalRemoteChanges > 0 || profileDiff.source === 'remote' || optionDiff.source === 'remote') && totalLocalChanges === 0 && profileDiff.source !== 'local' && optionDiff.source !== 'local') {
           syncDebug(`📥 [autoSync] 云端有${totalRemoteChanges}条变更（新增${remoteOnly.length}+更新${remoteNewer.length}）`)
 
           // ⭐ 合并：本地记录 + 云端新增 + 云端更新的版本
@@ -720,8 +638,6 @@ export function useSync(
       addLog(`${localOnlyCount}条记录仅本地保存`, 'success')
     }
 
-    const failedIds: string[] = []
-
     let recordsToUpload = recordsToSync.map(r => buildUploadRecordPayload(r, userId, resolveRecordColorLevel(r, options)))
 
     // ⭐ 安全合并：上传前查询云端已有记录，防止本地空白覆盖云端有内容的记录
@@ -753,31 +669,21 @@ export function useSync(
     addLog(`照片字段类型: ${typeof firstRecord?.photos}`, 'success')
 
     // ⭐ 分批上传：每批50条
-    const BATCH_SIZE = 50
-    let successCount = 0
-    let lastError: any = null
+    addLog(`准备上传 ${recordsToUpload.length} 条记录`, 'success')
+    const { successCount, failedIds, lastError } = await batchUploadRecords(
+      recordsToUpload,
+      batch => repoUpsertRecords(batch as unknown as Record<string, unknown>[]),
+    )
 
-    for (let i = 0; i < recordsToUpload.length; i += BATCH_SIZE) {
-      const batch = recordsToUpload.slice(i, i + BATCH_SIZE)
-      const batchNum = Math.floor(i/BATCH_SIZE) + 1
-      const totalBatches = Math.ceil(recordsToUpload.length/BATCH_SIZE)
+    // ⭐ 上传结果处理
+    if (failedIds.length > 0) {
+      addLog(`失败 ${failedIds.length} 条，成功 ${successCount} 条`, 'error')
 
-      addLog(`上传第 ${batchNum}/${totalBatches} 批 (${batch.length}条)`, 'success')
-
-      const { error } = await repoUpsertRecords(batch as unknown as Record<string, unknown>[])
-
-      if (error) {
-        lastError = error
-        addLog(`第 ${batchNum} 批失败`, 'error')
-        addLog(`错误消息: ${error.message || '无消息'}`, 'error')
-        addLog(`错误代码: ${error.code || '无代码'}`, 'error')
-        addLog(`错误详情: ${JSON.stringify(error).slice(0, 300)}`, 'error')
-
-        // ⭐ 尝试解析 Supabase 错误详情
-        if (error.message && error.message.includes('400')) {
-          addLog('400 错误: 请求格式不正确', 'error')
-          // 打印第一条记录的数据格式
-          const sampleRecord = batch[0]
+      // 400 错误时打印样本记录格式
+      if (lastError?.message?.includes('400')) {
+        addLog('400 错误: 请求格式不正确', 'error')
+        const sampleRecord = recordsToUpload[0]
+        if (sampleRecord) {
           addLog(`样本记录ID: ${sampleRecord.id}`, 'error')
           addLog(`样本日期: ${sampleRecord.date}`, 'error')
           addLog(`样本类型: ${sampleRecord.type}`, 'error')
@@ -785,17 +691,8 @@ export function useSync(
           addLog(`照片类型: ${typeof sampleRecord.photos}`, 'error')
           addLog(`更新时间: ${sampleRecord.updated_at}`, 'error')
         }
-
-        // 记录失败的ID
-        batch.forEach(r => failedIds.push(r.id))
-      } else {
-        successCount += batch.length
-        addLog(`第 ${batchNum} 批成功`, 'success')
       }
-    }
 
-    if (failedIds.length > 0) {
-      addLog(`失败 ${failedIds.length} 条，成功 ${successCount} 条`, 'error')
       setFailedSyncIds(failedIds)
       setLastSyncStatus('error')
       return { success: false, localOnlyCount }
@@ -905,14 +802,7 @@ export function useSync(
 
       // 3. 批量上传练习选项（只同步自定义选项，color_level 不同步，留在本地）
       if (options.length > 0) {
-        const customOptions = options.filter(o => o.is_custom && o.id !== 'custom')
-        const optionsToUpload = customOptions.map(o => ({
-          id: o.id,
-          user_id: userId,
-          label: o.label || '',
-          notes: o.notes || null,
-          is_custom: o.is_custom || false,
-        }))
+        const optionsToUpload = buildOptionsUploadPayload(options, userId)
 
         const { error: optionsError } = await repoUpsertOptions(optionsToUpload as unknown as Record<string, unknown>[])
 
@@ -1063,7 +953,7 @@ export function useSync(
   // ==================== 添加日志（限制大小） ====================
   const addLog = (
     action: string,
-    status: 'success' | 'error' | 'warning',
+    status: SyncLogEntry['status'],
     recordId?: string,
     error?: string,
     details?: {
@@ -1078,58 +968,16 @@ export function useSync(
       remoteCount?: number
     }
   ) => {
-    // 限制错误消息长度（200字符）
-    const truncatedError = error ? error.slice(0, 200) + (error.length > 200 ? '...' : '') : undefined
-    // 限制堆栈长度（500字符）
-    const truncatedStack = details?.stack ? details.stack.slice(0, 500) + (details.stack.length > 500 ? '...' : '') : undefined
-
-    const log: SyncLogEntry = {
-      timestamp: new Date().toISOString(),
-      action,
-      status,
+    const entry = createSyncLogEntry(action, status, {
+      recordId,
+      error,
       triggerReason: extra?.triggerReason || currentTriggerReasonRef.current || '未知触发原因',
       localCount: extra?.localCount,
       remoteCount: extra?.remoteCount,
-      recordId,
-      error: truncatedError,
-      details: details ? {
-        stack: truncatedStack,
-        retryCount: details.retryCount,
-        requestInfo: details.requestInfo,
-        responseStatus: details.responseStatus
-      } : undefined
-    }
-
-    const newLogs = [log, ...(syncLogs ?? [])].slice(0, 50) // 减少到50条
-
-    // 检查大小（不超过 100KB）
-    const logsSize = new Blob([JSON.stringify(newLogs)]).size
-    if (logsSize > 100 * 1024) {
-      // 如果还是太大，只保留最近20条
-      setSyncLogs(newLogs.slice(0, 20))
-    } else {
-      setSyncLogs(newLogs)
-    }
-
-    // ⭐ 同时记录到全局错误历史（用于日志导出）
-    if (status === 'error' && typeof window !== 'undefined') {
-      try {
-        const existingErrors = JSON.parse(localStorage.getItem('__errorHistory') || '[]')
-        const errorEntry = {
-          timestamp: new Date().toISOString(),
-          action,
-          error: truncatedError,
-          stack: truncatedStack,
-          retryCount: details?.retryCount,
-          userAgent: navigator.userAgent.substring(0, 100),
-          url: window.location.href
-        }
-        const newErrors = [errorEntry, ...existingErrors].slice(0, 20)
-        localStorage.setItem('__errorHistory', JSON.stringify(newErrors))
-      } catch (e) {
-        // 忽略 localStorage 错误
-      }
-    }
+      details,
+    })
+    setSyncLogs(trimSyncLogs(syncLogs ?? [], entry))
+    appendSyncErrorHistory(entry)
   }
 
   return {
@@ -1137,13 +985,13 @@ export function useSync(
     lastSyncTime,
     lastSyncStatus,
     failedSyncIds,
-    setFailedSyncIds, // ⭐ 新增：用于重置失败列表
-    setLastSyncStatus, // ⭐ 新增：用于重置同步状态
+    setFailedSyncIds,
+    setLastSyncStatus,
     syncLogs,
-    syncStats, // ⭐ 新增：同步统计信息
-    autoSync, // 手动触发同步
-    uploadLocalData, // 手动上传本地数据
-    resolveConflict, // ⭐ 新增：处理数据冲突
-    resetSyncStatus, // ⭐ 新增：手动重置同步状态
+    syncStats,
+    autoSync,
+    uploadLocalData,
+    resolveConflict,
+    resetSyncStatus,
   }
 }

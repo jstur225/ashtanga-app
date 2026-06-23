@@ -1,5 +1,24 @@
 # 阿斯汤加打卡 app - 项目记录
 
+## 2026-06-23: 阶段 5 第四刀 — 差异检测/日志/批量上传/options payload 提取（useSync < 1000 行 🎯）
+
+### 完成内容
+
+- `lib/sync-utils.ts` 新增 `detectOptionChanges` / `detectProfileChanges` / `createSyncLogEntry` / `trimSyncLogs` / `appendSyncErrorHistory` / `batchUploadRecords` / `buildOptionsUploadPayload` 等 7 个纯函数 + 类型。
+- 去重 ~60 行 autoSync 选项/profile 差异检测、~40 行批量上传循环、~20 行日志格式、~20 行 options payload。
+- `hooks/useSync.ts` autoSync 差异检测、uploadLocalRecords 批量循环、addLog 格式化、uploadLocalData options 映射全部替换为共享函数。
+- **里程碑：useSync.ts 首次低于 1000 行（997 行）**。全量 30 个测试文件 / 268 项通过；typecheck、lint 通过。
+
+### 设计决策
+
+- `batchUploadRecords` 不包含日志输出，由调用方根据返回的 `BatchUploadResult` 自行处理，保持通用性。
+- `createSyncLogEntry` / `trimSyncLogs` / `appendSyncErrorHistory` 三者分离：纯创建、纯裁剪、副作用写入，职责清晰。
+- `detectOptionChanges` / `detectProfileChanges` 返回结构化结果对象，而非松散变量，便于组合使用。
+
+### 下一刀
+
+阶段 5 第五刀：提取 sync orchestrator + 冲突决策提取，目标 `useSync.ts` 500–700 行。
+
 ## 2026-06-23: 阶段 5 第三刀 — 共享纯函数提取
 
 ### 完成内容
@@ -15,11 +34,12 @@
 - `applySafeMerge` 使用泛型 `<T extends Record<string, any>>` 并设可选的 `mergeUpdatedAt` 参数，单函数服务两个调用点。
 - `sortAndLimitRecords` 使用泛型 `<T extends { date: string }>`，不绑定 PracticeRecord 类型。
 - `buildUploadRecordPayload` 返回具名 `UploadRecordPayload` 接口而非 `Record<string, unknown>`，保持下游 `.id`/`.date` 等字段的类型安全。
-- behavior 零变化：合并策略、合并阈值（notes 为空/'今日练习完成'时保云端）、日志位置完全一致。
 
 ### 下一刀
 
 阶段 5 第四刀：提取同步编排函数，精简批量上传循环，冲突决策提取；目标 `useSync.ts` < 1000 行。
+
+## 2026-06-23: 阶段 5 第二刀 — Supabase 仓库层提取
 
 ### 完成内容
 

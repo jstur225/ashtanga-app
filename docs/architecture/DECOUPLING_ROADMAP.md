@@ -17,21 +17,21 @@
 | TypeScript / lint / build | 通过 | 持续通过 |
 | `/practice` 首屏 JS | 334.6 KiB gzip（脚本自动测量） | 427.9 KiB → 334.6 KiB，下降 21.8% |
 
-## 当前快照（2026-06-23，阶段 5 第三刀完成）
+## 当前快照（2026-06-23，阶段 5 第四刀完成）
 
 | 指标 | 当前值 | 判断 |
 |---|---:|---|
 | `app/practice/page.tsx` | 1157 行 | 阶段 4 门槛完成，等待阶段 6 重新审计 |
 | 页面 `useState` | 43 个 | 认证、会员、媒体、弹窗和页面编排仍高度集中 |
-| `hooks/useSync.ts` | 1149 行 | 阶段 5 第三刀完成（safe-merge + sort/limit + record mapping 已提取），目标 250–350 行 |
-| `lib/sync-utils.ts` | 270 行 | 12 个纯函数，包含 diffRecords、mergeRecords、applySafeMerge、buildUploadRecordPayload 等 |
+| `hooks/useSync.ts` | **997 行** | 阶段 5 第四刀完成，首次低于 1000 行！目标 250–350 行 |
+| `lib/sync-utils.ts` | 496 行 | 含差异检测、日志条目创建、批量上传、options payload 等新函数 |
 | `lib/sync-mappers.ts` | 96 行 | 5 个纯函数，45 个测试 |
 | `lib/supabase-repository.ts` | 147 行 | 7 个仓库原语 |
 | Vitest | 30 文件 / 268 项通过 | 纯函数覆盖充实，编排/仓库层待补 |
 | TypeScript / lint | 通过 | 2026-06-23 本地复验 |
 | 生产构建 | 通过 | Next.js 16 生产构建成功，22 个路由完成生成 |
 
-按核心阶段 1–6 估算，当前整体完成约 78%：阶段 1–4 完成，阶段 5 第三刀完成。
+按核心阶段 1–6 估算，当前整体完成约 80%：阶段 1–4 完成，阶段 5 第四刀完成。
 
 ## 约束
 
@@ -50,7 +50,7 @@
 | 2 | `usePracticeSession` + 计时视图 | 已完成（阶段检查点） | 计时状态转换独立测试，页面不计算时长 |
 | 3 | `useGuidedAudio` + `useChantPlayback` | 已完成（阶段检查点） | 页面不持有 `HTMLAudioElement` |
 | 4 | Dashboard、导航、ModalHost、Tab 动态加载 | 已完成（2026-06-22） | 页面 1157 行，首屏 JS 下降 21.8% |
-| 5 | 同步仓库、映射、编排、冲突、日志分层 | 进行中（第三刀完成） | `useSync` 250–350 行，同步矩阵通过 |
+| 5 | 同步仓库、映射、编排、冲突、日志分层 | 进行中（第四刀完成，useSync < 1000 行） | `useSync` 250–350 行，同步矩阵通过 |
 | 6 | 大型组件职责审计与最终归档 | 待开始 | 只保留职责单一的大文件，文档与代码一致 |
 
 ## 目标架构

@@ -1,15 +1,15 @@
 # 解耦重构恢复入口
 
-> 下次启动本项目时先读这里。阶段 1–4 已完成、阶段 5 前三刀已完成，下一轮进入阶段 5 第四刀（同步编排精简 + 批量上传循环提纯 + 冲突决策提取）；不要重新调查页面编排、刷新恢复或媒体生命周期问题。
+> 下次启动本项目时先读这里。阶段 1–4 已完成、阶段 5 前四刀已完成，useSync 首次低于 1000 行。下一轮进入阶段 5 第五刀（sync orchestrator 提取 + 冲突决策提取）；不要重新调查页面编排、刷新恢复或媒体生命周期问题。
 
 ## 2026-06-23 最新恢复点
 
-阶段 5 第三刀（共享纯函数提取）已完成并通过全部门禁：
+阶段 5 第四刀（差异检测/日志创建/批量上传/options payload 提取）已完成并通过全部门禁：
 
-- `lib/sync-utils.ts` 新增 `applySafeMerge` / `sortAndLimitRecords` / `buildUploadRecordPayload` / `resolveRecordColorLevel` / `UploadRecordPayload` 类型，去重 ~63 行 safe-merge 逻辑 + ~30 行 sort/limit/mapping 逻辑。
-- `hooks/useSync.ts` 两处 safe-merge 块替换为共享 `applySafeMerge` 调用，三处 sort+limit+payload 替换为 `sortAndLimitRecords` + `buildUploadRecordPayload` + `resolveRecordColorLevel`。
-- 行为零变化：合并策略、合并阈值、日志位置、错误处理行为完全一致。
-- 当前 `useSync.ts` 为 1149 行；全量 30 个测试文件 / 268 项测试、typecheck、lint、生产 build 全部通过。
+- `lib/sync-utils.ts` 新增 `detectOptionChanges` / `detectProfileChanges` / `createSyncLogEntry` / `trimSyncLogs` / `appendSyncErrorHistory` / `batchUploadRecords` / `buildOptionsUploadPayload` 等 7 个纯函数 + 类型。去重 ~60 行 autoSync 选项/profile 差异检测 + ~40 行批量上传循环 + ~20 行日志格式 + ~20 行 options payload 映射。
+- `hooks/useSync.ts` autoSync 中的选项/profile 差异检测、uploadLocalRecords 中的批量上传循环、addLog 中的格式化和 localStorage 写入、uploadLocalData 中的 options payload 映射全部替换为共享函数。
+- 行为零变化：差异检测策略、错误日志级别、上下文记录内容、触发原因传播完全一致。
+- **里程碑：`useSync.ts` 首次低于 1000 行（997 行）**；全量 30 个测试文件 / 268 项测试、typecheck、lint 全部通过。
 
 阶段 5 第二刀（Supabase 仓库层 I/O 原语）已完成并通过全部门禁：
 
@@ -38,7 +38,7 @@
 
 ## 一句话状态
 
-阶段 1–4 已完成、阶段 5 前三刀已完成。下一轮提取同步编排函数 + 精简批量上传循环 + 冲突决策提取，目标 < 1000 行。
+阶段 1–4 已完成、阶段 5 前四刀已完成，useSync 首次低于 1000 行。下一轮提取 sync orchestrator + 冲突决策提取，目标 500–700 行。
 
 ## 阶段 2 最终结果
 
@@ -77,24 +77,24 @@ npm.cmd run build
 
 ## 下一次优化目标
 
-阶段 5 第四刀：同步编排精简 + 批量上传循环提纯 + 冲突决策提取：
+阶段 5 第五刀：sync orchestrator 提取 + 冲突决策提取：
 
-1. 把 `uploadLocalRecords` 和 `uploadLocalData` 中的编排逻辑（数据加载、回退、日志输出）提取为共享编排函数。
-2. 批量上传循环仅做分片编排，上传委托给仓库层。
-3. 冲突决策（local vs. remote 选择逻辑）与函数调用层分离。
+1. 把 `autoSync` 中的同步编排逻辑（四种路径选择、数据加载、回退）提取为独立 orchestrator 模块。
+2. 把 `resolveConflict` 中的冲突策略执行提取为纯函数，hook 只保留状态更新。
+3. 最终 `useSync` 只保留：编排状态、React 状态桥接、日志、冲突选择回调。
 4. 仍不改变 local/remote/merge 冲突策略和本地存储键。
-5. 验证：`useSync.ts` 进入 < 1000 行。
+5. 验证：`useSync.ts` 进入 500–700 行。
 
-阶段 5 前三刀已完成。阶段 5 的硬门槛是：`useSync.ts` 降到 250–350 行，同步矩阵通过，真实测试账户云端冒烟通过。
+阶段 5 前四刀已完成。阶段 5 的硬门槛是：`useSync.ts` 降到 250–350 行，同步矩阵通过，真实测试账户云端冒烟通过。
 
 ## 当前规模
 
 - `app/practice/page.tsx`：1157 行，阶段 4 完成
-- `hooks/useSync.ts`：1149 行，阶段 5 第三刀完成
-- `lib/sync-utils.ts`：270 行，12 个纯函数（含 diffRecords、mergeRecords、applySafeMerge、buildUploadRecordPayload 等）
+- `hooks/useSync.ts`：**997 行**，阶段 5 第四刀完成（首次 < 1000 行 🎯）
+- `lib/sync-utils.ts`：496 行，含差异检测/日志创建/批量上传/options payload 等 19 个纯函数
 - `lib/sync-mappers.ts`：96 行，5 个纯函数
 - `lib/supabase-repository.ts`：147 行，7 个仓库原语
-- 核心阶段 1–6：阶段 1–4 完成、阶段 5 第三刀完成，约 78%
+- 核心阶段 1–6：阶段 1–4 完成、阶段 5 第四刀完成，约 80%
 
 ## 真源文档
 
