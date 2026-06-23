@@ -1,6 +1,18 @@
 import { describe, it, expect } from 'vitest'
-import { diffRecords, buildProfileFromRemote, mergeRecords, mergeOptions } from '@/lib/sync-utils'
+import {
+  diffRecords,
+  buildProfileFromRemote,
+  mergeRecords,
+  mergeOptions,
+  sortAndLimitRecords,
+  applySafeMerge,
+  detectOptionChanges,
+  detectProfileChanges,
+  createSyncLogEntry,
+  trimSyncLogs,
+} from '@/lib/sync-utils'
 import type { PracticeRecord } from '@/lib/supabase'
+import type { CloudRecordForMerge } from '@/lib/sync-utils'
 
 const makeRecord = (overrides: Partial<PracticeRecord> & { id: string }): PracticeRecord => ({
   user_id: 'user-1',
@@ -253,5 +265,241 @@ describe('mergeOptions', () => {
     expect(result[1].is_preset).toBe(false)
     // id=3: 有 local → 保留 local 字段
     expect(result[2].audio_src).toBe('c.mp3')
+  })
+})
+
+// ==================== sortAndLimitRecords ====================
+describe('sortAndLimitRecords', () => {
+  it('空数组 → 空结果', () => {
+    const result = sortAndLimitRecords([], 1000)
+    expect(result.toSync).toEqual([])
+    expect(result.localOnlyCount).toBe(0)
+  })
+
+  it('按日期倒序排列', () => {
+    const records = [
+      { id: 'old', date: '2026-01-01' },
+      { id: 'mid', date: '2026-06-01' },
+      { id: 'new', date: '2026-12-01' },
+    ]
+    const result = sortAndLimitRecords(records, 1000)
+    expect(result.toSync.map(r => r.id)).toEqual(['new', 'mid', 'old'])
+  })
+
+  it('不超过 maxSync 限制', () => {
+    const records = Array.from({ length: 10 }, (_, i) => ({
+      id: `r${i}`, date: `2026-06-${String(i + 1).padStart(2, '0')}`
+    }))
+    const result = sortAndLimitRecords(records, 3)
+    expect(result.toSync).toHaveLength(3)
+    expect(result.localOnlyCount).toBe(7)
+  })
+
+  it('1000 条边界：超过部分进入 localOnly', () => {
+    const records = Array.from({ length: 1001 }, (_, i) => ({
+      id: `r${i}`, date: `2026-06-${String((i % 28) + 1).padStart(2, '0')}`
+    }))
+    const result = sortAndLimitRecords(records, 1000)
+    expect(result.toSync).toHaveLength(1000)
+    expect(result.localOnlyCount).toBe(1)
+  })
+
+  it('maxSync 为 0 → 全部不进同步', () => {
+    const records = [{ id: 'a', date: '2026-06-01' }]
+    const result = sortAndLimitRecords(records, 0)
+    expect(result.toSync).toHaveLength(0)
+    expect(result.localOnlyCount).toBe(1)
+  })
+
+  it('不修改原数组', () => {
+    const records = [{ id: 'a', date: '2026-06-01' }]
+    const before = [...records]
+    sortAndLimitRecords(records, 1000)
+    expect(records).toEqual(before)
+  })
+})
+
+// ==================== applySafeMerge ====================
+describe('applySafeMerge', () => {
+  const makeCloud = (overrides: Partial<CloudRecordForMerge> & { id: string }): CloudRecordForMerge => ({
+    id: overrides.id,
+    notes: null,
+    breakthrough: null,
+    photos: null,
+    duration: null,
+    updated_at: null,
+    ...overrides,
+  })
+
+  it('无对应云端记录 → 保持本地不变', () => {
+    const local = [{ id: 'a', notes: '本地笔记', photos: [], breakthrough: null, duration: 3600, updated_at: '' }]
+    const result = applySafeMerge(local, new Map())
+    expect(result.merged).toEqual(local)
+    expect(result.mergedCount).toBe(0)
+  })
+
+  it('本地 notes 为空 → 保留云端', () => {
+    const local = [{ id: 'a', notes: '', photos: [], breakthrough: null, duration: 3600, updated_at: '' }]
+    const cloudMap = new Map([['a', makeCloud({ id: 'a', notes: '云端笔记' })]])
+    const result = applySafeMerge(local, cloudMap)
+    expect(result.merged[0].notes).toBe('云端笔记')
+    expect(result.mergedCount).toBe(1)
+  })
+
+  it('本地 notes 有内容 → 保持本地', () => {
+    const local = [{ id: 'a', notes: '本地笔记', photos: [], breakthrough: null, duration: 3600, updated_at: '' }]
+    const cloudMap = new Map([['a', makeCloud({ id: 'a', notes: '云端笔记' })]])
+    const result = applySafeMerge(local, cloudMap)
+    expect(result.merged[0].notes).toBe('本地笔记')
+    expect(result.mergedCount).toBe(0)
+  })
+
+  it('本地 breakthrough 为空 → 保留云端', () => {
+    const local = [{ id: 'a', notes: '', photos: [], breakthrough: '', duration: 3600, updated_at: '' }]
+    const cloudMap = new Map([['a', makeCloud({ id: 'a', breakthrough: '云端突破' })]])
+    const result = applySafeMerge(local, cloudMap)
+    expect(result.merged[0].breakthrough).toBe('云端突破')
+    expect(result.mergedCount).toBe(1)
+  })
+
+  it('本地 photos 为空 → 保留云端', () => {
+    const local = [{ id: 'a', notes: '', photos: [], breakthrough: null, duration: 3600, updated_at: '' }]
+    const cloudMap = new Map([['a', makeCloud({ id: 'a', photos: ['cloud.jpg'] })]])
+    const result = applySafeMerge(local, cloudMap)
+    expect(result.merged[0].photos).toEqual(['cloud.jpg'])
+    expect(result.mergedCount).toBe(1)
+  })
+
+  it('mergeUpdatedAt 为 true 时同步合并时间', () => {
+    const local = [{ id: 'a', notes: '', photos: [], breakthrough: null, duration: 3600, updated_at: '2026-06-01T00:00:00Z' }]
+    // 需要 cloud 有内容触发 needsMerge，才会进入 mergeUpdatedAt 分支
+    const cloudMap = new Map([['a', makeCloud({ id: 'a', notes: '云端笔记', updated_at: '2026-06-10T00:00:00Z' })]])
+    const result = applySafeMerge(local, cloudMap, true)
+    expect(result.merged[0].updated_at).toBe('2026-06-10T00:00:00Z')
+  })
+})
+
+// ==================== detectOptionChanges ====================
+describe('detectOptionChanges', () => {
+  it('完全一致 → 无变化', () => {
+    const result = detectOptionChanges([{ id: '1' }, { id: '2' }], [{ id: '1' }, { id: '2' }])
+    expect(result.changed).toBe(false)
+    expect(result.source).toBeNull()
+  })
+
+  it('local 比 remote 多 → changed local', () => {
+    const result = detectOptionChanges([{ id: '1' }, { id: '2' }, { id: '3' }], [{ id: '1' }, { id: '2' }])
+    expect(result.changed).toBe(true)
+    expect(result.source).toBe('local')
+  })
+
+  it('remote 比 local 多 → changed remote', () => {
+    const result = detectOptionChanges([{ id: '1' }], [{ id: '1' }, { id: '2' }])
+    expect(result.changed).toBe(true)
+    expect(result.source).toBe('remote')
+  })
+
+  it('数量相同但 ID 不同 → changed local', () => {
+    const result = detectOptionChanges([{ id: '1' }], [{ id: '2' }])
+    expect(result.changed).toBe(true)
+    expect(result.source).toBe('local')
+  })
+
+  it('两边都空 → 无变化', () => {
+    const result = detectOptionChanges([], [])
+    expect(result.changed).toBe(false)
+    expect(result.source).toBeNull()
+  })
+})
+
+// ==================== detectProfileChanges ====================
+describe('detectProfileChanges', () => {
+  const baseLocal = { id: 'p1', name: '本地', signature: 'sig', avatar: null, historical_days: 0, historical_avg_minutes: 0, updated_at: '2026-06-02T00:00:00Z', created_at: '2026-06-01T00:00:00Z' }
+  const baseRemote = { id: 'p1', name: '本地', signature: 'sig', avatar: null, historical_days: 0, historical_avg_minutes: 0, updated_at: '2026-06-01T00:00:00Z', created_at: '2026-06-01T00:00:00Z' }
+
+  it('内容完全一致 → 无变化', () => {
+    const result = detectProfileChanges(baseLocal, baseLocal)
+    expect(result.changed).toBe(false)
+    expect(result.source).toBeNull()
+  })
+
+  it('只有 local → changed local', () => {
+    const result = detectProfileChanges(baseLocal, null)
+    expect(result.changed).toBe(true)
+    expect(result.source).toBe('local')
+  })
+
+  it('只有 remote → changed remote', () => {
+    const result = detectProfileChanges(null, baseRemote)
+    expect(result.changed).toBe(true)
+    expect(result.source).toBe('remote')
+  })
+
+  it('两边都空 → 无变化', () => {
+    const result = detectProfileChanges(null, null)
+    expect(result.changed).toBe(false)
+    expect(result.source).toBeNull()
+  })
+
+  it('内容相同但时间不同 → 无变化（内容优先比较）', () => {
+    const result = detectProfileChanges(
+      { ...baseLocal, name: '本地' },
+      { ...baseRemote, name: '本地', updated_at: '2026-06-05T00:00:00Z' },
+    )
+    expect(result.changed).toBe(false)
+  })
+
+  it('内容不同且本地更新 → local source', () => {
+    const result = detectProfileChanges(
+      { ...baseLocal, name: '新名字' },
+      { ...baseRemote, name: '旧名字' },
+    )
+    expect(result.changed).toBe(true)
+    expect(result.source).toBe('local')
+  })
+
+  it('内容不同且云端更新 → remote source', () => {
+    const result = detectProfileChanges(
+      { ...baseLocal, name: '旧名字', updated_at: '2026-06-01T00:00:00Z' },
+      { ...baseRemote, name: '新名字', updated_at: '2026-06-03T00:00:00Z' },
+    )
+    expect(result.changed).toBe(true)
+    expect(result.source).toBe('remote')
+  })
+})
+
+// ==================== trimSyncLogs ====================
+describe('trimSyncLogs', () => {
+  it('单条日志 → 包含新条目', () => {
+    const entry = createSyncLogEntry('sync', 'success', { triggerReason: 'auto' })
+    const result = trimSyncLogs([], entry)
+    expect(result).toHaveLength(1)
+    expect(result[0].action).toBe('sync')
+  })
+
+  it('最多保留 50 条', () => {
+    const existing = Array.from({ length: 50 }, (_, i) =>
+      createSyncLogEntry(`action-${i}`, 'success', { triggerReason: 'auto' })
+    )
+    const entry = createSyncLogEntry('new', 'success', { triggerReason: 'auto' })
+    const result = trimSyncLogs(existing, entry)
+    expect(result).toHaveLength(50)
+    expect(result[0].action).toBe('new')
+  })
+
+  it('超过 100KB 时截断到 20 条', () => {
+    const bigAction = 'x'.repeat(5000)
+    const existing = Array.from({ length: 49 }, (_, i) =>
+      createSyncLogEntry(`${bigAction}-${i}`, 'success', { triggerReason: 'auto' })
+    )
+    const entry = createSyncLogEntry(bigAction, 'success', { triggerReason: 'auto' })
+    const result = trimSyncLogs(existing, entry)
+    expect(result).toHaveLength(20)
+  })
+
+  it('处理空日志列表', () => {
+    const entry = createSyncLogEntry('sync', 'success')
+    const result = trimSyncLogs(null as unknown as any[], entry)
+    expect(result).toHaveLength(1)
   })
 })

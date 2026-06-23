@@ -75,8 +75,8 @@
 | Tab 滚动与内部状态保持 | L4 | 缺失 |
 | 弹窗打开隐藏导航、关闭恢复 | L2/L4 | 已覆盖（组件策略 + 自定义练习生产回归） |
 | URL 参数、返回、刷新、深链接 | L4 | 缺失 |
-| 日记 CRUD、分享、月份切换 | L2/L4 | 部分覆盖 |
-| 统计空态/历史数据/会员入口 | L2/L4 | 部分覆盖 |
+| 日记 CRUD、分享、月份切换 | L2/L4 | 部分覆盖（L2 已覆盖渲染、编辑、分享、补录交互；L4 待补） |
+| 统计空态/历史数据/会员入口 | L2/L4 | 已覆盖（L2 空态、统计数据、免费/Pro 会员标签、升级入口、设置按钮） |
 | 设置四分区与数据管理 | L2/L4 | 部分覆盖 |
 | 导入合法/非法、导出、三步清空 | L2/L4 | 已覆盖（导入导出 45 项纯函数+组件测试；三步清空已在 practice-modal-host 覆盖） |
 | 移动端遮挡与溢出 | L4 | 部分覆盖 |
@@ -91,13 +91,14 @@
 | profile/options/records 独立变化 | L1/L3 | 部分覆盖 |
 | 字段映射与照片四种输入 | L1 | 已覆盖（`__tests__/sync-mappers.test.ts` 覆盖 photos 数组/JSON 字符串/null/undefined/对象/数字/混合类型；profile 缺失/空对象/数字名脏数据/默认值；record photos 解析与字段保留；option 三种有效/无效组合） |
 | 草稿、软删除、孤立记录 | L1/L3 | 部分覆盖 |
-| 1000 条限制与排序 | L1/L3 | 缺失 |
+| 1000 条限制与排序 | L1/L3 | L1 已覆盖（sortAndLimitRecords：排序、边界、1000 条、maxSync=0、不可变性） |
 | 超时、重试、部分失败恢复 | L1/L3 | 部分覆盖（`withRetry` + batch 每批重试 + autoSync 顶层重试 + 失败 ID 持久化；`__tests__/sync-retry.test.ts` 10 项 + `sync-upload.test.ts` 4 项） |
 | 重复/并发同步锁 | L3 | 部分覆盖（`pendingSyncRef` 排队补调，不再静默丢弃；已有 `isSyncingRef` 防止重复） |
-| 损坏本地数据和异常远端响应 | L1/L3 | 部分覆盖（`isValidRemoteRecord` / `isValidRemoteOption` 双重过滤 + `mapRemoteRecord` 安全 fallback + `fetchCloudRecordsForMerge` 返回过滤 + profile 上传 JSON 格式校验） |
+| 损坏本地数据和异常远端响应 | L1/L3 | 部分覆盖（`isValidRemoteRecord` / `isValidRemoteOption` 双重过滤 + `mapRemoteRecord` 安全 fallback + `fetchCloudRecordsForMerge` 返回过滤 + profile 上传 JSON 格式校验 + `applySafeMerge` 7 项 L1） |
 | 用户隔离与未登录禁止上传 | L3/L5 | 缺失 |
 | 删除的本地成功/云端失败补偿 | L3/L5 | 缺失 |
-| 日志数量、大小、敏感信息过滤 | L1/L3 | 部分覆盖 |
+| 日志数量、大小、敏感信息过滤 | L1/L3 | L1 已覆盖（`trimSyncLogs` 4 项：单条、50 条上限、100KB 截断、空列表兜底） |
+| profile/options/records 独立变化 | L1/L3 | L1 已覆盖（`detectOptionChanges` 5 项 + `detectProfileChanges` 8 项：相同、单边、内容变化、时间戳比较） |
 | 测试账号真实上传/下载/冲突 | L5 | 阻塞（缺测试账号） |
 
 ## 阶段 6：跨模块

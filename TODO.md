@@ -54,6 +54,38 @@
 - [x] 第五刀：提取 sync orchestrator（`analyzeSync` / `executeConflictStrategy` / `computeSyncStats` / `recordPracticeIfNeeded`），useSync 897 行（2026-06-23 完成）
 - [ ] 最终精简：exerciseConflict 中 'local'/'remote'/'merge' 三分支的执行逻辑提取、smartMerge 归位、`uploadLocalRecords`/`uploadLocalData` 剩余逻辑提取；目标 250–350 行
 
+## 2026-06-23 — 阶段 4 测试矩阵 L2 缺口覆盖 ✅ 已完成
+
+- [x] `__tests__/stats-tab.test.tsx`（7 项）：空态、统计数据、免费/Pro 会员、设置按钮
+- [x] `__tests__/journal-tab.test.tsx`（10 项）：CRUD 渲染/编辑/分享/补录、未登录态、突破笔记、多照片
+- [x] 测试矩阵「日记 CRUD」L2 缺口已覆盖、「统计空态/会员入口」已覆盖
+
+## 2026-06-23 — 阶段 5 L1 纯函数测试覆盖 ✅ 已完成
+
+- [x] `sortAndLimitRecords` 6 项（排序、maxSync 限制、1000 条边界、不可变性）
+- [x] `applySafeMerge` 7 项（各字段安全合并、mergeUpdatedAt）
+- [x] `detectOptionChanges` 5 项 + `detectProfileChanges` 8 项（相同、单边、内容差异检测）
+- [x] `trimSyncLogs` 4 项（单条、50 条上限、100KB 截断、空列表兜底）
+- [x] 测试矩阵 3 项从「缺失/部分覆盖」升级为「已覆盖」
+
+## 明天计划（2026-06-24）
+
+### 继续补测试缺口
+
+**阶段 6 候选（L2 优先级高）：**
+- [ ] 旧版本导入兼容（L1/L3 缺失）：import-export 兼容旧日期格式、旧字段名
+- [ ] 登录/注册/忘记密码状态（L2/L3 缺失）：AuthModal 组件测试
+- [ ] 无障碍名称、键盘、焦点（L2/L4 缺失）：现有组件补 aria-label
+
+**阶段 5 剩余细化：**
+- [ ] 1000 条限制 L3 集成：sortAndLimitRecords 在 useSync 中的调用路径
+- [ ] 草稿/软删除/孤立记录（L1 部分覆盖）：检查 handleDeleteRecord 的同步路径
+
+### 或推进阶段 5 最终精简
+- [ ] exerciseConflict 三分支执行逻辑提取
+- [ ] smartMerge 归位
+- [ ] useSync 目标 250–350 行
+
 ## 2026-06-23 — 全站字体修正 ✅ 已完成
 
 - [x] body 从 `font-sans` 改为 `font-serif`，全站文字统一宋体
