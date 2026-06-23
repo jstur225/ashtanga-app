@@ -1,15 +1,18 @@
 # 解耦重构恢复入口
 
-> 下次启动本项目时先读这里。阶段 1–4 已完成、阶段 5 前四刀已完成，useSync 首次低于 1000 行。下一轮进入阶段 5 第五刀（sync orchestrator 提取 + 冲突决策提取）；不要重新调查页面编排、刷新恢复或媒体生命周期问题。
+> 下次启动本项目时先读这里。阶段 1–4 已完成、阶段 5 第五刀已完成，useSync 降至 897 行。下一轮进入阶段 6（大型组件职责审计与最终归档）或继续精简 useSync；不要重新调查页面编排、刷新恢复或媒体生命周期问题。
 
 ## 2026-06-23 最新恢复点
 
-阶段 5 第四刀（差异检测/日志创建/批量上传/options payload 提取）已完成并通过全部门禁：
+阶段 5 第五刀（sync orchestrator 提取 + 停用色阶内联修复）已完成并通过全部门禁：
 
-- `lib/sync-utils.ts` 新增 `detectOptionChanges` / `detectProfileChanges` / `createSyncLogEntry` / `trimSyncLogs` / `appendSyncErrorHistory` / `batchUploadRecords` / `buildOptionsUploadPayload` 等 7 个纯函数 + 类型。去重 ~60 行 autoSync 选项/profile 差异检测 + ~40 行批量上传循环 + ~20 行日志格式 + ~20 行 options payload 映射。
-- `hooks/useSync.ts` autoSync 中的选项/profile 差异检测、uploadLocalRecords 中的批量上传循环、addLog 中的格式化和 localStorage 写入、uploadLocalData 中的 options payload 映射全部替换为共享函数。
-- 行为零变化：差异检测策略、错误日志级别、上下文记录内容、触发原因传播完全一致。
-- **里程碑：`useSync.ts` 首次低于 1000 行（997 行）**；全量 30 个测试文件 / 268 项测试、typecheck、lint 全部通过。
+- 新增 `lib/sync-orchestrator.ts`（252 行）：`analyzeSync`（6 分支决策树纯函数）/ `executeConflictStrategy`（冲突策略数据选择）/ `computeSyncStats`（统计计算）/ `recordPracticeIfNeeded`（finally 块 API 调用）/ `SyncAction` / `SyncAnalysis` / `SyncStats` 类型。
+- `hooks/useSync.ts` autoSync 中的 ~130 行 6 分支决策树（含内联色阶 diff、diffRecords/detectOptionChanges/detectProfileChanges）替换为 `analyzeSync()` switch-case；finally 块内联 `record-practice` API 调用替换为 `recordPracticeIfNeeded()`；统计 useEffect 使用 `computeSyncStats()`。
+- 行为零变化：决策路径、冲突触发条件、上传/下载/合并逻辑完全一致。色阶同步不再通过内联 `updated_at` 突变触发 diffRecords，改由 orchestrator 直接检测。
+- **`useSync.ts` 从 997 行降至 897 行**；全量 30 个测试文件 / 268 项测试、typecheck 全部通过。
+- **规模总结：`app/practice/page.tsx` 1157 行，`hooks/useSync.ts` 897 行，`lib/sync-orchestrator.ts` 252 行，`lib/sync-utils.ts` 496 行，`lib/sync-mappers.ts` 96 行，`lib/supabase-repository.ts` 147 行。**
+
+阶段 5 第四刀（差异检测/日志创建/批量上传/options payload 提取）已完成并通过全部门禁：
 
 阶段 5 第二刀（Supabase 仓库层 I/O 原语）已完成并通过全部门禁：
 

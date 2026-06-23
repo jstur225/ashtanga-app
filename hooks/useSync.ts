@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useLocalStorage } from 'react-use'
 import type { PracticeRecord, PracticeOption, UserProfile } from '@/lib/supabase'
-import { diffRecords, buildProfileFromRemote, mergeRecords, mergeOptions, applySafeMerge, sortAndLimitRecords, buildUploadRecordPayload, resolveRecordColorLevel, detectOptionChanges, detectProfileChanges, createSyncLogEntry, trimSyncLogs, appendSyncErrorHistory, batchUploadRecords, buildOptionsUploadPayload, type SyncLogEntry } from '@/lib/sync-utils'
+import { diffRecords, buildProfileFromRemote, mergeRecords, mergeOptions, applySafeMerge, sortAndLimitRecords, buildUploadRecordPayload, resolveRecordColorLevel, createSyncLogEntry, trimSyncLogs, appendSyncErrorHistory, batchUploadRecords, buildOptionsUploadPayload, type SyncLogEntry } from '@/lib/sync-utils'
 import {
   buildCompleteProfile,
   mapRemoteRecord,
@@ -18,6 +18,7 @@ import {
   deleteAllUserRecords as repoDeleteAllUserRecords,
   deleteAllUserOptions as repoDeleteAllUserOptions,
 } from '@/lib/supabase-repository'
+import { analyzeSync, executeConflictStrategy, computeSyncStats, recordPracticeIfNeeded } from '@/lib/sync-orchestrator'
 
 type SyncStatus = 'idle' | 'syncing' | 'success' | 'error'
 type ConflictStrategy = 'remote' | 'local' | 'merge'
@@ -82,14 +83,16 @@ export function useSync(
   // ==================== 自动计算本地统计（当 localData 变化时）====================
   // ⚠️ 注意：这里只更新本地记录数，syncedRecords 只在同步成功时更新
   useEffect(() => {
-    const localCount = localData.records.length
-    // ⭐ 按日期排序（最新的在前），然后截取最新的1000条
+    const stats = computeSyncStats(localData.records)
+
+    // 按日期排序（最新的在前），然后截取最新的1000条
     const sortedRecords = [...localData.records].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     const recordsToSync = sortedRecords.slice(0, MAX_SYNC_RECORDS)
-    const localOnlyCount = localCount - recordsToSync.length
+    const localOnlyCount = localData.records.length - recordsToSync.length
 
     syncDebug('📊 [useSync] 计算本地统计:', {
-      localCount,
+      totalPractices: stats.totalPractices,
+      localCount: localData.records.length,
       recordsToSyncLength: recordsToSync.length,
       localOnlyCount,
       hasLimitWarning: localOnlyCount > 0
@@ -97,7 +100,7 @@ export function useSync(
 
     setSyncStats(prev => ({
       ...prev,
-      totalLocalRecords: localCount,
+      totalLocalRecords: stats.totalPractices,
       maxSyncRecords: MAX_SYNC_RECORDS,
       localOnlyCount,
       hasLimitWarning: localOnlyCount > 0
@@ -243,81 +246,40 @@ export function useSync(
         syncDebug(`⚠️ [autoSync] 同步限制：${localOnlyCount}条最新记录仅保存在本地`)
       }
 
-      // 2. 智能同步策略
-      // ⭐ 使用截取后的 recordsToSync（最早的50条）进行比对，避免超过限制的记录触发冲突
+      // 2. 智能同步策略（使用 orchestrator 纯函数决策）
+      // ⭐ 使用截取后的 recordsToSync 进行比对
       const effectiveLocalRecords = localOnlyCount > 0 ? recordsToSync : freshLocalData.records
 
-      // ⭐ 云端数据也只取前1000条进行比对（最新的1000条）
+      // ⭐ 云端数据也只取前1000条进行比对
       const effectiveRemoteRecords = remoteCount > MAX_SYNC_RECORDS
         ? [...remoteData.records].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, MAX_SYNC_RECORDS)
         : remoteData.records
 
-      if (remoteCount > 0 && localCount > 0) {
-        // ⭐ 修复色阶同步：对比本地和云端记录的 color_level
-        // 如果不同则更新本地记录的 updated_at，让 diffRecords 自然检测到差异并触发重传
-        const remoteRecordsMap = new Map(effectiveRemoteRecords.map(r => [r.id, r]))
-        let colorLevelFixed = false
-        for (const localRecord of effectiveLocalRecords) {
-          const remoteRecord = remoteRecordsMap.get(localRecord.id)
-          if (remoteRecord && (localRecord.color_level ?? 3) !== (remoteRecord.color_level ?? 3)) {
-            localRecord.updated_at = new Date().toISOString()
-            colorLevelFixed = true
-          }
-        }
-        if (colorLevelFixed) {
-          syncDebug(`📊 [autoSync] 检测到色阶差异，已更新本地记录的 updated_at，将触发重传`)
-        }
+      const analysis = analyzeSync(
+        effectiveLocalRecords,
+        effectiveRemoteRecords,
+        freshLocalData.options || [],
+        remoteData.options || [],
+        freshLocalData.profile,
+        remoteData.profile,
+        MAX_SYNC_RECORDS,
+        user.id,
+      )
 
-        // 两边都有数据，检查是否有差异需要同步
-        const { localOnly, remoteOnly, localNewer, remoteNewer } = diffRecords(effectiveLocalRecords, effectiveRemoteRecords)
+      syncDebug(`📊 [autoSync] 分析结果：${analysis.decision.action}（本地${analysis.localCount}条，云端${analysis.remoteCount}条）`)
 
-        const totalLocalChanges = localOnly.length + localNewer.length
-        const totalRemoteChanges = remoteOnly.length + remoteNewer.length
-
-        // ⭐ 检查选项是否有差异（新增/删除/修改）
-        const localOptions = freshLocalData.options || []
-        const remoteOptions = remoteData.options || []
-        const optionDiff = detectOptionChanges(localOptions, remoteOptions)
-
-        if (optionDiff.changed) {
-          syncDebug(`📊 [autoSync] 选项${optionDiff.source === 'local' ? '本地新增' : '云端新增'}：本地${localOptions.length}个，云端${remoteOptions.length}个`)
-        }
-
-        // ⭐ 检查 profile 是否有差异
-        const localProfile = freshLocalData.profile
-        const remoteProfile = remoteData.profile
-        const profileDiff = detectProfileChanges(localProfile, remoteProfile)
-
-        if (profileDiff.changed) {
-          if (profileDiff.source === 'remote') {
-            syncDebug(`📊 [autoSync] profile 从云端下载（${localProfile && !localProfile.id ? '本地为空' : '云端更新'}）`)
-          } else {
-            syncDebug(`📊 [autoSync] profile 本地更新，需要上传到云端`)
-          }
-        }
-
-        syncDebug(`📊 [autoSync] 比对结果：本地独有${localOnly.length}条，云端独有${remoteOnly.length}条，本地更新${localNewer.length}条，云端更新${remoteNewer.length}条，profile变化=${profileDiff.changed}，选项变化=${optionDiff.changed}`)
-
-        if (totalLocalChanges === 0 && totalRemoteChanges === 0 && !profileDiff.changed && !optionDiff.changed) {
-          // 没有差异，数据已一致
+      switch (analysis.decision.action) {
+        case 'noop':
           syncDebug('[autoSync] 数据已一致，无需同步')
-          addLog(`数据一致，无需同步`, 'success', undefined, undefined, undefined, {
+          addLog(`数据一致，无需同步：${analysis.decision.reason}`, 'success', undefined, undefined, undefined, {
             triggerReason: currentTriggerReasonRef.current,
-            localCount,
-            remoteCount
+            localCount: analysis.localCount,
+            remoteCount: analysis.remoteCount
           })
           setSyncStatus('success')
           return true
-        }
 
-        // 有差异：本地有新增/更新的数据 → 上传到云端
-        if ((totalLocalChanges > 0 || profileDiff.source === 'local' || optionDiff.source === 'local') && totalRemoteChanges === 0 && optionDiff.source !== 'remote') {
-          syncDebug(`📤 [autoSync] 本地有${totalLocalChanges}条变更（新增${localOnly.length}+更新${localNewer.length}）${profileDiff.changed ? '+ profile变更' : ''}，上传到云端`)
-          addLog(`上传本地 ${totalLocalChanges} 条变更新到云端`, 'success', undefined, undefined, undefined, {
-            triggerReason: currentTriggerReasonRef.current,
-            localCount,
-            remoteCount
-          })
+        case 'upload-local': {
           const result = await uploadLocalData(user.id, freshLocalData, user)
           if (result.success) {
             setSyncStatus('success')
@@ -331,38 +293,35 @@ export function useSync(
           }
         }
 
-        // 有差异：云端有新增/更新的数据 → 合并到本地
-        if ((totalRemoteChanges > 0 || profileDiff.source === 'remote' || optionDiff.source === 'remote') && totalLocalChanges === 0 && profileDiff.source !== 'local' && optionDiff.source !== 'local') {
-          syncDebug(`📥 [autoSync] 云端有${totalRemoteChanges}条变更（新增${remoteOnly.length}+更新${remoteNewer.length}）`)
-
-          // ⭐ 合并：本地记录 + 云端新增 + 云端更新的版本
-          const mergedRecords = mergeRecords(effectiveLocalRecords, remoteOnly, remoteNewer)
-
-          addLog(`同步云端变更：新增${remoteOnly.length}条，更新${remoteNewer.length}条`, 'success', undefined, undefined, undefined, {
-            triggerReason: currentTriggerReasonRef.current,
-            localCount,
-            remoteCount
-          })
-
-          // ⭐ 构建完整的 profile 对象，确保包含 updated_at
+        case 'merge-remote': {
+          const mergedRecords = mergeRecords(
+            effectiveLocalRecords,
+            analysis.decision.mergedRecords,
+            [],
+          )
+          const mergedOptions = mergeOptions(
+            analysis.decision.remoteOptions,
+            freshLocalData.options || [],
+          )
           const mergedProfile = buildProfileFromRemote(remoteData.profile, freshLocalData.profile)
 
-          // ⭐ 合并选项：保留本地的本地字段（is_preset/audio_src/can_edit）
-          const mergedOptions = mergeOptions(remoteData.options, freshLocalData.options)
+          addLog(`同步云端变更：合并 ${analysis.decision.mergedCount} 条`, 'success', undefined, undefined, undefined, {
+            triggerReason: currentTriggerReasonRef.current,
+            localCount: analysis.localCount,
+            remoteCount: analysis.remoteCount
+          })
 
           onSyncComplete({
             records: mergedRecords,
             options: mergedOptions,
             profile: mergedProfile
           })
-          // ⭐ 关键修复：直接保存到 localStorage（不依赖回调）
           localStorage.setItem('ashtanga_records', JSON.stringify(mergedRecords))
           localStorage.setItem('ashtanga_options', JSON.stringify(mergedOptions))
           syncDebug('✅ [autoSync] records 和 options 已保存到 localStorage')
           setSyncStatus('success')
           setLastSyncStatus('success')
           setLastSyncTime(Date.now())
-          // ⭐ 更新同步统计（下载云端数据成功）
           setSyncStats({
             totalLocalRecords: mergedRecords.length,
             syncedRecords: mergedRecords.length,
@@ -373,97 +332,52 @@ export function useSync(
           return true
         }
 
-        // 两边都有变更 → 真正的冲突，需要用户选择
-        syncDebug(`⚠️ [autoSync] 双方都有变更：本地${totalLocalChanges}条，云端${totalRemoteChanges}条`)
-        addLog(`检测到冲突：本地${totalLocalChanges}条变更，云端${totalRemoteChanges}条变更`, 'warning', undefined, undefined, undefined, {
-          triggerReason: currentTriggerReasonRef.current,
-          localCount,
-          remoteCount
-        })
-        if (onConflictDetected) {
-          onConflictDetected(localCount, remoteCount)
-        }
-        setSyncStatus('idle')
-        return false
-      }
+        case 'use-remote-only': {
+          const remoteRecordsToUse = analysis.remoteCount > MAX_SYNC_RECORDS
+            ? analysis.decision.remoteRecords.slice(0, MAX_SYNC_RECORDS)
+            : analysis.decision.remoteRecords
+          const cloudProfile = buildCompleteProfile(remoteData.profile)
 
-      // 3. 只有云端有数据 → 使用云端（但只取前1000条）
-      if (remoteCount > 0 && localCount === 0) {
-        // ⭐ 只使用云端最新的1000条数据
-        const remoteRecordsToUse = remoteCount > MAX_SYNC_RECORDS
-          ? [...remoteData.records].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, MAX_SYNC_RECORDS)
-          : remoteData.records
-
-        if (remoteCount > MAX_SYNC_RECORDS) {
-          syncDebug(`⚠️ [autoSync] 云端有${remoteCount}条记录，只使用前${MAX_SYNC_RECORDS}条`)
-          addLog(`云端${remoteCount}条，只使用前${MAX_SYNC_RECORDS}条`, 'success', undefined, undefined, undefined, {
+          addLog(`仅云端有数据：下载${remoteRecordsToUse.length}条`, 'success', undefined, undefined, undefined, {
             triggerReason: currentTriggerReasonRef.current,
-            localCount,
-            remoteCount
+            localCount: analysis.localCount,
+            remoteCount: analysis.remoteCount
           })
-        }
 
-        addLog(`仅云端有数据：下载${remoteRecordsToUse.length}条`, 'success', undefined, undefined, undefined, {
-          triggerReason: currentTriggerReasonRef.current,
-          localCount,
-          remoteCount
-        })
-
-        // ⭐ 构建完整的 profile 对象，确保包含 updated_at
-        // 修复：只要云端有 profile 数据，就使用它，不要进行二次判断
-        const cloudProfile = buildCompleteProfile(remoteData.profile)
-
-        onSyncComplete({
-          records: remoteRecordsToUse,
-          options: remoteData.options || [],
-          profile: cloudProfile
-        })
-        // ⭐ 关键修复：直接保存到 localStorage
-        localStorage.setItem('ashtanga_records', JSON.stringify(remoteRecordsToUse))
-        localStorage.setItem('ashtanga_options', JSON.stringify(remoteData.options || []))
-        syncDebug('✅ [autoSync] 云端数据已保存到 localStorage')
-        setSyncStatus('success')
-        setLastSyncStatus('success')
-        setLastSyncTime(Date.now())
-        // ⭐ 更新同步统计（使用云端数据）
-        setSyncStats({
-          totalLocalRecords: remoteRecordsToUse.length,
-          syncedRecords: remoteRecordsToUse.length,
-          maxSyncRecords: MAX_SYNC_RECORDS,
-          localOnlyCount: 0,
-          hasLimitWarning: false
-        })
-        return true
-      }
-
-      // 4. 只有本地有数据 → 上传到云端
-      if (localCount > 0 && remoteCount === 0) {
-        addLog(`仅本地有数据：上传${localCount}条`, 'success', undefined, undefined, undefined, {
-          triggerReason: currentTriggerReasonRef.current,
-          localCount,
-          remoteCount
-        })
-        const result = await uploadLocalData(user.id, freshLocalData, user)
-        if (result.success) {
+          onSyncComplete({
+            records: remoteRecordsToUse,
+            options: analysis.decision.remoteOptions || [],
+            profile: cloudProfile
+          })
+          localStorage.setItem('ashtanga_records', JSON.stringify(remoteRecordsToUse))
+          localStorage.setItem('ashtanga_options', JSON.stringify(analysis.decision.remoteOptions || []))
+          syncDebug('✅ [autoSync] 云端数据已保存到 localStorage')
           setSyncStatus('success')
           setLastSyncStatus('success')
           setLastSyncTime(Date.now())
+          setSyncStats({
+            totalLocalRecords: remoteRecordsToUse.length,
+            syncedRecords: remoteRecordsToUse.length,
+            maxSyncRecords: MAX_SYNC_RECORDS,
+            localOnlyCount: 0,
+            hasLimitWarning: false
+          })
           return true
-        } else {
-          throw new Error('上传本地数据失败')
+        }
+
+        case 'conflict': {
+          addLog(`检测到冲突：本地${analysis.localCount}条变更，云端${analysis.remoteCount}条变更`, 'warning', undefined, undefined, undefined, {
+            triggerReason: currentTriggerReasonRef.current,
+            localCount: analysis.localCount,
+            remoteCount: analysis.remoteCount
+          })
+          if (onConflictDetected) {
+            onConflictDetected(analysis.localCount, analysis.remoteCount)
+          }
+          setSyncStatus('idle')
+          return false
         }
       }
-
-      // 5. 两边都没有数据 → 无需操作
-      addLog('两端都没有数据', 'success', undefined, undefined, undefined, {
-        triggerReason: currentTriggerReasonRef.current,
-        localCount,
-        remoteCount
-      })
-      setSyncStatus('success')
-      setLastSyncStatus('success')
-      setLastSyncTime(Date.now()) // ⭐ 更新同步时间
-      return true
 
     } catch (error: any) {
       console.error('Auto sync failed:', error)
@@ -476,21 +390,7 @@ export function useSync(
       return false
     } finally {
       // 兜底：确保今天有练习记录时 has_practiced 被标记
-      try {
-        const uuid = typeof window !== 'undefined' ? localStorage.getItem('ashtanga_uuid') : null
-        if (uuid && localDataRef.current?.records?.length > 0) {
-          const beijingNow = new Date(Date.now() + 8 * 3600 * 1000)
-          const today = beijingNow.toISOString().slice(0, 10)
-          const practicedToday = localDataRef.current.records.some(r => r.date === today)
-          if (practicedToday) {
-            fetch('/api/stats/record-practice', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ uuid }),
-            }).catch(() => {})
-          }
-        }
-      } catch {}
+      recordPracticeIfNeeded()
 
       // 清理同步标志，允许下次同步
       isSyncingRef.current = false

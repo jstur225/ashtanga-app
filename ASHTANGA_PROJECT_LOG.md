@@ -1,5 +1,43 @@
 # 阿斯汤加打卡 app - 项目记录
 
+## 2026-06-23: 阶段 5 第五刀 — sync orchestrator 提取（useSync 897 行）
+
+### 完成内容
+
+- 新增 `lib/sync-orchestrator.ts`（252 行），包含：
+  - `analyzeSync` — 6 分支同步决策树纯函数（both/remote-only/local-only/no-data + noop/upload/merge/conflict）
+  - `executeConflictStrategy` — 冲突策略数据选择（local/remote/merge）
+  - `computeSyncStats` — 统计计算（totalPractices/recentMonthsTotal/thisMonthTotal）
+  - `recordPracticeIfNeeded` — finally 块 API 调用提取
+  - `SyncAction`、`SyncAnalysis`、`SyncStats`、`ConflictStrategy` 类型
+- `hooks/useSync.ts`：
+  - autoSync 中的 ~130 行 6 分支决策树（含内联色阶 diff、diffRecords/detectOptionChanges/detectProfileChanges）替换为 `analyzeSync()` + switch-case
+  - finally 块内联 API 调用替换为 `recordPracticeIfNeeded()`
+  - 统计 useEffect 使用 `computeSyncStats()` 计算统计
+- **useSync.ts 从 997 行降至 897 行**。全量 30 个测试文件 / 268 项通过；typecheck 通过。
+
+### 设计决策
+
+- 色阶同步不再通过内联 `updated_at` 突变触发 diffRecords 差检测，改由 orchestrator 的 `colorLevelDiffers` 直接检测。
+- orchestrator 只做决策不做执行：`analyzeSync` 返回 `SyncAction` union，useSync switch-case 负责实际的上传/下载/合并操作。
+- `executeConflictStrategy` 返回 resolved data + shouldDeleteRemote/shouldUpload 标记，简化冲突处理的数据选择。
+
+### 规模总结
+
+| 文件 | 行数 |
+|------|-----:|
+| `app/practice/page.tsx` | 1157 |
+| `hooks/useSync.ts` | 897 |
+| `lib/sync-orchestrator.ts` | 252 |
+| `lib/sync-utils.ts` | 496 |
+| `lib/sync-mappers.ts` | 96 |
+| `lib/supabase-repository.ts` | 147 |
+| 测试文件 | 30 文件 / 268 项 |
+
+### 下一刀
+
+阶段 6：大型组件职责审计与最终归档，或继续缩减 useSync（当前 897 行 → 目标 250–350 行）。下一轮应考虑：exerciseConflict 中 'local'/'remote'/'merge' 三分支的执行逻辑提取、smartMerge 的职责归位、以及最终 `uploadLocalRecords`/`uploadLocalData` 中剩余的安全合并和格式检查逻辑。
+
 ## 2026-06-23: 阶段 5 第四刀 — 差异检测/日志/批量上传/options payload 提取（useSync < 1000 行 🎯）
 
 ### 完成内容

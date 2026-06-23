@@ -51,8 +51,8 @@
 - [x] 第二刀：Supabase I/O 提取到 `lib/supabase-repository.ts`：`fetchAllUserData` / `fetchCloudRecordsForMerge` / `upsertRecords/Option` / `deleteAllUserRecords/Option`（2026-06-23 完成）
 - [x] 第三刀：提取共享的 `applySafeMerge` / `sortAndLimitRecords` / `buildUploadRecordPayload` / `resolveRecordColorLevel` 纯函数到 `lib/sync-utils.ts`，去重 ~93 行重复逻辑（2026-06-23 完成）
 - [x] 第四刀：提取 `detectOptionChanges` / `detectProfileChanges` / `createSyncLogEntry` / `batchUploadRecords` / `buildOptionsUploadPayload`，useSync 首次低于 1000 行（2026-06-23 完成）
-- [ ] 第五刀：提取 sync orchestrator + 冲突决策提取；目标 `useSync.ts` 500–700 行
-- [ ] 最后保留 250–350 行 `useSync` React facade，只负责编排状态、冲突选择和日志
+- [x] 第五刀：提取 sync orchestrator（`analyzeSync` / `executeConflictStrategy` / `computeSyncStats` / `recordPracticeIfNeeded`），useSync 897 行（2026-06-23 完成）
+- [ ] 最终精简：exerciseConflict 中 'local'/'remote'/'merge' 三分支的执行逻辑提取、smartMerge 归位、`uploadLocalRecords`/`uploadLocalData` 剩余逻辑提取；目标 250–350 行
 
 ## 2026-06-03 - 会员降级色阶锁定处理 ✅ 已实现
 
