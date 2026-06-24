@@ -52,7 +52,9 @@
 - [x] 第三刀：提取共享的 `applySafeMerge` / `sortAndLimitRecords` / `buildUploadRecordPayload` / `resolveRecordColorLevel` 纯函数到 `lib/sync-utils.ts`，去重 ~93 行重复逻辑（2026-06-23 完成）
 - [x] 第四刀：提取 `detectOptionChanges` / `detectProfileChanges` / `createSyncLogEntry` / `batchUploadRecords` / `buildOptionsUploadPayload`，useSync 首次低于 1000 行（2026-06-23 完成）
 - [x] 第五刀：提取 sync orchestrator（`analyzeSync` / `executeConflictStrategy` / `computeSyncStats` / `recordPracticeIfNeeded`），useSync 897 行（2026-06-23 完成）
-- [ ] 最终精简：exerciseConflict 中 'local'/'remote'/'merge' 三分支的执行逻辑提取、smartMerge 归位、`uploadLocalRecords`/`uploadLocalData` 剩余逻辑提取；目标 250–350 行
+- [x] 合并 `uploadLocalRecords` / `uploadLocalData` 的 build+merge 重复逻辑为 `prepareRecordsForSafeUpload` 助手（2026-06-24）
+- [x] 抽离 `getLatestLocalData` 为模块级 `readLatestLocalData` + 统一 syncDebug 日志（2026-06-24，useSync 955 → 879 行）
+- [ ] 最终精简（优先级降低）：exerciseConflict 三分支执行逻辑提取、smartMerge 归位；目标修正为 ~600–650 行（原 250–350 行不可达）
 
 ## 2026-06-23 — 阶段 4 测试矩阵 L2 缺口覆盖 ✅ 已完成
 
@@ -68,23 +70,31 @@
 - [x] `trimSyncLogs` 4 项（单条、50 条上限、100KB 截断、空列表兜底）
 - [x] 测试矩阵 3 项从「缺失/部分覆盖」升级为「已覆盖」
 
-## 明天计划（2026-06-24）
+## 2026-06-24 — 阶段 5/6 测试缺口覆盖 + useSync 精简 ✅ 已完成
 
-### 补测试缺口 — 进行中
+- [x] 旧版本导入兼容 L1 测试（17 项）
+- [x] AuthModal 组件测试（21 项）
+- [x] AuthModal 无障碍改进 + a11y 测试（9 项）
+- [x] 1000 条限制 L3 集成测试（5 项）
+- [x] handleDeleteRecord 同步路径测试（6 项）
+- [x] 测试矩阵更新 5 项状态
+- [x] syncDebug 日志统一（砍 ~55 行噪音）
+- [x] getLatestLocalData 抽离为模块级函数
+- [x] useSync 955 → 879 行（−76 行）
+- [ ] exerciseConflict 三分支执行逻辑提取（剩余，优先级低）
+- [ ] smartMerge 归位（剩余，优先级低）
 
-**阶段 6 候选（L2 优先级高）：**
-- [x] 旧版本导入兼容（L1/L3 缺失）：import-export 兼容旧日期格式、旧字段名 — L1 已完成（17 项测试 + 更新测试矩阵）
-- [x] 登录/注册/忘记密码状态（L2/L3 缺失）：AuthModal 组件测试 — L2 已完成（21 项测试 + 更新测试矩阵）
-- [x] 无障碍名称、键盘、焦点（L2/L4 缺失）：现有组件补 aria-label — AuthModal X 按钮 + Esc 关闭（9 项 a11y 测试）
+### 诚实评估 — useSync 最终精简
 
-**阶段 5 剩余细化：**
-- [x] 1000 条限制 L3 集成：sortAndLimitRecords 在 useSync 中的调用路径 — 5 项 L3 集成测试
-- [x] 草稿/软删除/孤立记录（L1 部分覆盖）：检查 handleDeleteRecord 的同步路径 — 6 项 handleDeleteRecord 同步路径测试
+**原目标 250–350 行不可达。** 原因：
+- `autoSync` 包含 ~200 行 coordinator 调度 + 4 个 switch case 独立业务流（upload-local、merge-remote、use-remote-only、conflict），每段都是真实逻辑，不是可删的样板
+- `smartMerge`、`resolveConflict`、`uploadLocalData`、`uploadLocalRecords` 各自是独立业务流，强提取会增加抽象成本
+- 实际达到 879 行，距合理目标 ~600–650 行还差 ~230 行
 
-### 或推进阶段 5 最终精简
-- [ ] exerciseConflict 三分支执行逻辑提取
-- [ ] smartMerge 归位
-- [ ] useSync 目标 250–350 行
+**下一步（可做可不做，价值递减）：**
+- `exerciseConflict` 中 `local`/`remote`/`merge` 三分支执行逻辑提取到 sync-orchestrator
+- `smartMerge` 剩余内联调用归位到 sync-utils
+- 以上合计约 100-130 行额外削减，已不紧急
 
 ## 2026-06-23 — 全站字体修正 ✅ 已完成
 

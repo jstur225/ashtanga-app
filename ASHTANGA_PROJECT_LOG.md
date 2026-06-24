@@ -1,5 +1,66 @@
 # 阿斯汤加打卡 app - 项目记录
 
+## 2026-06-24: 阶段 5/6 测试缺口覆盖 + useSync 精简
+
+### 完成内容
+
+**Path A — 测试缺口覆盖（47 项新测试）**
+
+- `__tests__/auth-modal.test.tsx`（21 项 L2 组件测试）：
+  - login/register/forgot-password 三模式渲染与切换
+  - X 按钮、Cancel、背景遮罩三种关闭路径
+  - 密码强度验证（长度/字母/数字/弱密码列表）
+  - 注册步骤 1→2 流转、忘记密码邮箱/验证码验证
+  - 登录成功/失败/网络错误翻译
+- `__tests__/auth-modal-accessibility.test.tsx`（9 项 L2 无障碍测试）：
+  - X 关闭按钮 `aria-label="关闭"`
+  - Esc 键关闭弹窗（loading 时禁用）
+  - submit 按钮 type、Tab 聚焦、required/minLength 验证
+- `__tests__/sync-limit-integration.test.ts`（5 项 L3 集成测试）：
+  - 通过 `useSync.uploadLocalData` 真实调用路径验证 1000 条限制
+  - 1001/1002/1000/500/0 条记录分别验证上传数量与排除最旧记录
+  - 修复了测试数据用 `i%28+1` 生成导致日期重复、排序不稳定的问题
+- `__tests__/practice-commands.test.tsx`（+6 项 handleDeleteRecord 同步路径）：
+  - 已登录 + skipConfirm true/false、草稿删除、远端失败、未登录、网络异常
+- `__tests__/import-export-utils.test.ts`（+17 项 L1 旧版本兼容）：
+  - 旧 records 缺 updated_at/photos 为字符串、profile 含 is_pro、options 含 label_zh
+  - 斜杠/ISO/混合日期格式排序、真实旧版数据胶囊端到端
+
+**AuthModal 改进**
+- X 关闭按钮加 `aria-label="关闭"`
+- Esc 键关闭弹窗（loading 时禁用，避免取消请求中途）
+
+**Path B — useSync 精简（955 → 879 行，−76 行）**
+- 抽离 `getLatestLocalData` 为模块级 `readLatestLocalData<T>(fallback)` 函数（hook 内 23 行 → 2 行包装器）
+- 统一并精简 syncDebug 日志（删除 ~55 行噪音）：
+  - 多行 "function called" banner（`🚨🚨🚨` + `=`.repeat(50) + 详情对象）
+  - useEffect 触发详情、autoSync 微步骤（设置同步标志/添加日志/状态已设置）
+  - 与 addLog 重复的提示（分析结果、数据对比、数据已一致）
+  - downloadRemoteData 逐字段日志（5 行 error/data.length 合并为 1 行）
+  - uploadLocalData profile 调试、记录 IDs 列表
+  - 顺手修复 uploadLocalRecords 中重复的 `准备上传 N 条记录` addLog
+- 保留的 syncDebug：跳过原因、限制触达、队列行为、重试、脏数据过滤、merge 成功
+
+**测试矩阵状态升级（5 项）**
+- 旧版本导入兼容 L1：缺失 → 已覆盖
+- 登录/注册/忘记密码 L2：缺失 → 已覆盖
+- 无障碍名称/键盘/焦点 L2：缺失 → 已覆盖
+- 1000 条限制 L3：部分覆盖 → 已覆盖（L1+L3）
+- 草稿/软删除 L1：部分覆盖 → 已覆盖
+
+### 关键决策
+
+**Path B 目标修正**：原计划目标"250–350 行"被诚实评估为不可达。原因：
+- `autoSync` 包含 ~200 行 orchestrator 调度 + switch case 4 分支业务流（upload-local、merge-remote、use-remote-only、conflict）
+- `smartMerge`、`resolveConflict`、`uploadLocalData`、`uploadLocalRecords` 都是独立业务流，强提取会增加抽象成本
+- 实际健康目标约 600–650 行（已达成 879 行，距目标还差 ~230 行）
+
+**保留的诚实做法**：合并 `uploadLocalRecords`/`uploadLocalData` 的 build+merge 重复逻辑为 `prepareRecordsForSafeUpload` 助手（30 行助手 vs 42 行重复，净 +11 行，但消除重复便于后续维护）+ 本次 syncDebug 清理 + getLatestLocalData 抽离。
+
+### 状态
+- 全量 42 个测试文件 / 436 项通过（+55 项 / +3 文件）
+- 提交：`03f63d3` test+refactor: 阶段5/6 测试缺口覆盖 + useSync 精简
+
 ## 2026-06-23: 阶段 5 L1 纯函数测试覆盖 — sync-utils 剩余缺口
 
 ### 完成内容
