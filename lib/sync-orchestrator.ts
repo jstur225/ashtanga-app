@@ -1,5 +1,5 @@
 import type { PracticeRecord, PracticeOption, UserProfile } from '@/lib/supabase'
-import { applySafeMerge, detectOptionChanges, detectProfileChanges } from './sync-utils'
+import { applySafeMerge, detectOptionChanges, detectProfileChanges, computeSmartMergeData, diffRecords } from './sync-utils'
 import type { CloudRecordForMerge } from './supabase-repository'
 
 // ── Types ──────────────────────────────────────────
@@ -171,6 +171,7 @@ export function executeConflictStrategy(
   localData: {
     records: PracticeRecord[]
     options: PracticeOption[]
+    profile: UserProfile | null
   },
   remoteData: {
     records: PracticeRecord[]
@@ -196,10 +197,22 @@ export function executeConflictStrategy(
         resolvedProfile: remoteData.profile,
       }
     case 'merge': {
+      // 计算差异，然后智能合并
+      const { localOnly, remoteOnly, localNewer, remoteNewer } = diffRecords(
+        localData.records,
+        remoteData.records,
+      )
+      // 需要上传的记录 = localOnly + localNewer
+      const result = computeSmartMergeData(
+        localData.records, localData.options, localData.profile,
+        remoteOnly, remoteNewer,
+        remoteData.options, remoteData.profile,
+      )
       return {
-        resolvedRecords: localData.records,
-        resolvedOptions: localData.options,
-        resolvedProfile: null,
+        resolvedRecords: result.records,
+        resolvedOptions: result.options,
+        resolvedProfile: result.profile,
+        // 注意：toUpload 由调用方计算（localOnly + localNewer 的简单合并）
       }
     }
   }

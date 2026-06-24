@@ -1,4 +1,4 @@
-import type { PracticeRecord, UserProfile } from '@/lib/supabase'
+import type { PracticeRecord, PracticeOption, UserProfile } from '@/lib/supabase'
 import { withRetry } from './sync-retry'
 
 /** 上传记录的载荷格式（包含索引所需的字段） */
@@ -504,4 +504,48 @@ export function buildOptionsUploadPayload(
       notes: o.notes || null,
       is_custom: o.is_custom || false,
     }))
+}
+
+// ── Smart merge computation ────────────────────────
+
+export interface SmartMergeResult {
+  records: PracticeRecord[]
+  options: PracticeOption[]
+  profile: UserProfile | null
+}
+
+/**
+ * 计算智能合并结果（纯函数，不涉及副作用）。
+ * 合并 profile（取时间戳更新的）、合并记录（本地 + 云端独有）、合并选项（保留本地额外字段）。
+ */
+export function computeSmartMergeData(
+  localRecords: PracticeRecord[],
+  localOptions: PracticeOption[],
+  localProfile: UserProfile | null,
+  remoteOnly: PracticeRecord[],
+  remoteNewer: PracticeRecord[],
+  remoteOptions: PracticeOption[],
+  remoteProfile: any,
+): SmartMergeResult {
+  // 合并 profile：比较时间戳，使用更新的那个
+  let mergedProfile: UserProfile | null = localProfile
+  if (remoteProfile) {
+    const localTime = new Date(localProfile?.updated_at || localProfile?.created_at || 0).getTime()
+    const remoteTime = new Date(remoteProfile.updated_at || remoteProfile.created_at).getTime()
+    if (remoteTime > localTime) {
+      mergedProfile = remoteProfile
+    }
+  }
+
+  // 合并记录：本地基础 + 云端独有 + 云端更新的覆盖本地旧版本
+  const mergedRecords = mergeRecords(localRecords, remoteOnly, remoteNewer)
+
+  // 合并选项：保留本地字段（is_preset/audio_src/can_edit）
+  const mergedOptions = mergeOptions(remoteOptions, localOptions)
+
+  return {
+    records: mergedRecords,
+    options: mergedOptions,
+    profile: mergedProfile,
+  }
 }

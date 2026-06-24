@@ -95,11 +95,11 @@
 | 超时、重试、部分失败恢复 | L1/L3 | 部分覆盖（`withRetry` + batch 每批重试 + autoSync 顶层重试 + 失败 ID 持久化；`__tests__/sync-retry.test.ts` 10 项 + `sync-upload.test.ts` 4 项） |
 | 重复/并发同步锁 | L3 | 部分覆盖（`pendingSyncRef` 排队补调，不再静默丢弃；已有 `isSyncingRef` 防止重复） |
 | 损坏本地数据和异常远端响应 | L1/L3 | 部分覆盖（`isValidRemoteRecord` / `isValidRemoteOption` 双重过滤 + `mapRemoteRecord` 安全 fallback + `fetchCloudRecordsForMerge` 返回过滤 + profile 上传 JSON 格式校验 + `applySafeMerge` 7 项 L1） |
-| 用户隔离与未登录禁止上传 | L3/L5 | 缺失 |
-| 删除的本地成功/云端失败补偿 | L3/L5 | 缺失 |
+| 用户隔离与未登录禁止上传 | L3/L5 | L3 已覆盖（`__tests__/sync-isolation-and-rollback.test.ts` 4 项：未登录 user=null/undefined 调 uploadLocalData 必须拒绝；L5 等下一阶段补） |
+| 删除的本地成功/云端失败补偿 | L3/L5 | L3 已覆盖（`__tests__/sync-isolation-and-rollback.test.ts` 2 项：resolveConflict('local') repoDeleteAllUserOptions 失败 / upsert 失败 都应 setSyncStatus('error')） |
 | 日志数量、大小、敏感信息过滤 | L1/L3 | L1 已覆盖（`trimSyncLogs` 4 项：单条、50 条上限、100KB 截断、空列表兜底） |
 | profile/options/records 独立变化 | L1/L3 | L1 已覆盖（`detectOptionChanges` 5 项 + `detectProfileChanges` 8 项：相同、单边、内容变化、时间戳比较） |
-| 测试账号真实上传/下载/冲突 | L5 | 阻塞（缺测试账号） |
+| 测试账号真实上传/下载/冲突 | L5 | 基础设施已就绪（`vitest.config.e2e.mjs` + `__tests__/L5/` + `scripts/reset-test-account.ts`），等 `.env.test` 配置后跑通 |
 
 ## 阶段 6：跨模块
 

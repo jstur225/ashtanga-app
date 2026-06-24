@@ -3437,3 +3437,37 @@ export const INVITE_VERSION = 'v2'  // 从 v1 更新到 v2
 - 29 个测试文件 / 223 项测试、typecheck、lint、生产 build 通过；首屏 334.6 KiB gzip，累计下降 21.8%。
 - 生产浏览器验证选项选择、自定义弹窗、运行日志完整 JSON、父子弹窗关闭与导航恢复，控制台 0 应用错误。
 - 阶段 4 全部门槛完成。下一次进入阶段 5，先拆远端字段映射与输入归一化纯函数，再处理 Supabase 仓库层。
+
+### 第四批（续）：L3 用户隔离 + resolveConflict 错误一致性 + L5 基础设施
+
+**代码修复**：
+- `hooks/useSync.ts`：`uploadLocalData` 首行加 `if (!user) return` 守卫（external call 路径）
+- `hooks/useSync.ts`：`resolveConflict('local')` 中 `repoDeleteAllUserOptions` 返回值未检查 → 改为 throw，与 `repoDeleteAllUserRecords` 一致
+
+**L3 新增测试 (sync-isolation-and-rollback.test.ts 4 项)**：
+- user=null 调 uploadLocalData → fetch/upsert 均未被调用，返回 `{ success: false }`
+- user=undefined → 同样被拒绝（falsy 守卫）
+- resolveConflict('local') deleteOptions 失败 → syncStatus='error'
+- resolveConflict('local') 删除成功 + upsert 失败 → syncStatus='error'
+
+**L5 新增基础设施**：
+- `vitest.config.e2e.mjs` — node 环境、30s 超时、串行、加载 `.env.test`
+- `__tests__/L5/setup.ts` — 环境变量 fail-fast + 邮箱白名单 + service_role key 格式校验
+- `__tests__/L5/helpers/test-client.ts` — signInTestUser / signOutTestUser / getTestClient
+- `scripts/reset-test-account.ts` — `resetTestAccountByUserId()` 按 FK 顺序清空 7 张表
+- `package.json` 新增 `test:L5` / `test:L5:watch` 脚本
+- 主 `vitest.config.ts` 排除 `__tests__/L5/` 防止被默认套件扫到
+
+**L5 端到端测试全部跑通（3 文件 / 8 项）**：
+- ✅ `auth.smoke.e2e.test.ts`（4/4）— 登录/reset/CRUD/退登 RLS
+- ✅ `sync.upload.e2e.test.ts`（2/2）— 批量 upsert + 幂等
+- ✅ `sync.conflict.e2e.test.ts`（2/2）— 双设备冲突检测 + smartMerge
+
+**修复**：
+- `hooks/useSync.ts`：`uploadLocalData` 添加 `!user` 守卫；`repoDeleteAllUserOptions` 失败后 throw
+- `scripts/reset-test-account.ts`：修复删除顺序（user_memberships 先于 user_profiles），移除不存在的 `calendar_annotations`
+- 冲突测试改用 `beforeEach` 逐条 reset 保证隔离
+
+**状态**：
+- 全量 43 个测试文件 / 444 项通过（+4 L3 + 8 L5）
+- 当前未 commit（后续统一发版流程处理）

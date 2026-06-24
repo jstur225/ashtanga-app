@@ -45,6 +45,16 @@
 - [x] 第七检查点：调试日志采集移入 `lib/practice-debug-log.ts`，页面 1829 → 1406 行
 - [x] 提取记录/选项命令处理器；页面 1406 → 1157 行，阶段 4 行数门槛完成
 
+## 2026-06-24 — L3+L5 测试矩阵补全 ✅ 已完成
+
+- [x] Phase 1.1：useSync.ts `uploadLocalData` 加 `!user` 守卫 + `repoDeleteAllUserOptions` 返回值检查（与 records 分支一致）
+- [x] Phase 1.2：L3 测试 `sync-isolation-and-rollback.test.ts`（4 项全部通过，主套件 440 项）
+- [x] Phase 2：L5 测试基础设施（vitest.config.e2e.mjs + setup.ts + test-client + reset 脚本）
+- [x] Phase 3：L5 测试文件编写（auth.smoke + sync.upload + sync.conflict 共 5 项）
+- [x] Phase 4：测试矩阵文档更新（3 项缺口升级） + 项目日志
+- [x] L5 端到端测试全部跑通（auth.smoke 4/4 + sync.upload 2/2 + sync.conflict 2/2）
+- [x] 全量测试 444 项通过（+4 L3 + 8 L5）
+
 ## 下一执行项 - 解耦阶段 5：同步分层
 
 - [x] 第一刀：提取远端记录/选项/profile 的字段映射与归一化纯函数到 `lib/sync-mappers.ts`，新增 45 个纯函数测试（2026-06-23 完成）
@@ -81,8 +91,8 @@
 - [x] syncDebug 日志统一（砍 ~55 行噪音）
 - [x] getLatestLocalData 抽离为模块级函数
 - [x] useSync 955 → 879 行（−76 行）
-- [ ] exerciseConflict 三分支执行逻辑提取（剩余，优先级低）
-- [ ] smartMerge 归位（剩余，优先级低）
+- [x] exerciseConflict 三分支执行逻辑提取（`computeSmartMergeData` → sync-utils.ts，`executeConflictStrategy` merge 修复）✅
+- [x] smartMerge 归位（调用 `computeSmartMergeData`，useSync 872 行）✅
 
 ### 诚实评估 — useSync 最终精简
 

@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useLocalStorage } from 'react-use'
 import type { PracticeRecord, PracticeOption, UserProfile } from '@/lib/supabase'
-import { diffRecords, buildProfileFromRemote, mergeRecords, mergeOptions, applySafeMerge, sortAndLimitRecords, buildUploadRecordPayload, resolveRecordColorLevel, createSyncLogEntry, trimSyncLogs, appendSyncErrorHistory, batchUploadRecords, buildOptionsUploadPayload, type SyncLogEntry, type UploadRecordPayload } from '@/lib/sync-utils'
+import { diffRecords, buildProfileFromRemote, mergeRecords, mergeOptions, applySafeMerge, sortAndLimitRecords, buildUploadRecordPayload, resolveRecordColorLevel, createSyncLogEntry, trimSyncLogs, appendSyncErrorHistory, batchUploadRecords, buildOptionsUploadPayload, computeSmartMergeData, type SyncLogEntry, type UploadRecordPayload } from '@/lib/sync-utils'
 import { withRetry, persistFailedSyncIds, loadFailedSyncIds } from '@/lib/sync-retry'
 import {
   buildCompleteProfile,
@@ -385,38 +385,21 @@ export function useSync(
     remoteNewer: PracticeRecord[],
     remoteData: any
   ) => {
-    // ⭐ 使用 ref 获取最新的 localData
     const freshLocalData = localDataRef.current
+    const { records, options, profile } = computeSmartMergeData(
+      freshLocalData.records, freshLocalData.options, freshLocalData.profile,
+      remoteOnly, remoteNewer,
+      remoteData.options, remoteData.profile,
+    )
 
-    // ⭐ 智能合并 profile：比较时间戳，使用更新的那个
-    let mergedProfile = freshLocalData.profile
-    if (remoteData.profile) {
-      const localTime = new Date(freshLocalData.profile?.updated_at || freshLocalData.profile?.created_at || 0).getTime()
-      const remoteTime = new Date(remoteData.profile.updated_at || remoteData.profile.created_at).getTime()
-
-      if (remoteTime > localTime) {
-        mergedProfile = remoteData.profile
-      }
-    }
-
-    // 合并记录：本地基础 + 云端独有 + 云端更新的覆盖本地旧版本
-    const mergedRecords = mergeRecords(freshLocalData.records, remoteOnly, remoteNewer)
-
-    // 合并选项：保留本地字段（is_preset/audio_src/can_edit）
-    const mergedOptions = mergeOptions(remoteData.options, freshLocalData.options)
-
+    const toUpload = [...localOnly, ...localNewer]
     const downloadCount = remoteOnly.length + remoteNewer.length
     if (downloadCount > 0) {
       addLog(`下载${downloadCount}条云端记录（新增${remoteOnly.length}，更新${remoteNewer.length}）`, 'success')
     }
-    onSyncComplete({
-      records: mergedRecords,
-      options: mergedOptions,
-      profile: mergedProfile
-    })
 
-    // 上传本地独有 + 本地更新的记录
-    const toUpload = [...localOnly, ...localNewer]
+    onSyncComplete({ records, options, profile })
+
     if (toUpload.length > 0) {
       addLog(`上传${toUpload.length}条本地记录（新增${localOnly.length}，更新${localNewer.length}）`, 'success')
       const result = await uploadLocalRecords(user.id, toUpload, freshLocalData.options)
@@ -605,6 +588,12 @@ export function useSync(
     },
     user: any // ⭐ 新增：user 对象，用于获取邮箱
   ) => {
+    // ⭐ 用户隔离守卫：未登录时禁止任何上传（autoSync/resolveConflict 已有保护，
+    // 但被 return 暴露的 uploadLocalData 必须自带守卫，防止外部直接调用导致脏数据）
+    if (!user) {
+      console.warn('[uploadLocalData] 未登录用户禁止上传')
+      return { success: false, localOnlyCount: 0, syncedCount: 0, totalCount: 0 }
+    }
     setSyncStatus('syncing')
     const failedIds: string[] = []
 
@@ -794,7 +783,11 @@ export function useSync(
           }
 
           // 同时删除云端所有选项
-          await repoDeleteAllUserOptions(user.id)
+          const { error: deleteOptionsError } = await repoDeleteAllUserOptions(user.id)
+
+          if (deleteOptionsError) {
+            throw new Error(`删除云端选项失败: ${deleteOptionsError.message}`)
+          }
 
           addLog('云端数据已清空', 'success')
 

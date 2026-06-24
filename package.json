@@ -9,7 +9,9 @@
     "lint": "node scripts/lint-check.mjs",
     "measure:initial-js": "node scripts/measure-initial-js.mjs",
     "typecheck": "tsc --noEmit",
-    "start": "next start -H 0.0.0.0"
+    "start": "next start -H 0.0.0.0",
+    "test:L5": "vitest run --config vitest.config.e2e.mjs",
+    "test:L5:watch": "vitest --config vitest.config.e2e.mjs"
   },
   "dependencies": {
     "@emotion/is-prop-valid": "latest",
