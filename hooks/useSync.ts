@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useLocalStorage } from 'react-use'
 import type { PracticeRecord, PracticeOption, UserProfile } from '@/lib/supabase'
-import { diffRecords, buildProfileFromRemote, mergeRecords, mergeOptions, applySafeMerge, sortAndLimitRecords, buildUploadRecordPayload, resolveRecordColorLevel, createSyncLogEntry, trimSyncLogs, appendSyncErrorHistory, batchUploadRecords, buildOptionsUploadPayload, type SyncLogEntry } from '@/lib/sync-utils'
+import { diffRecords, buildProfileFromRemote, mergeRecords, mergeOptions, applySafeMerge, sortAndLimitRecords, buildUploadRecordPayload, resolveRecordColorLevel, createSyncLogEntry, trimSyncLogs, appendSyncErrorHistory, batchUploadRecords, buildOptionsUploadPayload, type SyncLogEntry, type UploadRecordPayload } from '@/lib/sync-utils'
 import { withRetry, persistFailedSyncIds, loadFailedSyncIds } from '@/lib/sync-retry'
 import {
   buildCompleteProfile,
@@ -42,6 +42,24 @@ function syncDebug(...args: unknown[]) {
     }
   } catch {
     // Ignore storage access failures; sync diagnostics are optional.
+  }
+}
+
+// ⭐ 从 localStorage 获取最新数据（避免闭包陷阱）
+// 模块级纯函数：读取 localStorage，失败时回退到调用方提供的 fallback。
+function readLatestLocalData<T>(fallback: T): T | { records: unknown[]; options: unknown[]; profile: unknown } {
+  try {
+    const recordsStr = localStorage.getItem('ashtanga_records')
+    const optionsStr = localStorage.getItem('ashtanga_options')
+    const profileStr = localStorage.getItem('ashtanga_profile')
+    return {
+      records: recordsStr ? JSON.parse(recordsStr) : [],
+      options: optionsStr ? JSON.parse(optionsStr) : [],
+      profile: profileStr ? JSON.parse(profileStr) : null,
+    } as unknown as T
+  } catch (e) {
+    console.error('❌ [readLatestLocalData] 读取 localStorage 失败:', e)
+    return fallback
   }
 }
 
@@ -96,14 +114,6 @@ export function useSync(
     const recordsToSync = sortedRecords.slice(0, MAX_SYNC_RECORDS)
     const localOnlyCount = localData.records.length - recordsToSync.length
 
-    syncDebug('📊 [useSync] 计算本地统计:', {
-      totalPractices: stats.totalPractices,
-      localCount: localData.records.length,
-      recordsToSyncLength: recordsToSync.length,
-      localOnlyCount,
-      hasLimitWarning: localOnlyCount > 0
-    })
-
     setSyncStats(prev => ({
       ...prev,
       totalLocalRecords: stats.totalPractices,
@@ -119,14 +129,6 @@ export function useSync(
   const hasAutoSyncedInSession = typeof window !== 'undefined' && (window as any).__hasAutoSynced__
 
   useEffect(() => {
-    syncDebug('🔍 [useEffect] 触发', {
-      hasUser: !!user,
-      userId: user?.id,
-      localDataLength: localData.records.length,
-      isSyncing: isSyncingRef.current,
-      hasAutoSyncedInSession
-    })
-
     // 如果当前会话已经自动同步过，跳过
     if (hasAutoSyncedInSession) {
       syncDebug('⏸️ [useEffect] 当前会话已自动同步过，跳过')
@@ -135,47 +137,20 @@ export function useSync(
 
     // 如果正在同步中，跳过
     if (isSyncingRef.current) {
-      syncDebug('⏸️ [useEffect] 正在同步中，跳过重复调用')
       return
     }
 
     if (user && localData.records.length >= 0) {
-      syncDebug('✅ [useEffect] 首次同步，准备调用 autoSync')
       // 标记当前会话已自动同步
       if (typeof window !== 'undefined') {
         (window as any).__hasAutoSynced__ = true
       }
-      // 用户登录后，立即启动自动同步
       autoSync()
-    } else {
-      syncDebug('⏸️ [useEffect] 条件不满足，跳过自动同步')
     }
-  }, [user?.id]) // 只监听 user.id 变化，而不是整个 user 对象
+  }, [user?.id])
 
-  // ⭐ 从 localStorage 获取最新数据（避免闭包陷阱）
-  const getLatestLocalData = () => {
-    try {
-      const recordsStr = localStorage.getItem('ashtanga_records')
-      const optionsStr = localStorage.getItem('ashtanga_options')
-      const profileStr = localStorage.getItem('ashtanga_profile')
-
-      const records = recordsStr ? JSON.parse(recordsStr) : []
-      const options = optionsStr ? JSON.parse(optionsStr) : []
-      const profile = profileStr ? JSON.parse(profileStr) : null
-
-      syncDebug('📦 [getLatestLocalData] 从 localStorage 读取:', {
-        recordsCount: records.length,
-        lastRecordId: records[records.length - 1]?.id,
-        optionsCount: options.length,
-        profileName: profile?.name
-      })
-
-      return { records, options, profile }
-    } catch (e) {
-      console.error('❌ [getLatestLocalData] 读取 localStorage 失败:', e)
-      return localDataRef.current
-    }
-  }
+  // ⭐ 从 localStorage 获取最新数据（避免闭包陷阱）— 委托给模块级函数
+  const getLatestLocalData = () => readLatestLocalData(localDataRef.current)
 
   // ==================== 自动同步函数 ====================
   const autoSync = async (triggerReason?: string) => {
@@ -192,16 +167,7 @@ export function useSync(
     // ⭐ 从 localStorage 获取最新数据，避免闭包陷阱
     const freshLocalData = getLatestLocalData()
 
-    syncDebug('🚨🚨🚨 [autoSync] 函数被调用了！🚨🚨🚨')
-    syncDebug('='.repeat(50))
-    syncDebug('[autoSync] 函数开始执行')
-    syncDebug('   - 触发原因:', triggerReason || '(默认)')
-    syncDebug('='.repeat(50))
-    syncDebug('[autoSync] 🔍 localData 详情:')
-    syncDebug('   - records.length:', freshLocalData.records.length)
-    syncDebug('   - records[最后一条]?.id:', freshLocalData.records[freshLocalData.records.length - 1]?.id)
-    syncDebug('   - options.length:', freshLocalData.options.length)
-    syncDebug('   - profile.name:', freshLocalData.profile?.name)
+    syncDebug(`[autoSync] 触发原因: ${triggerReason || '(默认)'}，本地 ${freshLocalData.records.length} 条`)
 
     if (!user) {
       syncDebug('[autoSync] 用户未登录，退出')
@@ -212,38 +178,23 @@ export function useSync(
     isSyncingRef.current = true
     // 每次新同步开始时重置自动重试标记
     autoRetriedRef.current = false
-    syncDebug('[autoSync] 设置同步标志')
 
-    syncDebug('[autoSync] 用户已登录，开始同步')
-    syncDebug('   user_id:', user.id)
-    syncDebug('   localData.records.length:', freshLocalData.records.length)
-
-    syncDebug('[autoSync] 设置状态为 syncing...')
     setSyncStatus('syncing')
-    syncDebug('[autoSync] 状态已设置为 syncing')
 
-    syncDebug('[autoSync] 添加日志...')
     addLog('启动自动同步', 'success', undefined, undefined, undefined, {
       triggerReason: currentTriggerReasonRef.current || '(默认)',
       localCount: freshLocalData.records.length
     })
-    syncDebug('[autoSync] 日志已添加')
 
     try {
-      syncDebug('[autoSync] 开始下载云端数据...')
       // 1. 下载云端数据
       const remoteData = await downloadRemoteData(user.id)
       if (!remoteData) {
         throw new Error('下载云端数据失败')
       }
 
-      syncDebug('[autoSync] 云端数据下载成功')
-      syncDebug('   remoteData.records.length:', remoteData.records?.length)
-
       const localCount = freshLocalData.records.length
       const remoteCount = remoteData.records.length
-
-      syncDebug(`📊 [autoSync] 数据对比：本地${localCount}条，云端${remoteCount}条`)
 
       // ⭐ 计算同步限制（用于显示上限提醒）
       // ⭐ 按日期排序（最新的在前），然后截取最新的1000条
@@ -275,11 +226,8 @@ export function useSync(
         user.id,
       )
 
-      syncDebug(`📊 [autoSync] 分析结果：${analysis.decision.action}（本地${analysis.localCount}条，云端${analysis.remoteCount}条）`)
-
       switch (analysis.decision.action) {
         case 'noop':
-          syncDebug('[autoSync] 数据已一致，无需同步')
           addLog(`数据一致，无需同步：${analysis.decision.reason}`, 'success', undefined, undefined, undefined, {
             triggerReason: currentTriggerReasonRef.current,
             localCount: analysis.localCount,
@@ -327,7 +275,6 @@ export function useSync(
           })
           localStorage.setItem('ashtanga_records', JSON.stringify(mergedRecords))
           localStorage.setItem('ashtanga_options', JSON.stringify(mergedOptions))
-          syncDebug('✅ [autoSync] records 和 options 已保存到 localStorage')
           setSyncStatus('success')
           setLastSyncStatus('success')
           setLastSyncTime(Date.now())
@@ -360,7 +307,6 @@ export function useSync(
           })
           localStorage.setItem('ashtanga_records', JSON.stringify(remoteRecordsToUse))
           localStorage.setItem('ashtanga_options', JSON.stringify(analysis.decision.remoteOptions || []))
-          syncDebug('✅ [autoSync] 云端数据已保存到 localStorage')
           setSyncStatus('success')
           setLastSyncStatus('success')
           setLastSyncTime(Date.now())
@@ -487,15 +433,9 @@ export function useSync(
   // ==================== 下载云端数据 ====================
   const downloadRemoteData = async (userId: string, retryCount = 0): Promise<RemoteSyncData | null> => {
     try {
-      syncDebug('📥 [downloadRemoteData] 开始下载，userId:', userId, '重试次数:', retryCount)
-
       const { recordsRes, optionsRes, profileRes } = await fetchAllUserData(userId)
 
-      syncDebug('📥 [downloadRemoteData] 查询完成')
-      syncDebug('   recordsRes.error:', recordsRes.error)
-      syncDebug('   optionsRes.error:', optionsRes.error)
-      syncDebug('   profileRes.error:', profileRes.error)
-      syncDebug('   recordsRes.data.length:', recordsRes.data?.length)
+      syncDebug(`📥 [downloadRemoteData] 查询完成: records=${recordsRes.data?.length}, options=${optionsRes.data?.length}, errors=${!!recordsRes.error}/${!!optionsRes.error}/${!!profileRes.error}`)
 
       if (recordsRes.error) throw recordsRes.error
       if (optionsRes.error) throw optionsRes.error
@@ -510,9 +450,7 @@ export function useSync(
         return valid
       }).map((r: any) => mapRemoteRecord(r))
 
-      syncDebug('📥 [downloadRemoteData] 记录处理完成，数量:', records.length)
-      syncDebug('📦 [downloadRemoteData] 云端选项数据:', optionsRes.data)
-      syncDebug('   选项数量:', optionsRes.data?.length)
+      syncDebug(`📥 [downloadRemoteData] 处理后: ${records.length} 条有效记录, ${optionsRes.data?.length} 个选项`)
 
       // 修复：过滤掉无效的选项（id 必须存在）
       const options = (optionsRes.data || []).filter(o => {
@@ -522,10 +460,6 @@ export function useSync(
         }
         return isValid
       })
-
-      syncDebug('   ✅ 有效选项数量:', options.length)
-      syncDebug('📥 [downloadRemoteData] 云端 profile:', profileRes.data)
-      syncDebug('   头像字段:', profileRes.data?.avatar ? '有值' : '无值')
 
       // ⭐ 构建返回的 profile，确保包含 updated_at 字段
       const profile = mapRemoteProfile(profileRes.data)
@@ -556,11 +490,52 @@ export function useSync(
     }
   }
 
+  // ==================== 共享：构造上传 payload + 安全合并云端已有记录 ====================
+  // 被 uploadLocalRecords 和 uploadLocalData 共用，避免两处重复实现。
+  // 差异通过 config 参数注入：mergeUpdatedAt（合并时间戳策略）、logMergeSuccess（addLog 还是 syncDebug）
+  const prepareRecordsForSafeUpload = async (
+    userId: string,
+    recordsToSync: PracticeRecord[],
+    options: PracticeOption[] | undefined,
+    config: { mergeUpdatedAt: boolean; logLabel: string; logMergeSuccess: boolean },
+  ): Promise<UploadRecordPayload[]> => {
+    if (recordsToSync.length === 0) return []
+
+    let recordsToUpload = recordsToSync.map(r =>
+      buildUploadRecordPayload(r, userId, resolveRecordColorLevel(r, options))
+    )
+
+    try {
+      const localIds = recordsToUpload.map(r => r.id)
+      const { data: cloudRecords } = await fetchCloudRecordsForMerge(localIds)
+
+      if (cloudRecords && cloudRecords.length > 0) {
+        const cloudMap = new Map(cloudRecords.map(r => [r.id, r]))
+        const { merged, mergedCount } = applySafeMerge(
+          recordsToUpload, cloudMap, config.mergeUpdatedAt
+        )
+
+        if (mergedCount > 0) {
+          recordsToUpload = merged
+          if (config.logMergeSuccess) {
+            addLog(`安全合并 ${mergedCount} 条云端已有内容的记录`, 'success')
+          } else {
+            syncDebug(`✅ [${config.logLabel}] 安全合并 ${mergedCount} 条云端已有内容的记录`)
+          }
+        }
+      }
+    } catch (mergeErr) {
+      console.error(`⚠️ [${config.logLabel}] 安全合并失败，继续直接上传:`, mergeErr)
+    }
+
+    return recordsToUpload
+  }
+
   // ==================== 上传本地记录 ====================
   const uploadLocalRecords = async (userId: string, records: PracticeRecord[], options?: PracticeOption[]) => {
     if (records.length === 0) return { success: true, localOnlyCount: 0 }
 
-    // ⭐ 新增：1000条记录限制 - 保留最新的1000条
+    // ⭐ 1000 条限制：保留最新的 1000 条
     const { toSync: recordsToSync, localOnlyCount } = sortAndLimitRecords(records, MAX_SYNC_RECORDS)
 
     if (localOnlyCount > 0) {
@@ -568,26 +543,11 @@ export function useSync(
       addLog(`${localOnlyCount}条记录仅本地保存`, 'success')
     }
 
-    let recordsToUpload = recordsToSync.map(r => buildUploadRecordPayload(r, userId, resolveRecordColorLevel(r, options)))
-
-    // ⭐ 安全合并：上传前查询云端已有记录，防止本地空白覆盖云端有内容的记录
-    try {
-      const localIds = recordsToUpload.map(r => r.id)
-      const { data: cloudRecords } = await fetchCloudRecordsForMerge(localIds)
-
-      if (cloudRecords && cloudRecords.length > 0) {
-        const cloudMap = new Map(cloudRecords.map(r => [r.id, r]))
-        const { merged, mergedCount } = applySafeMerge(recordsToUpload, cloudMap, true)
-
-        if (mergedCount > 0) {
-          recordsToUpload = merged
-          addLog(`安全合并 ${mergedCount} 条云端已有内容的记录`, 'success')
-        }
-      }
-    } catch (mergeErr) {
-      // 合并失败不影响后续上传流程
-      console.error('⚠️ [uploadLocalRecords] 安全合并失败，继续直接上传:', mergeErr)
-    }
+    // 构造 payload + 安全合并（mergeUpdatedAt=true：合并时间戳）
+    const recordsToUpload = await prepareRecordsForSafeUpload(
+      userId, recordsToSync, options,
+      { mergeUpdatedAt: true, logLabel: 'uploadLocalRecords', logMergeSuccess: true },
+    )
 
     // ⭐ 显示排查日志到页面
     addLog(`准备上传 ${recordsToUpload.length} 条记录`, 'success')
@@ -598,8 +558,7 @@ export function useSync(
     addLog(`首条日期: ${firstRecord?.date}`, 'success')
     addLog(`照片字段类型: ${typeof firstRecord?.photos}`, 'success')
 
-    // ⭐ 分批上传：每批50条
-    addLog(`准备上传 ${recordsToUpload.length} 条记录`, 'success')
+    // ⭐ 分批上传：每批 50 条
     const { successCount, failedIds, lastError } = await batchUploadRecords(
       recordsToUpload,
       batch => repoUpsertRecords(batch as unknown as Record<string, unknown>[]),
@@ -668,10 +627,6 @@ export function useSync(
       }
 
       // 1. 上传用户资料（使用服务端 API 绕过 RLS）
-      syncDebug('📤 开始上传用户资料（服务端 API）...')
-      syncDebug('   profile.name:', profile.name)
-      syncDebug('   profile.signature:', profile.signature)
-
       const profileResponse = await fetch('/api/sync/upload-profile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -695,33 +650,14 @@ export function useSync(
         throw new Error(profileResult.error || profileResponse.statusText || '上传用户资料失败')
       }
 
-      syncDebug('✅ 用户资料上传成功:', profileResult)
       addLog('上传用户资料', 'success')
 
       // 2. 批量上传练习记录（使用 upsert）- 使用限制后的 recordsToSync（最新的1000条）
       if (recordsToSync.length > 0) {
-        let recordsToUpload = recordsToSync.map(r => buildUploadRecordPayload(r, userId, resolveRecordColorLevel(r, options)))
-
-        // ⭐ 安全合并：上传前查询云端已有记录，防止本地空白覆盖云端有内容的记录
-        try {
-          const localIds = recordsToUpload.map(r => r.id)
-          const { data: cloudRecords } = await fetchCloudRecordsForMerge(localIds)
-
-          if (cloudRecords && cloudRecords.length > 0) {
-            const cloudMap = new Map(cloudRecords.map(r => [r.id, r]))
-            const { merged, mergedCount } = applySafeMerge(recordsToUpload, cloudMap)
-
-            if (mergedCount > 0) {
-              recordsToUpload = merged
-              syncDebug(`✅ [uploadLocalData] 安全合并 ${mergedCount} 条云端已有内容的记录`)
-            }
-          }
-        } catch (mergeErr) {
-          console.error('⚠️ [uploadLocalData] 安全合并失败，继续直接上传:', mergeErr)
-        }
-
-        syncDebug(`📤 [uploadLocalData] 准备上传${recordsToUpload.length}条记录`)
-        syncDebug('📤 [uploadLocalData] 记录IDs:', recordsToUpload.map(r => r.id))
+        const recordsToUpload = await prepareRecordsForSafeUpload(
+          userId, recordsToSync, options,
+          { mergeUpdatedAt: false, logLabel: 'uploadLocalData', logMergeSuccess: false },
+        )
 
         try {
           await withRetry(
@@ -735,7 +671,6 @@ export function useSync(
             }},
           )
           addLog(`批量上传${recordsToUpload.length}条记录`, 'success')
-          syncDebug(`✅ [uploadLocalData] upsert 成功`)
         } catch (error: any) {
           // 记录失败的记录ID
           recordsToUpload.forEach(r => failedIds.push(r.id))

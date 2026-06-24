@@ -90,8 +90,8 @@
 | remote/local/merge 策略 | L1/L3 | 部分覆盖 |
 | profile/options/records 独立变化 | L1/L3 | 部分覆盖 |
 | 字段映射与照片四种输入 | L1 | 已覆盖（`__tests__/sync-mappers.test.ts` 覆盖 photos 数组/JSON 字符串/null/undefined/对象/数字/混合类型；profile 缺失/空对象/数字名脏数据/默认值；record photos 解析与字段保留；option 三种有效/无效组合） |
-| 草稿、软删除、孤立记录 | L1/L3 | 部分覆盖 |
-| 1000 条限制与排序 | L1/L3 | L1 已覆盖（sortAndLimitRecords：排序、边界、1000 条、maxSync=0、不可变性） |
+| 草稿、软删除、孤立记录 | L1/L3 | L1 已覆盖（`practice-commands.test.tsx` 6 项 handleDeleteRecord 同步路径：已登录成功、skipConfirm false/true、草稿删除、远端失败、未登录、远端异常） |
+| 1000 条限制与排序 | L1/L3 | L1+L3 已覆盖（L1: `sortAndLimitRecords` 排序/边界/不可变性 6 项；L3: `__tests__/sync-limit-integration.test.ts` 5 项 — 通过 `useSync.uploadLocalData` 验证 1001/1002/1000/500/0 条记录实际上传数量与排除最旧记录的真实行为） |
 | 超时、重试、部分失败恢复 | L1/L3 | 部分覆盖（`withRetry` + batch 每批重试 + autoSync 顶层重试 + 失败 ID 持久化；`__tests__/sync-retry.test.ts` 10 项 + `sync-upload.test.ts` 4 项） |
 | 重复/并发同步锁 | L3 | 部分覆盖（`pendingSyncRef` 排队补调，不再静默丢弃；已有 `isSyncingRef` 防止重复） |
 | 损坏本地数据和异常远端响应 | L1/L3 | 部分覆盖（`isValidRemoteRecord` / `isValidRemoteOption` 双重过滤 + `mapRemoteRecord` 安全 fallback + `fetchCloudRecordsForMerge` 返回过滤 + profile 上传 JSON 格式校验 + `applySafeMerge` 7 项 L1） |
@@ -105,13 +105,13 @@
 
 | 场景 | 层级 | 状态 |
 |---|---|---|
-| 登录/注册/忘记密码状态与错误 | L2/L3 | 缺失 |
+| 登录/注册/忘记密码状态与错误 | L2/L3 | L2 已覆盖（`__tests__/auth-modal.test.tsx` 21 项：login/register/forgot-password 三模式渲染、模式切换、关闭、密码强度验证、登录成功/失败/网络错误翻译、注册步骤1→2 流转、忘记密码邮箱空/验证码长度错误） |
 | 免费/Pro 权限组合与到期降级 | L1/L2 | 部分覆盖 |
 | 照片上传/删除失败恢复与上限 | L2/L3 | 部分覆盖 |
-| 旧版本导入兼容 | L1/L3 | 缺失 |
+| 旧版本导入兼容 | L1/L3 | L1 已覆盖（`__tests__/import-export-utils.test.ts` 17 项：旧 records 缺 updated_at/photos 为字符串、旧 profile 含 is_pro、旧 options 含 label_zh、斜杠/ISO/混合日期格式排序、真实旧版数据胶囊端到端） |
 | 教程记录与真实记录隔离 | L1/L3 | 缺失 |
 | API 输入、未授权、异常、幂等 | L3 | 缺失 |
-| 无障碍名称、键盘、焦点恢复 | L2/L4 | 缺失 |
+| 无障碍名称、键盘、焦点恢复 | L2/L4 | L2 已覆盖（`__tests__/auth-modal-accessibility.test.tsx` 9 项：X 关闭按钮 aria-label、Esc 键关闭、submit 按钮、Tab 聚焦、required/minLength 验证） |
 
 ## 规则
 

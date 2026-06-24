@@ -89,6 +89,18 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
     setError('')
   }, [mode])
 
+  // ==================== Esc 键关闭弹窗 ====================
+  useEffect(() => {
+    if (!isOpen) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !loading) {
+        onClose()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen, loading, onClose])
+
   // ==================== 密码强度验证 ====================
   const validatePassword = (password: string): { valid: boolean; error?: string } => {
     // 检查长度
@@ -511,7 +523,7 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
                   返回登录
                 </button>
               ) : (
-                <button onClick={onClose} className="p-2 -mr-2 text-muted-foreground hover:text-foreground transition-colors">
+                <button onClick={onClose} aria-label="关闭" className="p-2 -mr-2 text-muted-foreground hover:text-foreground transition-colors">
                   <X className="w-5 h-5" />
                 </button>
               )}

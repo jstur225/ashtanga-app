@@ -114,18 +114,6 @@ describe("practice command rules", () => {
     expect(args.autoSync).not.toHaveBeenCalled()
   })
 
-  it("远端删除失败时保留本地删除结果，但不触发后续同步", async () => {
-    vi.mocked(deletePracticeRecord).mockResolvedValue(false)
-    const args = createArgs({ user: { id: "user-1", email: "user@example.com" } as User })
-    const { result } = renderHook(() => usePracticeCommands(args as never))
-
-    await result.current.handleDeleteRecord("record-1", true)
-
-    expect(args.deleteRecord).toHaveBeenCalledWith("record-1")
-    expect(args.autoSync).not.toHaveBeenCalled()
-    expect(toast.error).toHaveBeenCalledWith("删除同步失败，记录仅在本设备删除")
-  })
-
   it("已登录用户新增选项后延迟触发同步", async () => {
     const args = createArgs({ user: { id: "user-1", email: "user@example.com" } as User })
     const { result } = renderHook(() => usePracticeCommands(args as never))
@@ -135,5 +123,85 @@ describe("practice command rules", () => {
 
     await vi.advanceTimersByTimeAsync(500)
     expect(args.autoSync).toHaveBeenCalledWith("添加自定义选项后同步")
+  })
+
+  describe("handleDeleteRecord 同步路径（草稿/软删除/孤立记录）", () => {
+    it("已登录 + 远端删除成功（skipConfirm=true）→ 本地删除 + 触发 autoSync，无成功 toast", async () => {
+      vi.mocked(deletePracticeRecord).mockResolvedValue(true)
+      const args = createArgs({ user: { id: "user-1", email: "user@example.com" } as User })
+      const { result } = renderHook(() => usePracticeCommands(args as never))
+
+      await result.current.handleDeleteRecord("record-1", true)
+
+      expect(args.deleteRecord).toHaveBeenCalledWith("record-1")
+      expect(deletePracticeRecord).toHaveBeenCalledWith("record-1")
+      expect(args.autoSync).toHaveBeenCalledWith("删除记录后同步")
+      // skipConfirm=true 时不弹成功 toast
+      expect(toast.success).not.toHaveBeenCalled()
+    })
+
+    it("已登录 + 远端删除成功（skipConfirm=false）→ 弹成功 toast + 触发 autoSync", async () => {
+      vi.stubGlobal("confirm", () => true)
+      vi.mocked(deletePracticeRecord).mockResolvedValue(true)
+      const args = createArgs({ user: { id: "user-1", email: "user@example.com" } as User })
+      const { result } = renderHook(() => usePracticeCommands(args as never))
+
+      await result.current.handleDeleteRecord("record-1", false)
+
+      expect(args.deleteRecord).toHaveBeenCalledWith("record-1")
+      expect(deletePracticeRecord).toHaveBeenCalledWith("record-1")
+      expect(args.autoSync).toHaveBeenCalledWith("删除记录后同步")
+      expect(toast.success).toHaveBeenCalledWith("已删除记录")
+    })
+
+    it("草稿删除（skipConfirm=true）+ 成功 → 本地删除 + 触发 autoSync", async () => {
+      vi.mocked(deletePracticeRecord).mockResolvedValue(true)
+      const args = createArgs({ user: { id: "user-1", email: "user@example.com" } as User })
+      const { result } = renderHook(() => usePracticeCommands(args as never))
+
+      await result.current.handleDeleteRecord("draft-1", true)
+
+      expect(args.deleteRecord).toHaveBeenCalledWith("draft-1")
+      expect(deletePracticeRecord).toHaveBeenCalledWith("draft-1")
+      expect(toast.success).not.toHaveBeenCalled()
+      expect(args.autoSync).toHaveBeenCalledWith("删除记录后同步")
+    })
+
+    it("远端删除失败（返回 false）→ 本地删除保留，不触发 autoSync", async () => {
+      vi.mocked(deletePracticeRecord).mockResolvedValue(false)
+      const args = createArgs({ user: { id: "user-1", email: "user@example.com" } as User })
+      const { result } = renderHook(() => usePracticeCommands(args as never))
+
+      await result.current.handleDeleteRecord("record-1", true)
+
+      expect(args.deleteRecord).toHaveBeenCalledWith("record-1")
+      expect(args.autoSync).not.toHaveBeenCalled()
+      expect(toast.error).toHaveBeenCalledWith("删除同步失败，记录仅在本设备删除")
+    })
+
+    it("未登录用户 → 本地删除成功，不触发 autoSync", async () => {
+      vi.mocked(deletePracticeRecord).mockResolvedValue(true)
+      const args = createArgs({ user: null })
+      const { result } = renderHook(() => usePracticeCommands(args as never))
+
+      await result.current.handleDeleteRecord("record-1", true)
+
+      expect(args.deleteRecord).toHaveBeenCalledWith("record-1")
+      expect(deletePracticeRecord).toHaveBeenCalledWith("record-1")
+      expect(args.autoSync).not.toHaveBeenCalled()
+    })
+
+    it("远端调用异常 → 本地删除保留，异常向上传播，不触发 autoSync", async () => {
+      vi.mocked(deletePracticeRecord).mockRejectedValue(new Error("网络错误"))
+      const args = createArgs({ user: { id: "user-1", email: "user@example.com" } as User })
+      const { result } = renderHook(() => usePracticeCommands(args as never))
+
+      // handleDeleteRecord 无 try/catch，异常向上传播
+      await expect(result.current.handleDeleteRecord("record-1", true)).rejects.toThrow("网络错误")
+
+      // 但本地删除已同步完成
+      expect(args.deleteRecord).toHaveBeenCalledWith("record-1")
+      expect(args.autoSync).not.toHaveBeenCalled()
+    })
   })
 })

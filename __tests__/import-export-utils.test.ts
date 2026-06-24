@@ -178,3 +178,149 @@ describe('serializeExportData', () => {
     expect(parsed.records).toEqual([])
   })
 })
+
+describe('旧版本导入兼容', () => {
+  describe('parseAndValidateImportData — 旧格式 records', () => {
+    it('缺 updated_at 的旧版记录 → 可接受', () => {
+      const oldRecord = { id: 'r1', date: '2026-01-20', type: '一序列', duration: 3600, notes: '', created_at: '2026-01-20T00:00:00Z' }
+      const json = JSON.stringify({ records: [oldRecord] })
+      const result = parseAndValidateImportData(json)
+      expect(result.valid).toBe(true)
+    })
+
+    it('缺 user_id/deleted_at/start_time/color_level 等新增字段 → 可接受', () => {
+      const oldRecord = { id: 'r1', date: '2026-01-20', type: '一序列', duration: 3600, notes: '' }
+      const json = JSON.stringify({ records: [oldRecord] })
+      const result = parseAndValidateImportData(json)
+      expect(result.valid).toBe(true)
+    })
+
+    it('photos 为字符串（旧版导出）→ 可接受', () => {
+      const oldRecord = { id: 'r1', date: '2026-01-20', type: '一序列', duration: 3600, notes: '', photos: 'url1,url2', created_at: '' }
+      const json = JSON.stringify({ records: [oldRecord] })
+      const result = parseAndValidateImportData(json)
+      expect(result.valid).toBe(true)
+    })
+
+    it('photos 为 null → 可接受', () => {
+      const oldRecord = { id: 'r1', date: '2026-01-20', type: '一序列', duration: 3600, notes: '', photos: null, created_at: '' }
+      const json = JSON.stringify({ records: [oldRecord] })
+      const result = parseAndValidateImportData(json)
+      expect(result.valid).toBe(true)
+    })
+
+    it('缺失 photos 字段 → 可接受', () => {
+      const oldRecord = { id: 'r1', date: '2026-01-20', type: '一序列', duration: 3600, notes: '', created_at: '' }
+      const json = JSON.stringify({ records: [oldRecord] })
+      const result = parseAndValidateImportData(json)
+      expect(result.valid).toBe(true)
+    })
+  })
+
+  describe('parseAndValidateImportData — 旧格式 profile', () => {
+    it('含 is_pro 旧字段 → 可接受', () => {
+      const oldProfile = { id: 'u1', name: 'test', signature: '', created_at: '', is_pro: false }
+      const json = JSON.stringify({ profile: oldProfile })
+      const result = parseAndValidateImportData(json)
+      expect(result.valid).toBe(true)
+    })
+
+    it('缺 updated_at → 可接受', () => {
+      const oldProfile = { id: 'u1', name: 'test', signature: '', created_at: '' }
+      const json = JSON.stringify({ profile: oldProfile })
+      const result = parseAndValidateImportData(json)
+      expect(result.valid).toBe(true)
+    })
+
+    it('缺 phone/historical_days/historical_avg_minutes → 可接受', () => {
+      const oldProfile = { id: 'u1', name: 'test', signature: '', created_at: '', updated_at: '' }
+      const json = JSON.stringify({ profile: oldProfile })
+      const result = parseAndValidateImportData(json)
+      expect(result.valid).toBe(true)
+    })
+  })
+
+  describe('parseAndValidateImportData — 旧格式 options', () => {
+    it('含 label_zh + label（旧版英文+中文）→ 可接受', () => {
+      const oldOption = { id: 'o1', label: 'Primary 1', label_zh: '一序列', notes: 'Mysore', is_custom: false, created_at: '' }
+      const json = JSON.stringify({ options: [oldOption] })
+      const result = parseAndValidateImportData(json)
+      expect(result.valid).toBe(true)
+    })
+
+    it('缺 visible/color_level/is_fixed → 可接受', () => {
+      const oldOption = { id: 'o1', label: '一序列', notes: 'Mysore', is_custom: true, created_at: '' }
+      const json = JSON.stringify({ options: [oldOption] })
+      const result = parseAndValidateImportData(json)
+      expect(result.valid).toBe(true)
+    })
+  })
+
+  describe('sortRecordsByDate — 旧日期格式', () => {
+    it('斜杠日期格式 yyyy/MM/dd → 排序正确', () => {
+      const records = [
+        { id: '1', date: '2026/06/01' },
+        { id: '2', date: '2026/05/15' },
+        { id: '3', date: '2026/06/10' },
+      ] as any[]
+      const sorted = sortRecordsByDate(records)
+      expect(sorted[0].id).toBe('3')
+      expect(sorted[1].id).toBe('1')
+      expect(sorted[2].id).toBe('2')
+    })
+
+    it('全 ISO 时间戳 → 排序正确', () => {
+      const records = [
+        { id: '1', date: '2026-06-01T08:00:00.000Z' },
+        { id: '2', date: '2026-05-15T10:30:00.000Z' },
+        { id: '3', date: '2026-06-10T06:00:00.000Z' },
+      ] as any[]
+      const sorted = sortRecordsByDate(records)
+      expect(sorted[0].id).toBe('3')
+      expect(sorted[1].id).toBe('1')
+      expect(sorted[2].id).toBe('2')
+    })
+
+    it('混合格式（斜杠 + ISO + 标准）→ 排序正确', () => {
+      const records = [
+        { id: '1', date: '2026/06/01' },
+        { id: '2', date: '2026-05-15T10:30:00.000Z' },
+        { id: '3', date: '2026-06-10' },
+      ] as any[]
+      const sorted = sortRecordsByDate(records)
+      expect(sorted[0].id).toBe('3')
+      expect(sorted[1].id).toBe('1')
+      expect(sorted[2].id).toBe('2')
+    })
+  })
+
+  describe('migrateOldOptions — 旧格式完整描述', () => {
+    it('只有 label_zh 无 label → label = label_zh', () => {
+      const options = [{ label_zh: '半序列', is_custom: true, notes: '站立+休息' }]
+      const migrated = migrateOldOptions(options)
+      expect(migrated[0].label).toBe('半序列')
+    })
+
+    it('旧格式完整数据胶囊（类似 test-data.json 的真实数据）→ 可接受 + 选项迁移', () => {
+      // 模拟 app 早期 test-data.json 格式：records 缺 updated_at, options 含 label_zh, profile 含 is_pro
+      const oldExport = {
+        records: [
+          { id: 'r1', date: '2026-01-20', type: '一序列', duration: 5400, notes: '流畅', photos: [], created_at: '2026-01-23T08:00:00.000Z' },
+          { id: 'r2', date: '2026-01-21', type: '二序列', duration: 6300, notes: '突破', photos: [], breakthrough: '卡波塔式抓脚', created_at: '2026-01-22T08:00:00.000Z' },
+        ],
+        options: [
+          { id: 'o1', label: 'Primary 1', label_zh: '一序列', notes: 'Mysore', is_custom: false, created_at: '2026-01-23T00:00:00.000Z' },
+          { id: 'o2', label: 'Half', label_zh: '半序列', notes: '站立+休息', is_custom: false, created_at: '2026-01-23T00:00:00.000Z' },
+        ],
+        profile: { id: 'u1', created_at: '2026-01-23T00:00:00.000Z', name: '测试用户', signature: '熬汤日记测试', avatar: null, is_pro: false },
+        export_at: '2026-01-23T12:00:00.000Z',
+      }
+      const result = parseAndValidateImportData(JSON.stringify(oldExport))
+      expect(result.valid).toBe(true)
+      // migrated option label 应为中文
+      const migratedOptions = migrateOldOptions(result.data!.options!)
+      expect(migratedOptions[0].label).toBe('一序列')
+      expect(migratedOptions[1].label).toBe('半序列')
+    })
+  })
+})

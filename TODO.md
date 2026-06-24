@@ -70,16 +70,16 @@
 
 ## 明天计划（2026-06-24）
 
-### 继续补测试缺口
+### 补测试缺口 — 进行中
 
 **阶段 6 候选（L2 优先级高）：**
-- [ ] 旧版本导入兼容（L1/L3 缺失）：import-export 兼容旧日期格式、旧字段名
-- [ ] 登录/注册/忘记密码状态（L2/L3 缺失）：AuthModal 组件测试
-- [ ] 无障碍名称、键盘、焦点（L2/L4 缺失）：现有组件补 aria-label
+- [x] 旧版本导入兼容（L1/L3 缺失）：import-export 兼容旧日期格式、旧字段名 — L1 已完成（17 项测试 + 更新测试矩阵）
+- [x] 登录/注册/忘记密码状态（L2/L3 缺失）：AuthModal 组件测试 — L2 已完成（21 项测试 + 更新测试矩阵）
+- [x] 无障碍名称、键盘、焦点（L2/L4 缺失）：现有组件补 aria-label — AuthModal X 按钮 + Esc 关闭（9 项 a11y 测试）
 
 **阶段 5 剩余细化：**
-- [ ] 1000 条限制 L3 集成：sortAndLimitRecords 在 useSync 中的调用路径
-- [ ] 草稿/软删除/孤立记录（L1 部分覆盖）：检查 handleDeleteRecord 的同步路径
+- [x] 1000 条限制 L3 集成：sortAndLimitRecords 在 useSync 中的调用路径 — 5 项 L3 集成测试
+- [x] 草稿/软删除/孤立记录（L1 部分覆盖）：检查 handleDeleteRecord 的同步路径 — 6 项 handleDeleteRecord 同步路径测试
 
 ### 或推进阶段 5 最终精简
 - [ ] exerciseConflict 三分支执行逻辑提取
