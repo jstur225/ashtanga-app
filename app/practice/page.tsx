@@ -144,6 +144,7 @@ export default function AshtangaTracker() {
   const [showAddModal, setShowAddModal] = useState(false)
   const [activeTab, setActiveTab] = useState<PracticeTab>('practice')
   const [posesDetailOpen, setPosesDetailOpen] = useState(false)
+  const autoPauseRef = useRef(false)
 
   // ⭐ 读取 URL 参数，切换 Tab（客户端 only，只执行一次）
   useEffect(() => {
@@ -156,6 +157,8 @@ export default function AshtangaTracker() {
       setActiveTab('journal')
     } else if (tab === 'practice') {
       setActiveTab('practice')
+    } else if (tab === 'poses') {
+      setActiveTab('poses')
     }
     // 清除 URL 参数，避免刷新时再次触发
     if (tab) {
@@ -191,6 +194,30 @@ export default function AshtangaTracker() {
   // 清空数据确认弹窗状态
   const [showClearDataConfirm, setShowClearDataConfirm] = useState(false)
   const [clearDataStep, setClearDataStep] = useState<1 | 2 | 3>(1)
+
+  // 恢复练习状态后，如果是口令模式则自动加载音频
+  // 仅在 hydration 时触发（sessionHydrated 从 false→true），activePractice 变化不触发
+  // 避免新练习开始时误触发 auto-pause
+  useEffect(() => {
+    if (!sessionHydrated) return
+    if (!activePractice) return
+    if (activePractice.optionId !== 'guided_audio') return
+    const wasPaused = isPaused
+    loadGuidedAudio()
+    // 标记：onReady resume 后需重新暂停
+    if (wasPaused) autoPauseRef.current = true
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionHydrated])
+
+  // 自动暂停：音频加载完毕后 onReady 会 resume，此 effect 检测到 isPaused 变化后重新暂停
+  useEffect(() => {
+    if (!autoPauseRef.current) return
+    if (isPaused) return
+    if (!isPracticing) return
+    autoPauseRef.current = false
+    pausePracticeSession(Date.now())
+  }, [isPaused, isPracticing])
+
   const [confirmPhrase, setConfirmPhrase] = useState('')
   const [isSaving, setIsSaving] = useState(false)
 

@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useLocalStorage } from 'react-use'
 import type { PracticeRecord, PracticeOption, UserProfile } from '@/lib/supabase'
-import { diffRecords, buildProfileFromRemote, mergeRecords, mergeOptions, applySafeMerge, sortAndLimitRecords, buildUploadRecordPayload, resolveRecordColorLevel, createSyncLogEntry, trimSyncLogs, appendSyncErrorHistory, batchUploadRecords, buildOptionsUploadPayload, computeSmartMergeData, type SyncLogEntry, type UploadRecordPayload } from '@/lib/sync-utils'
+import { buildProfileFromRemote, mergeRecords, mergeOptions, applySafeMerge, sortAndLimitRecords, buildUploadRecordPayload, resolveRecordColorLevel, createSyncLogEntry, trimSyncLogs, appendSyncErrorHistory, batchUploadRecords, buildOptionsUploadPayload, type SyncLogEntry, type UploadRecordPayload } from '@/lib/sync-utils'
 import { withRetry, persistFailedSyncIds, loadFailedSyncIds } from '@/lib/sync-retry'
 import {
   buildCompleteProfile,
@@ -20,7 +20,7 @@ import {
   deleteAllUserRecords as repoDeleteAllUserRecords,
   deleteAllUserOptions as repoDeleteAllUserOptions,
 } from '@/lib/supabase-repository'
-import { analyzeSync, executeConflictStrategy, computeSyncStats, recordPracticeIfNeeded } from '@/lib/sync-orchestrator'
+import { analyzeSync, executeConflictStrategy, computeSyncStats, recordPracticeIfNeeded, resolveConflict as resolveConflictOrchestrator, type ConflictDeps } from '@/lib/sync-orchestrator'
 
 type SyncStatus = 'idle' | 'syncing' | 'success' | 'error'
 type ConflictStrategy = 'remote' | 'local' | 'merge'
@@ -377,42 +377,6 @@ export function useSync(
     addLog('手动重置同步状态', 'success')
   }
 
-  // ==================== 智能合并 ====================
-  const smartMerge = async (
-    localOnly: PracticeRecord[],
-    remoteOnly: PracticeRecord[],
-    localNewer: PracticeRecord[],
-    remoteNewer: PracticeRecord[],
-    remoteData: any
-  ) => {
-    const freshLocalData = localDataRef.current
-    const { records, options, profile } = computeSmartMergeData(
-      freshLocalData.records, freshLocalData.options, freshLocalData.profile,
-      remoteOnly, remoteNewer,
-      remoteData.options, remoteData.profile,
-    )
-
-    const toUpload = [...localOnly, ...localNewer]
-    const downloadCount = remoteOnly.length + remoteNewer.length
-    if (downloadCount > 0) {
-      addLog(`下载${downloadCount}条云端记录（新增${remoteOnly.length}，更新${remoteNewer.length}）`, 'success')
-    }
-
-    onSyncComplete({ records, options, profile })
-
-    if (toUpload.length > 0) {
-      addLog(`上传${toUpload.length}条本地记录（新增${localOnly.length}，更新${localNewer.length}）`, 'success')
-      const result = await uploadLocalRecords(user.id, toUpload, freshLocalData.options)
-      if (!result.success) {
-        throw new Error('上传本地记录失败')
-      }
-    }
-
-    setSyncStatus('success')
-    setLastSyncStatus('success')
-    setLastSyncTime(Date.now())
-  }
-
   // ==================== 下载云端数据 ====================
   const downloadRemoteData = async (userId: string, retryCount = 0): Promise<RemoteSyncData | null> => {
     try {
@@ -733,90 +697,25 @@ export function useSync(
     setSyncStatus('syncing')
 
     try {
-      const remoteData = await downloadRemoteData(user.id)
-      if (!remoteData) {
-        throw new Error('下载云端数据失败')
+      const deps: ConflictDeps = {
+        downloadRemoteData,
+        uploadLocalData,
+        uploadLocalRecords,
+        repoDeleteAllUserRecords,
+        repoDeleteAllUserOptions,
+        onSyncComplete,
+        addLog,
       }
 
-      const localCount = localDataRef.current.records.length
-      const remoteCount = remoteData.records.length
+      const result = await resolveConflictOrchestrator(strategy, user.id, user, localDataRef.current, deps)
 
-      switch (strategy) {
-        case 'remote':
-          // 使用云端数据
-          addLog('冲突解决：选择云端数据覆盖本地', 'success', undefined, undefined, undefined, {
-            triggerReason: '用户手动选择云端',
-            localCount,
-            remoteCount
-          })
-
-          syncDebug('📦 [resolveConflict] 云端 profile 数据:', remoteData.profile)
-          syncDebug('   头像:', remoteData.profile?.avatar ? remoteData.profile.avatar.substring(0, 50) + '...' : 'null')
-
-          // ⭐ 构建完整的 profile 对象，确保包含 updated_at
-          // 修复：只要云端有 profile 数据，就使用它，不要进行二次判断
-          const remoteProfile = buildCompleteProfile(remoteData.profile)
-
-          onSyncComplete({
-            records: remoteData.records,
-            options: remoteData.options || [],
-            profile: remoteProfile
-          })
-          // ⭐ 关键修复：直接保存到 localStorage
-          localStorage.setItem('ashtanga_records', JSON.stringify(remoteData.records))
-          localStorage.setItem('ashtanga_options', JSON.stringify(remoteData.options || []))
-          break
-
-        case 'local':
-          // 使用本地数据，覆盖云端
-          addLog(`冲突解决：选择本地数据覆盖云端`, 'success', undefined, undefined, undefined, {
-            triggerReason: '用户手动选择本地',
-            localCount,
-            remoteCount
-          })
-
-          // 1. 先删除云端所有数据（包括记录和选项）
-          const { error: deleteError } = await repoDeleteAllUserRecords(user.id)
-
-          if (deleteError) {
-            throw new Error(`删除云端数据失败: ${deleteError.message}`)
-          }
-
-          // 同时删除云端所有选项
-          const { error: deleteOptionsError } = await repoDeleteAllUserOptions(user.id)
-
-          if (deleteOptionsError) {
-            throw new Error(`删除云端选项失败: ${deleteOptionsError.message}`)
-          }
-
-          addLog('云端数据已清空', 'success')
-
-          // 2. 上传本地数据
-          const result = await uploadLocalData(user.id, localDataRef.current, user)
-          if (!result.success) {
-            throw new Error('上传本地数据失败')
-          }
-          break
-
-        case 'merge':
-          // 智能合并
-          addLog(`冲突解决：智能合并`, 'success', undefined, undefined, undefined, {
-            triggerReason: '用户手动选择合并',
-            localCount,
-            remoteCount
-          })
-          // ⭐ 使用 ref 获取最新的 localData
-          const freshLocalDataForMerge = localDataRef.current
-          const { localOnly, remoteOnly, localNewer, remoteNewer } = diffRecords(freshLocalDataForMerge.records, remoteData.records)
-
-          await smartMerge(localOnly, remoteOnly, localNewer, remoteNewer, remoteData)
-          break
+      if (result.success) {
+        setSyncStatus('success')
+        setLastSyncStatus('success')
+        setLastSyncTime(Date.now())
+      } else {
+        throw new Error(result.error || '处理冲突失败')
       }
-
-      setSyncStatus('success')
-      setLastSyncStatus('success')
-      setLastSyncTime(Date.now())
-
     } catch (error: any) {
       console.error('Resolve conflict failed:', error)
       addLog('处理冲突失败', 'error', undefined, error.message)

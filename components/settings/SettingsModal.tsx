@@ -497,6 +497,7 @@ export function SettingsModal({
             exit={{ y: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
             className="fixed bottom-0 left-0 right-0 bg-card rounded-t-[24px] z-50 p-6 pb-10 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] max-h-[calc(100vh-2rem)] overflow-y-auto"
+            role="dialog" aria-modal="true" aria-labelledby="settings-title"
           >
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-serif text-foreground">设置</h2>

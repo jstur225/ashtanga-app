@@ -1,5 +1,6 @@
 import type { PracticeRecord, PracticeOption, UserProfile } from '@/lib/supabase'
 import { applySafeMerge, detectOptionChanges, detectProfileChanges, computeSmartMergeData, diffRecords } from './sync-utils'
+import { buildCompleteProfile } from './sync-mappers'
 import type { CloudRecordForMerge } from './supabase-repository'
 
 // ── Types ──────────────────────────────────────────
@@ -236,7 +237,143 @@ export function computeSyncStats(records: PracticeRecord[]): SyncStats {
   }
 }
 
-// ── Finally block ──────────────────────────────────
+// ── Conflict execution dependencies ───────────────
+
+export interface ConflictDeps {
+  downloadRemoteData: (userId: string) => Promise<RemoteSyncData | null>
+  uploadLocalData: (userId: string, localData: { records: PracticeRecord[]; options: PracticeOption[]; profile: UserProfile }, user: any) => Promise<{ success: boolean; localOnlyCount?: number; syncedCount?: number; totalCount?: number }>
+  uploadLocalRecords: (userId: string, records: PracticeRecord[], options?: PracticeOption[]) => Promise<{ success: boolean; localOnlyCount?: number }>
+  repoDeleteAllUserRecords: (userId: string) => Promise<{ error: any }>
+  repoDeleteAllUserOptions: (userId: string) => Promise<{ error: any }>
+  onSyncComplete: (data: { records: PracticeRecord[]; options: PracticeOption[]; profile: UserProfile | null }) => void
+  addLog: (action: string, status: string, recordId?: string, error?: string, details?: unknown, extra?: unknown) => void
+}
+
+export type RemoteSyncData = {
+  records: PracticeRecord[]
+  options: PracticeOption[]
+  profile: UserProfile
+}
+
+/**
+ * 智能合并：将本地与云端记录合并，上传本地独有/更新的记录。
+ * 已在同步编排器中使用 executeConflictStrategy('merge') 计算合并结果后调用。
+ */
+export async function smartMerge(
+  localOnly: PracticeRecord[],
+  remoteOnly: PracticeRecord[],
+  localNewer: PracticeRecord[],
+  remoteNewer: PracticeRecord[],
+  remoteData: RemoteSyncData,
+  userId: string,
+  localData: { records: PracticeRecord[]; options: PracticeOption[]; profile: UserProfile },
+  deps: Pick<ConflictDeps, 'uploadLocalRecords' | 'onSyncComplete' | 'addLog'>,
+): Promise<void> {
+  const { records, options, profile } = computeSmartMergeData(
+    localData.records, localData.options, localData.profile,
+    remoteOnly, remoteNewer,
+    remoteData.options, remoteData.profile,
+  )
+
+  const toUpload = [...localOnly, ...localNewer]
+  const downloadCount = remoteOnly.length + remoteNewer.length
+  if (downloadCount > 0) {
+    deps.addLog(`下载${downloadCount}条云端记录（新增${remoteOnly.length}，更新${remoteNewer.length}）`, 'success')
+  }
+
+  deps.onSyncComplete({ records, options, profile })
+
+  if (toUpload.length > 0) {
+    deps.addLog(`上传${toUpload.length}条本地记录（新增${localOnly.length}，更新${localNewer.length}）`, 'success')
+    const result = await deps.uploadLocalRecords(userId, toUpload, localData.options)
+    if (!result.success) {
+      throw new Error('上传本地记录失败')
+    }
+  }
+}
+
+/**
+ * 执行冲突解决的三分支（remote / local / merge）
+ * 返回 success 状态，调用方处理 React state。
+ */
+export async function resolveConflict(
+  strategy: 'local' | 'remote' | 'merge',
+  userId: string,
+  user: any,
+  localData: { records: PracticeRecord[]; options: PracticeOption[]; profile: UserProfile },
+  deps: ConflictDeps,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const remoteData = await deps.downloadRemoteData(userId)
+    if (!remoteData) {
+      return { success: false, error: '下载云端数据失败' }
+    }
+
+    const localCount = localData.records.length
+    const remoteCount = remoteData.records.length
+
+    switch (strategy) {
+      case 'remote': {
+        deps.addLog('冲突解决：选择云端数据覆盖本地', 'success', undefined, undefined, undefined, {
+          triggerReason: '用户手动选择云端',
+          localCount,
+          remoteCount,
+        })
+
+        const remoteProfile = buildCompleteProfile(remoteData.profile)
+
+        deps.onSyncComplete({
+          records: remoteData.records,
+          options: remoteData.options || [],
+          profile: remoteProfile,
+        })
+        localStorage.setItem('ashtanga_records', JSON.stringify(remoteData.records))
+        localStorage.setItem('ashtanga_options', JSON.stringify(remoteData.options || []))
+        return { success: true }
+      }
+
+      case 'local': {
+        deps.addLog('冲突解决：选择本地数据覆盖云端', 'success', undefined, undefined, undefined, {
+          triggerReason: '用户手动选择本地',
+          localCount,
+          remoteCount,
+        })
+
+        const { error: deleteError } = await deps.repoDeleteAllUserRecords(userId)
+        if (deleteError) {
+          return { success: false, error: `删除云端数据失败: ${deleteError.message}` }
+        }
+
+        const { error: deleteOptionsError } = await deps.repoDeleteAllUserOptions(userId)
+        if (deleteOptionsError) {
+          return { success: false, error: `删除云端选项失败: ${deleteOptionsError.message}` }
+        }
+
+        deps.addLog('云端数据已清空', 'success')
+
+        const result = await deps.uploadLocalData(userId, localData, user)
+        if (!result.success) {
+          return { success: false, error: '上传本地数据失败' }
+        }
+        return { success: true }
+      }
+
+      case 'merge': {
+        deps.addLog('冲突解决：智能合并', 'success', undefined, undefined, undefined, {
+          triggerReason: '用户手动选择合并',
+          localCount,
+          remoteCount,
+        })
+
+        const { localOnly, remoteOnly, localNewer, remoteNewer } = diffRecords(localData.records, remoteData.records)
+        await smartMerge(localOnly, remoteOnly, localNewer, remoteNewer, remoteData, userId, localData, deps)
+        return { success: true }
+      }
+    }
+  } catch (error: any) {
+    return { success: false, error: error.message || String(error) }
+  }
+}
 
 export function recordPracticeIfNeeded(): void {
   try {

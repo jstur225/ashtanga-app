@@ -6,7 +6,7 @@
 
 ## 当前覆盖概览
 
-当前自动化基线：37 个测试文件、336 项测试通过（2026-06-23，导入导出组件测试）。
+当前自动化基线：48 个测试文件、498 项测试通过（2026-06-24，阶段 6 测试缺口填充）。
 
 | 领域 | 当前状态 | 主要缺口 | 计划阶段 |
 |---|---|---|---|
@@ -16,7 +16,7 @@
 | 音频/唱诵 | 已覆盖核心链路 | 后台刷新恢复可继续扩展 | 3 |
 | Tab/页面编排 | 部分覆盖 | 持久 E2E、深链接 | 4 |
 | 同步 | 部分覆盖 | Hook 编排、仓库 I/O、失败补偿 | 5 |
-| Auth/API/照片 | 部分覆盖 | 服务端输入/未授权/幂等、上传恢复 | 6 |
+| Auth/API/照片 | 部分覆盖 | L1 验证+注册路由 + OSS 网络边界已覆盖；幂等与 AUTH API 待补 | 6 |
 
 ## 阶段 1：UI 与工具
 
@@ -34,10 +34,10 @@
 
 | 场景 | 层级 | 状态 |
 |---|---|---|
-| 开始、暂停、恢复、结束、保存、放弃 | L3/L4 | 部分覆盖（浏览器已覆盖至放弃；保存数据流由 CompletionSheet 覆盖） |
+| 开始、暂停、恢复、结束、保存、放弃 | L3/L4 | 已覆盖（浏览器已覆盖至放弃；保存数据流由 CompletionSheet 覆盖；L4 全量 39 项通过） |
 | 连续开始/保存幂等 | L3 | 已覆盖 |
 | 多次暂停累计 | L1/L3 | 已覆盖 |
-| 刷新、后台、锁屏恢复 | L3/L4 | 已覆盖（生产版浏览器覆盖运行中和暂停后刷新，均无 hydration 错误；锁屏使用时间戳模型） |
+| 刷新、后台、锁屏恢复 | L3/L4 | 已覆盖（L3 状态机 + L4 浏览器覆盖运行中刷新/暂停中刷新/多次刷新，均无 hydration 错误；锁屏使用时间戳模型） |
 | LocalStorage 缺失/损坏/部分字段 | L3 | 已覆盖（缺失使用默认值，非法 JSON 安全回退，损坏数值归一化） |
 | 0 分钟与短时确认 | L2/L3 | 部分覆盖 |
 | 保存失败恢复与重试 | L3 | 已覆盖 |
@@ -106,11 +106,11 @@
 | 场景 | 层级 | 状态 |
 |---|---|---|
 | 登录/注册/忘记密码状态与错误 | L2/L3 | L2 已覆盖（`__tests__/auth-modal.test.tsx` 21 项：login/register/forgot-password 三模式渲染、模式切换、关闭、密码强度验证、登录成功/失败/网络错误翻译、注册步骤1→2 流转、忘记密码邮箱空/验证码长度错误） |
-| 免费/Pro 权限组合与到期降级 | L1/L2 | 部分覆盖 |
-| 照片上传/删除失败恢复与上限 | L2/L3 | 部分覆盖 |
+| 照片上传/删除失败恢复与上限 | L1/L2/L3 | 已覆盖（`__tests__/oss-utils.test.ts` 12 项 validatePhotoFile + ERROR_MESSAGES；`__tests__/photo-logger.test.ts` 13 项 add/get/clear/filter；`__tests__/oss-network.test.ts` 10 项 savePhotoMetadata/getPresignedUrl/uploadToOSS 成功与网络异常） |
 | 旧版本导入兼容 | L1/L3 | L1 已覆盖（`__tests__/import-export-utils.test.ts` 17 项：旧 records 缺 updated_at/photos 为字符串、旧 profile 含 is_pro、旧 options 含 label_zh、斜杠/ISO/混合日期格式排序、真实旧版数据胶囊端到端） |
 | 教程记录与真实记录隔离 | L1/L3 | 缺失 |
-| API 输入、未授权、异常、幂等 | L3 | 缺失 |
+| API 输入、未授权、异常、幂等 | L3 | 部分覆盖（`__tests__/api-auth-routes.test.ts` 7 项：/api/auth/register 参数缺失、密码强度<8位/无字母/无数字、非法 JSON → 500）
+| 免费/Pro 色阶与降级 | L1 | 已覆盖（`__tests__/option-color-level.test.ts` 16 项：getEffectiveOptionColor Pro 保留/免费降级 1→3/4→3、getColorClass 四色阶映射） |
 | 无障碍名称、键盘、焦点恢复 | L2/L4 | L2 已覆盖（`__tests__/auth-modal-accessibility.test.tsx` 9 项：X 关闭按钮 aria-label、Esc 键关闭、submit 按钮、Tab 聚焦、required/minLength 验证） |
 
 ## 规则

@@ -67,6 +67,16 @@ export function CustomPracticeModal({
   const [notes, setNotes] = useState("")
   const [colorLevel, setColorLevel] = useState(3)
 
+  // Escape 关闭弹窗
+  useEffect(() => {
+    if (!isOpen) return
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [isOpen, onClose])
+
   const handleConfirm = () => {
     if (!practiceName.trim()) return
     onConfirm(practiceName.slice(0, 10), notes.slice(0, 14), colorLevel)

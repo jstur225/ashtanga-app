@@ -28,3 +28,9 @@ next-env.d.ts
 
 nul
 .gstack/
+
+# Playwright
+/playwright/.auth/
+/playwright/report/
+/playwright/.cache/
+/test-results/

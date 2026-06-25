@@ -1,5 +1,69 @@
 # 阿斯汤加打卡 app - 项目记录
 
+## 2026-06-24（续2）: 阶段 5 最终精简 — resolveConflict + smartMerge 提取
+
+### 背景
+阶段 5 最后一项工作：将 `resolveConflict`（三分支执行逻辑）和 `smartMerge` 从 useSync.ts 提取到 sync-orchestrator.ts，合计约 132 行。
+
+### 修改内容
+
+**`lib/sync-orchestrator.ts`**（267 → 402 行）：
+- 新增 `ConflictDeps` 接口（依赖注入类型）
+- 新增 `RemoteSyncData` 类型
+- 新增 `resolveConflict(strategy, userId, user, localData, deps)` — 三分支执行编排
+  - `remote` 分支：下载远程 → 构建 profile → onSyncComplete → localStorage
+  - `local` 分支：删除远程 → uploadLocalData
+  - `merge` 分支：diffRecords → smartMerge
+- 新增 `smartMerge(localOnly, remoteOnly, localNewer, remoteNewer, remoteData, userId, localData, deps)` — 合并并上传
+- 两个函数均接受 `localData` 作为参数（而非调用 getter），避免测试中 localStorage 为空导致数据丢失
+
+**`hooks/useSync.ts`**（872 → 771 行）：
+- 删除 `smartMerge` 内联函数（35 行）
+- 删除 `resolveConflict` 内联函数（97 行），替换为 20 行包装器
+- 移除 `diffRecords`、`computeSmartMergeData` 的 import（不再直接使用）
+- 包装器传递 `localDataRef.current` 作为 localData 参数
+
+### 关键决策
+- `getLatestLocalData` 从 `ConflictDeps` 移除，改为传参 `localData`
+- 原因为：`readLatestLocalData` 从 localStorage 读取，在测试中为空。使用调用方传入的引用（`localDataRef.current`）确保数据一致性
+
+### 结果
+- useSync 872 → 771 行（−101 行，距合理目标 ~600–650 行差 ~120 行，主要由 autoSync 和 uploadLocalData 不可削减的业务逻辑构成）
+- Vitest 440 项全部通过
+- L4 39 项全部通过
+- Phase 5 正式结束
+
+## 2026-06-24（续）: L4 测试回归修复
+
+### 背景
+L4 测试中 practice #19（普通计时：选择→开始→暂停→继续→结束）和 refresh #24（暂停中刷新保持状态）因 auto-pause 逻辑缺陷持续失败。
+
+### 根因
+hydration 效果使用了 `[sessionHydrated, activePractice, isPaused]` 作为依赖数组。当用户新开始练习时：
+1. `handleStartPractice` 调用 `startPracticeSession` → `activePractice` 从 `null` 变为对象
+2. 效果重新触发 → 调用 `loadGuidedAudio()`（第二次加载）+ 设置 `autoPauseRef.current = true`
+3. onReady(resumePracticeSession) 恢复练习后，auto-pause 效果立即重新暂停
+4. 测试期望正常暂停/恢复流程，但被中断
+
+### 修复
+将依赖改为仅 `[sessionHydrated]`，使自动加载/暂停效果仅在 hydration 结束时触发一次。新练习不会触发此效果。
+
+```tsx
+// 修改前
+useEffect(() => { ... }, [sessionHydrated, activePractice, isPaused])
+
+// 修改后
+useEffect(() => { ... }, [sessionHydrated])  // eslint-disable-line
+```
+
+### 结果
+- L4 测试 39/39 全部通过，零失败
+- 练习中刷新：保持练习状态 ✓
+- 暂停中刷新：暂停状态保持 ✓
+- 多次刷新：无 hydration 错误 ✓
+- 普通计时开始→暂停→继续→结束：正常 ✓
+- 全量 Vitest 440 项继续通过 ✓
+
 ## 2026-06-24: 阶段 5/6 测试缺口覆盖 + useSync 精简
 
 ### 完成内容
@@ -3471,3 +3535,52 @@ export const INVITE_VERSION = 'v2'  // 从 v1 更新到 v2
 **状态**：
 - 全量 43 个测试文件 / 444 项通过（+4 L3 + 8 L5）
 - 当前未 commit（后续统一发版流程处理）
+
+## 2026-06-24: 阶段 6 测试缺口填充
+
+### 背景
+按照解耦路线图，阶段 6 填补测试矩阵中"缺失"和"部分覆盖"的缺口。用户指定"先补缺口"。
+
+### 完成的测试文件（5 个新文件，58 项新测试）
+
+**`__tests__/oss-utils.test.ts`（12 项，L1）**
+- `validatePhotoFile`：图片类型（JPEG/PNG/WebP/GIF）、非图片类型（PDF/TXT/空类型）、文件大小边界（恰好上限、超出1字节、2倍上限、0字节）
+- `ERROR_MESSAGES`：所有错误码均有非空消息
+
+**`__tests__/photo-logger.test.ts`（13 项，L1）**
+- `addPhotoLog`/`getPhotoLogs`：添加、逆序排列、100 条上限、自动生成 id/timestamp、localStorage 异常容错
+- `clearPhotoLogs`、`getRecentPhotoLogs`、`getPhotoLogsByRecord`、`getPhotoErrorLogs`
+
+**`__tests__/oss-network.test.ts`（10 项，L3）**
+- `getPresignedUrl`：成功返回、fetch 网络异常、请求体验证
+- `savePhotoMetadata`：成功返回、API 错误传播、网络异常
+- `uploadToOSS`：200 成功、403/400 错误码映射、网络异常
+
+**`__tests__/api-auth-routes.test.ts`（7 项，L3）**
+- `POST /api/auth/register`：缺失 email/password/verificationCode、非法 JSON、密码 < 8 位、无字母、无数字
+- 使用 `NextRequest` 直接调用路由处理器，mock Supabase 依赖
+
+**`__tests__/option-color-level.test.ts`（16 项，L1）**
+- `getEffectiveOptionColor`：Pro 保留全部色阶（1/2/3/4）、免费降级（1→3、4→3）、保留（2/3）、未知 label、undefined color_level、空 options
+- `getColorClass`：1→绿色1、2→绿色2、3→绿色3、4→绿色4、undefined/0/5→默认
+
+### 覆盖的测试矩阵缺口
+
+| 缺口 | 之前状态 | 现在状态 |
+|---|---|---|
+| 照片上传/删除失败恢复与上限 | 缺失 | 已覆盖（L1 validate + 网络边界） |
+| API 输入、未授权、异常、幂等 | 缺失 | 部分覆盖（register 输入验证） |
+| 免费/Pro 色阶 | 部分覆盖 | 已覆盖（L1 纯函数） |
+
+### 未覆盖的缺口（为后续保留）
+
+| 缺口 | 原因 |
+|---|---|
+| 教程记录与真实记录隔离 | 依赖 usePracticeData hook，需要复杂 mock，且当前无对应源文件 |
+| API 幂等性 | 需要数据库状态，不适用纯单元测试 |
+| send-verification-code/reset-password API 验证 | 使用 `@supabase/supabase-js` 直接构造 client，mock 复杂度较高 |
+
+### 结果
+- 48 个测试文件 / **498 项通过**（+5 文件，+58 项）
+- TypeScript、lint 未改动
+- 阶段 6 测试缺口部分完成，继续推进大型组件审计与最终归档

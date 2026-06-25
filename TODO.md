@@ -106,6 +106,19 @@
 - `smartMerge` 剩余内联调用归位到 sync-utils
 - 以上合计约 100-130 行额外削减，已不紧急
 
+## 2026-06-24 - 阶段 6 测试缺口填充 ✅ 已完成
+
+- [x] 照片验证纯函数（oss-utils.test.ts，12 项）
+- [x] 照片日志全功能（photo-logger.test.ts，13 项）
+- [x] OSS 网络函数边界（oss-network.test.ts，10 项）
+- [x] API 注册路由输入验证（api-auth-routes.test.ts，7 项）
+- [x] Pro/免费色阶函数（option-color-level.test.ts，16 项）
+- [x] 照片上传验证 → 已覆盖（L1 + L3）
+- [x] 免费/Pro 色阶 → 已覆盖（L1）
+- [x] API 输入验证 → 部分覆盖（register route）
+- [x] 更新项目日志、TODO、测试矩阵、路线图
+- [x] 全量测试 **498 项通过**（+58 项，从 440 起）
+
 ## 2026-06-23 — 全站字体修正 ✅ 已完成
 
 - [x] body 从 `font-sans` 改为 `font-serif`，全站文字统一宋体
