@@ -1,38 +1,40 @@
 /**
- * L4 日记 CRUD 测试（需要登录态）
+ * L4 日记 CRUD 测试（登录态 project，可用本地 seed 保持稳定）
  */
-import { test, expect, waitForHydration } from './fixtures'
+import { test, expect, seedL4PracticeData, waitForHydration } from './fixtures'
 
 test.describe('L4 日记 CRUD', () => {
-  test('日记 Tab 渲染：空态或列表可见', async ({ page }) => {
+  test('日记 Tab 渲染：固定 seed 记录可见', async ({ page }) => {
+    await seedL4PracticeData(page)
     await page.goto('/practice?tab=journal', { waitUntil: 'domcontentloaded' })
     await waitForHydration(page)
+
     await expect(page.locator('nav[aria-label="主要导航"] button:has-text("觉察日记")')).toHaveAttribute('aria-current', 'page')
-    await page.waitForTimeout(2000)
+    await expect(page.getByText('L4 seeded practice note')).toBeVisible({ timeout: 10_000 })
   })
 
   test('补录按钮：点击打开补录 UI', async ({ page }) => {
+    await seedL4PracticeData(page)
     await page.goto('/practice?tab=journal', { waitUntil: 'domcontentloaded' })
     await waitForHydration(page)
-    await page.waitForTimeout(2000)
 
-    const addBtn = page.locator('button:has-text("补录"), button[aria-label*="+"]').first()
-    const hasAdd = await addBtn.isVisible({ timeout: 3_000 }).catch(() => false)
-    test.skip(!hasAdd, '无补录按钮')
-
+    const addBtn = page.getByTestId('journal-add-record')
+    await expect(addBtn).toBeVisible({ timeout: 10_000 })
     await addBtn.click()
-    await page.waitForTimeout(1000)
+
+    await expect(page.getByText('添加练习')).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByRole('button', { name: '保存练习' })).toBeVisible({ timeout: 10_000 })
   })
 
-  test('分享按钮：存在时可点击', async ({ page }) => {
+  test('分享卡：点击记录正文打开分享 UI', async ({ page }) => {
+    await seedL4PracticeData(page)
     await page.goto('/practice?tab=journal', { waitUntil: 'domcontentloaded' })
     await waitForHydration(page)
-    await page.waitForTimeout(2000)
 
-    const shareBtn = page.locator('button[aria-label*="分享"], button:has(svg.lucide-share-2)').first()
-    const hasShare = await shareBtn.isVisible({ timeout: 3_000 }).catch(() => false)
-    test.skip(!hasShare, '无分享按钮')
-    await shareBtn.click()
-    await page.waitForTimeout(500)
+    const recordTrigger = page.getByTestId('journal-record-share-trigger').first()
+    await expect(recordTrigger).toBeVisible({ timeout: 10_000 })
+    await recordTrigger.click()
+
+    await expect(page.locator('#share-card-content').getByText('L4 seeded breakthrough')).toBeVisible({ timeout: 10_000 })
   })
 })

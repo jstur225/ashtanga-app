@@ -85,4 +85,59 @@ export async function waitForHydration(page: Page) {
   await expect(page.locator('nav[aria-label="主要导航"]')).toBeVisible({ timeout: 30_000 })
 }
 
+/**
+ * Seed deterministic local data before the app boots.
+ *
+ * L4 auth tests should exercise UI behavior, not depend on the test cloud
+ * account already having journal records. Mark auto-sync as already handled so
+ * a real auth session does not immediately overwrite the seeded local state.
+ */
+export async function seedL4PracticeData(page: Page) {
+  await page.addInitScript(() => {
+    const now = new Date()
+    const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+    const timestamp = now.toISOString()
+    const record = {
+      id: 'l4-seeded-record',
+      created_at: timestamp,
+      updated_at: timestamp,
+      date,
+      type: 'L4 Test Practice',
+      duration: 3600,
+      notes: 'L4 seeded practice note',
+      photos: [],
+      breakthrough: 'L4 seeded breakthrough',
+      start_time: timestamp,
+      color_level: 3,
+    }
+    const option = {
+      id: 'l4-seeded-option',
+      created_at: timestamp,
+      updated_at: timestamp,
+      label: 'L4 Test Practice',
+      notes: 'Seeded by L4 fixture',
+      is_custom: true,
+      isCustom: true,
+      visible: true,
+      can_edit: true,
+      color_level: 3,
+    }
+    const profile = {
+      id: 'l4-seeded-profile',
+      created_at: timestamp,
+      updated_at: timestamp,
+      name: 'L4 Tester',
+      signature: 'L4 seeded profile',
+      avatar: null,
+      historical_days: 0,
+      historical_avg_minutes: 0,
+    }
+
+    window.localStorage.setItem('ashtanga_records', JSON.stringify([record]))
+    window.localStorage.setItem('ashtanga_options', JSON.stringify([option]))
+    window.localStorage.setItem('ashtanga_profile', JSON.stringify(profile))
+    ;(window as any).__hasAutoSynced__ = true
+  })
+}
+
 export { expect }

@@ -358,6 +358,7 @@ export function DataManagementSection({
         title="复制数据胶囊"
         description="一键复制到剪贴板"
         onClick={onOpenExport}
+        testId="settings-export-data"
       />
       <SettingsActionButton
         icon={<Download className="w-5 h-5" />}
@@ -416,6 +417,7 @@ function SettingsActionButton({
   onClick,
   disabled,
   trailing,
+  testId,
 }: {
   icon: React.ReactNode
   iconClassName: string
@@ -424,12 +426,14 @@ function SettingsActionButton({
   onClick: () => void | Promise<void>
   disabled?: boolean
   trailing?: React.ReactNode
+  testId?: string
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
+      data-testid={testId}
       className="w-full flex items-center justify-between p-4 rounded-2xl bg-secondary hover:bg-secondary/80 transition-all group disabled:opacity-50"
     >
       <div className="flex items-center gap-3">

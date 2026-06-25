@@ -250,6 +250,8 @@ export function MonthlyHeatmap({
           <button
             type="button"
             onClick={onAddRecord}
+            aria-label="补录练习"
+            data-testid="journal-add-record"
             className="w-7 h-7 rounded-full green-gradient-deep border border-white/20 shadow-[0_2px_6px_rgba(45,90,39,0.2)] flex items-center justify-center text-white"
           >
             <Plus className="w-3.5 h-3.5" />

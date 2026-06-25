@@ -322,6 +322,8 @@ export function JournalTab({
                   ) : null}
                   <button
                     type="button"
+                    aria-label={`打开 ${practice.date} 分享卡`}
+                    data-testid="journal-record-share-trigger"
                     onClick={(event) => {
                       event.stopPropagation()
                       setSharingRecordId(practice.id)

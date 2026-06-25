@@ -1,5 +1,13 @@
 # 待处理问题
 
+## 2026-06-25 - L4 登录态稳定化 ✅ 已完成
+
+- [x] 登录态 L4 用例改为本地 seed 固化，不再依赖测试账号已有云端记录
+- [x] Journal 补录、分享卡、Settings 导出路径从条件 skip 改成真实断言
+- [x] `npm.cmd run test:L4`：51/51 通过，0 skipped
+
+下一步：更新 README/开发说明；随后固化 L5 `.env.test` 与真实云端测试账号。
+
 > 当前解耦阶段与完整测试缺口以 `docs/architecture/DECOUPLING_ROADMAP.md` 和 `docs/architecture/DECOUPLING_TEST_MATRIX.md` 为准。本文件只保留当前执行项。
 
 ## 2026-06-25 - 重构审核补漏 ✅ 已完成

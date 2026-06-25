@@ -1,5 +1,29 @@
 # 阿斯汤加打卡 app - 项目记录
 
+## 2026-06-25: L4 登录态稳定化 — 51/51 全量通过
+
+### 背景
+上一轮审核补漏后，L4 全量仍有 3 个登录态用例因为测试账号缺少稳定云端数据而 `skipped`。这会让下次排查误以为还需要先处理 auth 环境。
+
+### 修复内容
+
+- `__tests__/L4/fixtures.ts` 新增 `seedL4PracticeData(page)`，在应用启动前写入固定 records/options/profile。
+- seed 时设置 `window.__hasAutoSynced__ = true`，避免真实 auth session 下首屏自动同步覆盖本地测试数据。
+- Journal L4 用例改为断言固定 seed 记录、补录 sheet、分享卡真实路径。
+- Settings L4 用例改为进入“数据管理”分区后断言导出弹窗。
+- 为 Journal 补录、记录分享触发器、Settings 导出按钮补充稳定 `data-testid`，降低文案/图标变更导致的测试脆弱性。
+
+### 验证
+
+- `npm.cmd run typecheck` → 通过
+- `npm.cmd run lint` → 通过
+- `npx.cmd playwright test __tests__/L4/journal.spec.ts __tests__/L4/settings.spec.ts --project=auth-chromium` → 5/5 通过
+- `npm.cmd run test:L4` → 51/51 通过，0 skipped
+
+### 注意
+
+当前沙箱访问 Supabase 测试云端仍会被网络权限拦截，因此 `auth.setup` 会保存空白 storageState；L4 登录态 UI 现在不再依赖该云端数据。真正仍需要 `.env.test`/测试云端的是 L5 真实上传、下载、冲突与 auth 冒烟。
+
 ## 2026-06-25: 重构审核补漏 — 门禁恢复绿色
 
 ### 背景
@@ -26,7 +50,7 @@
 
 ### 注意
 
-完整 L4 登录态与 L5 真实云端仍需要可访问的 `.env.test`/测试云端环境；当前受网络权限影响，`auth.setup` 会保存空白 state，登录态用例可能 skip。
+历史备注：本条记录写入时 L4 登录态仍可能 skip；随后已通过本地 seed 固化解决，当前 L4 为 51/51 通过、0 skipped。L5 真实云端仍需要可访问的 `.env.test`/测试云端环境。
 
 ## 2026-06-25: 阶段 6 测试暴露的 3 个缺陷修复
 
