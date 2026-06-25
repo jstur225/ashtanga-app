@@ -31,9 +31,9 @@ export function PurchaseGuideModal({ isOpen, onClose }: PurchaseGuideModalProps)
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50" onClick={onClose}>
+    <div className="fixed inset-0 z-[140] bg-black/50" onClick={onClose}>
       <div
-        className="fixed bottom-0 left-0 right-0 bg-card rounded-t-[24px] z-[110] p-6 pb-10 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] animate-in slide-in-from-bottom duration-300"
+        className="fixed bottom-0 left-0 right-0 bg-card rounded-t-[24px] z-[150] p-6 pb-10 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] animate-in slide-in-from-bottom duration-300"
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-5">
