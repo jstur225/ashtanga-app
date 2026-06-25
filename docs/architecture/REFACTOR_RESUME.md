@@ -4,7 +4,43 @@
 >
 > 不要重新排查页面编排、刷新恢复、媒体生命周期、同步分层、公开 debug/test API 或验证码/会员日志泄露。README/开发说明与 L5 模板/说明已归档；本地 `.env.test` 已填写并跑通 L5。
 
-## 2026-06-25 最新恢复点（安全卫生清理完成）
+## 2026-06-25 最新恢复点（AuthModal 流程拆分完成）
+
+### 本轮拆分
+
+- `components/AuthModal.tsx` 从 933 行降到 579 行，保留弹窗 UI 与接线职责。
+- 新增 `hooks/useRegisterFlow.ts`：
+  - 注册验证码发送/重发。
+  - 注册验证码校验前置状态。
+  - 注册倒计时与注册后自动登录。
+- 新增 `hooks/useForgotPasswordFlow.ts`：
+  - 忘记密码邮箱、验证码、新密码三步状态机。
+  - 重发验证码倒计时。
+  - 重置密码请求现在显式携带验证码 `code`。
+- 新增 `hooks/useCountdownTimer.ts` 复用倒计时逻辑。
+- 新增 `lib/auth-modal-utils.ts`：
+  - Auth 错误翻译。
+  - 密码强度校验。
+  - Auth JSON POST 与验证码发送 helper。
+- 同步更新 `__tests__/practice-commands.test.tsx`，适配上一刀把删除确认从原生 `confirm` 改成 Sonner Toast action 的行为。
+
+### 本轮验证
+
+```powershell
+npm.cmd run typecheck
+npm.cmd run lint
+npx.cmd vitest run --config vitest.config.ts __tests__/auth-modal.test.tsx __tests__/auth-modal-accessibility.test.tsx
+npx.cmd vitest run --config vitest.config.ts
+```
+
+当前结果：
+
+- TypeScript：通过
+- lint：通过
+- AuthModal 对口测试：**2 文件 / 30 项通过**
+- Vitest 全量：**49 文件 / 527 项通过**
+
+## 2026-06-25 上一恢复点（安全卫生清理完成）
 
 ### 本轮安全清理
 
@@ -91,7 +127,7 @@ npm.cmd run test:L4
 | 模块 | 行数 | 状态 |
 |---|---:|---|
 | `app/practice/page.tsx` | 1196 行 | 阶段 4 门槛完成；本轮新增 scoped localStorage 清理 helper |
-| `components/AuthModal.tsx` | 933 行 | 下一刀优先拆分：注册/忘记密码/倒计时流程 |
+| `components/AuthModal.tsx` | 579 行 | 注册/忘记密码/倒计时流程已抽 hook，后续可再拆表单视图组件 |
 | `app/api/membership/status/route.ts` | 139 行 | 已从调试型多路 fallback 收束为正式查询链路 |
 | `app/api/membership/activate/route.ts` | 276 行 | 已去 debug 响应与敏感日志，后续可抽 repository/helper |
 | `hooks/useSync.ts` | 777 行 | 阶段 5 已完成；剩余体量主要是 React 外壳与副作用编排 |
@@ -106,8 +142,8 @@ npm.cmd run test:L4
 
 1. 保持 `.env.test` 本地私有，不提交真实密钥。
 2. 如改动 Supabase/auth/sync，回归 `npm.cmd run test:L5`。
-3. 下一刀建议拆 `components/AuthModal.tsx`：先抽注册流程、忘记密码流程与验证码倒计时 hook，不要同时改 API。
-4. 再下一刀可继续抽会员 API helper/repository，但当前安全边界已收住，不需要重复审计 debug/test 路由。
+3. 下一刀建议继续轻拆 `components/AuthModal.tsx` 的表单视图：LoginForm / RegisterForm / ForgotPasswordForm，保持 hook 不再膨胀。
+4. 再下一刀可抽会员 API helper/repository，但当前安全边界已收住，不需要重复审计 debug/test 路由。
 
 ## 真源文档
 

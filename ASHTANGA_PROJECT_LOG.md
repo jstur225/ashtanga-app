@@ -3931,3 +3931,26 @@ export const INVITE_VERSION = 'v2'  // 从 v1 更新到 v2
 - `npx.cmd vitest run __tests__/api-auth-routes.test.ts` → 1 文件 / 27 项通过
 - `npm.cmd run test:L5` → 3 文件 / 8 项通过
 - `npx.cmd playwright test __tests__/L4/practice.spec.ts --project=guest-chromium` → 4 项通过
+
+## 2026-06-25: AuthModal 流程拆分
+
+### 背景
+
+安全卫生清理后，`components/AuthModal.tsx` 仍是剩余较大的前端组件，混合了登录、注册、忘记密码、验证码倒计时和错误翻译逻辑。
+
+### 修改内容
+
+- `components/AuthModal.tsx` 从 933 行降到 579 行，继续只负责弹窗 UI 与接线。
+- 新增 `hooks/useRegisterFlow.ts`，封装注册验证码发送/重发、注册倒计时、服务端注册与自动登录。
+- 新增 `hooks/useForgotPasswordFlow.ts`，封装忘记密码三步流程、验证码重发倒计时与密码重置。
+- 新增 `hooks/useCountdownTimer.ts`，复用 60 秒倒计时。
+- 新增 `lib/auth-modal-utils.ts`，集中 Auth 错误翻译、密码强度校验与 Auth POST helper。
+- 修正忘记密码前端重置密码请求，显式传递验证码 `code`。
+- 更新 `practice-commands` 测试，适配删除记录确认已从原生 confirm 改为 Sonner Toast action。
+
+### 验证
+
+- `npm.cmd run typecheck` → 通过
+- `npm.cmd run lint` → 通过
+- `npx.cmd vitest run --config vitest.config.ts __tests__/auth-modal.test.tsx __tests__/auth-modal-accessibility.test.tsx` → 2 文件 / 30 项通过
+- `npx.cmd vitest run --config vitest.config.ts` → 49 文件 / 527 项通过

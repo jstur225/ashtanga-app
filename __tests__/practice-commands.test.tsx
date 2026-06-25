@@ -10,7 +10,7 @@ import {
 } from "@/hooks/usePracticeCommands"
 
 const { toast } = vi.hoisted(() => ({
-  toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }),
+  toast: Object.assign(vi.fn(() => "toast-id"), { success: vi.fn(), error: vi.fn(), dismiss: vi.fn() }),
 }))
 
 vi.mock("sonner", () => ({ toast }))
@@ -141,12 +141,14 @@ describe("practice command rules", () => {
     })
 
     it("已登录 + 远端删除成功（skipConfirm=false）→ 弹成功 toast + 触发 autoSync", async () => {
-      vi.stubGlobal("confirm", () => true)
       vi.mocked(deletePracticeRecord).mockResolvedValue(true)
       const args = createArgs({ user: { id: "user-1", email: "user@example.com" } as User })
       const { result } = renderHook(() => usePracticeCommands(args as never))
 
-      await result.current.handleDeleteRecord("record-1", false)
+      const promise = result.current.handleDeleteRecord("record-1", false)
+      const confirmToastOptions = vi.mocked(toast).mock.calls[0][1] as any
+      confirmToastOptions.action.onClick()
+      await promise
 
       expect(args.deleteRecord).toHaveBeenCalledWith("record-1")
       expect(deletePracticeRecord).toHaveBeenCalledWith("record-1")
