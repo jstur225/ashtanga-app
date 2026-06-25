@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { useLocalStorage } from 'react-use';
@@ -50,6 +50,32 @@ const FIXED_BUTTONS = [
   { id: "guided_audio", label: "一序列", notes: "老掌门人版口令" },
   { id: "today_count", label: "", notes: "今日练习人数" },
 ]
+
+const APP_LOCAL_STORAGE_KEYS = [
+  'ashtanga_records',
+  'ashtanga_options',
+  'ashtanga_profile',
+  'ashtanga_uuid',
+  'ashtanga_is_practicing',
+  'ashtanga_is_paused',
+  'ashtanga_start_time',
+  'ashtanga_pause_start_time',
+  'ashtanga_total_paused_time',
+  'ashtanga_active_practice',
+  'ashtanga_chant_enabled',
+  'ashtanga_chant_delay',
+  'ashtanga_export_logs',
+  'ashtanga_photo_logs',
+  'sync_logs',
+  'failed_sync_ids',
+  '__debug_sync__',
+  '__errorHistory',
+  '__signing_out__',
+]
+
+function clearAppLocalStorage() {
+  APP_LOCAL_STORAGE_KEYS.forEach((key) => localStorage.removeItem(key))
+}
 
 export default function AshtangaTracker() {
   const router = useRouter()
@@ -275,7 +301,6 @@ export default function AshtangaTracker() {
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        console.log('[Practice] 页面重新可见，刷新会员状态')
         refreshMembership()
       }
     }
@@ -306,8 +331,6 @@ export default function AshtangaTracker() {
     async (data) => {
       // 同步完成后的回调：更新本地数据
       if (data.records) {
-        console.log('🔄 同步完成，更新本地数据...')
-        console.log('   云端记录数:', data.records.length)
 
         try {
           // ⭐ 保存当前正在编辑的记录ID（在清空数据前）
@@ -315,29 +338,20 @@ export default function AshtangaTracker() {
 
           // 清空本地数据
           clearAllData()
-          console.log('   ✅ 本地数据已清空')
 
           // 导入云端数据（importData 需要 JSON 字符串）
           const jsonData = JSON.stringify(data)
           const importResult = importData(jsonData)
 
           if (importResult) {
-            console.log('   ✅ 云端数据已导入')
 
             // ⭐ 重新设置正在编辑的记录（从新的记录列表中查找）
             if (editingRecordId) {
               const newEditingRecord = data.records.find((r: PracticeRecord) => r.id === editingRecordId)
-              console.error('   🔍 [Sync] 查找编辑记录:', {
-                editingRecordId,
-                found: !!newEditingRecord,
-                cloudRecordCount: data.records.length
-              })
               if (newEditingRecord) {
                 setEditingRecord(newEditingRecord)
-                console.error('   ✅ [Sync] 已恢复编辑状态')
                 toast.success('同步完成，编辑状态已恢复')
               } else {
-                console.error('   ❌ [Sync] 编辑的记录在云端找不到，保持本地编辑状态')
                 toast.warning('同步提示：新记录尚未上传到云端，继续编辑')
                 // 不要关闭弹窗，让用户继续编辑
                 // setEditingRecord(null)
@@ -351,8 +365,7 @@ export default function AshtangaTracker() {
           } else {
             throw new Error('导入云端数据失败')
           }
-        } catch (error: any) {
-          console.error('   ❌ 更新本地数据失败:', error)
+        } catch {
           toast.error('❌ 同步数据失败，请重试', {
             duration: 3000,
             position: 'top-center'
@@ -934,7 +947,7 @@ export default function AshtangaTracker() {
           onConfirmPhraseChange: setConfirmPhrase,
           onInvalidConfirmPhrase: () => toast.error('确认词输入错误，请重新输入'),
           onComplete: async () => {
-            localStorage.clear()
+            clearAppLocalStorage()
             if (user && clearAllData) {
               await clearAllData()
             }
@@ -1061,9 +1074,7 @@ export default function AshtangaTracker() {
             isOpen: showActivateModal,
             onClose: () => setShowActivateModal(false),
             onSuccess: async () => {
-              console.log('[Practice] 激活成功，准备刷新会员状态')
               await refreshMembership()
-              console.log('[Practice] refreshMembership 完成')
             },
           },
           membershipPrompt: {

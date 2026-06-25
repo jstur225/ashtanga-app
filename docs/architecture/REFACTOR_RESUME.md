@@ -1,10 +1,50 @@
 # 解耦重构恢复入口
 
-> 下次启动本项目时先读这里。阶段 1–6 主体已完成；审核补漏与 L4 登录态稳定化已收口，当前常规门禁恢复绿色。
+> 下次启动本项目时先读这里。阶段 1–6 主体已完成；审核补漏、L4 登录态稳定化、L5 真实云端验证与安全卫生清理已收口，当前常规门禁恢复绿色。
 >
-> 不要重新排查页面编排、刷新恢复、媒体生命周期或同步分层。README/开发说明与 L5 模板/说明已归档；本地 `.env.test` 已填写并跑通 L5。
+> 不要重新排查页面编排、刷新恢复、媒体生命周期、同步分层、公开 debug/test API 或验证码/会员日志泄露。README/开发说明与 L5 模板/说明已归档；本地 `.env.test` 已填写并跑通 L5。
 
-## 2026-06-25 最新恢复点（L4 登录态稳定化完成）
+## 2026-06-25 最新恢复点（安全卫生清理完成）
+
+### 本轮安全清理
+
+- 删除公开临时路由：
+  - `app/api/debug/env/route.ts`
+  - `app/api/debug/membership/route.ts`
+  - `app/api/test/membership/route.ts`
+- 清理敏感日志：
+  - Auth/验证码路径不再打印验证码、session、注册响应、邮箱调试流程。
+  - 会员接口不再打印 auth header、token 前缀、请求体、激活码和原始会员记录。
+- 收束会员接口：
+  - `app/api/membership/status/route.ts` 从调试型多路 fallback/全表扫描收束为正式查询链路。
+  - `app/api/membership/activate/route.ts` 去掉 debug 响应字段与敏感错误细节。
+- 调试日志导出降级：
+  - `lib/practice-debug-log.ts` 不再调用 `/api/debug/membership`，只保留正式 membership status 结果。
+- 交互与本地数据清理：
+  - `app/practice/page.tsx` 不再使用 `localStorage.clear()`，改为只清本应用拥有的 key。
+  - 删除记录与日历标注类型删除不再使用原生 `confirm/window.confirm`。
+
+### 本轮验证
+
+```powershell
+npm.cmd run typecheck
+npm.cmd run lint
+npx.cmd vitest run __tests__/api-auth-routes.test.ts
+npm.cmd run test:L5
+npx.cmd playwright test __tests__/L4/practice.spec.ts --project=guest-chromium
+```
+
+当前结果：
+
+- TypeScript：通过
+- lint：通过
+- API auth routes：**1 文件 / 27 项通过**
+- L5 真实云端：**3 文件 / 8 项通过**
+- L4 practice 子集：**4/4 通过**
+
+说明：本轮也启动过全量 L4，51 条用例均打印完成，但 Playwright runner 收尾未退出；其中 practice 子集已单独复跑通过。L4 auth setup 在沙箱内仍会因远程网络受限降级为空白 state，这是既有测试兜底行为。
+
+## 2026-06-25 上一恢复点（L4 登录态稳定化完成）
 
 ### 本轮修复
 
@@ -50,7 +90,10 @@ npm.cmd run test:L4
 
 | 模块 | 行数 | 状态 |
 |---|---:|---|
-| `app/practice/page.tsx` | 1185 行 | 阶段 4 门槛完成 |
+| `app/practice/page.tsx` | 1196 行 | 阶段 4 门槛完成；本轮新增 scoped localStorage 清理 helper |
+| `components/AuthModal.tsx` | 933 行 | 下一刀优先拆分：注册/忘记密码/倒计时流程 |
+| `app/api/membership/status/route.ts` | 139 行 | 已从调试型多路 fallback 收束为正式查询链路 |
+| `app/api/membership/activate/route.ts` | 276 行 | 已去 debug 响应与敏感日志，后续可抽 repository/helper |
 | `hooks/useSync.ts` | 777 行 | 阶段 5 已完成；剩余体量主要是 React 外壳与副作用编排 |
 | `lib/sync-orchestrator.ts` | 402 行 | sync 决策/冲突编排 |
 | `lib/sync-utils.ts` | 551 行 | 同步/统计/色阶等纯函数集合 |
@@ -63,7 +106,8 @@ npm.cmd run test:L4
 
 1. 保持 `.env.test` 本地私有，不提交真实密钥。
 2. 如改动 Supabase/auth/sync，回归 `npm.cmd run test:L5`。
-3. 可选：继续审计 `practice/page.tsx` 的认证/会员/媒体编排，但不建议继续为了行数硬拆。
+3. 下一刀建议拆 `components/AuthModal.tsx`：先抽注册流程、忘记密码流程与验证码倒计时 hook，不要同时改 API。
+4. 再下一刀可继续抽会员 API helper/repository，但当前安全边界已收住，不需要重复审计 debug/test 路由。
 
 ## 真源文档
 

@@ -56,6 +56,7 @@ export function AnnotationManagerModal({
   const [editingType, setEditingType] = useState<AnnotationType | null>(null)
   const [formLabel, setFormLabel] = useState('')
   const [formColor, setFormColor] = useState('')
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   // ===== 日历 =====
   const [monthOffset, setMonthOffset] = useState(0)
@@ -242,12 +243,16 @@ export function AnnotationManagerModal({
   // 删除
   const handleDelete = async () => {
     if (!editingType) return
-    const confirmed = window.confirm(`确认删除「${editingType.label}」？所有日期的标注记录都会被清空。`)
-    if (!confirmed) return
+    setShowDeleteConfirm(true)
+  }
+
+  const confirmDelete = async () => {
+    if (!editingType) return
     await onDeleteType(editingType.id)
     if (selectedTypeId === editingType.id) {
       setSelectedTypeId(null)
     }
+    setShowDeleteConfirm(false)
     setShowForm(null)
     setEditingType(null)
   }
@@ -257,6 +262,7 @@ export function AnnotationManagerModal({
     setSelectedTypeId(null)
     setShowForm(null)
     setEditingType(null)
+    setShowDeleteConfirm(false)
     setMonthOffset(0)
     setPendingAdds({})
     setPendingRemoves({})
@@ -509,6 +515,32 @@ export function AnnotationManagerModal({
                     </button>
                   )}
                   </>
+                  )}
+                  {showDeleteConfirm && editingType && (
+                    <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/35 p-6">
+                      <div role="alertdialog" aria-modal="true" className="w-full max-w-sm rounded-3xl bg-card p-5 shadow-[0_8px_32px_rgba(0,0,0,0.16)]">
+                        <h3 className="mb-2 text-base font-serif text-foreground">确认删除标注？</h3>
+                        <p className="mb-5 text-sm font-serif leading-relaxed text-muted-foreground">
+                          删除「{editingType.label}」后，所有日期上的这个标注都会被清空。
+                        </p>
+                        <div className="flex gap-3">
+                          <button
+                            type="button"
+                            onClick={() => setShowDeleteConfirm(false)}
+                            className="flex-1 rounded-full border border-border bg-secondary px-4 py-2.5 font-serif text-sm text-foreground transition-colors hover:bg-secondary/80"
+                          >
+                            取消
+                          </button>
+                          <button
+                            type="button"
+                            onClick={confirmDelete}
+                            className="flex-1 rounded-full bg-red-500 px-4 py-2.5 font-serif text-sm text-white transition-colors hover:bg-red-600"
+                          >
+                            删除
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                   )}
                 </motion.div>
               )}

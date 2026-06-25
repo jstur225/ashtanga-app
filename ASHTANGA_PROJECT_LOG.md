@@ -3907,3 +3907,27 @@ export const INVITE_VERSION = 'v2'  // 从 v1 更新到 v2
 ### 提交
 - `7ec65a4` — 闲鱼链接改为微信号
 - `02fd308` — z-index 修复
+
+## 2026-06-25: 解耦重构安全卫生清理
+
+### 背景
+
+重构主体完成后做复审，发现历史排查阶段留下的 debug/test API 与敏感日志仍在运行路径中。它们不影响 L4/L5 通过，但会扩大生产日志和接口暴露面。
+
+### 修改内容
+
+- 删除公开临时路由：`/api/debug/env`、`/api/debug/membership`、`/api/test/membership`。
+- Auth/验证码路径去除验证码、session、注册响应、邮箱流程等调试输出。
+- 会员接口去除 auth header、token、请求体、激活码、原始会员记录等敏感日志。
+- `membership/status` 从调试型多路 fallback/全表扫描收束为正式查询链路。
+- 调试日志导出不再调用 `/api/debug/membership`。
+- 清空本地数据从 `localStorage.clear()` 改为只清本应用 key。
+- 删除记录和日历标注类型删除不再使用原生 `confirm/window.confirm`。
+
+### 验证
+
+- `npm.cmd run typecheck` → 通过
+- `npm.cmd run lint` → 通过
+- `npx.cmd vitest run __tests__/api-auth-routes.test.ts` → 1 文件 / 27 项通过
+- `npm.cmd run test:L5` → 3 文件 / 8 项通过
+- `npx.cmd playwright test __tests__/L4/practice.spec.ts --project=guest-chromium` → 4 项通过

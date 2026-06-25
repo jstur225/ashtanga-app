@@ -414,23 +414,6 @@ async function collectMembershipApiLogs(logs: Record<string, unknown>, token: st
   } catch (error) {
     logs.apiError = toErrorMessage(error)
   }
-
-  try {
-    const response = await fetch('/api/debug/membership', { headers: { Authorization: `Bearer ${token}` } })
-    const result = await response.json()
-    if (result.success && result.data) {
-      const data = result.data
-      logs.debugOverview = {
-        envOk: data.env?.hasUrl && data.env?.hasKey,
-        membershipCount: data.tables?.user_memberships?.count || 0,
-        membershipRecords: data.tables?.user_memberships?.records || [],
-        viewRecords: data.tables?.user_membership_status?.records || [],
-        userSpecific: data.user_specific || null,
-      }
-    }
-  } catch (error) {
-    logs.debugApiError = toErrorMessage(error)
-  }
 }
 
 async function collectColorSyncDiagnostics(user: User | null) {

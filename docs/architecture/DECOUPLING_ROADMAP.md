@@ -17,12 +17,15 @@
 | TypeScript / lint / build | 通过 | 持续通过 |
 | `/practice` 首屏 JS | 335.5 KiB gzip（2026-06-25 审核补漏后复测） | 427.9 KiB → 335.5 KiB，下降 21.6% |
 
-## 当前快照（2026-06-25，L4 登录态稳定化完成）
+## 当前快照（2026-06-25，安全卫生清理完成）
 
 | 指标 | 当前值 | 判断 |
 |---|---:|---|
-| `app/practice/page.tsx` | 1185 行 | 阶段 4 门槛完成 |
+| `app/practice/page.tsx` | 1196 行 | 阶段 4 门槛完成；本轮新增 scoped localStorage 清理 helper |
 | 页面 `useState` | 43 个 | 认证、会员、媒体、弹窗和页面编排仍高度集中 |
+| `components/AuthModal.tsx` | 933 行 | 剩余最大表单/流程组件，下一刀优先拆分 |
+| `app/api/membership/status/route.ts` | 139 行 | 已去调试型全表扫描和敏感日志 |
+| `app/api/membership/activate/route.ts` | 276 行 | 已去 debug 响应和 token/激活码日志 |
 | `hooks/useSync.ts` | **777 行** | 阶段 5 最终精简完成。审核补漏后类型边界更明确 |
 | `lib/sync-orchestrator.ts` | 402 行 | sync 决策与冲突编排 |
 | `lib/sync-utils.ts` | 551 行 | 含差异检测、日志条目创建、批量上传、options payload、色阶等纯函数 |
@@ -33,7 +36,7 @@
 | TypeScript / lint | 通过 |  |
 | 生产构建 | 通过 | Next.js 16 生产构建成功 |
 
-按核心阶段 1–6 估算，**解耦重构主体已完成**。矩阵「缺失」项清零；本轮审核补齐了 typecheck、Vitest、L4 smoke、L4 登录态 skip 与 L5 真实云端验证。README/开发说明与 L5 模板已归档。整体完成约 99%+，剩余主要是后续业务改动时持续回归。
+按核心阶段 1–6 估算，**解耦重构主体已完成**。矩阵「缺失」项清零；审核补齐了 typecheck、Vitest、L4 smoke、L4 登录态 skip 与 L5 真实云端验证。安全卫生清理已删除公开 debug/test 路由，清理验证码/session/token/会员数据日志，并把全局 `localStorage.clear()` 与原生确认框替换掉。README/开发说明与 L5 模板已归档。整体完成约 99%+，剩余主要是 `AuthModal` 流程拆分、会员 API helper/repository 化，以及后续业务改动时持续回归。
 
 ## 约束
 

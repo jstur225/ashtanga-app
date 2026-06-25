@@ -10,13 +10,8 @@ export async function POST(request: NextRequest) {
   try {
     const { email, password, verificationCode } = await request.json()
 
-    console.log('========== 服务端注册请求 ==========')
-    console.log('邮箱:', email)
-    console.log('验证码:', verificationCode)
-
     // 1. 参数验证
     if (!email || !password || !verificationCode) {
-      console.log('❌ 缺少必要参数')
       return NextResponse.json(
         { error: '请提供邮箱、密码和验证码' },
         { status: 400 }
@@ -59,29 +54,20 @@ export async function POST(request: NextRequest) {
       .limit(1)
       .single()
 
-    console.log('验证码查询结果:', { verificationData, verificationError })
-
     if (verificationError || !verificationData) {
-      console.log('❌ 验证码验证失败')
       return NextResponse.json(
         { error: '验证码错误或已过期' },
         { status: 400 }
       )
     }
 
-    console.log('✅ 验证码验证成功')
-
     // 4. 验证码正确，开始注册
-    console.log('开始调用 Supabase 注册...')
-
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
     })
 
     if (error) {
-      console.error('❌ Supabase 注册失败:', error)
-
       // 提供更友好的错误信息
       if (error.message.includes('User already registered')) {
         return NextResponse.json(
@@ -95,8 +81,6 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
-
-    console.log('✅ Supabase 注册成功:', data)
 
     // 5. 赠送31天试用会员
     try {
@@ -121,14 +105,10 @@ export async function POST(request: NextRequest) {
             expires_at: expiresAt.toISOString(),
             activated_by_code_id: null,
           })
-          console.log('✅ 已赠送31天试用会员')
-        } else {
-          console.log('⏭️ 用户已有会员，跳过赠送')
         }
       }
-    } catch (trialError: any) {
+    } catch {
       // 赠送失败不影响注册流程
-      console.error('⚠️ 赠送试用会员失败（不影响注册）:', trialError.message)
     }
 
     // 6. 标记验证码为已使用
@@ -136,8 +116,6 @@ export async function POST(request: NextRequest) {
       .from('verification_codes')
       .update({ used: true })
       .eq('id', verificationData.id)
-
-    console.log('✅ 验证码已标记为已使用')
 
     // 7. 返回成功响应
     return NextResponse.json({
@@ -148,8 +126,7 @@ export async function POST(request: NextRequest) {
       }
     })
 
-  } catch (error: any) {
-    console.error('❌ 注册异常:', error)
+  } catch {
     return NextResponse.json(
       { error: '注册失败，请重试' },
       { status: 500 }

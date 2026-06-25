@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
@@ -188,7 +188,6 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
         }
 
         // 验证码正确，开始注册（服务端会再次验证验证码）
-        console.log('✅ 验证码验证成功，开始注册...')
         toast.info('⏳ 正在注册账号，请稍候...', {
           description: '首次注册可能需要 10-30 秒',
           duration: 5000,
@@ -224,9 +223,6 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
             throw new Error(registerData.error || '注册失败')
           }
 
-          console.log('✅ 注册成功:', registerData)
-          console.log('📧 注册返回的用户数据:', registerData.data?.user)
-          console.log('📧 注册返回的session:', registerData.data?.session)
 
           // 注册成功，停止倒计时
           clearInterval(timer)
@@ -234,7 +230,6 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
 
           // ⭐ 服务端注册成功后，前端需要手动登录
           // 因为服务端的 Supabase 客户端和前端的是不同的实例
-          console.log('🔄 开始自动登录...')
           toast.info('🔄 正在自动登录...', {
             duration: 2000,
           })
@@ -244,16 +239,13 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
             password,
           })
 
-          console.log('📧 自动登录结果:', { signInData, signInError })
 
           if (signInError) {
-            console.error('❌ 自动登录失败:', signInError)
             toast.warning('✅ 注册成功，请手动登录', {
               description: '账号已创建，请点击登录按钮',
               duration: 5000,
             })
           } else {
-            console.log('✅ 自动登录成功:', signInData.user?.email)
             toast.success('✅ 绑定成功，已自动登录', {
               description: '🎉 已赠送31天Pro会员',
               duration: 3000,
@@ -295,17 +287,13 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
   // ==================== 发送验证码 ====================
   const handleSendVerificationCode = async () => {
     const startTime = Date.now()
-    console.log('📧 忘记密码流程 - 发送验证码')
-    console.log('   目标邮箱:', email)
 
     if (!email) {
-      console.log('   ❌ 错误：邮箱地址为空')
       setError('请输入邮箱地址')
       return
     }
 
     setLoading(true)
-    console.log('   步骤1: 调用 /api/auth/send-verification-code...')
 
     try {
       const response = await fetch('/api/auth/send-verification-code', {
@@ -315,29 +303,22 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
       })
 
       const elapsed = Date.now() - startTime
-      console.log(`   步骤2: API 响应收到（耗时: ${elapsed/1000}秒）`)
-      console.log('   HTTP 状态码:', response.status)
 
       const data = await response.json()
-      console.log('   响应数据:', data)
 
       if (!response.ok) {
-        console.log('   ❌ API 返回错误:', data.error)
         throw new Error(data.error || '发送失败')
       }
 
-      console.log('   ✅ 验证码发送成功')
 
       toast.success('✅ 验证码已发送到您的邮箱', {
         description: '请查收邮件获取验证码',
         duration: 5000,
       })
 
-      console.log('   步骤3: 切换到验证码输入步骤')
       setFpStep('verify')
 
       // 开始倒计时（60秒）
-      console.log('   步骤4: 开始60秒倒计时')
       setCountdown(60)
       const timer = setInterval(() => {
         setCountdown((prev) => {
@@ -350,13 +331,9 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
       }, 1000)
     } catch (err: any) {
       const elapsed = Date.now() - startTime
-      console.error(`   ❌ 发送验证码异常（${elapsed/1000}秒）:`, err)
-      console.error('   错误信息:', err.message)
       const translatedError = translateErrorMessage(err.message)
-      console.log('   翻译后的错误:', translatedError)
       setError(translatedError || '发送失败，请重试')
     } finally {
-      console.log('   步骤5: 结束发送验证码流程，重置loading状态')
       setLoading(false)
     }
   }
@@ -364,18 +341,13 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
   // ==================== 验证验证码 ====================
   const handleVerifyCode = async () => {
     const startTime = Date.now()
-    console.log('🔍 忘记密码流程 - 验证验证码')
-    console.log('   目标邮箱:', email)
-    console.log('   输入的验证码:', verifyCode)
 
     if (!verifyCode || verifyCode.length !== 6) {
-      console.log('   ❌ 验证失败：验证码格式错误（需要6位）')
       setError('请输入6位验证码')
       return
     }
 
     setLoading(true)
-    console.log('   步骤1: 调用 /api/auth/verify-code...')
 
     try {
       const response = await fetch('/api/auth/verify-code', {
@@ -385,30 +357,21 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
       })
 
       const elapsed = Date.now() - startTime
-      console.log(`   步骤2: API 响应收到（耗时: ${elapsed/1000}秒）`)
-      console.log('   HTTP 状态码:', response.status)
 
       const data = await response.json()
-      console.log('   响应数据:', data)
 
       if (!response.ok) {
-        console.log('   ❌ API 返回错误:', data.error)
         throw new Error(data.error || '验证失败')
       }
 
-      console.log('   ✅ 验证码验证通过')
-      console.log('   步骤3: 切换到设置新密码步骤')
 
       // 验证成功，进入设置新密码步骤
       setFpStep('new-password')
       setError('')
     } catch (err: any) {
       const elapsed = Date.now() - startTime
-      console.error(`   ❌ 验证码验证异常（${elapsed/1000}秒）:`, err)
-      console.error('   错误信息:', err.message)
       setError(err.message || '验证码错误或已过期')
     } finally {
-      console.log('   步骤4: 结束验证码验证流程，重置loading状态')
       setLoading(false)
     }
   }
@@ -416,17 +379,13 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
   // ==================== 更新密码 ====================
   const handleUpdatePassword = async () => {
     const startTime = Date.now()
-    console.log('🔑 忘记密码流程 - 开始更新密码')
-    console.log('   步骤1: 验证输入...')
 
     if (!newPassword || !confirmNewPassword) {
-      console.log('   ❌ 验证失败：未填写所有字段')
       setError('请填写所有字段')
       return
     }
 
     if (newPassword !== confirmNewPassword) {
-      console.log('   ❌ 验证失败：两次输入的密码不一致')
       setError('两次输入的密码不一致')
       return
     }
@@ -434,15 +393,12 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
     // 密码强度验证
     const validation = validatePassword(newPassword)
     if (!validation.valid) {
-      console.log('   ❌ 验证失败：密码格式不正确 -', validation.error)
       setError(validation.error || '密码格式不正确')
       return
     }
 
-    console.log('   ✅ 输入验证通过')
 
     setLoading(true)
-    console.log('   步骤2: 调用后端 API 更新密码...')
 
     try {
       const response = await fetch('/api/auth/reset-password', {
@@ -455,19 +411,13 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
       })
 
       const elapsed = Date.now() - startTime
-      console.log(`   步骤3: API 响应收到（耗时: ${elapsed/1000}秒）`)
-      console.log('   HTTP 状态码:', response.status)
 
       const data = await response.json()
-      console.log('   响应数据:', data)
 
       if (!response.ok) {
-        console.log('   ❌ API 返回错误:', data.error)
         throw new Error(data.error || '更新失败')
       }
 
-      console.log('   ✅ 密码更新成功！')
-      console.log('   步骤4: 切换到登录页面...')
       toast.success('✅ 密码重置成功，请使用新密码登录')
       onModeChange('login')
       setFpStep('email')
@@ -478,13 +428,9 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
       setError('')
     } catch (err: any) {
       const elapsed = Date.now() - startTime
-      console.error(`   ❌ 更新密码异常（${elapsed/1000}秒）:`, err)
-      console.error('   错误信息:', err.message)
       const translatedError = translateErrorMessage(err.message)
-      console.log('   翻译后的错误:', translatedError)
       setError(translatedError || '修改失败，请重试')
     } finally {
-      console.log('   步骤5: 结束更新密码流程，重置loading状态')
       setLoading(false)
     }
   }
@@ -938,8 +884,6 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
                         <button
                           type="button"
                           onClick={() => {
-                            console.log('🔑 用户点击"忘记密码？"链接')
-                            console.log('   当前登录邮箱:', email)
                             onModeChange('forgot-password')
                             setFpStep('email')
                             setError('')

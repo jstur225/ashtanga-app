@@ -194,7 +194,10 @@ export function usePracticeCommands(args: UsePracticeCommandsArgs) {
   }
 
   const handleDeleteRecord = async (id: string, skipConfirm = false) => {
-    if (!skipConfirm && !confirm("确定要删除这条记录吗？")) return
+    if (!skipConfirm) {
+      const confirmed = await requestDeleteConfirmation("确定要删除这条记录吗？")
+      if (!confirmed) return
+    }
     args.deleteRecord(id)
     const success = await deletePracticeRecord(id)
     if (!success) {
@@ -249,6 +252,31 @@ export function usePracticeCommands(args: UsePracticeCommandsArgs) {
 
 function scheduleSync(autoSync: AutoSync, reason: string) {
   setTimeout(() => { void autoSync(reason) }, 500)
+}
+
+function requestDeleteConfirmation(message: string) {
+  return new Promise<boolean>((resolve) => {
+    let settled = false
+    let toastId: string | number
+    const finish = (value: boolean) => {
+      if (settled) return
+      settled = true
+      toast.dismiss(toastId)
+      resolve(value)
+    }
+    toastId = toast(message, {
+      duration: 10000,
+      action: {
+        label: "删除",
+        onClick: () => finish(true),
+      },
+      cancel: {
+        label: "取消",
+        onClick: () => finish(false),
+      },
+      onDismiss: () => finish(false),
+    })
+  })
 }
 
 function scheduleAnalyticsProfileUpdate() {

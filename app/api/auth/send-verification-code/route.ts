@@ -165,14 +165,11 @@ async function sendVerificationEmail(email: string, code: string, type: string) 
   })
 
   if (!response.ok) {
-    const error = await response.text()
-    console.error('Resend API 错误:', error)
+    await response.text()
     throw new Error('邮件发送失败')
   }
 
-  const data = await response.json()
-  console.log('邮件发送成功:', data)
-  return data
+  return response.json()
 }
 
 // 发送验证码
@@ -189,7 +186,6 @@ export async function POST(request: NextRequest) {
 
     // 验证邮箱格式
     if (!isValidEmail(email)) {
-      console.log('⚠️ 邮箱格式不正确:', email)
       return NextResponse.json(
         { error: '邮箱格式不正确' },
         { status: 400 }
@@ -208,10 +204,8 @@ export async function POST(request: NextRequest) {
       .maybeSingle()
 
     if (recentError) {
-      console.error('查询最近验证码失败:', recentError)
       // 限频查询失败不阻塞请求（fail-open 策略，避免误伤用户）
     } else if (recentCode) {
-      console.log('⚠️ 60s 内已发送过验证码:', email)
       return NextResponse.json(
         { error: '请求过于频繁，请 60 秒后再试' },
         { status: 429 }
@@ -224,13 +218,6 @@ export async function POST(request: NextRequest) {
     const now = new Date()
     const expiresAt = new Date(now.getTime() + 5 * 60 * 1000).toISOString()
 
-    console.log('========== 发送验证码 ==========')
-    console.log('邮箱:', email)
-    console.log('验证码:', code)
-    console.log('类型:', type)
-    console.log('生成时间(ISO):', now.toISOString())
-    console.log('过期时间(ISO):', expiresAt)
-
     // 检查邮箱是否已注册（仅在 email_verification 类型时检查）
     if (type === 'email_verification') {
       const { data: existingUser, error: userCheckError } = await getServiceRoleClient()
@@ -239,7 +226,6 @@ export async function POST(request: NextRequest) {
         .listUsers()
 
       if (userCheckError) {
-        console.error('查询用户列表失败:', userCheckError)
         return NextResponse.json(
           { error: '查询失败，请重试' },
           { status: 500 }
@@ -251,7 +237,6 @@ export async function POST(request: NextRequest) {
       )
 
       if (userEmailExists) {
-        console.log('⚠️ 邮箱已注册:', email)
         return NextResponse.json(
           { error: '该邮箱已注册，请直接登录' },
           { status: 400 }
@@ -270,21 +255,16 @@ export async function POST(request: NextRequest) {
       })
 
     if (dbError) {
-      console.error('保存验证码失败:', dbError)
       return NextResponse.json(
         { error: '发送失败，请重试' },
         { status: 500 }
       )
     }
 
-    console.log('✅ 验证码已保存到数据库')
-
     // 发送邮件（使用 Resend）
     try {
       await sendVerificationEmail(email, code, type)
-      console.log('✅ 验证码邮件已发送到:', email)
-    } catch (emailError: any) {
-      console.error('发送邮件失败:', emailError)
+    } catch {
       // 邮件发送失败，但验证码已保存，可以重试
       return NextResponse.json(
         { error: '邮件发送失败，请重试' },
@@ -296,8 +276,7 @@ export async function POST(request: NextRequest) {
       success: true,
       message: '验证码已发送',
     })
-  } catch (error: any) {
-    console.error('发送验证码失败:', error)
+  } catch {
     return NextResponse.json(
       { error: '发送失败，请重试' },
       { status: 500 }

@@ -5,15 +5,6 @@ import { ensureProfileAndGetId } from '@/lib/membership-utils'
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 
-// 调试：检查环境变量
-if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
-  console.error('[Membership API] 环境变量缺失:', {
-    hasUrl: !!SUPABASE_URL,
-    hasKey: !!SUPABASE_SERVICE_KEY,
-    envKeys: Object.keys(process.env).filter(k => k.includes('SUPABASE'))
-  })
-}
-
 /**
  * 会员激活 API
  * POST /api/membership/activate
@@ -28,22 +19,18 @@ if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
 
 // POST - 激活会员
 export async function POST(request: NextRequest) {
-  console.log('[Membership API] 收到激活请求')
-
   try {
     // 1. 验证用户登录
     const authHeader = request.headers.get('authorization')
-    console.log('[Membership API] authHeader:', authHeader ? '存在' : '不存在')
 
     if (!authHeader) {
       return NextResponse.json(
-        { success: false, error: 'NOT_AUTHENTICATED', debug: '缺少 Authorization header' },
+        { success: false, error: 'NOT_AUTHENTICATED' },
         { status: 401 }
       )
     }
 
     const token = authHeader.replace('Bearer ', '')
-    console.log('[Membership API] token 长度:', token.length)
 
     let supabase
     try {
@@ -54,51 +41,43 @@ export async function POST(request: NextRequest) {
         },
       })
     } catch (e: any) {
-      console.error('[Membership API] 创建 Supabase 客户端失败:', e)
       return NextResponse.json(
-        { success: false, error: 'CONFIG_ERROR', debug: '创建 Supabase 客户端失败: ' + e.message },
+        { success: false, error: 'CONFIG_ERROR' },
         { status: 500 }
       )
     }
 
-    console.log('[Membership API] 正在验证 token...')
     let user
     try {
       const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token)
       if (authError) {
-        console.error('[Membership API] 验证 token 失败:', authError)
         return NextResponse.json(
-          { success: false, error: 'NOT_AUTHENTICATED', debug: 'Token 验证失败: ' + authError.message },
+          { success: false, error: 'NOT_AUTHENTICATED' },
           { status: 401 }
         )
       }
       user = authUser
     } catch (e: any) {
-      console.error('[Membership API] 验证 token 异常:', e)
       return NextResponse.json(
-        { success: false, error: 'NOT_AUTHENTICATED', debug: 'Token 验证异常: ' + e.message },
+        { success: false, error: 'NOT_AUTHENTICATED' },
         { status: 401 }
       )
     }
 
     if (!user) {
       return NextResponse.json(
-        { success: false, error: 'NOT_AUTHENTICATED', debug: '用户不存在' },
+        { success: false, error: 'NOT_AUTHENTICATED' },
         { status: 401 }
       )
     }
-
-    console.log('[Membership API] 用户验证成功:', user.id)
 
     // 2. 解析请求体
     let body
     try {
       body = await request.json()
-      console.log('[Membership API] 请求体:', body)
     } catch (e: any) {
-      console.error('[Membership API] 解析请求体失败:', e)
       return NextResponse.json(
-        { success: false, error: 'INVALID_REQUEST', debug: '解析请求体失败: ' + e.message },
+        { success: false, error: 'INVALID_REQUEST' },
         { status: 400 }
       )
     }
@@ -114,7 +93,6 @@ export async function POST(request: NextRequest) {
 
     // 格式化激活码 (大写,去除空格)
     const formattedCode = code.toUpperCase().replace(/\s/g, '')
-    console.log('[Membership API] 格式化后的激活码:', formattedCode)
 
     // 3. 验证激活码格式 (XXXX-XXXX-XXXX)
     const codePattern = /^[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/
@@ -126,7 +104,6 @@ export async function POST(request: NextRequest) {
     }
 
     // 4. 查询激活码
-    console.log('[Membership API] 正在查询激活码...')
     let activationCode
     try {
       const result = await supabase
@@ -135,29 +112,21 @@ export async function POST(request: NextRequest) {
         .eq('code', formattedCode)
         .single()
 
-      console.log('[Membership API] 查询激活码结果:', result)
-
       if (result.error) {
-        console.error('[Membership API] 查询激活码错误:', result.error)
         return NextResponse.json(
           {
             success: false,
             error: 'DATABASE_ERROR',
-            details: result.error.message,
-            debug: '查询激活码失败',
           },
           { status: 500 }
         )
       }
       activationCode = result.data
     } catch (err: any) {
-      console.error('[Membership API] 查询激活码异常:', err)
       return NextResponse.json(
         {
           success: false,
           error: 'DATABASE_ERROR',
-          details: err.message,
-          debug: '查询激活码异常',
         },
         { status: 500 }
       )
@@ -170,11 +139,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log('[Membership API] 查询到激活码:', { id: activationCode.id, used: activationCode.used, type: activationCode.type })
-
     // 5. 检查激活码是否已使用
     if (activationCode.used) {
-      console.log('[Membership API] 激活码已被使用, used_by:', activationCode.used_by)
       return NextResponse.json(
         { success: false, error: 'CODE_USED' },
         { status: 400 }
@@ -190,19 +156,15 @@ export async function POST(request: NextRequest) {
     }
 
     // 7. 确保用户有 profile 记录，获取 profileId
-    console.log('[Membership API] 确保 profile 存在...')
     let profileId: string
     try {
       profileId = await ensureProfileAndGetId(supabase, user)
     } catch (e: any) {
-      console.error('[Membership API] profile 处理失败:', e)
       return NextResponse.json(
-        { success: false, error: 'DATABASE_ERROR', details: e.message },
+        { success: false, error: 'DATABASE_ERROR' },
         { status: 500 }
       )
     }
-
-    console.log('[Membership API] 使用 profileId:', profileId)
 
     const now = new Date()
 
@@ -218,17 +180,10 @@ export async function POST(request: NextRequest) {
         .order('expires_at', { ascending: false })
         .limit(1)
 
-      if (error) {
-        console.error('[Membership API] 查询会员记录失败:', error)
-      } else if (memberships && memberships.length > 0) {
+      if (!error && memberships && memberships.length > 0) {
         currentLatestExpiry = new Date(memberships[0].expires_at)
-        console.log('[Membership API] 当前活跃会员最新到期时间:', currentLatestExpiry)
-      } else {
-        console.log('[Membership API] 无活跃会员记录')
       }
-    } catch (err: any) {
-      console.error('[Membership API] 查询会员记录异常:', err)
-    }
+    } catch {}
 
     let newExpiresAt: Date
     let isNewMembership = false
@@ -237,16 +192,13 @@ export async function POST(request: NextRequest) {
     if (currentLatestExpiry) {
       // 续费: 从当前最新到期时间累加
       newExpiresAt = new Date(currentLatestExpiry.getTime() + activationCode.duration_days * 24 * 60 * 60 * 1000)
-      console.log('[Membership API] 续费, 原到期时间:', currentLatestExpiry, '新到期时间:', newExpiresAt)
     } else {
       // 新开通: 从当前时间开始
       newExpiresAt = new Date(now.getTime() + activationCode.duration_days * 24 * 60 * 60 * 1000)
       isNewMembership = true
-      console.log('[Membership API] 新开通, 到期时间:', newExpiresAt)
     }
 
     // 9. 创建会员记录
-    console.log('[Membership API] 创建会员记录...')
     try {
       const result = await supabase
         .from('user_memberships')
@@ -259,25 +211,20 @@ export async function POST(request: NextRequest) {
           activated_by_code_id: activationCode.id,
         })
 
-      console.log('[Membership API] 创建会员记录结果:', result)
-
       if (result.error) {
-        console.error('[Membership API] 创建会员记录失败:', result.error)
         return NextResponse.json(
-          { success: false, error: 'DATABASE_ERROR', details: '创建会员记录失败: ' + result.error.message },
+          { success: false, error: 'DATABASE_ERROR' },
           { status: 500 }
         )
       }
     } catch (e: any) {
-      console.error('[Membership API] 创建会员记录异常:', e)
       return NextResponse.json(
-        { success: false, error: 'DATABASE_ERROR', details: '创建会员记录异常: ' + e.message },
+        { success: false, error: 'DATABASE_ERROR' },
         { status: 500 }
       )
     }
 
     // 10. 标记激活码为已使用
-    console.log('[Membership API] 标记激活码为已使用, code:', activationCode.code)
     try {
       // ⭐ 不保存 used_by 避免外键约束问题
       const result = await supabase
@@ -289,21 +236,15 @@ export async function POST(request: NextRequest) {
         .eq('code', activationCode.code)
         .select()
 
-      console.log('[Membership API] 更新激活码结果:', result)
-
       if (result.error) {
-        console.error('[Membership API] 更新激活码状态失败:', result.error)
         return NextResponse.json(
-          { success: false, error: 'DATABASE_ERROR', details: '激活码状态更新失败: ' + result.error.message },
+          { success: false, error: 'DATABASE_ERROR' },
           { status: 500 }
         )
       }
-
-      console.log('[Membership API] 激活码已成功标记为已使用')
     } catch (e: any) {
-      console.error('[Membership API] 更新激活码异常:', e)
       return NextResponse.json(
-        { success: false, error: 'DATABASE_ERROR', details: '更新激活码异常: ' + e.message },
+        { success: false, error: 'DATABASE_ERROR' },
         { status: 500 }
       )
     }
@@ -324,16 +265,10 @@ export async function POST(request: NextRequest) {
       },
     })
   } catch (error: any) {
-    console.error('[Membership API] 服务器错误:', error)
     return NextResponse.json(
       {
         success: false,
         error: 'INTERNAL_ERROR',
-        message: error.message,
-        envCheck: {
-          hasUrl: !!SUPABASE_URL,
-          hasKey: !!SUPABASE_SERVICE_KEY,
-        }
       },
       { status: 500 }
     )
