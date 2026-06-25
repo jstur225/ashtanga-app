@@ -2,6 +2,29 @@
 
 > 一个专注阿斯汤加瑜伽打卡和身体觉察的记录工具
 
+## 开发维护入口（2026-06-25）
+
+如果你是下次回来继续重构/维护，先读这里，不要重新排查半天：
+
+- 当前重构状态：阶段 1–6 主体完成，审核补漏完成，L4 登录态稳定化完成。
+- 恢复入口：[`docs/architecture/REFACTOR_RESUME.md`](./docs/architecture/REFACTOR_RESUME.md)
+- 开发说明：[`docs/guides/DEVELOPMENT.md`](./docs/guides/DEVELOPMENT.md)
+- 重构路线图：[`docs/architecture/DECOUPLING_ROADMAP.md`](./docs/architecture/DECOUPLING_ROADMAP.md)
+- 测试矩阵：[`docs/architecture/DECOUPLING_TEST_MATRIX.md`](./docs/architecture/DECOUPLING_TEST_MATRIX.md)
+
+当前验证基线：
+
+```powershell
+npm.cmd run typecheck
+npm.cmd run lint
+npx.cmd vitest run
+npm.cmd run build
+npm.cmd run measure:initial-js
+npm.cmd run test:L4
+```
+
+最近一次结果：TypeScript / lint / Vitest 49 文件 527 项 / build / 首屏 JS 测量 / L4 51 项全部通过。L4 登录态测试已用本地 seed 固化；L5 真实云端测试仍需要 `.env.test` 和专用测试账号。
+
 ## 项目状态
 🎉 **MVP已完成**
 - ✅ 数据持久化完成
@@ -382,7 +405,7 @@ vs iOS：
 ---
 
 **创建时间**：2026-01-14
-**最后更新**：2026-05-15
+**最后更新**：2026-06-25
 **当前版本**：v1.2.1（已部署）
 **项目状态**：🎉 云端运行中
 **下一步行动**：小红书双号运营（品牌号 + 主理人号）

@@ -3869,3 +3869,23 @@ export const INVITE_VERSION = 'v2'  // 从 v1 更新到 v2
 - **26.7% 用户试了 5 次以内就走**，这部分可能不是产品问题，而是「不是目标用户」（随便试试就走的过客）
 - 瓶颈确实在获客（daily intake ~1 人），而非留存
 
+
+## 2026-06-25: 购买弹窗优化 — 闲鱼改微信号 + z-index 修复
+
+### 背景
+用户反馈：在 Tab1 点击加锁的练习选项后弹出 Pro 会员提示，点击"购买"按钮无反应。
+
+### Bug 修复
+- `components/Membership/PurchaseGuideModal.tsx` — 遮罩层 z-index 从 `z-50` 提升到 `z-[140]`，内容层从 `z-[110]` 提升到 `z-[150]`
+- 根因：`MembershipPromptModal` 的 z-index 为 `z-[120]/z-[130]`，购买弹窗实际打开了但被挡在后方不可见
+- 影响范围：所有调用了 `PurchaseGuideModal` 的地方（MembershipPromptModal、ActivateModal、Settings 页）
+
+### 功能调整
+- 购买弹窗内容从「闲鱼链接 + 一键复制链接」改为「微信号 xiao519216978 + 复制微信号」，减少一步操作
+
+### 涉及文件
+- `components/Membership/PurchaseGuideModal.tsx`
+
+### 提交
+- `7ec65a4` — 闲鱼链接改为微信号
+- `02fd308` — z-index 修复

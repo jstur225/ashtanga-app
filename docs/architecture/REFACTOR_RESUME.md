@@ -2,7 +2,7 @@
 
 > 下次启动本项目时先读这里。阶段 1–6 主体已完成；审核补漏与 L4 登录态稳定化已收口，当前常规门禁恢复绿色。
 >
-> 不要重新排查页面编排、刷新恢复、媒体生命周期或同步分层。下一轮优先做 README/开发说明归档，以及 L5 真实云端环境可重复化。
+> 不要重新排查页面编排、刷新恢复、媒体生命周期或同步分层。README/开发说明已归档；下一轮优先做 L5 真实云端环境可重复化。
 
 ## 2026-06-25 最新恢复点（L4 登录态稳定化完成）
 
@@ -60,14 +60,14 @@ npm.cmd run test:L4
 
 ## 下一轮建议
 
-1. 更新 README/开发说明，把解耦后入口、测试命令、L4 seed、L5 `.env.test` 要求写清楚。
-2. 固化 L5 真实云端环境：专用测试账号、reset 脚本、`.env.test` 模板和运行说明。
-3. 可选：继续审计 `practice/page.tsx` 的认证/会员/媒体编排，但不建议继续为了行数硬拆。
+1. 固化 L5 真实云端环境：专用测试账号、reset 脚本、`.env.test` 模板和运行说明。
+2. 可选：继续审计 `practice/page.tsx` 的认证/会员/媒体编排，但不建议继续为了行数硬拆。
 
 ## 真源文档
 
 - 总路线：[`DECOUPLING_ROADMAP.md`](./DECOUPLING_ROADMAP.md)
 - 测试矩阵：[`DECOUPLING_TEST_MATRIX.md`](./DECOUPLING_TEST_MATRIX.md)
 - 首屏性能：[`PERFORMANCE_BASELINE.md`](./PERFORMANCE_BASELINE.md)
+- 开发说明：[`../guides/DEVELOPMENT.md`](../guides/DEVELOPMENT.md)
 - 当前执行清单：[`../../TODO.md`](../../TODO.md)
 - 历史记录：[`../../ASHTANGA_PROJECT_LOG.md`](../../ASHTANGA_PROJECT_LOG.md)
