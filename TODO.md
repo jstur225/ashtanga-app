@@ -6,8 +6,9 @@
 - [x] 新增 `docs/guides/L5_TESTING.md`，说明测试账号、白名单、reset 流程、常见失败
 - [x] `.gitignore` 继续忽略真实 `.env.test`，但允许提交 `.env.test.example`
 - [x] `docs/guides/DEVELOPMENT.md` 和恢复入口已链接 L5 专门说明
+- [x] 本地 `.env.test` 已填写并验证：`npm.cmd run test:L5` 3 文件 / 8 项通过
 
-下一步：人工填入真实 `.env.test` 后运行 `npm.cmd run test:L5`。
+下一步：保持 `.env.test` 本地私有；如改动 Supabase/auth/sync，再跑 `npm.cmd run test:L5`。
 
 ## 2026-06-25 - 百度 SEO 补齐：发现型关键词覆盖 ⏳ 代码已完成，待分支合并后提交百度
 

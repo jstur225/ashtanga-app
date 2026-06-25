@@ -7,7 +7,7 @@
 - 重构阶段 1–6 主体已完成。
 - 审核补漏已完成，常规门禁恢复绿色。
 - L4 隔离浏览器测试已稳定：`51/51 passed, 0 skipped`。
-- L5 仍是“真实云端冒烟”，需要 `.env.test`、Supabase 测试项目和专用测试账号。
+- L5 真实云端冒烟已通过本地 `.env.test`、Supabase 测试项目和专用测试账号验证。
 
 ## 日常启动
 
@@ -41,6 +41,7 @@ npm.cmd run test:L4
 | `npm.cmd run build` | 通过 |
 | `npm.cmd run measure:initial-js` | 16 scripts / 1117.0 KiB raw / 335.5 KiB gzip |
 | `npm.cmd run test:L4` | 51/51 通过，0 skipped |
+| `npm.cmd run test:L5` | 3 文件 / 8 项通过 |
 
 ## L4 测试说明
 
@@ -71,7 +72,7 @@ Stop-Process -Id <LISTENING_PID>
 
 ## L5 测试说明
 
-L5 是真实云端冒烟测试，只有在测试云端环境准备好后再跑：
+L5 是真实云端冒烟测试。当前本地 `.env.test` 已填写并验证通过，后续改动 Supabase/auth/sync 时再跑：
 
 ```powershell
 npm.cmd run test:L5

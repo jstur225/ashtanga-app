@@ -99,7 +99,7 @@
 | 删除的本地成功/云端失败补偿 | L3/L5 | L3 已覆盖（`__tests__/sync-isolation-and-rollback.test.ts` 2 项：resolveConflict('local') repoDeleteAllUserOptions 失败 / upsert 失败 都应 setSyncStatus('error')） |
 | 日志数量、大小、敏感信息过滤 | L1/L3 | L1 已覆盖（`trimSyncLogs` 4 项：单条、50 条上限、100KB 截断、空列表兜底） |
 | profile/options/records 独立变化 | L1/L3 | L1 已覆盖（`detectOptionChanges` 5 项 + `detectProfileChanges` 8 项：相同、单边、内容变化、时间戳比较） |
-| 测试账号真实上传/下载/冲突 | L5 | 基础设施与说明已就绪（`vitest.config.e2e.mjs` + `__tests__/L5/` + `scripts/reset-test-account.ts` + `.env.test.example` + `docs/guides/L5_TESTING.md`），等真实 `.env.test` 配置后跑通 |
+| 测试账号真实上传/下载/冲突 | L5 | 已跑通（`npm.cmd run test:L5`：3 文件 / 8 项通过）；基础设施与说明见 `vitest.config.e2e.mjs`、`__tests__/L5/`、`scripts/reset-test-account.ts`、`.env.test.example`、`docs/guides/L5_TESTING.md` |
 
 ## 阶段 6：跨模块
 

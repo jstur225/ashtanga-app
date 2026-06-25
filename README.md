@@ -23,7 +23,7 @@ npm.cmd run measure:initial-js
 npm.cmd run test:L4
 ```
 
-最近一次结果：TypeScript / lint / Vitest 49 文件 527 项 / build / 首屏 JS 测量 / L4 51 项全部通过。L4 登录态测试已用本地 seed 固化；L5 真实云端测试仍需要 `.env.test` 和专用测试账号。
+最近一次结果：TypeScript / lint / Vitest 49 文件 527 项 / build / 首屏 JS 测量 / L4 51 项全部通过；L5 真实云端测试 3 文件 / 8 项通过。L4 登录态测试已用本地 seed 固化；L5 已通过本地 `.env.test` 和专用测试账号验证。
 
 ## 项目状态
 🎉 **MVP已完成**

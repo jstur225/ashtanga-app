@@ -2,7 +2,7 @@
 
 > 下次启动本项目时先读这里。阶段 1–6 主体已完成；审核补漏与 L4 登录态稳定化已收口，当前常规门禁恢复绿色。
 >
-> 不要重新排查页面编排、刷新恢复、媒体生命周期或同步分层。README/开发说明与 L5 模板/说明已归档；下一轮优先填入真实 `.env.test` 并跑通 L5。
+> 不要重新排查页面编排、刷新恢复、媒体生命周期或同步分层。README/开发说明与 L5 模板/说明已归档；本地 `.env.test` 已填写并跑通 L5。
 
 ## 2026-06-25 最新恢复点（L4 登录态稳定化完成）
 
@@ -42,8 +42,9 @@ npm.cmd run test:L4
 - build：通过
 - `/practice` 首屏 JS：**16 scripts / 1117.0 KiB raw / 335.5 KiB gzip**
 - L4 隔离浏览器：**51/51 通过，0 skipped**
+- L5 真实云端：**3 文件 / 8 项通过**
 
-说明：当前沙箱环境访问 Supabase 测试云端仍会被网络权限拦截，所以 `auth.setup` 会保存空白 storageState；但 L4 登录态 UI 已改为本地 seed 固化，不再依赖真实云端数据。真正依赖 `.env.test`/测试云端的是 L5 真实上传、下载、冲突与 auth 冒烟。
+说明：L4 登录态 UI 已改为本地 seed 固化，不依赖真实云端数据。L5 依赖本地 `.env.test` 和专用测试账号，已验证真实 Supabase auth、CRUD、上传同步与冲突测试可跑通。
 
 ## 当前规模总结
 
@@ -60,8 +61,8 @@ npm.cmd run test:L4
 
 ## 下一轮建议
 
-1. 创建/确认专用 L5 测试账号，复制 `.env.test.example` 为 `.env.test` 并填入真实测试项目密钥。
-2. 运行 `npm.cmd run test:L5`，确认真实云端 auth、CRUD、上传同步与冲突测试通过。
+1. 保持 `.env.test` 本地私有，不提交真实密钥。
+2. 如改动 Supabase/auth/sync，回归 `npm.cmd run test:L5`。
 3. 可选：继续审计 `practice/page.tsx` 的认证/会员/媒体编排，但不建议继续为了行数硬拆。
 
 ## 真源文档
