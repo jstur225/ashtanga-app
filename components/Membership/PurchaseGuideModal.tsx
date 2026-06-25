@@ -3,8 +3,7 @@
 import { useState } from 'react'
 import { X, Copy, Check } from 'lucide-react'
 
-const XIANYU_TEXT = `【闲鱼】https://m.tb.cn/h.isrHxFb?tk=BaPn5iNjAKw MF937 「我在闲鱼发布了【熬汤日记丨练汤专属网页工具Appmian费会员」」
-#小程序://闲鱼/yQH9s8pdHGWkjbs`
+const WECHAT_ID = 'xiao519216978'
 
 interface PurchaseGuideModalProps {
   isOpen: boolean
@@ -18,10 +17,10 @@ export function PurchaseGuideModal({ isOpen, onClose }: PurchaseGuideModalProps)
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(XIANYU_TEXT)
+      await navigator.clipboard.writeText(WECHAT_ID)
     } catch {
       const ta = document.createElement('textarea')
-      ta.value = XIANYU_TEXT
+      ta.value = WECHAT_ID
       document.body.appendChild(ta)
       ta.select()
       document.execCommand('copy')
@@ -44,10 +43,13 @@ export function PurchaseGuideModal({ isOpen, onClose }: PurchaseGuideModalProps)
           </button>
         </div>
 
-        <div className="bg-white rounded-[16px] border border-[#E8E8E3] p-4 mb-4">
-          <p className="text-sm text-[#2D3A2D] break-all select-all font-mono leading-relaxed whitespace-pre-line">
-            {XIANYU_TEXT}
-          </p>
+        <div className="text-center space-y-4 mb-6">
+          <p className="text-sm text-muted-foreground">请联系开发者购买</p>
+          <div className="bg-white rounded-[16px] border border-[#E8E8E3] p-4">
+            <p className="text-lg font-mono text-[#2D3A2D] font-semibold select-all">
+              {WECHAT_ID}
+            </p>
+          </div>
         </div>
         <button
           onClick={handleCopy}
@@ -65,7 +67,7 @@ export function PurchaseGuideModal({ isOpen, onClose }: PurchaseGuideModalProps)
           ) : (
             <>
               <Copy className="w-4 h-4" />
-              一键复制链接
+              复制微信号
             </>
           )}
         </button>
