@@ -1,12 +1,41 @@
 # 待处理问题
 
+## 2026-06-25 - 百度 SEO 补齐：发现型关键词覆盖 ⏳ 代码已完成，待分支合并后提交百度
+
+**目的**：让用户在百度搜索"阿斯汤加 记录"、"瑜伽 打卡工具"等发现型关键词时能搜到官网。
+
+**诊断背景**：品牌词"熬汤日记"已能搜到，但发现型关键词无排名。当前每日 intake 仅 ~1 人，瓶颈在获客通道。
+
+### 已完成的代码改动（在 master2 分支）
+- [x] `app/layout.tsx` — title/description 加入发现型关键词
+- [x] `app/seo/page.tsx` — 新增 SEO 着陆页（纯服务器组件）
+- [x] `app/sitemap.ts` — 新增 sitemap.xml
+- [x] `app/robots.ts` — 新增 robots.txt 指向 sitemap
+
+### ❗ 待 master2 分支所有修改完成并部署后执行
+- [ ] 百度站长平台提交 sitemap：`https://ash.ashtangalife.online/sitemap.xml`
+- [ ] 百度站长平台手动提交收录：`/` 和 `/seo` 两个链接
+- [ ] 2-4 周后确认搜索排名
+
+### 来源
+- dbs-diagnosis 商业模式诊断（2026-06-25）
+- 用户选了搜索流量路径（B），而非内容分发扩量（A）
+
+## 2026-06-25 - README / 开发说明归档 ✅ 已完成
+
+- [x] README 增加开发维护入口、当前验证基线、核心文档链接
+- [x] 新增 `docs/guides/DEVELOPMENT.md`，说明日常启动、门禁命令、L4 seed、L5 `.env.test` 要求
+- [x] 恢复入口文档已把下一步推进到 L5 真实云端环境可重复化
+
+下一步：固化 L5 `.env.test`、测试账号和 reset 流程。
+
 ## 2026-06-25 - L4 登录态稳定化 ✅ 已完成
 
 - [x] 登录态 L4 用例改为本地 seed 固化，不再依赖测试账号已有云端记录
 - [x] Journal 补录、分享卡、Settings 导出路径从条件 skip 改成真实断言
 - [x] `npm.cmd run test:L4`：51/51 通过，0 skipped
 
-下一步：更新 README/开发说明；随后固化 L5 `.env.test` 与真实云端测试账号。
+下一步：README/开发说明已完成；继续固化 L5 `.env.test` 与真实云端测试账号。
 
 > 当前解耦阶段与完整测试缺口以 `docs/architecture/DECOUPLING_ROADMAP.md` 和 `docs/architecture/DECOUPLING_TEST_MATRIX.md` 为准。本文件只保留当前执行项。
 
@@ -19,7 +48,7 @@
 - [x] 首屏 JS 复测：16 scripts / 1117.0 KiB raw / 335.5 KiB gzip
 - [x] 文档同步：恢复入口、路线图、测试矩阵、性能基线、项目日志已更新
 
-下一步：最终归档 README；如需完整 L4/L5，全量验证前先配置可访问的 `.env.test`/测试云端环境。
+下一步：README/开发说明已完成；如需完整 L5，全量验证前先配置可访问的 `.env.test`/测试云端环境。
 
 ## 2026-06-25 - 阶段 6 测试暴露的 3 个缺陷 ✅ 已修复
 
