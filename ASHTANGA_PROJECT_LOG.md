@@ -1,5 +1,22 @@
 # 阿斯汤加打卡 app - 项目记录
 
+## 2026-06-25: L5 真实云端测试模板与说明
+
+### 背景
+L5 基础设施已经存在，但缺少可复制的 `.env.test` 模板和独立说明。没有这层文档，下次容易误跑真实账号，或者不知道 reset 流程实际会删哪些表。
+
+### 修改内容
+
+- 新增 `.env.test.example`，列出 `TEST_USER_EMAIL`、`TEST_USER_PASSWORD`、Supabase URL、anon key、service role key。
+- `.gitignore` 增加 `!.env.test.example`，继续忽略真实 `.env.test`，允许提交安全模板。
+- 新增 `docs/guides/L5_TESTING.md`，说明 L5 运行条件、测试账号准备、reset 流程、常见失败和 L4/L5 区别。
+- `docs/guides/DEVELOPMENT.md` 和 `docs/architecture/REFACTOR_RESUME.md` 增加 L5 说明链接。
+- `TODO.md` 增加 L5 模板与说明完成项。
+
+### 下一步
+
+需要人工填入真实 `.env.test`，然后运行 `npm.cmd run test:L5` 验证真实 Supabase auth、CRUD、上传同步与冲突链路。
+
 ## 2026-06-25: README / 开发说明归档
 
 ### 背景

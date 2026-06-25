@@ -87,6 +87,8 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 ```
 
+模板见项目根目录 [`.env.test.example`](../../.env.test.example)，完整说明见 [`L5_TESTING.md`](./L5_TESTING.md)。
+
 注意：
 
 - 使用专用测试账号，不要使用生产账号。
@@ -96,6 +98,7 @@ SUPABASE_SERVICE_ROLE_KEY=
 ## 文档入口
 
 - 当前恢复点：[`../architecture/REFACTOR_RESUME.md`](../architecture/REFACTOR_RESUME.md)
+- L5 测试说明：[`L5_TESTING.md`](./L5_TESTING.md)
 - 重构路线图：[`../architecture/DECOUPLING_ROADMAP.md`](../architecture/DECOUPLING_ROADMAP.md)
 - 测试矩阵：[`../architecture/DECOUPLING_TEST_MATRIX.md`](../architecture/DECOUPLING_TEST_MATRIX.md)
 - 性能基线：[`../architecture/PERFORMANCE_BASELINE.md`](../architecture/PERFORMANCE_BASELINE.md)

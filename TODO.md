@@ -1,5 +1,14 @@
 # 待处理问题
 
+## 2026-06-25 - L5 真实云端测试模板与说明 ✅ 已完成
+
+- [x] 新增 `.env.test.example`，给出 L5 必需环境变量模板
+- [x] 新增 `docs/guides/L5_TESTING.md`，说明测试账号、白名单、reset 流程、常见失败
+- [x] `.gitignore` 继续忽略真实 `.env.test`，但允许提交 `.env.test.example`
+- [x] `docs/guides/DEVELOPMENT.md` 和恢复入口已链接 L5 专门说明
+
+下一步：人工填入真实 `.env.test` 后运行 `npm.cmd run test:L5`。
+
 ## 2026-06-25 - 百度 SEO 补齐：发现型关键词覆盖 ⏳ 代码已完成，待分支合并后提交百度
 
 **目的**：让用户在百度搜索"阿斯汤加 记录"、"瑜伽 打卡工具"等发现型关键词时能搜到官网。

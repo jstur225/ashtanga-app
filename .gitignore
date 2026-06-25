@@ -19,6 +19,7 @@ debug.log
 
 # env files
 .env*
+!.env.test.example
 
 # vercel
 .vercel
