@@ -101,6 +101,7 @@ export interface PracticeRecord {
   start_time?: string | null // ⭐ 新增：练习开始时间，ISO 8601 格式（如 2026-03-05T11:53:00+08:00）
   deleted_at?: string | null // 软删除字段
   color_level?: number // 日历色阶等级 1-4（默认3，记录级覆盖类型的默认色）
+  is_tutorial?: boolean // 是否为系统创建的教程记录（不导出、不上传云端）
 }
 
 export interface PracticeOption {

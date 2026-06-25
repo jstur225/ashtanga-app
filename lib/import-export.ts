@@ -97,14 +97,14 @@ export function serializeExportData(
   options: PracticeOption[],
   profile: UserProfile | null,
 ): string {
-  const nonDraftRecords = (records || []).filter((r) => r.type !== '草稿')
+  const nonSystemRecords = (records || []).filter((r) => r.type !== '草稿' && !r.is_tutorial)
   let cleanProfile: Partial<UserProfile> | undefined
   if (profile) {
     const { avatar, ...rest } = profile
     cleanProfile = rest
   }
   const data = {
-    records: nonDraftRecords,
+    records: nonSystemRecords,
     options,
     profile: cleanProfile,
     export_at: new Date().toISOString(),

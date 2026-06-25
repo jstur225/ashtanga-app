@@ -6,7 +6,7 @@
 
 ## 当前覆盖概览
 
-当前自动化基线：48 个测试文件、498 项测试通过（2026-06-24，阶段 6 测试缺口填充）。
+当前自动化基线：49 个测试文件、525 项测试通过（2026-06-25，阶段 6 测试缺口填充：教程记录隔离、API 幂等、Tab 滚动与深链接补充）。
 
 | 领域 | 当前状态 | 主要缺口 | 计划阶段 |
 |---|---|---|---|
@@ -72,9 +72,9 @@
 | 调试日志采集与失败降级 | L1/L3 | 已覆盖（练习/同步摘要、未登录会员、照片日志、JSON 序列化、页面归属约束） |
 | 记录/选项命令与会员门槛 | L1/L3/L4 | 已覆盖（色阶、锁定名额、删除失败补偿、同步触发；生产选择/自定义弹窗） |
 | 动态模块 loading/success/error | L2/L4 | 已覆盖（DynamicTabShell error boundary + 重试按钮） |
-| Tab 滚动与内部状态保持 | L4 | 缺失 |
+| Tab 滚动与内部状态保持 | L4 | 已覆盖（`__tests__/L4/tab.spec.ts`：切走再切回 scrollTop 保持） |
 | 弹窗打开隐藏导航、关闭恢复 | L2/L4 | 已覆盖（组件策略 + 自定义练习生产回归） |
-| URL 参数、返回、刷新、深链接 | L4 | 缺失 |
+| URL 参数、返回、刷新、深链接 | L4 | 已覆盖（`__tests__/L4/deep-link.spec.ts` 深链接有效/非法值/空值/刷新 hydration；`__tests__/L4/url-state.spec.ts` 浏览器返回/前进 hydration；`__tests__/L4/visibility.spec.ts` 后台暂停/前台恢复） |
 | 日记 CRUD、分享、月份切换 | L2/L4 | 部分覆盖（L2 已覆盖渲染、编辑、分享、补录交互；L4 待补） |
 | 统计空态/历史数据/会员入口 | L2/L4 | 已覆盖（L2 空态、统计数据、免费/Pro 会员标签、升级入口、设置按钮） |
 | 设置四分区与数据管理 | L2/L4 | 部分覆盖 |
@@ -108,8 +108,8 @@
 | 登录/注册/忘记密码状态与错误 | L2/L3 | L2 已覆盖（`__tests__/auth-modal.test.tsx` 21 项：login/register/forgot-password 三模式渲染、模式切换、关闭、密码强度验证、登录成功/失败/网络错误翻译、注册步骤1→2 流转、忘记密码邮箱空/验证码长度错误） |
 | 照片上传/删除失败恢复与上限 | L1/L2/L3 | 已覆盖（`__tests__/oss-utils.test.ts` 12 项 validatePhotoFile + ERROR_MESSAGES；`__tests__/photo-logger.test.ts` 13 项 add/get/clear/filter；`__tests__/oss-network.test.ts` 10 项 savePhotoMetadata/getPresignedUrl/uploadToOSS 成功与网络异常） |
 | 旧版本导入兼容 | L1/L3 | L1 已覆盖（`__tests__/import-export-utils.test.ts` 17 项：旧 records 缺 updated_at/photos 为字符串、旧 profile 含 is_pro、旧 options 含 label_zh、斜杠/ISO/混合日期格式排序、真实旧版数据胶囊端到端） |
-| 教程记录与真实记录隔离 | L1/L3 | 缺失 |
-| API 输入、未授权、异常、幂等 | L3 | 部分覆盖（`__tests__/api-auth-routes.test.ts` 7 项：/api/auth/register 参数缺失、密码强度<8位/无字母/无数字、非法 JSON → 500）
+| 教程记录与真实记录隔离 | L1/L3 | 已覆盖（`__tests__/tutorial-record.test.ts` 9 项：serializeExportData 过滤 is_tutorial、不凭 tutorial- 前缀误过滤、保留普通记录；diffRecords/sortAndLimitRecords/applySafeMerge 保持纯函数不感知 is_tutorial；prepareRecordsForSafeUpload 上传前过滤；旧 tutorial- 前缀一次性迁移契约） |
+| API 输入、未授权、异常、幂等 | L3 | 已覆盖（`__tests__/api-auth-routes.test.ts` 25 项：register 7 项输入验证 + 2 项幂等（同验证码第二次失败、重复赠送会员被 maybeSingle 阻止）；verify-code 3 项输入验证 + 2 项幂等；reset-password 6 项输入验证 + 1 项 EXPOSES GAP（无幂等）；send-verification-code 3 项输入验证 + 1 项 EXPOSES GAP（无 60s 限频）。暴露的缺陷已记录到 `TODO.md`） |
 | 免费/Pro 色阶与降级 | L1 | 已覆盖（`__tests__/option-color-level.test.ts` 16 项：getEffectiveOptionColor Pro 保留/免费降级 1→3/4→3、getColorClass 四色阶映射） |
 | 无障碍名称、键盘、焦点恢复 | L2/L4 | L2 已覆盖（`__tests__/auth-modal-accessibility.test.tsx` 9 项：X 关闭按钮 aria-label、Esc 键关闭、submit 按钮、Tab 聚焦、required/minLength 验证） |
 

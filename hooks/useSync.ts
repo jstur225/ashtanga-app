@@ -446,9 +446,11 @@ export function useSync(
     options: PracticeOption[] | undefined,
     config: { mergeUpdatedAt: boolean; logLabel: string; logMergeSuccess: boolean },
   ): Promise<UploadRecordPayload[]> => {
-    if (recordsToSync.length === 0) return []
+    // ⭐ 过滤系统记录：教程记录不应上传到云端
+    const filteredRecords = recordsToSync.filter(r => !r.is_tutorial)
+    if (filteredRecords.length === 0) return []
 
-    let recordsToUpload = recordsToSync.map(r =>
+    let recordsToUpload = filteredRecords.map(r =>
       buildUploadRecordPayload(r, userId, resolveRecordColorLevel(r, options))
     )
 

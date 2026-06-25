@@ -23,6 +23,7 @@ export interface PracticeRecord {
   breakthrough?: string;
   start_time?: string; // ⭐ 新增：练习开始时间，ISO 8601 格式（如 2026-03-05T11:53:00+08:00）
   color_level?: number;
+  is_tutorial?: boolean;
 }
 
 export interface PracticeOption {
@@ -188,11 +189,37 @@ export const usePracticeData = () => {
 👈点击左侧日期区域，可编辑或删除记录
 
 🌟Mysore，让我们找回到自我的锚点`,
-          photos: []
+          photos: [],
+          is_tutorial: true,
         }
       ];
 
       setRecords(tutorialRecords);
+    }
+
+    // ⭐ 一次性迁移：将旧 tutorial- 前缀的教程记录标记为 is_tutorial: true
+    // 迁移完成后此代码可在后续版本移除
+    try {
+      const storedRecords = localStorage.getItem('ashtanga_records');
+      if (storedRecords && storedRecords !== '[]') {
+        const parsedRecords: PracticeRecord[] = JSON.parse(storedRecords);
+        const hasUnmigratedTutorial = parsedRecords.some(
+          r => !r.is_tutorial && r.id && r.id.startsWith('tutorial-')
+        );
+        if (hasUnmigratedTutorial) {
+          console.log('🔄 [数据迁移] 检测到旧版 tutorial- 前缀记录，标记为 is_tutorial: true');
+          const migratedRecords = parsedRecords.map(r =>
+            (r.id && r.id.startsWith('tutorial-') && !r.is_tutorial)
+              ? { ...r, is_tutorial: true }
+              : r
+          );
+          localStorage.setItem('ashtanga_records', JSON.stringify(migratedRecords));
+          setRecords(migratedRecords);
+          console.log('✅ [数据迁移] 教程记录已标记完成');
+        }
+      }
+    } catch (e) {
+      console.error('❌ [数据迁移] tutorial- 迁移失败:', e);
     }
 
     // ⭐ 清理残留的草稿记录并确保排序（用户刷新页面或关闭浏览器导致草稿未被删除）

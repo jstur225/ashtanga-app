@@ -2,6 +2,69 @@
 
 > 当前解耦阶段与完整测试缺口以 `docs/architecture/DECOUPLING_ROADMAP.md` 和 `docs/architecture/DECOUPLING_TEST_MATRIX.md` 为准。本文件只保留当前执行项。
 
+## 2026-06-25 - 阶段 6 测试暴露的 3 个缺陷 ⏳ 待执行
+
+**来源**: 阶段 6 测试通过 `EXPOSES GAP` 断言暴露
+
+### 缺口 1：`reset-password` 无幂等机制
+
+**问题**: `app/api/auth/reset-password/route.ts` 不消费任何验证码或一次性 token。
+攻击者拿到一个有效邮箱后，可重复触发密码重置（即使旧验证码已过期，只要 `listUsers` 找到用户就能 `updateUserById`）。
+
+**测试**: `__tests__/api-auth-routes.test.ts > EXPOSES GAP: 两次相同请求都成功（无验证码消费机制）`
+
+**修复方向**:
+- 重置密码必须先调用 `send-verification-code?type=reset_password` 获取验证码
+- `reset-password` API 强制要求 `code` 字段，并消费 `verification_codes` 表中 `type='reset_password'` 的记录
+- 与 `register`/`verify-code` 的 `used=true` 单次消费机制对齐
+
+### 缺口 2：`send-verification-code` 无防刷限频
+
+**问题**: `app/api/auth/send-verification-code/route.ts` 没有任何速率限制。
+攻击者可对同一邮箱无限触发验证码邮件，导致：
+1. Resend API 配额耗尽（成本风险）
+2. 用户邮箱被骚扰
+3. 数据库 `verification_codes` 表被刷爆
+
+**测试**: `__tests__/api-auth-routes.test.ts > EXPOSES GAP: 连续 5 次调用都生成新验证码（无 60s 限频）`
+
+**修复方向**:
+- 在 API 入口处加 60s 限频：同一邮箱 60s 内只能请求一次
+- 可用 `verification_codes` 表 `created_at` 实现（查询最新一条，未过期则拒绝）
+- 也可在 service 层用 in-memory rate limiter（更轻量，但单实例才行）
+
+### 缺口 3：Stats Tab 切换不保持滚动位置
+
+**问题**: 切到其他 Tab 再切回 stats 时，`scrollTop` 重置为 0。
+原因：`app/practice/page.tsx` 用 AnimatePresence + motion.div 按 key 切换 tab 内容，组件被 unmount/remount，本地状态丢失。
+
+**测试**: `__tests__/L4/tab.spec.ts > stats Tab 滚动位置：切走再切回行为记录`（断言"重置到 0"以记录当前行为）
+
+**修复方向**（任选其一）:
+1. **页面级状态**: 在 `app/practice/page.tsx` 用 `useRef` 存每个 tab 的 scrollTop，切换回来时恢复
+2. **持久化 div**: 用 CSS `display: none` 切换可见性而非 unmount，保留 DOM 状态（性能成本：所有 tab 都在 DOM）
+3. **接受现状**: 如果用户预期"切回 tab 看到顶部"是合理的，可以不修，但要更新测试矩阵把该项从"已覆盖"改为"接受现状"
+
+### 涉及文件
+- `app/api/auth/reset-password/route.ts` — 加验证码消费逻辑（缺口 1）
+- `app/api/auth/send-verification-code/route.ts` — 加 60s 限频（缺口 2）
+- `app/practice/page.tsx` 或新增 hook — 加 scroll 位置持久化（缺口 3）
+- 对应测试文件 — `EXPOSES GAP` 测试改为 `VERIFIES FIX` 测试
+
+## 2026-06-24 - 照片上传限制：免费 10MB / 付费 30MB ⏳ 待执行
+
+**问题**: 用户照片超过 10MB 时上传失败，无友好提示
+**日志**: `ashtanga-debug-log-2026-06-24.json`（3次 VALIDATION_FAILED：10.27MB / 10.58MB / 10.63MB）
+
+### 方案
+1. **免费用户**：保持 `MAX_FILE_SIZE = 10MB`，上传失败时弹窗友好提示"照片超过10MB，无法上传"
+2. **付费用户**：`MAX_FILE_SIZE` 改为 30MB（手机 ProRAW 最大约 25MB，30MB 充裕）
+3. **不做自动压缩** — 10MB 限制是免费与付费的差异点，"不爽"才有付费动力
+
+### 涉及文件
+- `lib/oss.ts` — `MAX_FILE_SIZE` 常量 + `validatePhotoFile`（需根据会员状态判断）
+- 前端弹窗提示文案（区分免费/付费用户）
+
 ## 2026-06-18 - 解耦阶段 2：练习会话模块 ✅ 已完成
 
 - [x] 记录代码、测试与构建基线
@@ -55,7 +118,7 @@
 - [x] L5 端到端测试全部跑通（auth.smoke 4/4 + sync.upload 2/2 + sync.conflict 2/2）
 - [x] 全量测试 444 项通过（+4 L3 + 8 L5）
 
-## 下一执行项 - 解耦阶段 5：同步分层
+## 下一执行项 - 解耦阶段 5：同步分层 ✅ 已完成
 
 - [x] 第一刀：提取远端记录/选项/profile 的字段映射与归一化纯函数到 `lib/sync-mappers.ts`，新增 45 个纯函数测试（2026-06-23 完成）
 - [x] 第二刀：Supabase I/O 提取到 `lib/supabase-repository.ts`：`fetchAllUserData` / `fetchCloudRecordsForMerge` / `upsertRecords/Option` / `deleteAllUserRecords/Option`（2026-06-23 完成）
@@ -64,7 +127,8 @@
 - [x] 第五刀：提取 sync orchestrator（`analyzeSync` / `executeConflictStrategy` / `computeSyncStats` / `recordPracticeIfNeeded`），useSync 897 行（2026-06-23 完成）
 - [x] 合并 `uploadLocalRecords` / `uploadLocalData` 的 build+merge 重复逻辑为 `prepareRecordsForSafeUpload` 助手（2026-06-24）
 - [x] 抽离 `getLatestLocalData` 为模块级 `readLatestLocalData` + 统一 syncDebug 日志（2026-06-24，useSync 955 → 879 行）
-- [ ] 最终精简（优先级降低）：exerciseConflict 三分支执行逻辑提取、smartMerge 归位；目标修正为 ~600–650 行（原 250–350 行不可达）
+- [x] 最终精简：`exerciseConflict` 三分支提取 + `smartMerge` 归位（useSync 879 → 771 行）
+- [x] **阶段 5 关闭**：771 行是合理终点，剩余 ~8 行 setState 重复是显式胜于隐式的 conscious tradeoff
 
 ## 2026-06-23 — 阶段 4 测试矩阵 L2 缺口覆盖 ✅ 已完成
 
@@ -94,17 +158,13 @@
 - [x] exerciseConflict 三分支执行逻辑提取（`computeSmartMergeData` → sync-utils.ts，`executeConflictStrategy` merge 修复）✅
 - [x] smartMerge 归位（调用 `computeSmartMergeData`，useSync 872 行）✅
 
-### 诚实评估 — useSync 最终精简
+### 诚实评估 — useSync 最终精简 ✅ 已完成
 
-**原目标 250–350 行不可达。** 原因：
-- `autoSync` 包含 ~200 行 coordinator 调度 + 4 个 switch case 独立业务流（upload-local、merge-remote、use-remote-only、conflict），每段都是真实逻辑，不是可删的样板
-- `smartMerge`、`resolveConflict`、`uploadLocalData`、`uploadLocalRecords` 各自是独立业务流，强提取会增加抽象成本
-- 实际达到 879 行，距合理目标 ~600–650 行还差 ~230 行
+**已达成**: useSync 879 → 771 行（−108 行）
+- `computeSmartMergeData` → `sync-utils.ts`
+- `smartMerge` / `executeConflictStrategy` / `resolveConflict` / `prepareRecordsForSafeUpload` 均归位到 orchestrator
 
-**下一步（可做可不做，价值递减）：**
-- `exerciseConflict` 中 `local`/`remote`/`merge` 三分支执行逻辑提取到 sync-orchestrator
-- `smartMerge` 剩余内联调用归位到 sync-utils
-- 以上合计约 100-130 行额外削减，已不紧急
+**评估**: 771 行是合理终点。剩余 ~8 行 setState 重复是显式胜于隐式的 conscious tradeoff，`uploadLocalData` 三段提取会引入回调注入。阶段 5 关闭。
 
 ## 2026-06-24 - 阶段 6 测试缺口填充 ✅ 已完成
 
