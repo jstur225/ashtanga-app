@@ -1,5 +1,33 @@
 # 阿斯汤加打卡 app - 项目记录
 
+## 2026-06-25: 重构审核补漏 — 门禁恢复绿色
+
+### 背景
+对阶段 1–6 解耦结果做重新审核后，发现主体架构已经完成，但当前门禁有三类红灯：TypeScript 类型边界、全量 Vitest 中同步 L3 测试污染、L4 smoke 被本地/外部网络噪声污染。
+
+### 修复内容
+
+- `hooks/useSync.ts`：`readLatestLocalData` 返回明确 `RemoteSyncData`，避免 `unknown[]` 流入同步编排。
+- `hooks/usePracticeData.ts` / `components/practice-record/RecordModals.tsx`：兼容同步层返回的 `breakthrough/start_time: null`。
+- `lib/import-export.ts`：`migrateOldOptions` 同时接受旧 option 胶囊和当前 `PracticeOption`。
+- `__tests__/sync-isolation-and-rollback.test.ts`：测试手动冲突路径时禁用自动同步，避免调用计数被 hook mount 副作用污染。
+- `__tests__/L4/fixtures.ts`：等待 `document.head` 可用后再注入禁用动画样式，修复 `appendChild` pageerror。
+- `app/api/stats/today/route.ts`：缺 Supabase service key 时返回 `{ count: 0 }`，不在本地 L4 中制造 console error。
+- `app/layout.tsx` / `lib/analytics.ts`：开发环境不挂 Vercel Analytics / Speed Insights；localhost 不加载 Mixpanel。
+
+### 验证
+
+- `npm.cmd run typecheck` → 通过
+- `npm.cmd run lint` → 通过
+- `npx.cmd vitest run` → 49 文件 / 527 项通过
+- `npm.cmd run build` → 通过
+- `npm.cmd run measure:initial-js` → 16 scripts / 1117.0 KiB raw / 335.5 KiB gzip
+- `npx.cmd playwright test __tests__/L4/smoke.spec.ts --project=guest-chromium` → 4/4 通过
+
+### 注意
+
+完整 L4 登录态与 L5 真实云端仍需要可访问的 `.env.test`/测试云端环境；当前受网络权限影响，`auth.setup` 会保存空白 state，登录态用例可能 skip。
+
 ## 2026-06-25: 阶段 6 测试暴露的 3 个缺陷修复
 
 ### 背景

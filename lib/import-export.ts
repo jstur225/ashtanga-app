@@ -56,13 +56,12 @@ export function sortRecordsByDate(records: PracticeRecord[]): PracticeRecord[] {
   })
 }
 
-interface OldOption {
+type ImportableOption = Partial<PracticeOption> & {
   label?: string
   label_zh?: string
   isCustom?: boolean
   is_custom?: boolean
   notes?: string
-  [key: string]: unknown
 }
 
 /**
@@ -71,7 +70,7 @@ interface OldOption {
  * - isCustom → is_custom
  * - 确保 notes 存在
  */
-export function migrateOldOptions(options: OldOption[]) {
+export function migrateOldOptions(options: ImportableOption[]) {
   return options.map((opt) => {
     const { label_zh, isCustom, ...rest } = opt
     return {

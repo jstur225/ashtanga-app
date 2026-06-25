@@ -47,16 +47,20 @@ function syncDebug(...args: unknown[]) {
 
 // ⭐ 从 localStorage 获取最新数据（避免闭包陷阱）
 // 模块级纯函数：读取 localStorage，失败时回退到调用方提供的 fallback。
-function readLatestLocalData<T>(fallback: T): T | { records: unknown[]; options: unknown[]; profile: unknown } {
+function readLatestLocalData(fallback: RemoteSyncData): RemoteSyncData {
   try {
     const recordsStr = localStorage.getItem('ashtanga_records')
     const optionsStr = localStorage.getItem('ashtanga_options')
     const profileStr = localStorage.getItem('ashtanga_profile')
+    const records = recordsStr ? JSON.parse(recordsStr) : fallback.records
+    const options = optionsStr ? JSON.parse(optionsStr) : fallback.options
+    const profile = profileStr ? JSON.parse(profileStr) : fallback.profile
+
     return {
-      records: recordsStr ? JSON.parse(recordsStr) : [],
-      options: optionsStr ? JSON.parse(optionsStr) : [],
-      profile: profileStr ? JSON.parse(profileStr) : null,
-    } as unknown as T
+      records: Array.isArray(records) ? records as PracticeRecord[] : fallback.records,
+      options: Array.isArray(options) ? options as PracticeOption[] : fallback.options,
+      profile: profile && typeof profile === 'object' ? profile as UserProfile : fallback.profile,
+    }
   } catch (e) {
     console.error('❌ [readLatestLocalData] 读取 localStorage 失败:', e)
     return fallback

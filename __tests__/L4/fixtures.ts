@@ -19,16 +19,26 @@ export interface ConsoleCapture {
 async function setupPage(page: Page) {
   await page.addInitScript(() => {
     // 1. 禁用所有 CSS transition / animation，让 framer-motion 元素稳定
-    const style = document.createElement('style')
-    style.innerHTML = `
-      *, *::before, *::after {
-        animation-duration: 0.001ms !important;
-        animation-delay: 0ms !important;
-        transition-duration: 0.001ms !important;
-        transition-delay: 0ms !important;
-      }
-    `
-    document.head.appendChild(style)
+    const injectStyle = () => {
+      if (document.getElementById('__l4_disable_animations__')) return
+      const parent = document.head || document.documentElement || document.body
+      if (!parent) return
+      const style = document.createElement('style')
+      style.id = '__l4_disable_animations__'
+      style.innerHTML = `
+        *, *::before, *::after {
+          animation-duration: 0.001ms !important;
+          animation-delay: 0ms !important;
+          transition-duration: 0.001ms !important;
+          transition-delay: 0ms !important;
+        }
+      `
+      parent.appendChild(style)
+    }
+    injectStyle()
+    if (!document.head) {
+      document.addEventListener('DOMContentLoaded', injectStyle, { once: true })
+    }
 
     // 2. hydration 错误检测
     ;(window as any).__NEXT_HYDRATION_ERRORS__ = 0

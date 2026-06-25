@@ -115,6 +115,10 @@ const emptyUser = { id: "u1", email: "test@test.com" }
 beforeEach(() => {
   vi.clearAllMocks()
   localStorageMock.clear()
+  ;(globalThis as any).__hasAutoSynced__ = true
+  if (typeof window !== "undefined") {
+    ;(window as any).__hasAutoSynced__ = true
+  }
 })
 
 afterEach(() => {
@@ -142,7 +146,6 @@ describe("useSync — 用户隔离 & 回滚 L3", () => {
 
       let res: any
       await act(async () => {
-        // @ts-expect-error: 故意用 null user 测试守卫
         res = await result.current.uploadLocalData("u1", { records, options, profile }, null)
       })
 

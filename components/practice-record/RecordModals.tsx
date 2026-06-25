@@ -68,7 +68,7 @@ export function EditRecordModal({
         type: latestRecord.type,
         duration: Math.floor(latestRecord.duration / 60),
         notes: latestRecord.notes || "",
-        breakthrough: latestRecord.breakthrough,
+        breakthrough: latestRecord.breakthrough ?? undefined,
         color_level: latestRecord.color_level ?? getTypeColorLevel(latestRecord.type),
       })
     }

@@ -12,6 +12,10 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
 export async function GET() {
   try {
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
+      return NextResponse.json({ count: 0 })
+    }
+
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
     // 用北京时间生成今日日期，匹配客户端的 date 字段

@@ -15,25 +15,25 @@
 | `hooks/useSync.ts` | 1173 行 | 250–350 行 React 外壳 |
 | Vitest | 13 文件 / 131 项通过 | 高风险矩阵全部覆盖 |
 | TypeScript / lint / build | 通过 | 持续通过 |
-| `/practice` 首屏 JS | 334.6 KiB gzip（脚本自动测量） | 427.9 KiB → 334.6 KiB，下降 21.8% |
+| `/practice` 首屏 JS | 335.5 KiB gzip（2026-06-25 审核补漏后复测） | 427.9 KiB → 335.5 KiB，下降 21.6% |
 
-## 当前快照（2026-06-24，阶段 6 测试缺口填充）
+## 当前快照（2026-06-25，重构审核补漏完成）
 
 | 指标 | 当前值 | 判断 |
 |---|---:|---|
-| `app/practice/page.tsx` | 1184 行 | 阶段 4 门槛完成 |
+| `app/practice/page.tsx` | 1185 行 | 阶段 4 门槛完成 |
 | 页面 `useState` | 43 个 | 认证、会员、媒体、弹窗和页面编排仍高度集中 |
-| `hooks/useSync.ts` | **771 行** | 阶段 5 最终精简完成。原目标 250–350 行不可达，合理目标 ~600–650 行 |
-| `lib/sync-orchestrator.ts` | 252 行 | sync 决策编排纯函数 |
-| `lib/sync-utils.ts` | 496 行 | 含差异检测、日志条目创建、批量上传、options payload 等 19 个纯函数 |
-| `lib/sync-mappers.ts` | 96 行 | 5 个纯函数，45 个测试 |
-| `lib/supabase-repository.ts` | 147 行 | 7 个仓库原语 |
-| Vitest | **49 文件 / 525 项通过** | L1/L2/L3 覆盖扩大 |
-| L4 隔离浏览器 | **51 项通过（零失败）** | 练习/刷新/音频/弹窗/移动端/键盘/深链接/visibility/url 状态 |
+| `hooks/useSync.ts` | **777 行** | 阶段 5 最终精简完成。审核补漏后类型边界更明确 |
+| `lib/sync-orchestrator.ts` | 402 行 | sync 决策与冲突编排 |
+| `lib/sync-utils.ts` | 551 行 | 含差异检测、日志条目创建、批量上传、options payload、色阶等纯函数 |
+| `lib/sync-mappers.ts` | 108 行 | 远端字段映射与归一化 |
+| `lib/supabase-repository.ts` | 152 行 | Supabase 仓库原语 |
+| Vitest | **49 文件 / 527 项通过** | L1/L2/L3 高风险覆盖扩大 |
+| L4 隔离浏览器 | **smoke 4/4 通过；全量依赖登录态环境** | 游客核心链路稳定；auth.setup 需要可访问测试云端 |
 | TypeScript / lint | 通过 |  |
 | 生产构建 | 通过 | Next.js 16 生产构建成功 |
 
-按核心阶段 1–6 估算，**阶段 6 测试缺口已基本完成**。矩阵「缺失」项清零。整体完成约 99%。
+按核心阶段 1–6 估算，**解耦重构主体已完成**。矩阵「缺失」项清零；本轮审核补齐了 typecheck、Vitest 和 L4 smoke 红灯。整体完成约 99%，剩余主要是文档归档与登录态/L5 环境可重复化。
 
 ## 约束
 
@@ -53,7 +53,7 @@
 | 3 | `useGuidedAudio` + `useChantPlayback` | 已完成（阶段检查点） | 页面不持有 `HTMLAudioElement` |
 | 4 | Dashboard、导航、ModalHost、Tab 动态加载 | 已完成（2026-06-22） | 页面 1157 行，首屏 JS 下降 21.8% |
 | 5 | 同步仓库、映射、编排、冲突、日志分层 | **已完成**（useSync 771 行） | `useSync` 250–350 行不可达，实际 771 行已达合理下限 |
-| 6 | 跨模块测试缺口与最终归档 | **已完成（2026-06-25）** | 教程记录隔离（L1 9 项）、API 幂等/AUTH 路由（L3 +18 项，含 reset-password / send-verification-code 暴露的缺陷已记入 TODO）、Tab 滚动与深链接/visibility/URL 状态（L4 +9 项） |
+| 6 | 跨模块测试缺口与最终归档 | **已完成（2026-06-25）** | 教程记录隔离（L1 9 项）、API 幂等/AUTH 路由（L3，reset-password / send-verification-code 已从 EXPOSES GAP 改为 VERIFIES FIX）、Tab 滚动与深链接/visibility/URL 状态（L4） |
 
 ## 目标架构
 

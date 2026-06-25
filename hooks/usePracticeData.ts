@@ -20,8 +20,8 @@ export interface PracticeRecord {
   duration: number;
   notes: string;
   photos: string[];
-  breakthrough?: string;
-  start_time?: string; // ⭐ 新增：练习开始时间，ISO 8601 格式（如 2026-03-05T11:53:00+08:00）
+  breakthrough?: string | null;
+  start_time?: string | null; // ⭐ 新增：练习开始时间，ISO 8601 格式（如 2026-03-05T11:53:00+08:00）
   color_level?: number;
   is_tutorial?: boolean;
 }
@@ -432,7 +432,7 @@ export const usePracticeData = () => {
   };
 
   const exportData = () => {
-    return serializeExportData(records || [], options, profile || null);
+    return serializeExportData(records || [], options || [], profile || null);
   };
 
   const importData = (jsonString: string) => {
@@ -446,7 +446,7 @@ export const usePracticeData = () => {
 
     // 导入记录后按日期倒序排序（最新的日期在上面）
     if (data.records) {
-      setRecords(sortRecordsByDate(data.records));
+      setRecords(sortRecordsByDate(data.records) as PracticeRecord[]);
     }
 
     // 迁移旧的选项数据结构

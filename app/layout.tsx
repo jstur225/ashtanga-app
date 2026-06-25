@@ -7,6 +7,8 @@ import { AnalyticsInitializer } from '@/components/AnalyticsInitializer'
 import { ServiceWorkerRegister } from '@/components/ServiceWorkerRegister'
 import './globals.css'
 
+const enableVercelInsights = process.env.NODE_ENV === 'production'
+
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
@@ -52,8 +54,12 @@ export default function RootLayout({
         <Toaster position="top-center" toastOptions={{
           className: 'font-serif',
         }} />
-        <Analytics />
-        <SpeedInsights />
+        {enableVercelInsights && (
+          <>
+            <Analytics />
+            <SpeedInsights />
+          </>
+        )}
       </body>
     </html>
   )

@@ -1,5 +1,5 @@
 const MIXPANEL_TOKEN = process.env.NEXT_PUBLIC_MIXPANEL_TOKEN || '110c459d4e609bd51da14e421b2ef4ba'
-const MIXPANEL_ENABLED = true
+const MIXPANEL_ENABLED = process.env.NEXT_PUBLIC_DISABLE_ANALYTICS !== 'true'
 
 type MixpanelClient = typeof import('mixpanel-browser').default
 
@@ -7,6 +7,10 @@ let analyticsPromise: Promise<MixpanelClient | null> | null = null
 
 const loadAnalytics = () => {
   if (typeof window === 'undefined' || !MIXPANEL_ENABLED) {
+    return Promise.resolve(null)
+  }
+
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
     return Promise.resolve(null)
   }
 

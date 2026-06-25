@@ -322,7 +322,6 @@ describe('sortAndLimitRecords', () => {
 // ==================== applySafeMerge ====================
 describe('applySafeMerge', () => {
   const makeCloud = (overrides: Partial<CloudRecordForMerge> & { id: string }): CloudRecordForMerge => ({
-    id: overrides.id,
     notes: null,
     breakthrough: null,
     photos: null,

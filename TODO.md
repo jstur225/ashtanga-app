@@ -2,6 +2,17 @@
 
 > 当前解耦阶段与完整测试缺口以 `docs/architecture/DECOUPLING_ROADMAP.md` 和 `docs/architecture/DECOUPLING_TEST_MATRIX.md` 为准。本文件只保留当前执行项。
 
+## 2026-06-25 - 重构审核补漏 ✅ 已完成
+
+- [x] TypeScript 门禁恢复：`npm.cmd run typecheck` 通过
+- [x] Vitest 全量恢复：49 文件 / 527 项通过
+- [x] L4 smoke 恢复：4/4 通过
+- [x] 生产构建通过
+- [x] 首屏 JS 复测：16 scripts / 1117.0 KiB raw / 335.5 KiB gzip
+- [x] 文档同步：恢复入口、路线图、测试矩阵、性能基线、项目日志已更新
+
+下一步：最终归档 README；如需完整 L4/L5，全量验证前先配置可访问的 `.env.test`/测试云端环境。
+
 ## 2026-06-25 - 阶段 6 测试暴露的 3 个缺陷 ✅ 已修复
 
 **来源**: 阶段 6 测试通过 `EXPOSES GAP` 断言暴露，已全部修复并改为 `VERIFIES FIX` 测试。
