@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { supabase } from '@/lib/supabase'
 
 /**
  * 重置密码 API（忘记密码功能）
  * POST /api/auth/reset-password
- * Body: { email, newPassword }
+ * Body: { email, newPassword, code }
  */
 export async function POST(request: NextRequest) {
   const startTime = Date.now()
@@ -12,23 +13,22 @@ export async function POST(request: NextRequest) {
   console.log('   时间:', new Date().toISOString())
 
   // 使用 Service Role Key 创建客户端（可以绕过认证限制）
-  // 在函数内部创建，避免构建时环境变量未加载的问题
   const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 
   try {
-    const { email, newPassword } = await request.json()
+    const { email, newPassword, code } = await request.json()
 
     console.log('   步骤1: 验证输入...')
     console.log('   目标邮箱:', email)
 
     // 验证输入
-    if (!email || !newPassword) {
+    if (!email || !newPassword || !code) {
       console.log('   ❌ 错误：缺少必要参数')
       return NextResponse.json(
-        { error: '请提供邮箱和新密码' },
+        { error: '请提供邮箱、新密码和验证码' },
         { status: 400 }
       )
     }
@@ -51,9 +51,31 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('   ✅ 输入验证通过')
-    console.log('   步骤2: 查询用户...')
 
-    // 步骤2: 通过邮箱查询用户 ID
+    // 步骤2: 验证验证码（单次消费）
+    const now = new Date().toISOString()
+    const { data: verificationData, error: verificationError } = await supabase
+      .from('verification_codes')
+      .select('*')
+      .eq('email', email)
+      .eq('code', code)
+      .eq('type', 'reset_password')
+      .eq('used', false)
+      .gte('expires_at', now)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single()
+
+    if (verificationError || !verificationData) {
+      console.log('   ❌ 验证码验证失败')
+      return NextResponse.json(
+        { error: '验证码错误或已过期' },
+        { status: 400 }
+      )
+    }
+
+    console.log('   ✅ 验证码验证成功')
+    console.log('   步骤3: 查询用户...')
     const { data: { users }, error: listUsersError } = await supabaseAdmin.auth.admin.listUsers()
 
     if (listUsersError) {
@@ -78,16 +100,16 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('   ✅ 找到用户:', targetUser.id)
-    console.log('   步骤3: 更新用户密码...')
+    console.log('   步骤4: 更新用户密码...')
 
-    // 步骤3: 使用 Admin API 更新密码
+    // 步骤4: 使用 Admin API 更新密码
     const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
       targetUser.id,
       { password: newPassword }
     )
 
     const elapsed = Date.now() - startTime
-    console.log(`   步骤4: 更新完成（耗时: ${elapsed/1000}秒）`)
+    console.log(`   步骤5: 更新完成（耗时: ${elapsed/1000}秒）`)
 
     if (updateError) {
       console.error('   ❌ 更新密码失败:', updateError)
@@ -96,6 +118,14 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       )
     }
+
+    // 步骤5: 标记验证码为已使用（单次消费）
+    await supabase
+      .from('verification_codes')
+      .update({ used: true })
+      .eq('id', verificationData.id)
+
+    console.log('   ✅ 验证码已标记为已使用')
 
     console.log('   ✅ 密码更新成功！')
 

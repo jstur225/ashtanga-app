@@ -2,54 +2,36 @@
 
 > 当前解耦阶段与完整测试缺口以 `docs/architecture/DECOUPLING_ROADMAP.md` 和 `docs/architecture/DECOUPLING_TEST_MATRIX.md` 为准。本文件只保留当前执行项。
 
-## 2026-06-25 - 阶段 6 测试暴露的 3 个缺陷 ⏳ 待执行
+## 2026-06-25 - 阶段 6 测试暴露的 3 个缺陷 ✅ 已修复
 
-**来源**: 阶段 6 测试通过 `EXPOSES GAP` 断言暴露
+**来源**: 阶段 6 测试通过 `EXPOSES GAP` 断言暴露，已全部修复并改为 `VERIFIES FIX` 测试。
 
-### 缺口 1：`reset-password` 无幂等机制
+### 缺口 1：`reset-password` 无幂等机制 ✅ 已修复
 
-**问题**: `app/api/auth/reset-password/route.ts` 不消费任何验证码或一次性 token。
-攻击者拿到一个有效邮箱后，可重复触发密码重置（即使旧验证码已过期，只要 `listUsers` 找到用户就能 `updateUserById`）。
+**问题**: `app/api/auth/reset-password/route.ts` 不消费任何验证码或一次性 token，可重复触发密码重置。
 
-**测试**: `__tests__/api-auth-routes.test.ts > EXPOSES GAP: 两次相同请求都成功（无验证码消费机制）`
+**修复**: 重置密码现在强制要求 `code` 字段，查询 `verification_codes` 表 `type='reset_password' && used=false && 未过期` 的记录，成功后标记 `used=true`。与 `register`/`verify-code` 的单次消费机制对齐。
 
-**修复方向**:
-- 重置密码必须先调用 `send-verification-code?type=reset_password` 获取验证码
-- `reset-password` API 强制要求 `code` 字段，并消费 `verification_codes` 表中 `type='reset_password'` 的记录
-- 与 `register`/`verify-code` 的 `used=true` 单次消费机制对齐
+**测试**: `__tests__/api-auth-routes.test.ts > VERIFIES FIX: 同一验证码第二次调用失败（已被消费）`
 
-### 缺口 2：`send-verification-code` 无防刷限频
+### 缺口 2：`send-verification-code` 无防刷限频 ✅ 已修复
 
-**问题**: `app/api/auth/send-verification-code/route.ts` 没有任何速率限制。
-攻击者可对同一邮箱无限触发验证码邮件，导致：
-1. Resend API 配额耗尽（成本风险）
-2. 用户邮箱被骚扰
-3. 数据库 `verification_codes` 表被刷爆
+**问题**: `app/api/auth/send-verification-code/route.ts` 没有任何速率限制，可对同一邮箱无限触发。
 
-**测试**: `__tests__/api-auth-routes.test.ts > EXPOSES GAP: 连续 5 次调用都生成新验证码（无 60s 限频）`
+**修复**: API 入口处加 60s 限频——查询 `verification_codes` 表该邮箱最近一条 `created_at`，未过 60s 则返回 429。查询失败时 fail-open（避免误伤用户）。
 
-**修复方向**:
-- 在 API 入口处加 60s 限频：同一邮箱 60s 内只能请求一次
-- 可用 `verification_codes` 表 `created_at` 实现（查询最新一条，未过期则拒绝）
-- 也可在 service 层用 in-memory rate limiter（更轻量，但单实例才行）
+**测试**: `__tests__/api-auth-routes.test.ts > VERIFIES FIX: 60s 限频：第一次成功，后续被拒绝`
 
-### 缺口 3：Stats Tab 切换不保持滚动位置
+### 缺口 3：Stats Tab 切换不保持滚动位置 ✅ 已修复
 
-**问题**: 切到其他 Tab 再切回 stats 时，`scrollTop` 重置为 0。
-原因：`app/practice/page.tsx` 用 AnimatePresence + motion.div 按 key 切换 tab 内容，组件被 unmount/remount，本地状态丢失。
+**问题**: 切到其他 Tab 再切回 stats 时，`scrollTop` 重置为 0。原因：AnimatePresence exit 动画先于 unmount 把 scrollTop 重置为 0，最初尝试在 unmount cleanup 中读取已无效。
 
-**测试**: `__tests__/L4/tab.spec.ts > stats Tab 滚动位置：切走再切回行为记录`（断言"重置到 0"以记录当前行为）
+**修复**: 改用「scroll 事件实时保存 + sessionStorage 持久化 + mount 时轮询恢复」三段式策略。
+- `scroll` 事件 listener 用 rAF throttled 实时把 scrollTop 写入 sessionStorage
+- mount 时读取 sessionStorage，轮询最多 15 次（每次 100ms）等待异步内容撑起足够高度后再设置 scrollTop
+- 选 sessionStorage 而非模块变量：dev 模式下 next/dynamic 可能重新求值模块导致变量重置；选 sessionStorage 而非 localStorage：重启浏览器后回到顶部是合理行为
 
-**修复方向**（任选其一）:
-1. **页面级状态**: 在 `app/practice/page.tsx` 用 `useRef` 存每个 tab 的 scrollTop，切换回来时恢复
-2. **持久化 div**: 用 CSS `display: none` 切换可见性而非 unmount，保留 DOM 状态（性能成本：所有 tab 都在 DOM）
-3. **接受现状**: 如果用户预期"切回 tab 看到顶部"是合理的，可以不修，但要更新测试矩阵把该项从"已覆盖"改为"接受现状"
-
-### 涉及文件
-- `app/api/auth/reset-password/route.ts` — 加验证码消费逻辑（缺口 1）
-- `app/api/auth/send-verification-code/route.ts` — 加 60s 限频（缺口 2）
-- `app/practice/page.tsx` 或新增 hook — 加 scroll 位置持久化（缺口 3）
-- 对应测试文件 — `EXPOSES GAP` 测试改为 `VERIFIES FIX` 测试
+**测试**: `__tests__/L4/tab.spec.ts > stats Tab 滚动位置：切走再切回保持`
 
 ## 2026-06-24 - 照片上传限制：免费 10MB / 付费 30MB ⏳ 待执行
 

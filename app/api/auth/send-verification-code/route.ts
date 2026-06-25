@@ -196,6 +196,28 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // ⭐ 60s 限频：查询该邮箱最近一条验证码，未过 60s 则拒绝
+    const sixtySecondsAgo = new Date(Date.now() - 60 * 1000).toISOString()
+    const { data: recentCode, error: recentError } = await supabase
+      .from('verification_codes')
+      .select('id, created_at')
+      .eq('email', email)
+      .gte('created_at', sixtySecondsAgo)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (recentError) {
+      console.error('查询最近验证码失败:', recentError)
+      // 限频查询失败不阻塞请求（fail-open 策略，避免误伤用户）
+    } else if (recentCode) {
+      console.log('⚠️ 60s 内已发送过验证码:', email)
+      return NextResponse.json(
+        { error: '请求过于频繁，请 60 秒后再试' },
+        { status: 429 }
+      )
+    }
+
     // 生成6位验证码
     const code = generateVerificationCode()
     // 使用 UTC 时间，避免时区问题

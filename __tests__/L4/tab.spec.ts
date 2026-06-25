@@ -56,7 +56,7 @@ test.describe('L4 Tab 切换', () => {
     expect(criticalErrors).toEqual([])
   })
 
-  test('stats Tab 滚动位置：切走再切回行为记录', async ({ page, consoleCapture }) => {
+  test('stats Tab 滚动位置：切走再切回保持', async ({ page, consoleCapture }) => {
     await page.goto('/practice', { waitUntil: 'domcontentloaded' })
     await waitForHydration(page)
 
@@ -64,41 +64,41 @@ test.describe('L4 Tab 切换', () => {
     await page.locator('nav[aria-label="主要导航"] button:has-text("我的数据")').click()
     // 等待 stats 内容出现（标志：标题"练习是连贯的珍珠"）
     await expect(page.getByText('练习是连贯的珍珠')).toBeVisible({ timeout: 10_000 })
-    await page.waitForTimeout(500)
+    await page.waitForTimeout(800)
 
     const hydrationBefore = consoleCapture.hydrationErrors
 
     // 找到 stats 页面的可滚动容器（StatsTab 内部 div.overflow-y-auto）
     const scrollContainer = page.locator('div.overflow-y-auto').first()
 
+    // 读取初始 scrollTop
+    const initialScrollTop = await scrollContainer.evaluate((el: HTMLElement) => el.scrollTop).catch(() => 0)
+
     // 模拟向下滚动
     await scrollContainer.evaluate((el: HTMLElement) => {
       el.scrollTo({ top: 300, behavior: 'instant' })
     })
-    await page.waitForTimeout(300)
+    await page.waitForTimeout(500)
     const scrollTopAfterScroll = await scrollContainer.evaluate((el: HTMLElement) => el.scrollTop).catch(() => 0)
 
     // 切到 journal 再切回 stats
     await page.locator('nav[aria-label="主要导航"] button:has-text("觉察日记")').click()
-    await page.waitForTimeout(800)
+    await page.waitForTimeout(1000)
     await page.locator('nav[aria-label="主要导航"] button:has-text("我的数据")').click()
-    await page.waitForTimeout(800)
+    await page.waitForTimeout(1500)
 
-    // 验证 1: stats 内容仍可见（tab 切换不破坏渲染）
+    // 验证 1: stats 内容仍可见
     await expect(page.getByText('练习是连贯的珍珠')).toBeVisible({ timeout: 5_000 })
 
     // 验证 2: 不新增 hydration 错误
     expect(consoleCapture.hydrationErrors).toBe(hydrationBefore)
 
-    // 验证 3: 滚动容器仍可被操作（功能正常）
+    // 验证 3: 滚动位置应保持（StatsTab 用 useRef + 模块变量持久化）
     const scrollTopAfterReturn = await scrollContainer.evaluate((el: HTMLElement) => el.scrollTop).catch(() => 0)
 
-    // ⚠️ 当前实现：tab 切换时组件 unmount/remount，scrollTop 重置为 0
-    // 这暴露了"Tab 滚动位置不保持"的缺陷
-    // 已记录到 TODO.md / 测试矩阵；未来如实现 scroll 持久化，改为更严格断言
-    if (scrollTopAfterScroll > 0) {
-      // 当前实际行为：重置到 0
-      expect(scrollTopAfterReturn).toBe(0)
+    // 如果第一次滚动成功（内容确实可滚动），那么切回来后应保持
+    if (scrollTopAfterScroll > initialScrollTop + 10) {
+      expect(Math.abs(scrollTopAfterReturn - scrollTopAfterScroll)).toBeLessThan(50)
     }
   })
 })

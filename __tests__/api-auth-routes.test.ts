@@ -346,25 +346,34 @@ describe('POST /api/auth/reset-password', () => {
   it('rejects missing email', async () => {
     const { POST } = await import('@/app/api/auth/reset-password/route')
     const { status, body } = await parseResponse(
-      await POST(createPostRequest({ newPassword: 'Abc12345' }))
+      await POST(createPostRequest({ newPassword: 'Abc12345', code: '123456' }))
     )
     expect(status).toBe(400)
-    expect(body.error).toBe('请提供邮箱和新密码')
+    expect(body.error).toBe('请提供邮箱、新密码和验证码')
   })
 
   it('rejects missing newPassword', async () => {
     const { POST } = await import('@/app/api/auth/reset-password/route')
     const { status, body } = await parseResponse(
-      await POST(createPostRequest({ email: 'test@test.com' }))
+      await POST(createPostRequest({ email: 'test@test.com', code: '123456' }))
     )
     expect(status).toBe(400)
-    expect(body.error).toBe('请提供邮箱和新密码')
+    expect(body.error).toBe('请提供邮箱、新密码和验证码')
+  })
+
+  it('rejects missing code', async () => {
+    const { POST } = await import('@/app/api/auth/reset-password/route')
+    const { status, body } = await parseResponse(
+      await POST(createPostRequest({ email: 'test@test.com', newPassword: 'Abc12345' }))
+    )
+    expect(status).toBe(400)
+    expect(body.error).toBe('请提供邮箱、新密码和验证码')
   })
 
   it('rejects newPassword < 8 chars', async () => {
     const { POST } = await import('@/app/api/auth/reset-password/route')
     const { status, body } = await parseResponse(
-      await POST(createPostRequest({ email: 'test@test.com', newPassword: 'Ab1' }))
+      await POST(createPostRequest({ email: 'test@test.com', newPassword: 'Ab1', code: '123456' }))
     )
     expect(status).toBe(400)
     expect(body.error).toMatch(/8位/)
@@ -373,7 +382,7 @@ describe('POST /api/auth/reset-password', () => {
   it('rejects newPassword without letters', async () => {
     const { POST } = await import('@/app/api/auth/reset-password/route')
     const { status, body } = await parseResponse(
-      await POST(createPostRequest({ email: 'test@test.com', newPassword: '12345678' }))
+      await POST(createPostRequest({ email: 'test@test.com', newPassword: '12345678', code: '123456' }))
     )
     expect(status).toBe(400)
     expect(body.error).toMatch(/字母/)
@@ -382,10 +391,25 @@ describe('POST /api/auth/reset-password', () => {
   it('rejects newPassword without digits', async () => {
     const { POST } = await import('@/app/api/auth/reset-password/route')
     const { status, body } = await parseResponse(
-      await POST(createPostRequest({ email: 'test@test.com', newPassword: 'Abcdefgh' }))
+      await POST(createPostRequest({ email: 'test@test.com', newPassword: 'Abcdefgh', code: '123456' }))
     )
     expect(status).toBe(400)
     expect(body.error).toMatch(/数字/)
+  })
+
+  it('rejects invalid/expired verification code', async () => {
+    const { POST } = await import('@/app/api/auth/reset-password/route')
+    supabaseMock.single.mockResolvedValueOnce({ data: null, error: { code: 'PGRST116' } })
+
+    const { status, body } = await parseResponse(
+      await POST(createPostRequest({
+        email: 'test@test.com',
+        newPassword: 'Abc12345',
+        code: 'wrong-code',
+      }))
+    )
+    expect(status).toBe(400)
+    expect(body.error).toMatch(/验证码/)
   })
 
   it('rejects malformed JSON body with 500', async () => {
@@ -394,10 +418,16 @@ describe('POST /api/auth/reset-password', () => {
     expect(status).toBe(500)
   })
 
-  // ── 暴露缺陷：无幂等机制 ──
+  // ── VERIFIES FIX：验证码消费使重置密码幂等 ──
 
-  it('EXPOSES GAP: 两次相同请求都成功（无验证码消费机制）', async () => {
+  it('VERIFIES FIX: 同一验证码第二次调用失败（已被消费）', async () => {
     const { POST } = await import('@/app/api/auth/reset-password/route')
+
+    // mock 验证码记录（type=reset_password）
+    const resetVerificationRow = makeVerificationRow({
+      type: 'reset_password',
+      code: '654321',
+    })
 
     // mock listUsers 返回匹配用户，updateUserById 成功
     createClientMock.mockReturnValue({
@@ -413,16 +443,27 @@ describe('POST /api/auth/reset-password', () => {
       from: vi.fn(() => supabaseMock),
     })
 
-    const payload = { email: 'test@test.com', newPassword: 'NewPass123' }
+    const payload = {
+      email: 'test@test.com',
+      newPassword: 'NewPass123',
+      code: '654321',
+    }
 
+    // 第一次：验证码有效 → 重置成功
+    supabaseMock.single.mockResolvedValueOnce({ data: resetVerificationRow, error: null })
     const first = await parseResponse(await POST(createPostRequest(payload)))
-    const second = await parseResponse(await POST(createPostRequest(payload)))
-
-    // ⚠️ 缺陷暴露：两次都成功（应该至少有一次因幂等性失败）
     expect(first.status).toBe(200)
-    expect(second.status).toBe(200)
-    // 这两条断言"双重成功"恰恰证明了缺失幂等机制
-    // 已记录到 TODO.md，需在后续版本添加验证码消费逻辑
+    expect(first.body.success).toBe(true)
+
+    // 验证码被标记为已使用
+    expect(supabaseMock.update).toHaveBeenCalledWith({ used: true })
+    expect(supabaseMock.eq).toHaveBeenCalledWith('id', resetVerificationRow.id)
+
+    // 第二次：同一验证码已被消费 → 失败
+    supabaseMock.single.mockResolvedValueOnce({ data: null, error: { code: 'PGRST116' } })
+    const second = await parseResponse(await POST(createPostRequest(payload)))
+    expect(second.status).toBe(400)
+    expect(second.body.error).toMatch(/验证码/)
   })
 })
 
@@ -453,9 +494,9 @@ describe('POST /api/auth/send-verification-code', () => {
     expect(status).toBe(500)
   })
 
-  // ── 暴露缺陷：无防刷限频 ──
+  // ── VERIFIES FIX：60s 限频阻止连续请求 ──
 
-  it('EXPOSES GAP: 连续 5 次调用都生成新验证码（无 60s 限频）', async () => {
+  it('VERIFIES FIX: 60s 限频：第一次成功，后续被拒绝', async () => {
     const { POST } = await import('@/app/api/auth/send-verification-code/route')
 
     // mock 数据库 insert 成功
@@ -472,7 +513,7 @@ describe('POST /api/auth/send-verification-code', () => {
       },
       from: vi.fn(() => supabaseMock),
     })
-    // mock Resend 邮件 API 成功（route 内部用 fetch 调用）
+    // mock Resend 邮件 API 成功
     const originalFetch = global.fetch
     const originalKey = process.env.RESEND_API_KEY
     process.env.RESEND_API_KEY = 'test-key'
@@ -482,23 +523,49 @@ describe('POST /api/auth/send-verification-code', () => {
       text: async () => '',
     }) as any
 
-    try {
-      const results: number[] = []
-      for (let i = 0; i < 5; i++) {
-        const r = await parseResponse(
-          await POST(createPostRequest({
-            email: 'newuser@test.com',
-            type: 'email_verification',
-          }))
-        )
-        results.push(r.status)
-      }
+    // mock 60s 限频查询：第一次返回 null（无最近记录），后续返回有记录
+    supabaseMock.maybeSingle
+      .mockResolvedValueOnce({ data: null, error: null }) // 第一次：无最近记录 → 通过
+      .mockResolvedValueOnce({                              // 第二次：有最近记录 → 拒绝
+        data: { id: 'vc-recent', created_at: new Date().toISOString() },
+        error: null,
+      })
+      .mockResolvedValueOnce({                              // 第三次：仍有最近记录 → 拒绝
+        data: { id: 'vc-recent', created_at: new Date().toISOString() },
+        error: null,
+      })
 
-      // ⚠️ 缺陷暴露：5 次都成功（应该有 60s 限频阻止）
-      expect(results).toEqual([200, 200, 200, 200, 200])
-      // insert 应被调用 5 次（每次都生成新验证码）
-      expect(supabaseMock.insert).toHaveBeenCalledTimes(5)
-      // 已记录到 TODO.md
+    try {
+      // 第一次：成功
+      const first = await parseResponse(
+        await POST(createPostRequest({
+          email: 'newuser@test.com',
+          type: 'email_verification',
+        }))
+      )
+      expect(first.status).toBe(200)
+
+      // 第二次：被 60s 限频拒绝
+      const second = await parseResponse(
+        await POST(createPostRequest({
+          email: 'newuser@test.com',
+          type: 'email_verification',
+        }))
+      )
+      expect(second.status).toBe(429)
+      expect(second.body.error).toMatch(/频繁/)
+
+      // 第三次：仍被拒绝
+      const third = await parseResponse(
+        await POST(createPostRequest({
+          email: 'newuser@test.com',
+          type: 'email_verification',
+        }))
+      )
+      expect(third.status).toBe(429)
+
+      // insert 应只被调用 1 次（仅第一次生成验证码）
+      expect(supabaseMock.insert).toHaveBeenCalledTimes(1)
     } finally {
       global.fetch = originalFetch
       if (originalKey === undefined) delete process.env.RESEND_API_KEY

@@ -1,5 +1,39 @@
 # 阿斯汤加打卡 app - 项目记录
 
+## 2026-06-25: 阶段 6 测试暴露的 3 个缺陷修复
+
+### 背景
+阶段 6 跨模块测试缺口填充过程中，通过 `EXPOSES GAP` 测试暴露了 3 个真实缺陷。本日完成全部修复，并把对应测试改为 `VERIFIES FIX`。
+
+### 修复内容
+
+**缺陷 1：`reset-password` 无幂等机制**
+- 文件：`app/api/auth/reset-password/route.ts`
+- 改动：现在强制要求 `code` 字段，查询 `verification_codes` 表 `type='reset_password' && used=false && 未过期` 记录，成功后标记 `used=true`。与 register/verify-code 单次消费机制对齐。
+
+**缺陷 2：`send-verification-code` 无防刷限频**
+- 文件：`app/api/auth/send-verification-code/route.ts`
+- 改动：API 入口加 60s 限频——查询该邮箱 `verification_codes` 表最近一条 `created_at`，未过 60s 返回 429。查询失败 fail-open。
+
+**缺陷 3：Stats Tab 切换不保持滚动位置**
+- 文件：`components/stats/StatsTab.tsx`
+- 改动：三段式策略「scroll 事件实时保存 + sessionStorage 持久化 + mount 时轮询恢复」。
+- 关键发现：最初用模块变量 + unmount 时读取 `el.scrollTop` 失败。诊断显示 unmount cleanup 运行时 `scrollTop` 已是 0——**AnimatePresence exit 动画先于 unmount 把 scrollTop 重置为 0**。所以必须用 scroll 事件实时保存。
+- sessionStorage 选择理由：dev 模式下 next/dynamic 可能重新求值模块变量；sessionStorage 在 tab 关闭时清空（重启浏览器后回到顶部是合理行为），比 localStorage 更合适。
+
+### 测试结果
+- vitest：527 项全部通过（含新增 VERIFIES FIX 测试）
+- L4 Playwright：48 项通过、3 项 skipped
+- TODO.md 3 个缺陷全部标记为 ✅ 已修复
+
+### 涉及文件
+- `app/api/auth/reset-password/route.ts`
+- `app/api/auth/send-verification-code/route.ts`
+- `components/stats/StatsTab.tsx`
+- `__tests__/api-auth-routes.test.ts`
+- `__tests__/L4/tab.spec.ts`
+- `TODO.md`
+
 ## 2026-06-24（续2）: 阶段 5 最终精简 — resolveConflict + smartMerge 提取
 
 ### 背景

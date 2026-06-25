@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo } from "react"
+import { useEffect, useMemo, useRef } from "react"
 import dynamic from "next/dynamic"
 import { AnimatePresence, motion } from "framer-motion"
 import { ChevronRight, Crown, Download, Loader2, Settings, Sparkles, User } from "lucide-react"
@@ -20,6 +20,11 @@ const PWAInstallTutorialModal = dynamic(
 const NEW_MOON_ICON = "/moon-phase/new-moon.png"
 const FULL_MOON_ICON = "/moon-phase/full-moon.png"
 const UNIFIED_COLS = 16
+
+// ⭐ 滚动位置记忆：tab 切换时组件 unmount，下次 mount 时从 sessionStorage 恢复。
+// 不用模块变量（next/dynamic 在 dev 模式可能重新求值模块导致变量重置）；
+// 不用 localStorage（重启浏览器后回到顶部是合理行为）。
+const SCROLL_STORAGE_KEY = 'stats-tab-scroll-top'
 
 type MembershipInfo = {
   is_active: boolean
@@ -86,6 +91,61 @@ export function StatsTab({
 }: StatsTabProps) {
   const { promptInstall } = usePWAInstall()
 
+  // ⭐ 滚动位置持久化：tab 切走时恢复，切回时恢复
+  // 关键点：必须在 scroll 事件中实时保存，不能在 unmount 时才读 scrollTop。
+  // 因为 framer-motion AnimatePresence 的 exit 动画会先于 unmount 把 scrollTop 重置为 0。
+  const scrollRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+
+    // 读取上次保存的位置
+    let savedScrollTop = 0
+    try {
+      savedScrollTop = parseInt(sessionStorage.getItem(SCROLL_STORAGE_KEY) || '0', 10) || 0
+    } catch {
+      // sessionStorage 不可用时静默失败
+    }
+
+    // 实时保存：每次滚动都更新（throttled via rAF）
+    let pendingSave = false
+    const saveScroll = () => {
+      if (pendingSave) return
+      pendingSave = true
+      requestAnimationFrame(() => {
+        pendingSave = false
+        try {
+          sessionStorage.setItem(SCROLL_STORAGE_KEY, String(el.scrollTop))
+        } catch {
+          // 静默失败
+        }
+      })
+    }
+    el.addEventListener('scroll', saveScroll, { passive: true })
+    // 初次 mount 也保存一次（防止用户没滚动就切走）
+    saveScroll()
+
+    // 轮询恢复：等待异步内容（热力图/月相日历）撑起足够高度后再设置 scrollTop
+    let canceled = false
+    const tryRestore = (attemptsLeft: number) => {
+      if (canceled || savedScrollTop <= 0) return
+      const maxScroll = el.scrollHeight - el.clientHeight
+      if (maxScroll >= savedScrollTop) {
+        el.scrollTop = savedScrollTop
+      } else if (attemptsLeft > 0) {
+        setTimeout(() => tryRestore(attemptsLeft - 1), 100)
+      }
+    }
+    const restoreId = setTimeout(() => tryRestore(15), 50)
+
+    // unmount：移除监听器（sessionStorage 已实时保存，无需再保存）
+    return () => {
+      canceled = true
+      clearTimeout(restoreId)
+      el.removeEventListener('scroll', saveScroll)
+    }
+  }, [])
+
   const handleInstallClick = async () => {
     const isInstalled = window.matchMedia("(display-mode: standalone)").matches
 
@@ -125,7 +185,7 @@ export function StatsTab({
   } as const
 
   return (
-    <div className="flex-1 overflow-y-auto pb-24 pt-4">
+    <div ref={scrollRef} className="flex-1 overflow-y-auto pb-24 pt-4">
       <div className="px-6 flex items-center justify-between mb-4 pt-10">
         <button
           type="button"
