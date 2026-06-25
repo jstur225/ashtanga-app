@@ -1,5 +1,21 @@
 # 阿斯汤加打卡 app - 项目记录
 
+## 2026-06-25: README / 开发说明归档
+
+### 背景
+重构补漏和 L4 登录态稳定化完成后，项目已经不缺代码入口，缺的是“下次打开直接知道怎么继续”的维护入口。
+
+### 修改内容
+
+- `README.md` 增加“开发维护入口”，写清当前重构状态、恢复文档、开发说明、验证基线。
+- 新增 `docs/guides/DEVELOPMENT.md`，集中说明日常启动、门禁命令、L4 seed、L5 `.env.test` 要求和已知 Git 全局 ignore 权限噪声。
+- `docs/architecture/REFACTOR_RESUME.md` 的下一步更新为 L5 真实云端环境可重复化。
+- `TODO.md` 增加 README/开发说明归档完成项。
+
+### 下一步
+
+固化 L5 真实云端测试环境：专用测试账号、`.env.test` 模板、reset 脚本和运行说明。
+
 ## 2026-06-25: L4 登录态稳定化 — 51/51 全量通过
 
 ### 背景
@@ -3809,3 +3825,25 @@ export const INVITE_VERSION = 'v2'  // 从 v1 更新到 v2
 **为什么用 `EXPOSES GAP` 而非直接修复 reset-password / send-verification-code？**
 遵循 "Surgical Changes" 原则。本阶段目标是测试缺口填充，不是修复 API 缺陷。暴露的缺陷需要单独评估（影响面、修复方案、回归测试），不应混在测试 PR 中。测试通过 `EXPOSES GAP` 标记明确告知读者：测试本身是断言"缺陷存在"，未来修复后需把 `EXPOSES GAP` 测试改为 `VERIFIES FIX` 测试。
 
+
+## 2026-06-25: 百度 SEO 补齐 — 发现型关键词覆盖
+
+### 背景
+商业模式诊断确认核心瓶颈：每日 intake 仅 ~1 人，需求在获客通道。品牌词「熬汤日记」能搜到官网，但发现型关键词零排名（「阿斯汤加 记录」「瑜伽 打卡工具」等均搜不到）。
+
+### 修改内容
+
+- `app/layout.tsx` — title 改为「熬汤日记 - 阿斯汤加瑜伽练习记录与打卡工具」，description 融入「免费」「Mysore 计时」「无需下载」等搜索意图。
+- `app/seo/page.tsx` — 新增 SEO 着陆页，纯服务端组件（无 'use client'），6 个功能卡片自然融入关键词，底部 CTA 链接回首页。
+- `app/sitemap.ts` — 新增，包含 `/` `/practice` `/seo` 三个 URL。
+- `app/robots.ts` — 新增，允许所有爬虫，指向 sitemap。
+
+### 验证
+
+- `npx next build` → 通过
+- `/seo` 预渲染为静态内容 ✓
+- `/robots.txt` `/sitemap.xml` 正确生成 ✓
+
+### 下一步
+
+部署后到百度站长平台提交 sitemap 和手动收录。
