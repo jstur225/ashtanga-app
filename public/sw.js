@@ -1,106 +1,67 @@
-// 使用时间戳作为版本号，每次构建时自动更新
-const CACHE_NAME = `ashtanga-${Date.now()}`
-const urlsToCache = [
-  '/',
+const CACHE_NAME = 'ashtanga-static'
+const STATIC_ASSETS = [
   '/icon.png',
   '/apple-icon.png',
-  '/manifest.json'
+  '/manifest.json',
 ]
 
-// 安装Service Worker - 立即激活，等待中状态
-self.addEventListener('install', event => {
-  // 跳过等待，立即激活新的Service Worker
+self.addEventListener('install', (event) => {
   self.skipWaiting()
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(urlsToCache))
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS))
   )
 })
 
-// 激活Service Worker - 立即控制所有客户端
-self.addEventListener('activate', event => {
-  // 立即控制所有客户端
+self.addEventListener('activate', (event) => {
   event.waitUntil(
     (async () => {
-      // 立即控制所有客户端
       await clients.claim()
 
-      // 删除所有旧缓存
       const cacheNames = await caches.keys()
       await Promise.all(
-        cacheNames.map(cacheName => {
-          if (cacheName !== CACHE_NAME) {
-            return caches.delete(cacheName)
-          }
-        })
+        cacheNames
+          .filter((cacheName) => cacheName.startsWith('ashtanga-') && cacheName !== CACHE_NAME)
+          .map((cacheName) => caches.delete(cacheName))
       )
     })()
   )
 })
 
-// 拦截请求 - Network First策略，确保总是获取最新内容
-self.addEventListener('fetch', event => {
-  const url = new URL(event.request.url)
+self.addEventListener('fetch', (event) => {
+  const { request } = event
+  const url = new URL(request.url)
 
-  // ⭐ 关键修复：POST/PUT/DELETE 等非 GET 请求直接转发，不缓存
-  if (event.request.method !== 'GET') {
-    event.respondWith(fetch(event.request))
+  if (request.method !== 'GET') {
+    event.respondWith(fetch(request))
     return
   }
 
-  // 对于HTML页面，使用Network First（优先网络，确保最新）
-  if (event.request.mode === 'navigate' ||
-      event.request.destination === 'document') {
+  // 页面 HTML 必须始终走网络，避免 PWA 启动时拿到旧 HTML 后引用过期的 Next.js chunk。
+  if (request.mode === 'navigate' || request.destination === 'document') {
+    event.respondWith(fetch(request))
+    return
+  }
+
+  // API 和音频都不进缓存：API 要实时，音频要保留 Range 流式播放能力。
+  if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/audio/')) {
+    event.respondWith(fetch(request))
+    return
+  }
+
+  // 只对图标、manifest 这类稳定静态资源使用 cache-first。
+  if (STATIC_ASSETS.includes(url.pathname)) {
     event.respondWith(
-      fetch(event.request)
-        .then(response => {
-          // 网络成功，克隆并缓存
+      caches.match(request).then((cached) => {
+        if (cached) return cached
+
+        return fetch(request).then((response) => {
           if (response && response.status === 200) {
             const responseToCache = response.clone()
-            caches.open(CACHE_NAME).then(cache => {
-              cache.put(event.request, responseToCache)
-            })
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, responseToCache))
           }
-          return response
-        })
-        .catch(() => {
-          // 网络失败，尝试使用缓存
-          return caches.match(event.request)
-        })
-    )
-    return
-  }
-
-  // API 请求不缓存，直接走网络
-  if (url.pathname.startsWith('/api/')) {
-    event.respondWith(fetch(event.request))
-    return
-  }
-
-  // 音频文件不缓存，直接走网络（支持 Range 流式播放）
-  if (url.pathname.startsWith('/audio/')) {
-    event.respondWith(fetch(event.request))
-    return
-  }
-
-  // 对于静态资源（图标等），使用Cache First（优先缓存，提升性能）
-  event.respondWith(
-    caches.match(event.request)
-      .then(response => {
-        if (response) {
-          return response
-        }
-        return fetch(event.request).then(response => {
-          if (!response || response.status !== 200 || response.type !== 'basic') {
-            return response
-          }
-          const responseToCache = response.clone()
-          caches.open(CACHE_NAME)
-            .then(cache => {
-              cache.put(event.request, responseToCache)
-            })
           return response
         })
       })
-  )
+    )
+  }
 })

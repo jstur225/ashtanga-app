@@ -6,9 +6,10 @@ export function ServiceWorkerRegister() {
   useEffect(() => {
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
       navigator.serviceWorker
-        .register('/sw.js')
+        .register('/sw.js', { updateViaCache: 'none' })
         .then((registration) => {
           console.log('Service Worker 注册成功:', registration.scope)
+          void registration.update()
         })
         .catch((error) => {
           console.log('Service Worker 注册失败:', error)
