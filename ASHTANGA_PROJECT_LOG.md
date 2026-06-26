@@ -3955,6 +3955,24 @@ export const INVITE_VERSION = 'v2'  // 从 v1 更新到 v2
 - `npx.cmd vitest run --config vitest.config.ts __tests__/auth-modal.test.tsx __tests__/auth-modal-accessibility.test.tsx` → 2 文件 / 30 项通过
 - `npx.cmd vitest run --config vitest.config.ts` → 49 文件 / 527 项通过
 
+## 2026-06-26: 解耦重构收尾 — 进入维护模式
+
+### 背景
+
+复盘整个解耦任务后确认：继续按行数驱动拆分的边际收益已经下降，容易制造文件跳转成本。重构目标已经达成，后续应按真实痛点、风险和业务优先级推进。
+
+### 收尾结论
+
+- 核心阶段 1–6 已完成，可以停止主动重构。
+- `app/practice/page.tsx` 已在目标范围内，不再为了降到 800 行硬拆。
+- `hooks/useSync.ts`、`lib/sync-utils.ts`、`components/AuthModalForms.tsx` 暂不主动拆。
+- 会员 API helper/repository 化只保留为可选优化，不作为默认下一阶段。
+- 后续优先级改为：业务增长/获客/转化、线上 bug、安全问题、有测试保护的小范围优化。
+
+### 后续规则
+
+只有出现具体 bug、具体业务改动、具体维护痛点，才开启下一刀。纯行数型拆分暂停。
+
 ## 2026-06-26: AuthModal 表单视图拆分
 
 ### 背景
