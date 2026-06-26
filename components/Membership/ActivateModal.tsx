@@ -76,7 +76,7 @@ export function ActivateModal({ isOpen, onClose, onSuccess }: ActivateModalProps
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-[#2D3A2D] font-serif">激活 Pro 会员</h3>
-                  <p className="text-sm text-[#8B7355] font-serif">解锁更多专属功能</p>
+                  <p className="text-sm text-[#8B7355] font-serif">解锁照片、选项、标注和颜色</p>
                 </div>
               </div>
             </div>

@@ -15,11 +15,11 @@ interface MembershipPromptModalProps {
 }
 
 const REASON_SUBTITLES: Record<string, string> = {
-  options_full: '免费用户最多 4 个选项',
-  locked_option: '激活会员可以恢复选项使用',
-  locked_practice: '激活会员恢复选项开始练习',
-  locked_annotation: '免费用户只能 1 个标注，Pro 最多 9 个',
-  color_level: 'Pro 会员可解锁全部日历颜色',
+  options_full: '免费用户最多 3 个练习选项',
+  locked_option: '开通 Pro 可继续使用更多选项',
+  locked_practice: '开通 Pro 可使用该练习选项',
+  locked_annotation: '免费用户 1 种标注，Pro 最多 9 种',
+  color_level: 'Pro 可解锁全部日历颜色',
 }
 
 export function MembershipPromptModal({ isOpen, onClose, onActivate, reason }: MembershipPromptModalProps) {

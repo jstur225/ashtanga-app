@@ -23,7 +23,7 @@ export function MembershipActions({ onPurchase, onActivate, isActive }: Membersh
             <p className="font-medium text-[#2D3A2D] font-serif">
               {isActive ? '续费 Pro 会员' : '购买 Pro 会员'}
             </p>
-            <p className="text-sm text-[#8B7355] font-serif">开通 Pro 解锁全部功能</p>
+            <p className="text-sm text-[#8B7355] font-serif">解锁照片、选项与日历权益</p>
           </div>
         </div>
         <ChevronRight className="w-5 h-5 text-[#C1A268]" />

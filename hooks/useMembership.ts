@@ -12,9 +12,12 @@ export interface MembershipStatus {
 }
 
 export const PRO_BENEFITS = [
-  { text: '9 张', subtext: '照片上传' },
-  { text: '11 个', subtext: '自定义选项' },
-  { text: '9 种', subtext: '日历标注' },
+  { icon: 'image', text: '9 张', subtext: '每条记录' },
+  { icon: 'upload', text: '30MB', subtext: '单张照片' },
+  { icon: 'sliders', text: '11 个', subtext: '练习选项' },
+  { icon: 'calendar', text: '9 种', subtext: '日历标注' },
+  { icon: 'palette', text: '全部', subtext: '日历颜色' },
+  { icon: 'timer', text: '自定义', subtext: '唱诵时长' },
 ] as const
 
 export function useMembership() {

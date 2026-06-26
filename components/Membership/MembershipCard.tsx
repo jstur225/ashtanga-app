@@ -1,9 +1,29 @@
 'use client'
 
-import { Crown, Loader2, Sparkles } from 'lucide-react'
+import {
+  CalendarDays,
+  Crown,
+  Image,
+  Loader2,
+  Palette,
+  SlidersHorizontal,
+  Sparkles,
+  Timer,
+  Upload,
+} from 'lucide-react'
 import { PRO_BENEFITS, type MembershipStatus } from '@/hooks/useMembership'
 
 type MembershipCardData = Pick<MembershipStatus, 'is_active' | 'expires_at_formatted' | 'days_remaining' | 'type'>
+type BenefitIcon = (typeof PRO_BENEFITS)[number]['icon']
+
+const BENEFIT_ICONS: Record<BenefitIcon, typeof Image> = {
+  image: Image,
+  upload: Upload,
+  sliders: SlidersHorizontal,
+  calendar: CalendarDays,
+  palette: Palette,
+  timer: Timer,
+}
 
 export interface MembershipCardProps {
   subtitle?: string
@@ -41,7 +61,7 @@ export function MembershipCard({ subtitle, showStatus = false, membership, loadi
             </div>
           ) : (
             <p className="text-[#8B7355] text-sm font-serif">
-              {subtitle || '免费用户 · 解锁更多专属功能'}
+              {subtitle || '解锁更多记录与日历能力'}
             </p>
           )}
         </div>
@@ -55,12 +75,19 @@ export function MembershipCard({ subtitle, showStatus = false, membership, loadi
       <div className="mt-4 pt-4 border-t border-[#C1A268]/20">
         <p className="text-xs text-[#8B7355] mb-3 font-serif">PRO 会员权益</p>
         <div className="grid grid-cols-3 gap-2">
-          {PRO_BENEFITS.map((b, i) => (
-            <div key={i} className="text-center">
-              <div className="text-lg font-bold text-[#6B5A47]">{b.text}</div>
-              <div className="text-xs text-[#8B7355] font-serif">{b.subtext}</div>
-            </div>
-          ))}
+          {PRO_BENEFITS.map((benefit) => {
+            const Icon = BENEFIT_ICONS[benefit.icon]
+            return (
+              <div
+                key={benefit.icon}
+                className="rounded-2xl bg-white/70 border border-[#C1A268]/10 px-2 py-3 text-center shadow-sm"
+              >
+                <Icon className="w-4 h-4 mx-auto mb-1.5 text-[#C1A268]" />
+                <div className="text-base font-bold text-[#6B5A47] leading-tight">{benefit.text}</div>
+                <div className="text-[11px] text-[#8B7355] font-serif leading-tight mt-0.5">{benefit.subtext}</div>
+              </div>
+            )
+          })}
         </div>
       </div>
     </div>
