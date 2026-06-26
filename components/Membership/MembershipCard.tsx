@@ -1,29 +1,9 @@
 'use client'
 
-import {
-  CalendarDays,
-  Crown,
-  Image,
-  Loader2,
-  Palette,
-  SlidersHorizontal,
-  Sparkles,
-  Timer,
-  Upload,
-} from 'lucide-react'
+import { Crown, Loader2, Sparkles } from 'lucide-react'
 import { PRO_BENEFITS, type MembershipStatus } from '@/hooks/useMembership'
 
 type MembershipCardData = Pick<MembershipStatus, 'is_active' | 'expires_at_formatted' | 'days_remaining' | 'type'>
-type BenefitIcon = (typeof PRO_BENEFITS)[number]['icon']
-
-const BENEFIT_ICONS: Record<BenefitIcon, typeof Image> = {
-  image: Image,
-  upload: Upload,
-  sliders: SlidersHorizontal,
-  calendar: CalendarDays,
-  palette: Palette,
-  timer: Timer,
-}
 
 export interface MembershipCardProps {
   subtitle?: string
@@ -71,23 +51,24 @@ export function MembershipCard({ subtitle, showStatus = false, membership, loadi
         )}
       </div>
 
-      {/* Pro 功能预览 */}
+      {/* Pro 功能对比 */}
       <div className="mt-4 pt-4 border-t border-[#C1A268]/20">
-        <p className="text-xs text-[#8B7355] mb-3 font-serif">PRO 会员权益</p>
-        <div className="grid grid-cols-3 gap-2">
-          {PRO_BENEFITS.map((benefit) => {
-            const Icon = BENEFIT_ICONS[benefit.icon]
-            return (
-              <div
-                key={benefit.icon}
-                className="rounded-2xl bg-white/70 border border-[#C1A268]/10 px-2 py-3 text-center shadow-sm"
-              >
-                <Icon className="w-4 h-4 mx-auto mb-1.5 text-[#C1A268]" />
-                <div className="text-base font-bold text-[#6B5A47] leading-tight">{benefit.text}</div>
-                <div className="text-[11px] text-[#8B7355] font-serif leading-tight mt-0.5">{benefit.subtext}</div>
-              </div>
-            )
-          })}
+        <div className="rounded-2xl overflow-hidden border border-[#C1A268]/15 bg-white/70 shadow-sm">
+          <div className="grid grid-cols-[1.25fr_0.8fr_0.8fr] bg-[#F5F0E8] text-[11px] font-serif text-[#8B7355]">
+            <div className="px-3 py-2">权益</div>
+            <div className="px-2 py-2 text-center">普通</div>
+            <div className="px-2 py-2 text-center text-[#9A7438]">Pro</div>
+          </div>
+          {PRO_BENEFITS.map((benefit) => (
+            <div
+              key={benefit.feature}
+              className="grid grid-cols-[1.25fr_0.8fr_0.8fr] items-center border-t border-[#C1A268]/10 text-sm"
+            >
+              <div className="px-3 py-2.5 text-[#6B5A47] font-serif">{benefit.feature}</div>
+              <div className="px-2 py-2.5 text-center text-[#8B7355]">{benefit.free}</div>
+              <div className="px-2 py-2.5 text-center font-semibold text-[#9A7438]">{benefit.pro}</div>
+            </div>
+          ))}
         </div>
       </div>
     </div>

@@ -19,7 +19,6 @@ const DebugLogModal = dynamic(() => import("@/components/DebugLogModal").then((m
 const SettingsModal = dynamic(() => import("@/components/settings/SettingsModal").then((module) => ({ default: module.SettingsModal })), { ssr: false })
 const ActivateModal = dynamic(() => import("@/components/Membership/ActivateModal").then((module) => ({ default: module.ActivateModal })), { ssr: false })
 const MembershipPromptModal = dynamic(() => import("@/components/Membership/MembershipPromptModal").then((module) => ({ default: module.MembershipPromptModal })), { ssr: false })
-const PurchaseGuideModal = dynamic(() => import("@/components/Membership/PurchaseGuideModal").then((module) => ({ default: module.PurchaseGuideModal })), { ssr: false })
 
 interface ClearDataDialogProps {
   isOpen: boolean
@@ -55,7 +54,6 @@ interface PracticeModalHostProps {
     annotationManager: ComponentProps<typeof AnnotationManagerModal>
     activate: ComponentProps<typeof ActivateModal>
     membershipPrompt: ComponentProps<typeof MembershipPromptModal>
-    purchaseGuide: ComponentProps<typeof PurchaseGuideModal>
     accountSync: ComponentProps<typeof AccountSyncModal>
     importModal: ComponentProps<typeof ImportModal>
     exportModal: ComponentProps<typeof ExportModal>
@@ -239,7 +237,6 @@ export function PracticeModalHost({ clearData, chantSettings, external }: Practi
           <AnnotationManagerModal {...external.annotationManager} />
           <ActivateModal {...external.activate} />
           <MembershipPromptModal {...external.membershipPrompt} />
-          <PurchaseGuideModal {...external.purchaseGuide} />
           <AccountSyncModal {...external.accountSync} />
           <ImportModal {...external.importModal} />
           <ExportModal {...external.exportModal} />

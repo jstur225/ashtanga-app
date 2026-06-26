@@ -28,7 +28,6 @@ interface ProfileSettingsSectionProps {
 interface MembershipSettingsSectionProps {
   membership?: MembershipInfo | null
   onActivateMembership?: () => void
-  onPurchaseMembership?: () => void
 }
 
 interface DataManagementSectionProps {
@@ -58,7 +57,6 @@ export interface SettingsModalProps {
   onOpenRegisterModal?: () => void
   membership?: MembershipInfo | null
   onActivateMembership?: () => void
-  onPurchaseMembership?: () => void
   onUpdateProfile?: (profile: UserProfile) => void
 }
 
@@ -318,13 +316,11 @@ export function ProfileSettingsSection({
 export function MembershipSettingsSection({
   membership,
   onActivateMembership,
-  onPurchaseMembership,
 }: MembershipSettingsSectionProps) {
   return (
     <div className="space-y-4">
       <MembershipCard showStatus membership={membership} loading={false} />
       <MembershipActions
-        onPurchase={() => onPurchaseMembership?.()}
         onActivate={onActivateMembership ?? (() => {})}
         isActive={membership?.is_active ?? false}
       />
@@ -473,7 +469,6 @@ export function SettingsModal({
   onOpenRegisterModal,
   membership,
   onActivateMembership,
-  onPurchaseMembership,
   onUpdateProfile,
 }: SettingsModalProps) {
   const [activeSection, setActiveSection] = useState<SettingsSection>(initialSection || "profile")
@@ -548,7 +543,6 @@ export function SettingsModal({
                 <MembershipSettingsSection
                   membership={membership}
                   onActivateMembership={onActivateMembership}
-                  onPurchaseMembership={onPurchaseMembership}
                 />
               )}
               {activeSection === "account" && (

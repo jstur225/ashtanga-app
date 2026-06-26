@@ -57,13 +57,10 @@ vi.mock("@/components/Membership/MembershipCard", () => ({
 }))
 
 vi.mock("@/components/Membership/MembershipActions", () => ({
-  MembershipActions: ({ onPurchase, onActivate }: { onPurchase: () => void; onActivate: () => void }) => (
+  MembershipActions: ({ onActivate }: { onActivate: () => void }) => (
     <div>
-      <button type="button" onClick={onPurchase}>
-        购买会员
-      </button>
       <button type="button" onClick={onActivate}>
-        激活会员
+        开通会员
       </button>
     </div>
   ),

@@ -13,7 +13,6 @@ vi.mock("framer-motion", () => ({
 
 vi.mock("@/components/Membership/MembershipCard", () => ({ MembershipCard: () => <div>会员权益</div> }))
 vi.mock("@/components/Membership/MembershipActions", () => ({ MembershipActions: () => <div>会员操作</div> }))
-vi.mock("@/components/Membership/PurchaseGuideModal", () => ({ PurchaseGuideModal: () => null }))
 
 afterEach(() => cleanup())
 

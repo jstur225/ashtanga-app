@@ -196,7 +196,6 @@ export default function AshtangaTracker() {
   const [settingsInitialSection, setSettingsInitialSection] = useState<'profile' | 'membership' | 'account' | 'data'>('profile')
   const [showAccountSync, setShowAccountSync] = useState(false)
   const [showActivateModal, setShowActivateModal] = useState(false)
-  const [showPurchaseModal, setShowPurchaseModal] = useState(false)
   const [showMembershipPrompt, setShowMembershipPrompt] = useState(false)
   const [membershipPromptReason, setMembershipPromptReason] = useState<'options_full' | 'locked_option' | 'locked_practice' | 'locked_annotation' | 'color_level'>('options_full')
   const [showFakeDoor, setShowFakeDoor] = useState<{ type: 'cloud' | 'pro' | 'voice' | 'photo', isOpen: boolean }>({ type: 'cloud', isOpen: false })
@@ -401,7 +400,6 @@ export default function AshtangaTracker() {
     showAnnotationManager,
     showAccountSync,
     showActivateModal,
-    showPurchaseModal,
     showMembershipPrompt,
     showFakeDoor: showFakeDoor.isOpen,
     showImportModal,
@@ -1050,7 +1048,6 @@ export default function AshtangaTracker() {
             },
             membership,
             onActivateMembership: () => setShowActivateModal(true),
-            onPurchaseMembership: () => setShowPurchaseModal(true),
             onUpdateProfile: updateProfile,
           },
           annotationManager: {
@@ -1082,10 +1079,6 @@ export default function AshtangaTracker() {
             onClose: () => setShowMembershipPrompt(false),
             reason: membershipPromptReason,
             onActivate: () => setShowActivateModal(true),
-          },
-          purchaseGuide: {
-            isOpen: showPurchaseModal,
-            onClose: () => setShowPurchaseModal(false),
           },
           accountSync: {
             isOpen: showAccountSync,

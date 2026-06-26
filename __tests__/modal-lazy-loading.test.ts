@@ -16,7 +16,6 @@ const LAZY_MODALS = [
   { name: "FakeDoorModal", file: "components/FakeDoorModal.tsx" },
   { name: "ActivateModal", file: "components/Membership/ActivateModal.tsx" },
   { name: "MembershipPromptModal", file: "components/Membership/MembershipPromptModal.tsx" },
-  { name: "PurchaseGuideModal", file: "components/Membership/PurchaseGuideModal.tsx" },
   { name: "AnnotationManagerModal", file: "components/CalendarAnnotation/AnnotationManagerModal.tsx" },
 ]
 
@@ -35,7 +34,6 @@ const HOSTED_MODALS = [
   "AnnotationManagerModal",
   "ActivateModal",
   "MembershipPromptModal",
-  "PurchaseGuideModal",
   "AccountSyncModal",
   "ImportModal",
   "ExportModal",
