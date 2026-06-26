@@ -1,5 +1,27 @@
 # 阿斯汤加打卡 app - 项目记录
 
+## 2026-06-26: 照片上传限制与友好提示
+
+### 背景
+
+用户上传超过 10MB 的照片时会失败，但前端提示不够友好；同时 Pro 用户应能上传更大的练习照片。这个任务属于真实产品痛点，不是结构型重构。
+
+### 修改内容
+
+- `lib/oss.ts` 增加免费/Pro 文件大小上限：免费 10MB，Pro 30MB。
+- `validatePhotoFile(file, { isPro })` 根据会员状态返回不同限制与友好错误文案。
+- `uploadPhoto(file, recordId, { isPro })` 在上传流程入口复用同一套校验。
+- `components/PracticeForm.tsx` 在文件选择后使用实时会员状态判断 `isPro`，并传给上传流程。
+- 前端不再把校验错误吞成“上传失败，请重试”，会展示具体原因，例如免费版超过 10MB 或 Pro 超过 30MB。
+- `components/PhotoUpload/PhotoUploader.tsx` 同步支持 `isPro` 参数，保留导出组件的一致性。
+
+### 验证
+
+- `npm.cmd run typecheck` → 通过
+- `npm.cmd run lint` → 通过
+- `npx.cmd vitest run --config vitest.config.ts __tests__/oss-utils.test.ts` → 1 文件 / 16 项通过
+- `npx.cmd vitest run --config vitest.config.ts` → 49 文件 / 539 项通过
+
 ## 2026-06-26: 会员激活 API 对口测试补齐
 
 ### 背景

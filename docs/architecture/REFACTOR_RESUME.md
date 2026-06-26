@@ -213,7 +213,7 @@ npm.cmd run test:L4
 | `lib/sync-utils.ts` | 551 行 | 同步/统计/色阶等纯函数集合 |
 | `lib/sync-mappers.ts` | 108 行 | 远端字段映射与归一化 |
 | `lib/supabase-repository.ts` | 152 行 | Supabase 仓库原语 |
-| Vitest | 49 文件 / 535 项 | L1/L2/L3 高风险缺口基本清零；会员激活 API 对口测试已补齐 |
+| Vitest | 49 文件 / 539 项 | L1/L2/L3 高风险缺口基本清零；会员激活 API 与照片上传大小限制对口测试已补齐 |
 | L4 隔离浏览器 | 51/51 | guest、mobile、登录态 UI 全量通过 |
 
 ## 维护期建议

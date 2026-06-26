@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest'
 import {
   validatePhotoFile,
   MAX_FILE_SIZE,
+  FREE_MAX_FILE_SIZE,
+  PRO_MAX_FILE_SIZE,
   ERROR_MESSAGES,
 } from '@/lib/oss'
 
@@ -56,18 +58,45 @@ describe('validatePhotoFile', () => {
     expect(validatePhotoFile(file).valid).toBe(true)
   })
 
+  it('default MAX_FILE_SIZE is the free 10MB limit', () => {
+    expect(MAX_FILE_SIZE).toBe(FREE_MAX_FILE_SIZE)
+    expect(FREE_MAX_FILE_SIZE).toBe(10 * 1024 * 1024)
+    expect(PRO_MAX_FILE_SIZE).toBe(30 * 1024 * 1024)
+  })
+
   it('file one byte over MAX_FILE_SIZE is rejected', () => {
     const file = makeFile('oversize.jpg', 'image/jpeg', MAX_FILE_SIZE + 1)
     const result = validatePhotoFile(file)
     expect(result.valid).toBe(false)
-    expect(result.error).toMatch(/不可大于/)
+    expect(result.error).toContain('免费版单张照片上限为 10MB')
+  })
+
+  it('free user: 10MB passes but one byte over 10MB is rejected with friendly message', () => {
+    expect(validatePhotoFile(makeFile('free-ok.jpg', 'image/jpeg', FREE_MAX_FILE_SIZE)).valid).toBe(true)
+
+    const result = validatePhotoFile(makeFile('free-over.jpg', 'image/jpeg', FREE_MAX_FILE_SIZE + 1))
+    expect(result.valid).toBe(false)
+    expect(result.error).toContain('照片超过 10MB')
+    expect(result.error).toContain('免费版')
+  })
+
+  it('pro user: 10MB+ image passes up to 30MB', () => {
+    const file = makeFile('pro-ok.jpg', 'image/jpeg', FREE_MAX_FILE_SIZE + 1)
+    expect(validatePhotoFile(file, { isPro: true }).valid).toBe(true)
+  })
+
+  it('pro user: image over 30MB is rejected with friendly message', () => {
+    const file = makeFile('pro-over.jpg', 'image/jpeg', PRO_MAX_FILE_SIZE + 1)
+    const result = validatePhotoFile(file, { isPro: true })
+    expect(result.valid).toBe(false)
+    expect(result.error).toContain('照片超过 30MB')
   })
 
   it('file way over limit is rejected', () => {
     const file = makeFile('huge.jpg', 'image/jpeg', MAX_FILE_SIZE * 2)
     const result = validatePhotoFile(file)
     expect(result.valid).toBe(false)
-    expect(result.error).toMatch(/不可大于/)
+    expect(result.error).toContain('照片超过 10MB')
   })
 
   it('0-byte image file passes (no size check issue)', () => {

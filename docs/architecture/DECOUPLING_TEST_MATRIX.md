@@ -6,7 +6,7 @@
 
 ## 当前覆盖概览
 
-当前自动化基线：49 个 Vitest 测试文件、535 项测试通过；L4 隔离浏览器 51/51 通过、0 skipped（2026-06-26，会员激活 API 对口测试补齐后）。
+当前自动化基线：49 个 Vitest 测试文件、539 项测试通过；L4 隔离浏览器 51/51 通过、0 skipped（2026-06-26，照片上传大小限制补齐后）。
 
 | 领域 | 当前状态 | 主要缺口 | 计划阶段 |
 |---|---|---|---|
@@ -106,7 +106,7 @@
 | 场景 | 层级 | 状态 |
 |---|---|---|
 | 登录/注册/忘记密码状态与错误 | L2/L3 | L2 已覆盖（`__tests__/auth-modal.test.tsx` 21 项：login/register/forgot-password 三模式渲染、模式切换、关闭、密码强度验证、登录成功/失败/网络错误翻译、注册步骤1→2 流转、忘记密码邮箱空/验证码长度错误） |
-| 照片上传/删除失败恢复与上限 | L1/L2/L3 | 已覆盖（`__tests__/oss-utils.test.ts` 12 项 validatePhotoFile + ERROR_MESSAGES；`__tests__/photo-logger.test.ts` 13 项 add/get/clear/filter；`__tests__/oss-network.test.ts` 10 项 savePhotoMetadata/getPresignedUrl/uploadToOSS 成功与网络异常） |
+| 照片上传/删除失败恢复与上限 | L1/L2/L3 | 已覆盖（`__tests__/oss-utils.test.ts` 16 项 validatePhotoFile + ERROR_MESSAGES，含免费 10MB / Pro 30MB；`__tests__/photo-logger.test.ts` 13 项 add/get/clear/filter；`__tests__/oss-network.test.ts` 10 项 savePhotoMetadata/getPresignedUrl/uploadToOSS 成功与网络异常） |
 | 旧版本导入兼容 | L1/L3 | L1 已覆盖（`__tests__/import-export-utils.test.ts` 17 项：旧 records 缺 updated_at/photos 为字符串、旧 profile 含 is_pro、旧 options 含 label_zh、斜杠/ISO/混合日期格式排序、真实旧版数据胶囊端到端） |
 | 教程记录与真实记录隔离 | L1/L3 | 已覆盖（`__tests__/tutorial-record.test.ts` 9 项：serializeExportData 过滤 is_tutorial、不凭 tutorial- 前缀误过滤、保留普通记录；diffRecords/sortAndLimitRecords/applySafeMerge 保持纯函数不感知 is_tutorial；prepareRecordsForSafeUpload 上传前过滤；旧 tutorial- 前缀一次性迁移契约） |
 | API 输入、未授权、异常、幂等 | L3 | 已覆盖（`__tests__/api-auth-routes.test.ts`：register / verify-code / reset-password / send-verification-code 输入验证、异常与幂等；membership activate 覆盖未登录、输入错误、激活码状态、新开通写入/消费与续费累加；reset-password 已强制消费 reset code，send-verification-code 已加 60s 限频，相关测试已从 `EXPOSES GAP` 改为 `VERIFIES FIX`） |

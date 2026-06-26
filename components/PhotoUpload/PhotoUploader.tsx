@@ -12,6 +12,7 @@ interface PhotoUploaderProps {
   recordId: string
   initialPhotos?: Photo[]
   maxPhotos?: number
+  isPro?: boolean
   disabled?: boolean
   onPhotosChange?: (photos: Photo[]) => void
 }
@@ -35,6 +36,7 @@ export function PhotoUploader({
   recordId,
   initialPhotos = [],
   maxPhotos = 9,
+  isPro = false,
   disabled = false,
   onPhotosChange,
 }: PhotoUploaderProps) {
@@ -108,7 +110,7 @@ export function PhotoUploader({
       startProgressSimulation(uploadId)
 
       // 验证文件
-      const validation = validatePhotoFile(file)
+      const validation = validatePhotoFile(file, { isPro })
       if (!validation.valid) {
         toast.error(`${file.name}: ${validation.error}`)
         return
@@ -117,7 +119,7 @@ export function PhotoUploader({
       // 执行实际上传
       doUpload(file, uploadId)
     }, 0)
-  }, [startProgressSimulation])
+  }, [startProgressSimulation, isPro])
 
   // 实际的上传逻辑（从原 uploadSingleFile 提取）
   const doUpload = useCallback(async (file: File, uploadId: string) => {

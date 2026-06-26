@@ -37,7 +37,7 @@ npm.cmd run test:L4
 |---|---|
 | `npm.cmd run typecheck` | 通过 |
 | `npm.cmd run lint` | 通过 |
-| `npx.cmd vitest run` | 49 文件 / 535 项通过 |
+| `npx.cmd vitest run` | 49 文件 / 539 项通过 |
 | `npm.cmd run build` | 通过 |
 | `npm.cmd run measure:initial-js` | 16 scripts / 1117.0 KiB raw / 335.5 KiB gzip |
 | `npm.cmd run test:L4` | 51/51 通过，0 skipped |

@@ -32,7 +32,7 @@
 | `lib/sync-utils.ts` | 551 行 | 含差异检测、日志条目创建、批量上传、options payload、色阶等纯函数 |
 | `lib/sync-mappers.ts` | 108 行 | 远端字段映射与归一化 |
 | `lib/supabase-repository.ts` | 152 行 | Supabase 仓库原语 |
-| Vitest | **49 文件 / 535 项通过** | L1/L2/L3 高风险覆盖扩大；会员激活 API 对口测试已补齐 |
+| Vitest | **49 文件 / 539 项通过** | L1/L2/L3 高风险覆盖扩大；会员激活 API 与照片上传大小限制对口测试已补齐 |
 | L4 隔离浏览器 | **51/51 通过，0 skipped** | guest、mobile、登录态 UI 全量稳定；L4 登录态通过本地 seed 固化 |
 | TypeScript / lint | 通过 |  |
 | 生产构建 | 通过 | Next.js 16 生产构建成功 |
