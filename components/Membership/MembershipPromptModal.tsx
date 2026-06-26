@@ -67,6 +67,20 @@ export function MembershipPromptModal({ isOpen, onClose, onActivate, reason }: M
             </div>
           </div>
 
+          <div className="mt-4 rounded-2xl border border-[#C1A268]/15 bg-white/55 px-4 py-3">
+            <p className="text-xs text-[#8B7355] font-serif mb-2">会员价格</p>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm font-serif">
+                <span className="text-[#6B5A47]">季卡 · 90 天</span>
+                <span className="font-semibold text-[#9A7438]">¥19.8</span>
+              </div>
+              <div className="flex items-center justify-between text-sm font-serif">
+                <span className="text-[#6B5A47]">年卡 · 365 天</span>
+                <span className="font-semibold text-[#9A7438]">¥69.8</span>
+              </div>
+            </div>
+          </div>
+
           <button
             type="button"
             onClick={() => {
