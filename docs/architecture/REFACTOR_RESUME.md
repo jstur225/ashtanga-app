@@ -32,14 +32,15 @@
 - `components/AuthModalForms.tsx`：421 行，目前可读性足够；继续拆输入框/按钮收益不高。
 - `app/practice/page.tsx`：1196 行，已在目标范围内；除非新增功能继续挤进去，否则不要为了降到 800 行硬拆。
 
-### 唯一保留的可选优化
+### 最后一刀已完成：会员激活 API
 
-如果未来还想做最后一刀，优先选会员 API，而不是 UI：
+会员激活 API 已完成轻拆，作为本轮解耦重构的最后一刀：
 
-- 可选目标：`app/api/membership/activate/route.ts`
-- 原因：它仍有鉴权、激活码查询、会员写入、激活码消费、响应格式化混在一个 route 里。
-- 边界：不改数据库 schema、不改响应字段、不改用户可见行为。
-- 状态：可以做，但不是必须做；不要把它当作默认下一阶段。
+- 目标：`app/api/membership/activate/route.ts`
+- 拆分内容：鉴权、激活码解析/查询/校验、profile 获取、会员到期时间计算、会员写入、激活码消费均拆成 route 内部 helper。
+- 边界：没有改数据库 schema、没有改响应字段、没有改用户可见行为。
+- 验证：`npm.cmd run typecheck` 通过；API 对口测试 1 文件 / 27 项通过；全量 Vitest 49 文件 / 527 项通过。
+- 结论：不再保留默认“下一刀”。后续只在具体 bug、业务改动、安全问题或维护痛点出现时小范围优化。
 
 ### 维护模式规则
 
@@ -205,7 +206,7 @@ npm.cmd run test:L4
 | `components/AuthModal.tsx` | 226 行 | 弹窗壳与流程接线 |
 | `components/AuthModalForms.tsx` | 421 行 | Login/Register/ForgotPassword 表单视图 |
 | `app/api/membership/status/route.ts` | 139 行 | 已从调试型多路 fallback 收束为正式查询链路 |
-| `app/api/membership/activate/route.ts` | 276 行 | 已去 debug 响应与敏感日志，后续可抽 repository/helper |
+| `app/api/membership/activate/route.ts` | 279 行 | 最后一刀完成：route 顶层编排 + 内部 helper 分层；响应与行为不变 |
 | `hooks/useSync.ts` | 777 行 | 阶段 5 已完成；剩余体量主要是 React 外壳与副作用编排 |
 | `lib/sync-orchestrator.ts` | 402 行 | sync 决策/冲突编排 |
 | `lib/sync-utils.ts` | 551 行 | 同步/统计/色阶等纯函数集合 |
@@ -219,7 +220,7 @@ npm.cmd run test:L4
 1. 保持 `.env.test` 本地私有，不提交真实密钥。
 2. 如改动 Supabase/auth/sync，回归 `npm.cmd run test:L5`。
 3. 默认不再开新重构阶段；只有具体业务改动、bug、安全问题或维护痛点出现时，才顺手小拆。
-4. 会员 API helper/repository 化是唯一保留的可选优化，但不是必须项。
+4. 会员激活 API 最后一刀已完成；不再保留默认下一刀。
 
 ## 真源文档
 

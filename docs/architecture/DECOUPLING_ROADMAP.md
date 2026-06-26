@@ -26,7 +26,7 @@
 | `components/AuthModal.tsx` | 226 行 | 弹窗壳与流程接线 |
 | `components/AuthModalForms.tsx` | 421 行 | Login/Register/ForgotPassword 表单视图 |
 | `app/api/membership/status/route.ts` | 139 行 | 已去调试型全表扫描和敏感日志 |
-| `app/api/membership/activate/route.ts` | 276 行 | 已去 debug 响应和 token/激活码日志 |
+| `app/api/membership/activate/route.ts` | 279 行 | 最后一刀完成：route 顶层编排 + 内部 helper 分层；响应与行为不变 |
 | `hooks/useSync.ts` | **777 行** | 阶段 5 最终精简完成。审核补漏后类型边界更明确 |
 | `lib/sync-orchestrator.ts` | 402 行 | sync 决策与冲突编排 |
 | `lib/sync-utils.ts` | 551 行 | 含差异检测、日志条目创建、批量上传、options payload、色阶等纯函数 |
@@ -37,9 +37,9 @@
 | TypeScript / lint | 通过 |  |
 | 生产构建 | 通过 | Next.js 16 生产构建成功 |
 
-按核心阶段 1–6 估算，**解耦重构主体已完成，当前进入维护模式**。矩阵「缺失」项清零；审核补齐了 typecheck、Vitest、L4 smoke、L4 登录态 skip 与 L5 真实云端验证。安全卫生清理已删除公开 debug/test 路由，清理验证码/session/token/会员数据日志，并把全局 `localStorage.clear()` 与原生确认框替换掉。AuthModal 已完成流程与表单视图拆分，注册、忘记密码、倒计时逻辑和大块 JSX 均已离开弹窗壳。README/开发说明与 L5 模板已归档。
+按核心阶段 1–6 估算，**解耦重构主体已完成，当前进入维护模式**。矩阵「缺失」项清零；审核补齐了 typecheck、Vitest、L4 smoke、L4 登录态 skip 与 L5 真实云端验证。安全卫生清理已删除公开 debug/test 路由，清理验证码/session/token/会员数据日志，并把全局 `localStorage.clear()` 与原生确认框替换掉。AuthModal 已完成流程与表单视图拆分，注册、忘记密码、倒计时逻辑和大块 JSX 均已离开弹窗壳。会员激活 API 最后一刀已完成，鉴权、激活码校验、会员写入和激活码消费已拆成内部 helper。README/开发说明与 L5 模板已归档。
 
-从现在开始，不再为了“某文件还有几百行”继续拆分。后续拆分只按真实痛点驱动：高改动频率、多职责重新聚集、安全/线上 bug/回归风险、或拆完能明显改善测试。`membership/activate` helper/repository 化是唯一保留的可选优化，但不是必须项。
+从现在开始，不再为了“某文件还有几百行”继续拆分。后续拆分只按真实痛点驱动：高改动频率、多职责重新聚集、安全/线上 bug/回归风险、或拆完能明显改善测试。`membership/activate` helper 化已完成；不再保留默认下一刀。
 
 ## 约束
 

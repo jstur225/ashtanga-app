@@ -1,5 +1,29 @@
 # 阿斯汤加打卡 app - 项目记录
 
+## 2026-06-26: 会员激活 API 最后一刀 — 重构正式收口
+
+### 背景
+
+解耦重构已进入维护模式后，仅保留一个可选的小刀：会员激活 API。它仍把鉴权、激活码查询、会员写入、激活码消费和响应格式化集中在同一个 route 主流程里。按“真实职责分离，而不是为了降行数”的标准，这刀值得做完；做完后不再保留默认下一刀。
+
+### 修改内容
+
+- `app/api/membership/activate/route.ts` 保持单文件 route，不新增对外 API。
+- 将主流程收敛为顶层编排：创建 Supabase client、鉴权、解析激活码、查询/校验激活码、获取 profile、计算到期时间、写入会员、消费激活码、返回成功响应。
+- 抽出 route 内部 helper：`authenticateRequest`、`parseActivationCode`、`getActivationCode`、`getProfileId`、`getCurrentLatestExpiry`、`calculateMembershipExpiry`、`createMembershipRecord`、`consumeActivationCode`。
+- 未改数据库 schema、未改响应字段、未改用户可见行为。
+- 更新恢复入口、路线图和 TODO：重构正式收口，进入维护模式；后续不再以“继续阶段 N”或默认“下一刀”为节奏。
+
+### 验证
+
+- `npm.cmd run typecheck` → 通过
+- `npx.cmd vitest run --config vitest.config.ts __tests__/api-auth-routes.test.ts` → 1 文件 / 27 项通过
+- `npx.cmd vitest run --config vitest.config.ts` → 49 文件 / 527 项通过
+
+### 下一步
+
+默认不再主动拆。后续优先业务增长、获客、转化、线上 bug 与安全问题；只有具体业务改动重新制造多职责热点，或出现明确维护痛点时，再顺手做小范围优化。
+
 ## 2026-06-25: L5 真实云端测试模板、说明与实测通过
 
 ### 背景
