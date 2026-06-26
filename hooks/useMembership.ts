@@ -13,7 +13,7 @@ export interface MembershipStatus {
 
 export const PRO_BENEFITS = [
   { feature: '每条记录照片', free: '1 张', pro: '9 张' },
-  { feature: '单张照片大小', free: '10MB', pro: '30MB' },
+  { feature: '单张照片大小', free: '5M', pro: '30M' },
   { feature: '练习选项', free: '3 个', pro: '11 个' },
   { feature: '日历标注', free: '1 种', pro: '9 种' },
   { feature: '日历颜色', free: '2 种', pro: '4 种' },

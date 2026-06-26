@@ -10,8 +10,8 @@ const OSS_BUCKET = process.env.NEXT_PUBLIC_OSS_BUCKET || ''
 const OSS_ENDPOINT = process.env.NEXT_PUBLIC_OSS_ENDPOINT || ''
 const OSS_REGION = process.env.NEXT_PUBLIC_OSS_REGION || ''
 
-// 文件大小限制：免费 10MB，Pro 30MB。
-export const FREE_MAX_FILE_SIZE = 10 * 1024 * 1024
+// 文件大小限制：免费 5MB，Pro 30MB。
+export const FREE_MAX_FILE_SIZE = 5 * 1024 * 1024
 export const PRO_MAX_FILE_SIZE = 30 * 1024 * 1024
 // 兼容旧测试/旧调用方：默认导出免费上限。
 export const MAX_FILE_SIZE = FREE_MAX_FILE_SIZE
@@ -484,7 +484,7 @@ export function validatePhotoFile(
 
   // 检查文件大小
   const maxFileSize = getPhotoFileSizeLimit(options.isPro)
-  const maxSizeMB = options.isPro ? 30 : 10
+  const maxSizeMB = options.isPro ? 30 : 5
   if (file.size > maxFileSize) {
     const sizeMB = formatFileSizeMB(file.size)
     console.error('[validatePhotoFile] ❌ 文件太大:', sizeMB, 'MB')
@@ -492,7 +492,7 @@ export function validatePhotoFile(
       valid: false,
       error: options.isPro
         ? `照片超过 ${maxSizeMB}MB（当前 ${sizeMB}MB），请换一张更小的照片`
-        : `照片超过 ${maxSizeMB}MB（当前 ${sizeMB}MB），免费版单张照片上限为 10MB`,
+        : `照片超过 ${maxSizeMB}MB（当前 ${sizeMB}MB），免费版单张照片上限为 5MB`,
     }
   }
 

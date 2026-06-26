@@ -1,5 +1,6 @@
 'use client'
 
+import type { ReactNode } from 'react'
 import { Crown, Loader2, Sparkles } from 'lucide-react'
 import { PRO_BENEFITS, type MembershipStatus } from '@/hooks/useMembership'
 
@@ -10,9 +11,10 @@ export interface MembershipCardProps {
   showStatus?: boolean
   membership?: MembershipCardData | null
   loading?: boolean
+  headerAction?: ReactNode
 }
 
-export function MembershipCard({ subtitle, showStatus = false, membership, loading = false }: MembershipCardProps) {
+export function MembershipCard({ subtitle, showStatus = false, membership, loading = false, headerAction }: MembershipCardProps) {
   return (
     <div className="bg-gradient-to-br from-[#F9F7F2] to-[#F5F0E8] rounded-[20px] p-5 border border-[#C1A268]/20">
       <div className="flex items-start justify-between">
@@ -46,9 +48,9 @@ export function MembershipCard({ subtitle, showStatus = false, membership, loadi
           )}
         </div>
 
-        {!membership?.is_active && !loading && (
+        {headerAction || (!membership?.is_active && !loading && (
           <Sparkles className="w-6 h-6 text-[#C1A268]" />
-        )}
+        ))}
       </div>
 
       {/* Pro 功能对比 */}

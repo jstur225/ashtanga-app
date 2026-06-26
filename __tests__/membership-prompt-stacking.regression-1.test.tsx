@@ -11,7 +11,14 @@ vi.mock("framer-motion", () => ({
   }),
 }))
 
-vi.mock("@/components/Membership/MembershipCard", () => ({ MembershipCard: () => <div>会员权益</div> }))
+vi.mock("@/components/Membership/MembershipCard", () => ({
+  MembershipCard: ({ headerAction }: { headerAction?: React.ReactNode }) => (
+    <div>
+      <div>会员权益</div>
+      {headerAction}
+    </div>
+  ),
+}))
 vi.mock("@/components/Membership/MembershipActions", () => ({ MembershipActions: () => <div>会员操作</div> }))
 
 afterEach(() => cleanup())
