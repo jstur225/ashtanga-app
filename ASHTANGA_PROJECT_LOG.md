@@ -1,5 +1,29 @@
 # 阿斯汤加打卡 app - 项目记录
 
+## 2026-06-26: 会员激活 API 对口测试补齐
+
+### 背景
+
+会员激活 API 完成最后一刀后，已有 typecheck、lint、API auth routes 和全量 Vitest 兜底，但缺少直接覆盖 `POST /api/membership/activate` 的对口测试。为避免“最后一刀”只靠横向回归保护，本次补齐最小必要 L3 API 测试。
+
+### 测试覆盖
+
+- 未登录返回 `NOT_AUTHENTICATED`。
+- malformed JSON 返回 `INVALID_REQUEST`。
+- 缺少 code 返回 `MISSING_CODE`。
+- code 格式错误返回 `INVALID_CODE_FORMAT`。
+- 已使用激活码返回 `CODE_USED`。
+- 已过期激活码返回 `CODE_EXPIRED`。
+- 新开通会员会写入 `user_memberships`、消费激活码，并返回原响应字段。
+- 续费会员会从当前未过期会员的到期时间继续累加，而不是从当前时间重新计算。
+
+### 验证
+
+- `npm.cmd run typecheck` → 通过
+- `npm.cmd run lint` → 通过
+- `npx.cmd vitest run --config vitest.config.ts __tests__/api-auth-routes.test.ts` → 1 文件 / 35 项通过
+- `npx.cmd vitest run --config vitest.config.ts` → 49 文件 / 535 项通过
+
 ## 2026-06-26: 会员激活 API 最后一刀 — 重构正式收口
 
 ### 背景
@@ -17,8 +41,8 @@
 ### 验证
 
 - `npm.cmd run typecheck` → 通过
-- `npx.cmd vitest run --config vitest.config.ts __tests__/api-auth-routes.test.ts` → 1 文件 / 27 项通过
-- `npx.cmd vitest run --config vitest.config.ts` → 49 文件 / 527 项通过
+- `npx.cmd vitest run --config vitest.config.ts __tests__/api-auth-routes.test.ts` → 1 文件 / 35 项通过
+- `npx.cmd vitest run --config vitest.config.ts` → 49 文件 / 535 项通过
 
 ### 下一步
 

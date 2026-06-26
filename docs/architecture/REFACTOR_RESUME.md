@@ -39,7 +39,8 @@
 - 目标：`app/api/membership/activate/route.ts`
 - 拆分内容：鉴权、激活码解析/查询/校验、profile 获取、会员到期时间计算、会员写入、激活码消费均拆成 route 内部 helper。
 - 边界：没有改数据库 schema、没有改响应字段、没有改用户可见行为。
-- 验证：`npm.cmd run typecheck` 通过；API 对口测试 1 文件 / 27 项通过；全量 Vitest 49 文件 / 527 项通过。
+- 对口测试：已覆盖未登录、malformed JSON、缺 code、格式错误、已使用、已过期、新开通写入/消费、续费累加 8 个场景。
+- 验证：`npm.cmd run typecheck` 通过；API 对口测试 1 文件 / 35 项通过；全量 Vitest 49 文件 / 535 项通过。
 - 结论：不再保留默认“下一刀”。后续只在具体 bug、业务改动、安全问题或维护痛点出现时小范围优化。
 
 ### 维护模式规则
@@ -212,7 +213,7 @@ npm.cmd run test:L4
 | `lib/sync-utils.ts` | 551 行 | 同步/统计/色阶等纯函数集合 |
 | `lib/sync-mappers.ts` | 108 行 | 远端字段映射与归一化 |
 | `lib/supabase-repository.ts` | 152 行 | Supabase 仓库原语 |
-| Vitest | 49 文件 / 527 项 | L1/L2/L3 高风险缺口基本清零 |
+| Vitest | 49 文件 / 535 项 | L1/L2/L3 高风险缺口基本清零；会员激活 API 对口测试已补齐 |
 | L4 隔离浏览器 | 51/51 | guest、mobile、登录态 UI 全量通过 |
 
 ## 维护期建议

@@ -7,6 +7,7 @@
 - [x] `hooks/useSync.ts`、`lib/sync-utils.ts`、`components/AuthModalForms.tsx` 暂不主动拆
 - [x] 后续拆分标准改为：真实痛点、风险、改动频率、测试收益
 - [x] 会员激活 API 最后一刀已完成：route 顶层编排 + 内部 helper 分层，响应与行为不变
+- [x] 会员激活 API 对口测试已补齐：覆盖 8 个 activate 场景；全量 Vitest 49 文件 / 535 项通过
 
 下一步：优先处理业务增长/获客/转化、线上 bug、安全问题。不再保留默认“下一刀”；只有出现具体维护痛点时再小刀优化。
 

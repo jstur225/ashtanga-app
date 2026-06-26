@@ -573,3 +573,253 @@ describe('POST /api/auth/send-verification-code', () => {
     }
   })
 })
+
+// ==================== /api/membership/activate ====================
+
+const authHeader = { authorization: 'Bearer valid-token' }
+
+const makeActivationCodeRow = (overrides: Record<string, any> = {}) => ({
+  id: 'activation-code-1',
+  code: 'ABCD-1234-EFGH',
+  type: 'quarter',
+  duration_days: 30,
+  used: false,
+  used_by: null,
+  expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+  ...overrides,
+})
+
+function createMalformedAuthorizedRequest(): NextRequest {
+  return new NextRequest('http://localhost/api/membership/activate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeader },
+    body: 'not-json',
+  })
+}
+
+function createMembershipClientMock(options: {
+  authUser?: any
+  authError?: any
+  activationCode?: any
+  activationError?: any
+  currentMemberships?: Array<{ expires_at: string }>
+  membershipInsertError?: any
+  activationConsumeError?: any
+} = {}) {
+  const membershipInsertSpy = vi.fn()
+  const activationUpdateSpy = vi.fn()
+  const activationEqSpy = vi.fn()
+  const membershipEqSpy = vi.fn()
+
+  const authUser = options.authUser ?? { id: 'auth-user-1', email: 'member@test.com' }
+
+  const activationChain: any = {
+    mode: 'select',
+    select: vi.fn(() => {
+      if (activationChain.mode === 'update') {
+        return Promise.resolve({
+          data: [{ id: options.activationCode?.id ?? 'activation-code-1' }],
+          error: options.activationConsumeError ?? null,
+        })
+      }
+      return activationChain
+    }),
+    eq: vi.fn((column: string, value: unknown) => {
+      activationEqSpy(column, value)
+      return activationChain
+    }),
+    single: vi.fn().mockResolvedValue({
+      data: options.activationCode ?? makeActivationCodeRow(),
+      error: options.activationError ?? null,
+    }),
+    update: vi.fn((payload: unknown) => {
+      activationUpdateSpy(payload)
+      activationChain.mode = 'update'
+      return activationChain
+    }),
+  }
+
+  const membershipChain: any = {
+    select: vi.fn(() => membershipChain),
+    eq: vi.fn((column: string, value: unknown) => {
+      membershipEqSpy(column, value)
+      return membershipChain
+    }),
+    gt: vi.fn(() => membershipChain),
+    order: vi.fn(() => membershipChain),
+    limit: vi.fn().mockResolvedValue({
+      data: options.currentMemberships ?? [],
+      error: null,
+    }),
+    insert: vi.fn((payload: unknown) => {
+      membershipInsertSpy(payload)
+      return Promise.resolve({ error: options.membershipInsertError ?? null })
+    }),
+  }
+
+  const client = {
+    auth: {
+      getUser: vi.fn().mockResolvedValue({
+        data: { user: authUser },
+        error: options.authError ?? null,
+      }),
+    },
+    from: vi.fn((table: string) => {
+      if (table === 'activation_codes') return activationChain
+      if (table === 'user_memberships') return membershipChain
+      throw new Error(`Unexpected table: ${table}`)
+    }),
+  }
+
+  createClientMock.mockReturnValue(client)
+
+  return {
+    client,
+    membershipInsertSpy,
+    activationUpdateSpy,
+    activationEqSpy,
+    membershipEqSpy,
+  }
+}
+
+async function callMembershipActivate(request: NextRequest) {
+  const { POST } = await import('@/app/api/membership/activate/route')
+  const response = await POST(request)
+  expect(response).toBeDefined()
+  return parseResponse(response as Response)
+}
+
+describe('POST /api/membership/activate', () => {
+  it('rejects missing authorization header', async () => {
+    createMembershipClientMock()
+
+    const { status, body } = await callMembershipActivate(
+      createPostRequest({ code: 'ABCD-1234-EFGH' })
+    )
+
+    expect(status).toBe(401)
+    expect(body).toEqual({ success: false, error: 'NOT_AUTHENTICATED' })
+  })
+
+  it('rejects malformed JSON body after authentication', async () => {
+    createMembershipClientMock()
+
+    const { status, body } = await callMembershipActivate(
+      createMalformedAuthorizedRequest()
+    )
+
+    expect(status).toBe(400)
+    expect(body).toEqual({ success: false, error: 'INVALID_REQUEST' })
+  })
+
+  it('rejects missing activation code', async () => {
+    createMembershipClientMock()
+
+    const { status, body } = await callMembershipActivate(
+      createPostRequest({}, authHeader)
+    )
+
+    expect(status).toBe(400)
+    expect(body).toEqual({ success: false, error: 'MISSING_CODE' })
+  })
+
+  it('rejects invalid activation code format', async () => {
+    createMembershipClientMock()
+
+    const { status, body } = await callMembershipActivate(
+      createPostRequest({ code: 'bad-code' }, authHeader)
+    )
+
+    expect(status).toBe(400)
+    expect(body).toEqual({ success: false, error: 'INVALID_CODE_FORMAT' })
+  })
+
+  it('rejects used activation code', async () => {
+    createMembershipClientMock({
+      activationCode: makeActivationCodeRow({ used: true }),
+    })
+
+    const { status, body } = await callMembershipActivate(
+      createPostRequest({ code: 'ABCD-1234-EFGH' }, authHeader)
+    )
+
+    expect(status).toBe(400)
+    expect(body).toEqual({ success: false, error: 'CODE_USED' })
+  })
+
+  it('rejects expired activation code', async () => {
+    createMembershipClientMock({
+      activationCode: makeActivationCodeRow({
+        expires_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+      }),
+    })
+
+    const { status, body } = await callMembershipActivate(
+      createPostRequest({ code: 'ABCD-1234-EFGH' }, authHeader)
+    )
+
+    expect(status).toBe(400)
+    expect(body).toEqual({ success: false, error: 'CODE_EXPIRED' })
+  })
+
+  it('activates a new membership, writes membership record, and consumes the code', async () => {
+    const activationCode = makeActivationCodeRow({ duration_days: 90, type: 'quarter' })
+    const { membershipInsertSpy, activationUpdateSpy, activationEqSpy, membershipEqSpy } =
+      createMembershipClientMock({ activationCode })
+
+    const { status, body } = await callMembershipActivate(
+      createPostRequest({ code: ' abcd-1234-efgh ' }, authHeader)
+    )
+
+    expect(status).toBe(200)
+    expect(body.success).toBe(true)
+    expect(body.data).toMatchObject({
+      days: 90,
+      type: 'quarter',
+      is_new: true,
+    })
+    expect(body.data.expires_at).toEqual(expect.any(String))
+    expect(body.data.expires_at_formatted).toMatch(/^\d{4}\.\d{2}\.\d{2}$/)
+
+    expect(ensureProfileMock).toHaveBeenCalledWith(expect.anything(), {
+      id: 'auth-user-1',
+      email: 'member@test.com',
+    })
+    expect(membershipEqSpy).toHaveBeenCalledWith('user_id', 'profile-id-1')
+    expect(membershipInsertSpy).toHaveBeenCalledWith(expect.objectContaining({
+      user_id: 'profile-id-1',
+      email: 'member@test.com',
+      type: 'quarter',
+      activated_by_code_id: activationCode.id,
+    }))
+    expect(activationUpdateSpy).toHaveBeenCalledWith(expect.objectContaining({
+      used: true,
+      used_at: expect.any(String),
+    }))
+    expect(activationEqSpy).toHaveBeenCalledWith('code', activationCode.code)
+  })
+
+  it('extends from the current active expiry when renewing membership', async () => {
+    const currentExpiry = '2026-08-01T00:00:00.000Z'
+    const activationCode = makeActivationCodeRow({ duration_days: 30, type: 'quarter' })
+    const { membershipInsertSpy } = createMembershipClientMock({
+      activationCode,
+      currentMemberships: [{ expires_at: currentExpiry }],
+    })
+
+    const { status, body } = await callMembershipActivate(
+      createPostRequest({ code: 'ABCD-1234-EFGH' }, authHeader)
+    )
+
+    const expectedExpiry = new Date(
+      new Date(currentExpiry).getTime() + 30 * 24 * 60 * 60 * 1000
+    ).toISOString()
+
+    expect(status).toBe(200)
+    expect(body.data.is_new).toBe(false)
+    expect(body.data.expires_at).toBe(expectedExpiry)
+    expect(membershipInsertSpy).toHaveBeenCalledWith(expect.objectContaining({
+      expires_at: expectedExpiry,
+    }))
+  })
+})
