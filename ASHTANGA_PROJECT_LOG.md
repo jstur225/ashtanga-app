@@ -3954,3 +3954,27 @@ export const INVITE_VERSION = 'v2'  // 从 v1 更新到 v2
 - `npm.cmd run lint` → 通过
 - `npx.cmd vitest run --config vitest.config.ts __tests__/auth-modal.test.tsx __tests__/auth-modal-accessibility.test.tsx` → 2 文件 / 30 项通过
 - `npx.cmd vitest run --config vitest.config.ts` → 49 文件 / 527 项通过
+
+## 2026-06-26: AuthModal 表单视图拆分
+
+### 背景
+
+上一刀已将 AuthModal 的注册/忘记密码/倒计时流程抽到 hook，但弹窗组件仍包含大量 Login/Register/ForgotPassword JSX。
+
+### 修改内容
+
+- `components/AuthModal.tsx` 从 579 行降到 226 行，只保留弹窗壳、标题、模式切换、hook 接线和 submit 编排。
+- 新增 `components/AuthModalForms.tsx`，承接：
+  - `LoginForm`
+  - `RegisterForm`
+  - `ForgotPasswordForm`
+  - 共享输入框、密码要求、验证码提示、重发按钮和错误提示。
+- 未改 API 与用户可见流程。
+- 补齐 `practice-commands` 测试中 Sonner Toast action mock 的 TypeScript 类型。
+
+### 验证
+
+- `npm.cmd run typecheck` → 通过
+- `npm.cmd run lint` → 通过
+- `npx.cmd vitest run --config vitest.config.ts __tests__/auth-modal.test.tsx __tests__/auth-modal-accessibility.test.tsx` → 2 文件 / 30 项通过
+- `npx.cmd vitest run --config vitest.config.ts` → 49 文件 / 527 项通过

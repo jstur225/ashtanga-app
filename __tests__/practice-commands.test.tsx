@@ -146,7 +146,7 @@ describe("practice command rules", () => {
       const { result } = renderHook(() => usePracticeCommands(args as never))
 
       const promise = result.current.handleDeleteRecord("record-1", false)
-      const confirmToastOptions = vi.mocked(toast).mock.calls[0][1] as any
+      const confirmToastOptions = (vi.mocked(toast).mock.calls[0] as unknown as [string, any])[1]
       confirmToastOptions.action.onClick()
       await promise
 

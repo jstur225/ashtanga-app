@@ -4,7 +4,36 @@
 >
 > 不要重新排查页面编排、刷新恢复、媒体生命周期、同步分层、公开 debug/test API 或验证码/会员日志泄露。README/开发说明与 L5 模板/说明已归档；本地 `.env.test` 已填写并跑通 L5。
 
-## 2026-06-25 最新恢复点（AuthModal 流程拆分完成）
+## 2026-06-26 最新恢复点（AuthModal 表单视图拆分完成）
+
+### 本轮拆分
+
+- `components/AuthModal.tsx` 从 579 行降到 226 行，只保留弹窗壳、标题、模式切换、hook 接线和 submit 编排。
+- 新增 `components/AuthModalForms.tsx`：
+  - `LoginForm`
+  - `RegisterForm`
+  - `ForgotPasswordForm`
+  - 共享 `AuthField`、`PasswordRequirements`、验证码已发送提示、重发按钮和错误提示。
+- 没有改 API、hook 语义或用户可见流程。
+- 补齐 `__tests__/practice-commands.test.tsx` 中 Sonner Toast action mock 的 TypeScript 类型，避免 `tsc` 报 tuple 类型错误。
+
+### 本轮验证
+
+```powershell
+npm.cmd run typecheck
+npm.cmd run lint
+npx.cmd vitest run --config vitest.config.ts __tests__/auth-modal.test.tsx __tests__/auth-modal-accessibility.test.tsx
+npx.cmd vitest run --config vitest.config.ts
+```
+
+当前结果：
+
+- TypeScript：通过
+- lint：通过
+- AuthModal 对口测试：**2 文件 / 30 项通过**
+- Vitest 全量：**49 文件 / 527 项通过**
+
+## 2026-06-25 上一恢复点（AuthModal 流程拆分完成）
 
 ### 本轮拆分
 
@@ -127,7 +156,8 @@ npm.cmd run test:L4
 | 模块 | 行数 | 状态 |
 |---|---:|---|
 | `app/practice/page.tsx` | 1196 行 | 阶段 4 门槛完成；本轮新增 scoped localStorage 清理 helper |
-| `components/AuthModal.tsx` | 579 行 | 注册/忘记密码/倒计时流程已抽 hook，后续可再拆表单视图组件 |
+| `components/AuthModal.tsx` | 226 行 | 弹窗壳与流程接线 |
+| `components/AuthModalForms.tsx` | 421 行 | Login/Register/ForgotPassword 表单视图 |
 | `app/api/membership/status/route.ts` | 139 行 | 已从调试型多路 fallback 收束为正式查询链路 |
 | `app/api/membership/activate/route.ts` | 276 行 | 已去 debug 响应与敏感日志，后续可抽 repository/helper |
 | `hooks/useSync.ts` | 777 行 | 阶段 5 已完成；剩余体量主要是 React 外壳与副作用编排 |
@@ -142,8 +172,8 @@ npm.cmd run test:L4
 
 1. 保持 `.env.test` 本地私有，不提交真实密钥。
 2. 如改动 Supabase/auth/sync，回归 `npm.cmd run test:L5`。
-3. 下一刀建议继续轻拆 `components/AuthModal.tsx` 的表单视图：LoginForm / RegisterForm / ForgotPasswordForm，保持 hook 不再膨胀。
-4. 再下一刀可抽会员 API helper/repository，但当前安全边界已收住，不需要重复审计 debug/test 路由。
+3. 下一刀建议抽会员 API helper/repository，优先 `membership/activate` 的鉴权、激活码查询、会员写入 helper。
+4. 如继续 UI，则可拆 `AuthModalForms.tsx` 的共享输入/按钮到更小组件，但收益低于会员 API 收束。
 
 ## 真源文档
 
