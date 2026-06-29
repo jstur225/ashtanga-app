@@ -208,7 +208,7 @@ export function PosesTab({ onDetailOpen, onDetailClose }: PosesTabProps) {
               >
                 <div className="w-14 h-[72px] flex items-center justify-center bg-stone-50 rounded-lg">
                   <img
-                    src={pose.image}
+                    src={pose.thumbnail}
                     alt={pose.name}
                     className="w-full h-full object-contain"
                     loading="lazy"

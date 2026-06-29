@@ -4,6 +4,7 @@ export interface Pose {
   sanskrit: string
   category: 'standing' | 'seated' | 'inversion'
   image: string
+  thumbnail: string
   steps: string[]
 }
 
@@ -24,7 +25,8 @@ export const POSES: Pose[] = [
     name: '站立前屈',
     sanskrit: 'Padangusthasana · Padahastasana',
     category: 'standing',
-    image: '/poses/standing-forward-fold.png',
+    image: '/poses/standing-forward-fold.webp',
+    thumbnail: '/poses/standing-forward-fold-thumb.webp',
     steps: [
       '双脚分开与髋同宽，双手叉腰',
       '呼气，前屈向下，手抓大脚趾',
@@ -41,7 +43,8 @@ export const POSES: Pose[] = [
     name: '坐角式',
     sanskrit: 'Upaviṣṭa Koṇāsana',
     category: 'seated',
-    image: '/poses/upavishta-konasana.png',
+    image: '/poses/upavishta-konasana.webp',
+    thumbnail: '/poses/upavishta-konasana-thumb.webp',
     steps: [
       '从下犬式，吸气跳穿，双腿尽可能宽地分开坐下',
       '抓住脚的两侧，抬起头部和胸部',
@@ -58,7 +61,8 @@ export const POSES: Pose[] = [
     name: '睡角式',
     sanskrit: 'Supta Koṇāsana',
     category: 'seated',
-    image: '/poses/supta-konasana.png',
+    image: '/poses/supta-konasana.webp',
+    thumbnail: '/poses/supta-konasana-thumb.webp',
     steps: [
       '从背部伸展式，吸气双腿并拢平躺，用力伸直双腿',
       '呼气，吸气抬起双腿',
@@ -73,7 +77,8 @@ export const POSES: Pose[] = [
     name: '鱼式',
     sanskrit: 'Matsyāsana',
     category: 'inversion',
-    image: '/poses/matsyasana.png',
+    image: '/poses/matsyasana.webp',
+    thumbnail: '/poses/matsyasana-thumb.webp',
     steps: [
       '如肩倒立式一样躺下',
       '吸气做莲花式，双手按压头部两侧地板',
@@ -89,7 +94,8 @@ export const POSES: Pose[] = [
     name: '完全鱼式',
     sanskrit: 'Uttāna Pādāsana',
     category: 'inversion',
-    image: '/poses/uttana-padasana.png',
+    image: '/poses/uttana-padasana.webp',
+    thumbnail: '/poses/uttana-padasana-thumb.webp',
     steps: [
       '如肩倒立式一样躺下',
       '抬头，头顶放在地板上，背部拱起',

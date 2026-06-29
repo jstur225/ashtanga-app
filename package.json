@@ -8,6 +8,7 @@
     "dev:turbo": "next dev --turbo -H 0.0.0.0",
     "lint": "node scripts/lint-check.mjs",
     "measure:initial-js": "node scripts/measure-initial-js.mjs",
+    "optimize:poses": "node scripts/optimize-pose-images.mjs",
     "typecheck": "tsc --noEmit",
     "start": "next start -H 0.0.0.0",
     "test:L5": "vitest run --config vitest.config.e2e.mjs",
