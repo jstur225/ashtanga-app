@@ -13,12 +13,6 @@ interface PosesTabProps {
   onDetailClose?: () => void
 }
 
-interface VoteCounts {
-  total: number
-  yes: number
-  no: number
-}
-
 export function PosesTab({ onDetailOpen, onDetailClose }: PosesTabProps) {
   const [activeCategory, setActiveCategory] = useState<string>('standing')
   const [selectedPose, setSelectedPose] = useState<Pose | null>(null)
@@ -26,7 +20,6 @@ export function PosesTab({ onDetailOpen, onDetailClose }: PosesTabProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [imagesLoaded, setImagesLoaded] = useState<Record<string, boolean>>({})
   const [poseLibraryVote, setPoseLibraryVote] = useLocalStorage<'yes' | 'no'>('pose_library_improvement_vote')
-  const [voteCounts, setVoteCounts] = useState<VoteCounts | null>(null)
   const [isSubmittingVote, setIsSubmittingVote] = useState(false)
   const [isVoteStatusLoading, setIsVoteStatusLoading] = useState(true)
 
@@ -77,7 +70,6 @@ export function PosesTab({ onDetailOpen, onDetailClose }: PosesTabProps) {
           const result = await response.json()
           if (!response.ok) throw new Error(result.error)
           localStorage.setItem('pose_library_vote_synced', 'true')
-          if (!cancelled) setVoteCounts(result.counts)
           return
         }
 
@@ -86,7 +78,6 @@ export function PosesTab({ onDetailOpen, onDetailClose }: PosesTabProps) {
         const result = await response.json()
         if (!response.ok) throw new Error(result.error)
         if (!cancelled) {
-          setVoteCounts(result.counts)
           if (result.choice) {
             setPoseLibraryVote(result.choice)
             localStorage.setItem('pose_library_vote_synced', 'true')
@@ -126,7 +117,6 @@ export function PosesTab({ onDetailOpen, onDetailClose }: PosesTabProps) {
 
       setPoseLibraryVote(choice)
       localStorage.setItem('pose_library_vote_synced', 'true')
-      setVoteCounts(result.counts)
       trackEvent('pose_library_improvement_vote', { choice })
     } catch {
       toast.error('投票失败，请稍后再试')
@@ -169,34 +159,37 @@ export function PosesTab({ onDetailOpen, onDetailClose }: PosesTabProps) {
 
       {/* 体式网格 */}
       <div className="flex-1 overflow-y-auto px-3 py-3">
-        {!poseLibraryVote && !isVoteStatusLoading && (
+        {!isVoteStatusLoading && (
           <div className="mb-4 rounded-2xl border border-[#5B7553]/15 bg-[#5B7553]/5 p-4">
-          <p className="text-center text-base font-serif text-stone-700 mb-3">
-            要不要继续完善体式库？
-          </p>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => voteForPoseLibrary('yes')}
-              disabled={isSubmittingVote}
-              className="py-2.5 rounded-full bg-[#5B7553] text-white text-sm font-serif transition-transform active:scale-95 disabled:opacity-50"
-            >
-              要
-            </button>
-            <button
-              type="button"
-              onClick={() => voteForPoseLibrary('no')}
-              disabled={isSubmittingVote}
-              className="py-2.5 rounded-full bg-white border border-stone-200 text-stone-500 text-sm font-serif transition-transform active:scale-95 disabled:opacity-50"
-            >
-              不需要
-            </button>
-          </div>
-          {voteCounts && (
-            <p className="mt-3 text-center text-xs font-serif text-stone-400">
-              共 {voteCounts.total} 票 · 要 {voteCounts.yes} · 不需要 {voteCounts.no}
-            </p>
-          )}
+            {poseLibraryVote ? (
+              <p className="text-center text-sm font-serif text-[#5B7553] py-2">
+                您已投票，感谢参与。
+              </p>
+            ) : (
+              <>
+                <p className="text-center text-base font-serif text-stone-700 mb-3">
+                  要不要继续完善体式库？
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => voteForPoseLibrary('yes')}
+                    disabled={isSubmittingVote}
+                    className="py-2.5 rounded-full bg-[#5B7553] text-white text-sm font-serif transition-transform active:scale-95 disabled:opacity-50"
+                  >
+                    要
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => voteForPoseLibrary('no')}
+                    disabled={isSubmittingVote}
+                    className="py-2.5 rounded-full bg-white border border-stone-200 text-stone-500 text-sm font-serif transition-transform active:scale-95 disabled:opacity-50"
+                  >
+                    不需要
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         )}
 
