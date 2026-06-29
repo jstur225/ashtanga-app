@@ -2,7 +2,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import fs from "node:fs"
 import path from "node:path"
 import type { PracticeOption, PracticeRecord, UserProfile } from "@/hooks/usePracticeData"
-import { collectPracticeDebugLog, summarizePracticeData, summarizeSyncLogs } from "@/lib/practice-debug-log"
+import {
+  collectPracticeDebugLog,
+  summarizePracticeData,
+  summarizeSyncLogs,
+  withDiagnosticTimeout,
+} from "@/lib/practice-debug-log"
 
 vi.mock("@/lib/supabase", () => ({
   supabase: {
@@ -134,6 +139,7 @@ describe("practice debug log summaries", () => {
       showClearDataConfirm: false,
       clearDataStep: 1,
       selectedOption: null,
+      isPracticing: true,
       isPaused: false,
       elapsedTime: 0,
       totalPausedTime: 0,
@@ -152,6 +158,21 @@ describe("practice debug log summaries", () => {
     expect(result.membershipLogs).toMatchObject({ hasSession: false, note: "用户未登录，无法查询后端会员状态" })
     expect(result.photoLogs).toMatchObject({ summary: { total: 1, errors: 0 } })
     expect(result.syncLogs.summary).toMatchObject({ total: 1, uploadCount: 1 })
+    expect(result.currentAppState).toMatchObject({ isPracticing: true })
     expect(() => JSON.stringify(result)).not.toThrow()
+  })
+
+  it("单项诊断超时后返回降级结果，不阻塞日志导出", async () => {
+    const result = await withDiagnosticTimeout(
+      "网络诊断",
+      new Promise<Record<string, unknown>>(() => {}),
+      { status: "timeout" },
+      5,
+    )
+
+    expect(result).toEqual({
+      status: "timeout",
+      diagnosticTimeout: "网络诊断",
+    })
   })
 })

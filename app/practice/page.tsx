@@ -573,6 +573,7 @@ export default function AshtangaTracker() {
         showClearDataConfirm,
         clearDataStep,
         selectedOption,
+        isPracticing,
         isPaused,
         elapsedTime,
         totalPausedTime,

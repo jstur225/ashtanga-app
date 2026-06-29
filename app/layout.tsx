@@ -5,6 +5,8 @@ import { SpeedInsights } from '@vercel/speed-insights/next'
 import { Toaster } from 'sonner'
 import { AnalyticsInitializer } from '@/components/AnalyticsInitializer'
 import { ServiceWorkerRegister } from '@/components/ServiceWorkerRegister'
+import { RuntimeDiagnosticsReady } from '@/components/RuntimeDiagnosticsReady'
+import { RuntimeDiagnosticsScript } from '@/components/RuntimeDiagnosticsScript'
 import './globals.css'
 
 const enableVercelInsights = process.env.NODE_ENV === 'production'
@@ -47,7 +49,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-CN">
+      <RuntimeDiagnosticsScript />
       <body className="font-serif antialiased">
+        <RuntimeDiagnosticsReady />
         <AnalyticsInitializer />
         <ServiceWorkerRegister />
         {children}

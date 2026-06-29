@@ -34,5 +34,27 @@ describe('PWA startup reliability', () => {
 
     expect(register).toContain("updateViaCache: 'none'")
     expect(register).toContain('registration.update()')
+    expect(register).toContain('service_worker_registered')
+    expect(register).toContain('service_worker_registration_failed')
+  })
+
+  it('captures startup and resource failures before hydration', () => {
+    const layout = fs.readFileSync(path.join(ROOT, 'app/layout.tsx'), 'utf-8')
+    const diagnostics = fs.readFileSync(
+      path.join(ROOT, 'components/RuntimeDiagnosticsScript.tsx'),
+      'utf-8'
+    )
+    const ready = fs.readFileSync(
+      path.join(ROOT, 'components/RuntimeDiagnosticsReady.tsx'),
+      'utf-8'
+    )
+
+    expect(layout).toContain('<RuntimeDiagnosticsScript />')
+    expect(diagnostics).toContain('strategy="beforeInteractive"')
+    expect(diagnostics).toContain("'resource_error'")
+    expect(diagnostics).toContain("'runtime_error'")
+    expect(diagnostics).toContain("'unhandled_rejection'")
+    expect(diagnostics).toContain("'previous_session_incomplete'")
+    expect(ready).toContain('__ashtangaRuntimeReady')
   })
 })

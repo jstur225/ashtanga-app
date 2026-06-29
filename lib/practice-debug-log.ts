@@ -35,6 +35,7 @@ export interface PracticeDebugLogInput {
   showClearDataConfirm: boolean
   clearDataStep: number
   selectedOption: string | null
+  isPracticing: boolean
   isPaused: boolean
   elapsedTime: number
   totalPausedTime: number
@@ -49,8 +50,34 @@ export interface PracticeDebugLogInput {
 }
 
 export async function collectPracticeDebugLog(input: PracticeDebugLogInput) {
-  const connection = await testSupabaseConnection()
   const nonDraftRecords = input.practiceHistory.filter((record) => record.type !== '草稿')
+  const [
+    connection,
+    serviceWorkerStatus,
+    photoLogs,
+    membershipLogs,
+    colorSyncDiag,
+  ] = await Promise.all([
+    withDiagnosticTimeout('Supabase 连接测试', testSupabaseConnection(), {
+      testStatus: 'timeout',
+      latency: -1,
+      error: 'Supabase 连接测试超过 5 秒',
+    }),
+    withDiagnosticTimeout('Service Worker 状态', collectServiceWorkerStatus(), {
+      supported: 'unknown',
+      error: 'Service Worker 状态收集超过 5 秒',
+    }),
+    withDiagnosticTimeout('照片日志', collectPhotoLogs(), {
+      error: '照片日志收集超过 5 秒',
+      details: 'timeout',
+    }),
+    withDiagnosticTimeout('会员日志', collectMembershipLogs(input), {
+      error: '会员日志收集超过 5 秒',
+    }),
+    withDiagnosticTimeout('色阶同步诊断', collectColorSyncDiagnostics(input.user), {
+      error: '色阶同步诊断超过 5 秒',
+    }),
+  ])
 
   return {
     _meta: {
@@ -59,7 +86,7 @@ export async function collectPracticeDebugLog(input: PracticeDebugLogInput) {
       description: '熬汤日记调试日志 - 用于问题排查',
       gitVersion: getVersionInfo(),
     },
-    serviceWorkerStatus: await collectServiceWorkerStatus(),
+    serviceWorkerStatus,
     environment: collectEnvironment(),
     networkInfo: collectNetworkInfo(),
     supabaseConnection: { ...connection, timestamp: new Date().toISOString() },
@@ -98,12 +125,14 @@ export async function collectPracticeDebugLog(input: PracticeDebugLogInput) {
         : 'unknown',
     })),
     errorHistory: readJsonStorage('__errorHistory', [], '读取错误历史失败'),
+    runtimeDiagnostics: readJsonStorage('ashtanga_runtime_diagnostics', [], '读取启动诊断失败'),
+    startupSession: readJsonStorage('ashtanga_runtime_session', null, '读取启动会话失败'),
     performanceInfo: collectPerformanceInfo(),
     currentAppState: collectCurrentAppState(input),
     syncLogs: collectSyncLogs(),
-    photoLogs: await collectPhotoLogs(),
-    membershipLogs: await collectMembershipLogs(input),
-    colorSyncDiag: await collectColorSyncDiagnostics(input.user),
+    photoLogs,
+    membershipLogs,
+    colorSyncDiag,
   }
 }
 
@@ -127,9 +156,9 @@ async function collectServiceWorkerStatus() {
   status.supported = true
   const controller = navigator.serviceWorker.controller
   status.controller = !!controller
-  if (controller) {
+    if (controller) {
     status.state = controller.state
-    status.scope = controller.scriptURL
+      status.scope = controller.scriptURL
   }
 
   try {
@@ -137,10 +166,20 @@ async function collectServiceWorkerStatus() {
     status.registrations = registrations.map((registration) => ({
       scope: registration.scope,
       active: !!registration.active,
+      activeScript: registration.active?.scriptURL || null,
       installing: !!registration.installing,
+      installingScript: registration.installing?.scriptURL || null,
       waiting: !!registration.waiting,
+      waitingScript: registration.waiting?.scriptURL || null,
       updateViaCache: registration.updateViaCache,
     }))
+    if ('caches' in window) {
+      const cacheNames = await caches.keys()
+      status.caches = await Promise.all(cacheNames.map(async (name) => ({
+        name,
+        entryCount: (await caches.open(name).then((cache) => cache.keys())).length,
+      })))
+    }
   } catch (error) {
     status.registrationsError = String(error)
   }
@@ -179,7 +218,6 @@ function collectEnvironment() {
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     timezoneOffset: new Date().getTimezoneOffset(),
     exportTime: new Date().toISOString(),
-    appVersion: '1.0.1',
   }
 }
 
@@ -282,10 +320,29 @@ function collectPerformanceInfo() {
   const memory = (performance as Performance & { memory?: { usedJSHeapSize: number; totalJSHeapSize: number } }).memory
   return {
     navigation: navigation ? {
+      type: navigation.type,
+      duration: Math.round(navigation.duration),
+      responseStart: Math.round(navigation.responseStart),
+      domContentLoaded: Math.round(navigation.domContentLoadedEventEnd),
       domComplete: Math.round(navigation.domComplete),
       loadEventEnd: Math.round(navigation.loadEventEnd),
       domInteractive: Math.round(navigation.domInteractive),
+      transferSize: navigation.transferSize,
+      encodedBodySize: navigation.encodedBodySize,
+      decodedBodySize: navigation.decodedBodySize,
     } : 'Not available',
+    resourceSummary: {
+      count: performance.getEntriesByType('resource').length,
+      slowest: (performance.getEntriesByType('resource') as PerformanceResourceTiming[])
+        .sort((a, b) => b.duration - a.duration)
+        .slice(0, 10)
+        .map((entry) => ({
+          name: entry.name.slice(0, 300),
+          type: entry.initiatorType,
+          duration: Math.round(entry.duration),
+          transferSize: entry.transferSize,
+        })),
+    },
     memory: memory ? {
       usedJSHeapSize: `${Math.round(memory.usedJSHeapSize / 1024 / 1024)} MB`,
       totalJSHeapSize: `${Math.round(memory.totalJSHeapSize / 1024 / 1024)} MB`,
@@ -296,7 +353,7 @@ function collectPerformanceInfo() {
 function collectCurrentAppState(input: PracticeDebugLogInput) {
   return {
     activeTab: input.activeTab,
-    isPracticing: false,
+    isPracticing: input.isPracticing,
     showSettings: input.showSettings,
     showAccountSync: input.showAccountSync,
     showAuthModal: input.showAuthModal,
@@ -480,4 +537,31 @@ function readJsonStorage(key: string, fallback: unknown, errorLabel: string) {
 
 function toErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : String(error)
+}
+
+export async function withDiagnosticTimeout<T extends Record<string, unknown>>(
+  label: string,
+  task: Promise<T>,
+  fallback: T,
+  timeoutMs = 5000,
+): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined
+  try {
+    return await Promise.race([
+      task,
+      new Promise<T>((resolve) => {
+        timeoutId = setTimeout(() => resolve({
+          ...fallback,
+          diagnosticTimeout: label,
+        }), timeoutMs)
+      }),
+    ])
+  } catch (error) {
+    return {
+      ...fallback,
+      diagnosticError: `${label}: ${toErrorMessage(error)}`,
+    }
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId)
+  }
 }
