@@ -2,6 +2,7 @@
 
 import { Crown, X } from 'lucide-react'
 import { PRO_BENEFITS } from '@/hooks/useMembership'
+import { MembershipPriceCards } from '@/components/Membership/MembershipCard'
 
 interface MembershipPromptModalProps {
   isOpen: boolean
@@ -67,26 +68,7 @@ export function MembershipPromptModal({ isOpen, onClose, onActivate, reason }: M
             </div>
           </div>
 
-          <div className="mt-4 grid grid-cols-2 gap-3">
-            <div className="rounded-2xl border border-[#C1A268]/15 bg-white/60 px-3 py-4 text-center shadow-sm">
-              <div className="text-3xl font-bold text-[#6B5A47] leading-none">
-                <span className="text-base align-super mr-0.5">¥</span>19.8
-              </div>
-              <div className="mt-3 text-sm font-serif text-[#6B5A47]">季卡</div>
-              <div className="mt-0.5 text-xs font-serif text-[#8B7355]">90 天</div>
-            </div>
-
-            <div className="relative rounded-2xl border border-[#C1A268]/35 bg-white/80 px-3 py-4 text-center shadow-[0_6px_18px_rgba(193,162,104,0.14)]">
-              <div className="absolute right-2 top-2 rounded-full bg-[#C1A268]/15 px-2 py-0.5 text-[10px] font-serif text-[#9A7438]">
-                推荐
-              </div>
-              <div className="text-3xl font-bold text-[#9A7438] leading-none">
-                <span className="text-base align-super mr-0.5">¥</span>69.8
-              </div>
-              <div className="mt-3 text-sm font-serif text-[#6B5A47]">年卡</div>
-              <div className="mt-0.5 text-xs font-serif text-[#8B7355]">365 天</div>
-            </div>
-          </div>
+          <MembershipPriceCards />
 
           <button
             type="button"

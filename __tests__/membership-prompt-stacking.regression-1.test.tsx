@@ -18,6 +18,7 @@ vi.mock("@/components/Membership/MembershipCard", () => ({
       {headerAction}
     </div>
   ),
+  MembershipPriceCards: () => <div>会员价格</div>,
 }))
 vi.mock("@/components/Membership/MembershipActions", () => ({ MembershipActions: () => <div>会员操作</div> }))
 

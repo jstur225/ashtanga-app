@@ -12,9 +12,35 @@ export interface MembershipCardProps {
   membership?: MembershipCardData | null
   loading?: boolean
   headerAction?: ReactNode
+  showPrices?: boolean
 }
 
-export function MembershipCard({ subtitle, showStatus = false, membership, loading = false, headerAction }: MembershipCardProps) {
+export function MembershipPriceCards() {
+  return (
+    <div className="mt-4 grid grid-cols-2 gap-3">
+      <div className="rounded-2xl border border-[#C1A268]/15 bg-white/60 px-3 py-4 text-center shadow-sm">
+        <div className="text-3xl font-bold text-[#6B5A47] leading-none">
+          <span className="text-base align-super mr-0.5">¥</span>19.8
+        </div>
+        <div className="mt-3 text-sm font-serif text-[#6B5A47]">季卡</div>
+        <div className="mt-0.5 text-xs font-serif text-[#8B7355]">90 天</div>
+      </div>
+
+      <div className="relative rounded-2xl border border-[#C1A268]/35 bg-white/80 px-3 py-4 text-center shadow-[0_6px_18px_rgba(193,162,104,0.14)]">
+        <div className="absolute right-2 top-2 rounded-full bg-[#C1A268]/15 px-2 py-0.5 text-[10px] font-serif text-[#9A7438]">
+          推荐
+        </div>
+        <div className="text-3xl font-bold text-[#9A7438] leading-none">
+          <span className="text-base align-super mr-0.5">¥</span>69.8
+        </div>
+        <div className="mt-3 text-sm font-serif text-[#6B5A47]">年卡</div>
+        <div className="mt-0.5 text-xs font-serif text-[#8B7355]">365 天</div>
+      </div>
+    </div>
+  )
+}
+
+export function MembershipCard({ subtitle, showStatus = false, membership, loading = false, headerAction, showPrices = true }: MembershipCardProps) {
   return (
     <div className="bg-gradient-to-br from-[#F9F7F2] to-[#F5F0E8] rounded-[20px] p-5 border border-[#C1A268]/20">
       <div className="flex items-start justify-between">
@@ -73,6 +99,8 @@ export function MembershipCard({ subtitle, showStatus = false, membership, loadi
           ))}
         </div>
       </div>
+
+      {showPrices && <MembershipPriceCards />}
     </div>
   )
 }

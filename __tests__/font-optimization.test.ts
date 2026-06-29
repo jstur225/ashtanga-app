@@ -23,9 +23,9 @@ describe('字体优化', () => {
   })
 
   it('全局字体使用本地/系统字体栈', () => {
-    expect(cssContent).toContain('--font-sans: system-ui')
+    expect(cssContent).toContain("--font-sans: 'Songti SC'")
     expect(cssContent).toContain("--font-serif: 'Songti SC'")
-    expect(cssContent).toContain('--font-playfair: Georgia')
+    expect(cssContent).toContain("--font-playfair: 'Songti SC'")
   })
 
   it('app/page.tsx 不导入 Playfair_Display', () => {
@@ -45,5 +45,6 @@ describe('字体优化', () => {
   it('globals.css font-mono 使用系统等宽字体', () => {
     expect(cssContent).not.toContain('jetbrains-mono')
     expect(cssContent).not.toContain('JetBrains Mono')
+    expect(cssContent).toContain("--font-mono: 'Songti SC'")
   })
 })
