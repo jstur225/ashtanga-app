@@ -20,6 +20,23 @@ export const POSE_CATEGORIES: PoseCategory[] = [
 
 export const POSES: Pose[] = [
   {
+    id: 'standing-forward-fold',
+    name: '站立前屈',
+    sanskrit: 'Padangusthasana · Padahastasana',
+    category: 'standing',
+    image: '/poses/standing-forward-fold.png',
+    steps: [
+      '双脚分开与髋同宽，双手叉腰',
+      '呼气，前屈向下，手抓大脚趾',
+      '吸气，抬头延展，看眉心',
+      '呼气，前屈看鼻尖，停留 5 次呼吸',
+      '吸气抬头，呼气松开大脚趾，手掌放在脚掌下',
+      '吸气，抬头延展，看眉心',
+      '呼气，前屈看鼻尖，停留 5 次呼吸',
+      '吸气抬头，呼气双手叉腰；吸气起身，呼气回到山式',
+    ],
+  },
+  {
     id: 'upavishta-konasana',
     name: '坐角式',
     sanskrit: 'Upaviṣṭa Koṇāsana',

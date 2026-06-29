@@ -3,7 +3,9 @@
 import React, { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronLeft, ChevronRight, Search } from 'lucide-react'
+import { useLocalStorage } from 'react-use'
 import { POSE_CATEGORIES, POSES, type Pose } from '@/lib/pose-data'
+import { trackEvent } from '@/lib/analytics'
 
 interface PosesTabProps {
   onDetailOpen?: () => void
@@ -16,6 +18,7 @@ export function PosesTab({ onDetailOpen, onDetailClose }: PosesTabProps) {
   const [poseIndex, setPoseIndex] = useState(0)
   const [searchQuery, setSearchQuery] = useState('')
   const [imagesLoaded, setImagesLoaded] = useState<Record<string, boolean>>({})
+  const [poseLibraryVote, setPoseLibraryVote] = useLocalStorage<'yes' | 'no'>('pose_library_improvement_vote')
 
   const categoryPoses = POSES.filter(p => p.category === activeCategory)
   const filteredPoses = useMemo(() => {
@@ -45,6 +48,12 @@ export function PosesTab({ onDetailOpen, onDetailClose }: PosesTabProps) {
       : (poseIndex + 1) % visible
     setPoseIndex(newIdx)
     setSelectedPose(filteredPoses[newIdx])
+  }
+
+  const voteForPoseLibrary = (choice: 'yes' | 'no') => {
+    if (poseLibraryVote) return
+    setPoseLibraryVote(choice)
+    trackEvent('pose_library_improvement_vote', { choice })
   }
 
   return (
@@ -171,6 +180,34 @@ export function PosesTab({ onDetailOpen, onDetailClose }: PosesTabProps) {
                     </li>
                   ))}
                 </ol>
+
+                {selectedPose.id === 'standing-forward-fold' && (
+                  <div className="mt-8 rounded-2xl border border-[#5B7553]/15 bg-[#5B7553]/5 p-4">
+                    <p className="text-center text-base font-serif text-stone-700 mb-3">
+                      要不要继续完善体式库？
+                    </p>
+                    {poseLibraryVote ? (
+                      <p className="text-center text-sm font-serif text-[#5B7553] py-2">已投票</p>
+                    ) : (
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => voteForPoseLibrary('yes')}
+                          className="py-2.5 rounded-full bg-[#5B7553] text-white text-sm font-serif transition-transform active:scale-95"
+                        >
+                          要
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => voteForPoseLibrary('no')}
+                          className="py-2.5 rounded-full bg-white border border-stone-200 text-stone-500 text-sm font-serif transition-transform active:scale-95"
+                        >
+                          不需要
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* 左右切换 */}
