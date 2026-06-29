@@ -7,6 +7,7 @@ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3
 type VoteChoice = 'yes' | 'no'
 
 interface VoteRow {
+  voter_id: string
   choice: VoteChoice
 }
 
@@ -16,19 +17,34 @@ const summarizeVotes = (rows: VoteRow[] = []) => {
   return { total: yes + no, yes, no }
 }
 
-const loadVoteCounts = async () => {
+const loadVoteSummary = async (voterId?: string) => {
   const { data, error } = await getSupabaseServiceClient()
     .from('feature_votes')
-    .select('choice')
+    .select('voter_id, choice')
     .eq('poll_key', POLL_KEY)
 
   if (error) throw error
-  return summarizeVotes((data ?? []) as VoteRow[])
+  const rows = (data ?? []) as VoteRow[]
+  return {
+    counts: summarizeVotes(rows),
+    choice: voterId ? rows.find(row => row.voter_id === voterId)?.choice ?? null : null,
+  }
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    return NextResponse.json({ success: true, counts: await loadVoteCounts() })
+    const voterId = request.nextUrl.searchParams.get('voterId')?.trim()
+    if (voterId && !UUID_PATTERN.test(voterId)) {
+      return NextResponse.json(
+        { success: false, error: 'INVALID_VOTER' },
+        { status: 400 }
+      )
+    }
+
+    return NextResponse.json({
+      success: true,
+      ...await loadVoteSummary(voterId),
+    })
   } catch {
     return NextResponse.json(
       { success: false, error: 'QUERY_FAILED' },
@@ -69,10 +85,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const summary = await loadVoteSummary(voterId)
     return NextResponse.json({
       success: true,
       choice,
-      counts: await loadVoteCounts(),
+      counts: summary.counts,
     })
   } catch {
     return NextResponse.json(
@@ -81,4 +98,3 @@ export async function POST(request: NextRequest) {
     )
   }
 }
-

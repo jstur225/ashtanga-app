@@ -11,7 +11,7 @@ vi.mock('@/lib/supabase', () => ({
 
 import { GET, POST } from '@/app/api/feature-votes/route'
 
-const createClient = (rows: Array<{ choice: 'yes' | 'no' }>) => ({
+const createClient = (rows: Array<{ voter_id: string; choice: 'yes' | 'no' }>) => ({
   from: vi.fn(() => ({
     select: vi.fn(() => ({
       eq: vi.fn().mockResolvedValue({ data: rows, error: null }),
@@ -27,16 +27,19 @@ describe('feature votes API', () => {
 
   it('GET 返回投票汇总', async () => {
     getSupabaseServiceClient.mockReturnValue(createClient([
-      { choice: 'yes' },
-      { choice: 'yes' },
-      { choice: 'no' },
+      { voter_id: '6cf9a14d-fac4-4a11-a363-cc8f3317ecf8', choice: 'yes' },
+      { voter_id: 'd7f67bbc-a641-45bd-9272-227cd071c768', choice: 'yes' },
+      { voter_id: '42e499dd-10d1-4bc6-a4a9-5e8d2ca7711c', choice: 'no' },
     ]))
 
-    const response = await GET()
+    const response = await GET(new NextRequest(
+      'http://localhost/api/feature-votes?voterId=6cf9a14d-fac4-4a11-a363-cc8f3317ecf8'
+    ))
 
     expect(response.status).toBe(200)
     await expect(response.json()).resolves.toMatchObject({
       success: true,
+      choice: 'yes',
       counts: { total: 3, yes: 2, no: 1 },
     })
   })
@@ -56,8 +59,8 @@ describe('feature votes API', () => {
 
   it('POST 写入投票并返回最新汇总', async () => {
     getSupabaseServiceClient.mockReturnValue(createClient([
-      { choice: 'yes' },
-      { choice: 'no' },
+      { voter_id: '6cf9a14d-fac4-4a11-a363-cc8f3317ecf8', choice: 'yes' },
+      { voter_id: '42e499dd-10d1-4bc6-a4a9-5e8d2ca7711c', choice: 'no' },
     ]))
     const request = new NextRequest('http://localhost/api/feature-votes', {
       method: 'POST',
