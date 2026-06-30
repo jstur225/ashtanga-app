@@ -10,6 +10,7 @@ import {
   detectProfileChanges,
   createSyncLogEntry,
   trimSyncLogs,
+  dedupeRecordsById,
 } from '@/lib/sync-utils'
 import type { PracticeRecord } from '@/lib/supabase'
 import type { CloudRecordForMerge } from '@/lib/sync-utils'
@@ -214,6 +215,29 @@ describe('mergeRecords', () => {
     const result = mergeRecords(local, [], remoteNewer)
     expect(result).toHaveLength(1)
     expect(result[0].id).toBe('a')
+  })
+  it('同一 ID 出现在 local 和 remoteOnly 时不会翻倍', () => {
+    const local = [makeRecord({ id: 'a', updated_at: '2026-06-01T00:00:00Z' })]
+    const remoteOnly = [makeRecord({ id: 'a', updated_at: '2026-06-01T00:00:00Z' })]
+    const result = mergeRecords(local, remoteOnly, [])
+    expect(result).toHaveLength(1)
+    expect(result[0].id).toBe('a')
+  })
+})
+
+// ==================== dedupeRecordsById ====================
+describe('dedupeRecordsById', () => {
+  it('按 id 去重，并保留更新时间较新的记录', () => {
+    const oldRecord = makeRecord({ id: 'a', notes: 'old', updated_at: '2026-06-01T00:00:00Z' })
+    const newRecord = makeRecord({ id: 'a', notes: 'new', updated_at: '2026-06-02T00:00:00Z' })
+    const result = dedupeRecordsById([oldRecord, newRecord])
+    expect(result).toHaveLength(1)
+    expect(result[0].notes).toBe('new')
+  })
+
+  it('没有重复 id 时保持数量不变', () => {
+    const records = [makeRecord({ id: 'a' }), makeRecord({ id: 'b' })]
+    expect(dedupeRecordsById(records)).toEqual(records)
   })
 })
 
