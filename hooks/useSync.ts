@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useLocalStorage } from 'react-use'
 import type { PracticeRecord, PracticeOption, UserProfile } from '@/lib/supabase'
-import { buildProfileFromRemote, mergeRecords, mergeOptions, applySafeMerge, sortAndLimitRecords, buildUploadRecordPayload, resolveRecordColorLevel, createSyncLogEntry, trimSyncLogs, appendSyncErrorHistory, batchUploadRecords, buildOptionsUploadPayload, type SyncLogEntry, type UploadRecordPayload } from '@/lib/sync-utils'
+import { buildProfileFromRemote, mergeRecords, mergeOptions, applySafeMerge, sortAndLimitRecords, buildUploadRecordPayload, resolveRecordColorLevel, createSyncLogEntry, trimSyncLogs, appendSyncErrorHistory, batchUploadRecords, buildOptionsUploadPayload, dedupeRecordsById, type SyncLogEntry, type UploadRecordPayload } from '@/lib/sync-utils'
 import { withRetry, persistFailedSyncIds, loadFailedSyncIds } from '@/lib/sync-retry'
 import {
   buildCompleteProfile,
@@ -56,8 +56,15 @@ function readLatestLocalData(fallback: RemoteSyncData): RemoteSyncData {
     const options = optionsStr ? JSON.parse(optionsStr) : fallback.options
     const profile = profileStr ? JSON.parse(profileStr) : fallback.profile
 
+    const dedupedRecords = Array.isArray(records)
+      ? dedupeRecordsById(records as PracticeRecord[])
+      : fallback.records
+    if (Array.isArray(records) && dedupedRecords.length !== records.length) {
+      localStorage.setItem('ashtanga_records', JSON.stringify(dedupedRecords))
+    }
+
     return {
-      records: Array.isArray(records) ? records as PracticeRecord[] : fallback.records,
+      records: dedupedRecords,
       options: Array.isArray(options) ? options as PracticeOption[] : fallback.options,
       profile: profile && typeof profile === 'object' ? profile as UserProfile : fallback.profile,
     }
@@ -272,12 +279,14 @@ export function useSync(
             remoteCount: analysis.remoteCount
           })
 
+          const dedupedMergedRecords = dedupeRecordsById(mergedRecords)
+
           onSyncComplete({
-            records: mergedRecords,
+            records: dedupedMergedRecords,
             options: mergedOptions,
             profile: mergedProfile
           })
-          localStorage.setItem('ashtanga_records', JSON.stringify(mergedRecords))
+          localStorage.setItem('ashtanga_records', JSON.stringify(dedupedMergedRecords))
           localStorage.setItem('ashtanga_options', JSON.stringify(mergedOptions))
           setSyncStatus('success')
           setLastSyncStatus('success')

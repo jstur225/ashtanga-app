@@ -65,7 +65,12 @@ export function analyzeSync(
 
   // Branch 1: Both sides have data
   if (hasLocalData && hasRemoteData) {
-    if (!colorLevelDiffers(localRecords, remoteRecords) && !optionsChanged) {
+    const { localOnly, remoteOnly, localNewer, remoteNewer } = diffRecords(localRecords, remoteRecords)
+    const hasLocalRecordChanges = localOnly.length > 0 || localNewer.length > 0
+    const hasRemoteRecordChanges = remoteOnly.length > 0 || remoteNewer.length > 0
+    const hasColorLevelChanges = colorLevelDiffers(localRecords, remoteRecords)
+
+    if (!hasLocalRecordChanges && !hasRemoteRecordChanges && !hasColorLevelChanges && !optionsChanged) {
       return {
         decision: { action: 'noop', reason: 'No changes detected' },
         localCount,
@@ -73,14 +78,8 @@ export function analyzeSync(
       }
     }
 
-    // Check for actual record-level diffs
-    const localIds = new Set(localRecords.map((r) => r.id))
-    const remoteIds = new Set(remoteRecords.map((r) => r.id))
-    const localOnlyIds = [...localRecords].filter((r) => !remoteIds.has(r.id))
-    const remoteOnlyIds = [...remoteRecords].filter((r) => !localIds.has(r.id))
-
     // If only color levels or options changed (not actual records), upload local
-    if (localOnlyIds.length === 0 && remoteOnlyIds.length === 0) {
+    if (!hasLocalRecordChanges && !hasRemoteRecordChanges) {
       return {
         decision: {
           action: 'upload-local',
@@ -93,26 +92,40 @@ export function analyzeSync(
       }
     }
 
-    // Real diffs exist: merge if local fits, upload otherwise
-    if (localCount <= maxSyncRecords) {
+    // Only local changed: upload local changes.
+    if (hasLocalRecordChanges && !hasRemoteRecordChanges) {
       return {
         decision: {
-          action: 'merge-remote',
-          mergedRecords: localRecords,
-          remoteOptions,
-          mergedCount: 0,
+          action: 'upload-local',
+          localRecords,
+          localOptions,
+          userId,
         },
         localCount,
         remoteCount,
       }
     }
 
+    // Only remote changed: merge remote-only/newer records into local.
+    if (!hasLocalRecordChanges && hasRemoteRecordChanges && localCount <= maxSyncRecords) {
+      return {
+        decision: {
+          action: 'merge-remote',
+          mergedRecords: [...remoteOnly, ...remoteNewer],
+          remoteOptions,
+          mergedCount: remoteOnly.length + remoteNewer.length,
+        },
+        localCount,
+        remoteCount,
+      }
+    }
+
+    // Both sides changed: require explicit conflict handling.
     return {
       decision: {
-        action: 'upload-local',
+        action: 'conflict',
         localRecords,
-        localOptions,
-        userId,
+        remoteRecords,
       },
       localCount,
       remoteCount,

@@ -1,5 +1,6 @@
 import React from "react"
 import type { Metadata, Viewport } from 'next'
+import { Noto_Serif_SC } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import { Toaster } from 'sonner'
@@ -10,6 +11,12 @@ import { RuntimeDiagnosticsScript } from '@/components/RuntimeDiagnosticsScript'
 import './globals.css'
 
 const enableVercelInsights = process.env.NODE_ENV === 'production'
+const notoSerifSC = Noto_Serif_SC({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  display: 'swap',
+  variable: '--font-noto-serif-sc',
+})
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -50,7 +57,7 @@ export default function RootLayout({
   return (
     <html lang="zh-CN">
       <RuntimeDiagnosticsScript />
-      <body className="font-serif antialiased">
+      <body className={`${notoSerifSC.variable} font-serif antialiased`}>
         <RuntimeDiagnosticsReady />
         <AnalyticsInitializer />
         <ServiceWorkerRegister />

@@ -94,16 +94,18 @@ export function diffRecords(
   localNewer: PracticeRecord[]
   remoteNewer: PracticeRecord[]
 } {
-  const localIds = new Set(local.map(r => r.id))
-  const remoteIds = new Set(remote.map(r => r.id))
-  const remoteMap = new Map(remote.map(r => [r.id, r]))
+  const localRecords = dedupeRecordsById(local)
+  const remoteRecords = dedupeRecordsById(remote)
+  const localIds = new Set(localRecords.map(r => r.id))
+  const remoteIds = new Set(remoteRecords.map(r => r.id))
+  const remoteMap = new Map(remoteRecords.map(r => [r.id, r]))
 
   const localOnly: PracticeRecord[] = []
   const remoteOnly: PracticeRecord[] = []
   const localNewer: PracticeRecord[] = []
   const remoteNewer: PracticeRecord[] = []
 
-  for (const localRecord of local) {
+  for (const localRecord of localRecords) {
     if (!remoteIds.has(localRecord.id)) {
       localOnly.push(localRecord)
     } else {
@@ -121,13 +123,38 @@ export function diffRecords(
     }
   }
 
-  for (const remoteRecord of remote) {
+  for (const remoteRecord of remoteRecords) {
     if (!localIds.has(remoteRecord.id)) {
       remoteOnly.push(remoteRecord)
     }
   }
 
   return { localOnly, remoteOnly, localNewer, remoteNewer }
+}
+
+function getRecordTime(record: { updated_at?: string | null; created_at?: string | null }): number {
+  return new Date(record.updated_at || record.created_at || 0).getTime()
+}
+
+export function dedupeRecordsById<T extends { id?: string; updated_at?: string | null; created_at?: string | null }>(
+  records: T[],
+): T[] {
+  const byId = new Map<string, T>()
+  const withoutId: T[] = []
+
+  for (const record of records) {
+    if (!record.id) {
+      withoutId.push(record)
+      continue
+    }
+
+    const existing = byId.get(record.id)
+    if (!existing || getRecordTime(record) >= getRecordTime(existing)) {
+      byId.set(record.id, record)
+    }
+  }
+
+  return [...byId.values(), ...withoutId]
 }
 
 /**
@@ -177,7 +204,7 @@ export function mergeRecords(
   remoteNewer: PracticeRecord[]
 ): PracticeRecord[] {
   const remoteNewerMap = new Map(remoteNewer.map(r => [r.id, r]))
-  return [...localRecords, ...remoteOnly].map(r => remoteNewerMap.get(r.id) || r)
+  return dedupeRecordsById([...localRecords, ...remoteOnly].map(r => remoteNewerMap.get(r.id) || r))
 }
 
 /**
