@@ -27,7 +27,7 @@ const ERROR_MESSAGES: Record<string, string> = {
 
 export function formatActivateCode(input: string) {
   const clean = input.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 12)
-  const parts = []
+  const parts: string[] = []
   for (let i = 0; i < clean.length; i += 4) {
     parts.push(clean.slice(i, i + 4))
   }

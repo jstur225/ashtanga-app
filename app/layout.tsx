@@ -1,24 +1,15 @@
 import React from "react"
 import type { Metadata, Viewport } from 'next'
-import { Inter, Noto_Serif_SC } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import { Toaster } from 'sonner'
 import { AnalyticsInitializer } from '@/components/AnalyticsInitializer'
 import { ServiceWorkerRegister } from '@/components/ServiceWorkerRegister'
+import { RuntimeDiagnosticsReady } from '@/components/RuntimeDiagnosticsReady'
+import { RuntimeDiagnosticsScript } from '@/components/RuntimeDiagnosticsScript'
 import './globals.css'
 
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
-});
-
-const notoSerifSC = Noto_Serif_SC({
-  subsets: ["latin"],
-  weight: ["400", "700"],
-  variable: "--font-noto-serif-sc",
-  display: 'swap',
-});
+const enableVercelInsights = process.env.NODE_ENV === 'production'
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -28,8 +19,8 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  title: '熬汤日记·呼吸·觉察',
-  description: '用宋体禅意记录你的阿斯汤加瑜伽练习',
+  title: '熬汤日记 - 阿斯汤加瑜伽练习记录与打卡工具',
+  description: '免费在线记录阿斯汤加瑜伽练习，支持每日打卡、练习统计、Mysore 风格计时。无需下载，打开网页即用。',
   generator: 'v0.app',
   manifest: '/manifest.json',
   icons: {
@@ -58,15 +49,21 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-CN">
-      <body className={`${inter.variable} ${notoSerifSC.variable} font-sans antialiased`}>
+      <RuntimeDiagnosticsScript />
+      <body className="font-serif antialiased">
+        <RuntimeDiagnosticsReady />
         <AnalyticsInitializer />
         <ServiceWorkerRegister />
         {children}
         <Toaster position="top-center" toastOptions={{
           className: 'font-serif',
         }} />
-        <Analytics />
-        <SpeedInsights />
+        {enableVercelInsights && (
+          <>
+            <Analytics />
+            <SpeedInsights />
+          </>
+        )}
       </body>
     </html>
   )

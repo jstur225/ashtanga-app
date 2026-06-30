@@ -21,7 +21,7 @@ export default function TestConnectionPage() {
 
   useEffect(() => {
     async function testConnection() {
-      const results = {
+      const results: typeof status = {
         loading: false,
         envVars: false,
         connection: false,
@@ -104,7 +104,7 @@ export default function TestConnectionPage() {
 
   if (status.loading) {
     return (
-      <div style={{ padding: '20px', fontFamily: 'monospace' }}>
+      <div style={{ padding: '20px' }}>
         <h1>🔍 Supabase 连接测试</h1>
         <p>测试中...</p>
       </div>
@@ -112,7 +112,7 @@ export default function TestConnectionPage() {
   }
 
   return (
-    <div style={{ padding: '20px', fontFamily: 'monospace', maxWidth: '800px' }}>
+    <div style={{ padding: '20px', maxWidth: '800px' }}>
       <h1>🔍 Supabase 连接测试</h1>
 
       <div style={{ marginTop: '20px' }}>

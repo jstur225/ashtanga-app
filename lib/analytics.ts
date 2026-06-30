@@ -1,55 +1,74 @@
-import mixpanel from 'mixpanel-browser';
+const MIXPANEL_TOKEN = process.env.NEXT_PUBLIC_MIXPANEL_TOKEN || '110c459d4e609bd51da14e421b2ef4ba'
+const MIXPANEL_ENABLED = process.env.NEXT_PUBLIC_DISABLE_ANALYTICS !== 'true'
 
-const MIXPANEL_TOKEN = process.env.NEXT_PUBLIC_MIXPANEL_TOKEN || '110c459d4e609bd51da14e421b2ef4ba';
+type MixpanelClient = typeof import('mixpanel-browser').default
 
-// 启用数据收集 - Beta版本封闭测试
-const MIXPANEL_ENABLED = true;
+let analyticsPromise: Promise<MixpanelClient | null> | null = null
 
-// ⭐ 包装 Mixpanel 调用，防止错误影响应用
-const safeMixpanelCall = (fn: () => void) => {
-  try {
-    fn();
-  } catch (error) {
-    // 静默忽略 Mixpanel 错误（如广告拦截器导致的失败）
-    console.log('[Analytics] Mixpanel call failed (likely blocked by extension):', error);
+const loadAnalytics = () => {
+  if (typeof window === 'undefined' || !MIXPANEL_ENABLED) {
+    return Promise.resolve(null)
   }
-};
+
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    return Promise.resolve(null)
+  }
+
+  if (!analyticsPromise) {
+    analyticsPromise = new Promise<MixpanelClient | null>((resolve) => {
+      const load = () => {
+        import('mixpanel-browser')
+          .then(({ default: mixpanel }) => {
+            mixpanel.init(MIXPANEL_TOKEN, {
+              debug: false,
+              track_pageview: true,
+              persistence: 'localStorage',
+              autocapture: false,
+              record_sessions_percent: 0,
+            })
+            resolve(mixpanel)
+          })
+          .catch((error) => {
+            console.log('[Analytics] Mixpanel load failed (likely blocked by extension):', error)
+            resolve(null)
+          })
+      }
+
+      if ('requestIdleCallback' in window) {
+        window.requestIdleCallback(load, { timeout: 2000 })
+      } else {
+        globalThis.setTimeout(load, 1500)
+      }
+    })
+  }
+
+  return analyticsPromise
+}
+
+const safeMixpanelCall = (fn: (mixpanel: MixpanelClient) => void) => {
+  void loadAnalytics().then((mixpanel) => {
+    if (!mixpanel) return
+
+    try {
+      fn(mixpanel)
+    } catch (error) {
+      console.log('[Analytics] Mixpanel call failed (likely blocked by extension):', error)
+    }
+  })
+}
 
 export const initAnalytics = () => {
-  if (typeof window !== 'undefined' && MIXPANEL_ENABLED) {
-    safeMixpanelCall(() => {
-      mixpanel.init(MIXPANEL_TOKEN, {
-        debug: false, // 关闭调试日志
-        track_pageview: true, // 保留页面浏览统计
-        persistence: 'localStorage',
-        autocapture: false, // 关闭自动点击捕获，只收集手动埋点
-        record_sessions_percent: 0, // 关闭会话录制，保护用户隐私
-      });
-    });
-  }
-};
+  void loadAnalytics()
+}
 
 export const identifyUser = (uuid: string) => {
-  if (typeof window !== 'undefined' && MIXPANEL_ENABLED) {
-    safeMixpanelCall(() => {
-      mixpanel.identify(uuid);
-    });
-  }
-};
+  safeMixpanelCall((mixpanel) => mixpanel.identify(uuid))
+}
 
 export const trackEvent = (eventName: string, props?: Record<string, any>) => {
-  if (typeof window !== 'undefined' && MIXPANEL_ENABLED) {
-    safeMixpanelCall(() => {
-      mixpanel.track(eventName, props);
-    });
-  }
-};
+  safeMixpanelCall((mixpanel) => mixpanel.track(eventName, props))
+}
 
-// ⭐ 设置用户属性（用于在 Mixpanel 中查看用户的总记录数等）
 export const setUserProfile = (props: Record<string, any>) => {
-  if (typeof window !== 'undefined' && MIXPANEL_ENABLED) {
-    safeMixpanelCall(() => {
-      mixpanel.people.set(props);
-    });
-  }
-};
+  safeMixpanelCall((mixpanel) => mixpanel.people.set(props))
+}

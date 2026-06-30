@@ -2,10 +2,35 @@
 
 > 一个专注阿斯汤加瑜伽打卡和身体觉察的记录工具
 
+## 开发维护入口（2026-06-25）
+
+如果你是下次回来继续重构/维护，先读这里，不要重新排查半天：
+
+- 当前重构状态：阶段 1–6 主体完成，审核补漏完成，L4 登录态稳定化完成。
+- 恢复入口：[`docs/architecture/REFACTOR_RESUME.md`](./docs/architecture/REFACTOR_RESUME.md)
+- 开发说明：[`docs/guides/DEVELOPMENT.md`](./docs/guides/DEVELOPMENT.md)
+- 重构路线图：[`docs/architecture/DECOUPLING_ROADMAP.md`](./docs/architecture/DECOUPLING_ROADMAP.md)
+- 测试矩阵：[`docs/architecture/DECOUPLING_TEST_MATRIX.md`](./docs/architecture/DECOUPLING_TEST_MATRIX.md)
+
+当前验证基线：
+
+```powershell
+npm.cmd run typecheck
+npm.cmd run lint
+npx.cmd vitest run
+npm.cmd run build
+npm.cmd run measure:initial-js
+npm.cmd run test:L4
+```
+
+最近一次结果：TypeScript / lint / Vitest 49 文件 527 项 / build / 首屏 JS 测量 / L4 51 项全部通过；L5 真实云端测试 3 文件 / 8 项通过。L4 登录态测试已用本地 seed 固化；L5 已通过本地 `.env.test` 和专用测试账号验证。
+
 ## 项目状态
 🎉 **MVP已完成**
 - ✅ 数据持久化完成
 - ✅ 云端部署成功（Vercel）
+- ✅ `master2` 低风险 UI/工具解耦完成（6476 行 → 2738 行）
+- ✅ 自动检查通过：167 项测试、TypeScript、轻量 lint、生产构建
 
 **在线地址**: https://ash.ashtangalife.online
 
@@ -67,12 +92,11 @@
 - ✅ **固定功能栏**（唱诵开关 + 口令跟练 + 今日练习人数，不计入用户选项名额）
 - ✅ **今日练习次数**（实时显示当日全平台总练习次数，单击刷新）
 - ✅ **照片上传**（支持练习照片记录，OSS存储，Lightbox放大查看）
-- ✅ **会员系统**（激活码开通 Pro，支持季卡/年卡，照片 9 张、自定义选项 10 个）
+- ✅ **会员系统**（激活码开通 Pro，支持季卡/年卡，照片 9 张、练习选项 11 个）
 - ✅ **新用户福利**（绑定邮箱即赠 31 天 Pro 会员，自动开通）
-- ✅ **购买引导**（闲鱼下单 + 激活码，PurchaseGuideModal 统一购买入口）
+- ✅ **开通引导**（一个弹窗内支持激活码开通和复制开发者微信购买）
 - ✅ **日历标注**（自定义日历标记，Pro 9 种标注类型，批量管理）
 - ✅ **Pro 到期降级**（超出免费上限的选项锁定，数据保留不删除）
-- ✅ **色阶系统**（4 级绿色等级，练习记录和类型可单独设色，日历/热力图色阶显示，云端同步，Pro 解锁 4 号深绿）
 - ✅ **全站统计追踪**（每日活跃用户、新设备、绑定用户、练习次数，Supabase SQL 查询）
 - ✅ **匿名练习埋点**（未绑定用户完成练习也记录到 `daily_user_activity.has_practiced`，区分「打开看看」和「确实练了」的设备）
 
@@ -83,6 +107,22 @@
 - ✅ 响应式设计（移动端优先）
 - ✅ **阿里云OSS**（预签名URL上传，安全高效）
 
+### 本地验证
+
+```bash
+npm run typecheck
+npm run lint
+npx vitest run
+npm run build
+```
+
+练习页已按功能拆分为 `components/journal`、`components/stats`、`components/settings`、`components/practice-record` 和 `components/practice`。日期/时长/HTML 工具位于 `lib/practice-utils.ts`；下一阶段提取 `usePracticeSession`，之后再处理媒体 Hook 与 Tab 真正按需加载。
+
+长期解耦与测试计划：
+
+- [解耦路线图](./docs/architecture/DECOUPLING_ROADMAP.md)
+- [自动化测试矩阵](./docs/architecture/DECOUPLING_TEST_MATRIX.md)
+
 ---
 
 ## 🚧 开发中功能
@@ -91,6 +131,7 @@
 - ⏳ 错误提示美化（toast替代alert）
 
 ### 未来功能（v2.0+）
+- ⏳ 体式#Tag系统（筛选对比）
 - ⏳ 成就墙（突破时刻汇总）
 
 ---
@@ -100,14 +141,14 @@
 **定价**：
 - 月卡：¥9.9 / 31 天
 - 季卡：¥19.8 / 90 天（月均 ¥6.6）
-- 年卡：¥68.8 / 365 天（月均 ¥5.7）
+- 年卡：¥69.8 / 365 天（月均 ¥5.8）
 - 体验卡：免费（绑定邮箱自动赠 31 天 Pro）
 
-**购买渠道**：闲鱼（私信发激活码）
+**购买渠道**：联系开发者微信 `xiao519216978` 获取激活码
 
 **商业模式**：
-- 免费功能：基础打卡、时间记录、文字日记、月相日历、口令跟练（1 张照片、4 个练习选项）
-- Pro 功能：9 张照片/条、10 个练习选项、9 种日历标注、4 号色阶深绿
+- 免费功能：基础打卡、时间记录、文字日记、月相日历、口令跟练（每条记录 1 张照片、单张 5 MB、3 个练习选项、1 种日历标注、2 种日历颜色、1 分钟唱诵倒计时）
+- Pro 功能：每条记录 9 张照片、单张 30 MB、11 个练习选项、9 种日历标注、4 种日历颜色、自定义唱诵倒计时
 
 ---
 
@@ -170,43 +211,29 @@
 ## 📂 文件结构
 
 ```
-ashtang-app/
+Ashtanga_app/
+├── README.md                        # 项目说明（本文件）
+├── ASHTANGA_PROJECT_LOG.md          # 开发日志（详细记录）
+├── TODO.md                          # 当前进度与后续任务
+├── SUPABASE_SETUP_GUIDE.md          # Supabase配置指南
 ├── app/                             # Next.js App Router
-│   ├── practice/                    # 练习页（主页面，~6800行）
-│   ├── api/                         # API 路由（stats/membership/auth等）
-│   └── globals.css                  # 全局样式 + 色阶 CSS
-├── components/                      # React 组件
-│   ├── PracticeForm.tsx             # 练习表单（含色阶选择器）
-│   ├── Membership/                  # 会员相关组件
-│   ├── CalendarAnnotation/          # 日历标注组件
-│   ├── PhotoUpload/                 # 照片上传组件
-│   ├── Timeline/                    # 时光轴组件
-│   ├── AuthModal.tsx                # 登录/注册弹窗
-│   ├── DataConflictModal.tsx        # 数据冲突弹窗
-│   ├── DebugLogModal.tsx            # 运行日志弹窗
-│   ├── ExportModal.tsx              # 数据胶囊导出
-│   └── ImportModal.tsx              # 数据胶囊导入
-├── hooks/                           # 自定义 Hooks
-│   ├── usePracticeData.ts           # 练习数据 CRUD
-│   ├── useSync.ts                   # 云端同步逻辑
-│   ├── useAuth.ts                   # 认证
-│   ├── useMembership.ts             # 会员状态
-│   └── useAnnotations.ts            # 日历标注
-├── lib/                             # 工具函数
-│   ├── supabase.ts                  # Supabase 客户端 + 类型定义
-│   ├── sync-utils.ts               # 同步纯函数（diffRecords 等）
-│   ├── oss.ts                       # 阿里云 OSS 上传
-│   ├── analytics.ts                 # 埋点
-│   ├── version.ts                   # 版本信息
-│   └── moon-phase-data.ts           # 月相数据
-├── __tests__/                       # 测试（Vitest）
-├── public/                          # 静态资源（图标/音频/月相图）
-├── scripts/                         # 运维脚本
-├── supabase/migrations/             # 数据库迁移
-├── ASHTANGA_PROJECT_LOG.md          # 项目日志
-├── TODO.md                          # 待办事项
-├── DESIGN.md                        # 设计规范
-└── README_USER.md                   # 用户使用指南
+├── components/                      # React组件（按 journal/stats/settings 等功能拆分）
+├── hooks/                           # 数据、认证、同步等 Hooks
+├── lib/                             # 纯函数与服务封装
+├── __tests__/                       # Vitest 自动化测试
+├── public/                          # 静态资源
+├── docs/                            # 文档目录
+│   ├── research/                    # 竞品调研文档
+│   │   ├── 全平台竞品对比报告_2026-01-16.md
+│   │   ├── 小红书用户洞察报告_2026-01-16.md
+│   │   ├── 竞品调研总报告_2026-01-16.md
+│   │   ├── Chrome_MCP_竞品调研指南.md
+│   │   ├── 竞品体验指南.md
+│   │   ├── 竞品体验_模板.md
+│   │   └── 竞品体验报告/
+│   └── guides/                      # 开发指南
+│       └── app开发流程指南_非技术人员AI开发.md
+└── archive/                         # 历史文档归档
 ```
 
 ---
@@ -378,7 +405,7 @@ vs iOS：
 ---
 
 **创建时间**：2026-01-14
-**最后更新**：2026-06-12
-**当前版本**：v1.3.0（色阶系统已部署）
+**最后更新**：2026-06-25
+**当前版本**：v1.2.1（已部署）
 **项目状态**：🎉 云端运行中
-**下一步行动**：用户回访 + 色阶功能推广
+**下一步行动**：小红书双号运营（品牌号 + 主理人号）

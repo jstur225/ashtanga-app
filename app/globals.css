@@ -75,10 +75,11 @@
 }
 
 @theme inline {
-  --font-sans: var(--font-inter), 'Inter', 'Inter Fallback', system-ui, sans-serif;
-  --font-serif: var(--font-noto-serif-sc), 'Noto Serif SC', 'SimSun', 'STSong', serif;
-  --font-playfair: var(--font-playfair), 'Playfair Display', serif;
-  --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+  /* 全站统一宋体；保留 Tailwind 字体工具名，避免局部类名绕过全局字体。 */
+  --font-sans: 'Songti SC', 'STSong', 'SimSun', 'Noto Serif CJK SC', serif;
+  --font-serif: 'Songti SC', 'STSong', 'SimSun', 'Noto Serif CJK SC', serif;
+  --font-playfair: 'Songti SC', 'STSong', 'SimSun', 'Noto Serif CJK SC', serif;
+  --font-mono: 'Songti SC', 'STSong', 'SimSun', 'Noto Serif CJK SC', serif;
 
   /* Classic/Retro Palette */
   --color-cream: #F9F7F2;

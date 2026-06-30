@@ -13,7 +13,7 @@ interface DataStorageNoticeProps {
     hasLimitWarning: boolean
   }
   syncStatus?: 'idle' | 'syncing' | 'success' | 'error'
-  lastSyncStatus?: 'idle' | 'success' | 'error'  // ⭐ 使用持久化的状态
+  lastSyncStatus?: 'idle' | 'syncing' | 'success' | 'error'  // ⭐ 使用持久化的状态
   lastSyncTime?: number | null
 }
 

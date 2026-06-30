@@ -4,9 +4,19 @@
   "private": true,
   "scripts": {
     "build": "next build",
-    "dev": "next dev -H 0.0.0.0",
-    "lint": "eslint .",
-    "start": "next start -H 0.0.0.0"
+    "dev": "next dev --webpack -H 0.0.0.0",
+    "dev:turbo": "next dev --turbo -H 0.0.0.0",
+    "lint": "node scripts/lint-check.mjs",
+    "measure:initial-js": "node scripts/measure-initial-js.mjs",
+    "optimize:poses": "node scripts/optimize-pose-images.mjs",
+    "typecheck": "tsc --noEmit",
+    "start": "next start -H 0.0.0.0",
+    "test:L5": "vitest run --config vitest.config.e2e.mjs",
+    "test:L5:watch": "vitest --config vitest.config.e2e.mjs",
+    "test:L4": "playwright test",
+    "test:L4:headed": "playwright test --headed",
+    "test:L4:debug": "playwright test --debug",
+    "test:L4:ui": "playwright test --ui"
   },
   "dependencies": {
     "@emotion/is-prop-valid": "latest",
@@ -69,6 +79,7 @@
     "zod": "3.25.76"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@tailwindcss/postcss": "^4.1.9",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",

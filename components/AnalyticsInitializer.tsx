@@ -16,18 +16,23 @@ export function AnalyticsInitializer() {
       localStorage.setItem('ashtanga_uuid', uuid)
     }
 
-    // 3. Identify and track app open
-    identifyUser(uuid)
-    trackEvent('app_open', { uuid })
-
-    // 3b. Record daily active user (Supabase)
+    // 3. Record daily active user (Supabase)
     fetch('/api/stats/heartbeat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ uuid }),
     }).catch(() => {})
 
-    // 4. Collect user statistics
+    // 4. 收集来源参数
+    const params = new URLSearchParams(window.location.search)
+    const utmSource = params.get('utm_source')
+    const referrer = document.referrer || '(direct)'
+
+    // 5. Identify and track app open
+    identifyUser(uuid)
+    trackEvent('app_open', { uuid, utm_source: utmSource, referrer })
+
+    // 6. Collect user statistics
     let stats = {
       total_records: 0,
       completed_practice: 0,

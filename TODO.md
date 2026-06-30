@@ -1,5 +1,274 @@
 # 待处理问题
 
+## 2026-06-26 - 解耦重构收尾：进入维护模式 ✅ 已完成
+
+- [x] 核心阶段 1–6 已完成，停止“为了拆而拆”
+- [x] `app/practice/page.tsx` 已在目标范围内，不再为了降到 800 行硬拆
+- [x] `hooks/useSync.ts`、`lib/sync-utils.ts`、`components/AuthModalForms.tsx` 暂不主动拆
+- [x] 后续拆分标准改为：真实痛点、风险、改动频率、测试收益
+- [x] 会员激活 API 最后一刀已完成：route 顶层编排 + 内部 helper 分层，响应与行为不变
+- [x] 会员激活 API 对口测试已补齐：覆盖 8 个 activate 场景；全量 Vitest 49 文件 / 535 项通过
+- [x] 照片上传限制与友好提示已完成：免费 5 MB / Pro 30 MB；全量 Vitest 49 文件 / 539 项通过
+- [x] 会员开通入口已收口：会员提示弹窗内直接展示权益对比、激活码入口和开发者微信复制入口
+
+下一步：优先处理业务增长/获客/转化、线上 bug、安全问题。不再保留默认“下一刀”；只有出现具体维护痛点时再小刀优化。
+
+## 2026-06-25 - L5 真实云端测试模板与说明 ✅ 已完成
+
+- [x] 新增 `.env.test.example`，给出 L5 必需环境变量模板
+- [x] 新增 `docs/guides/L5_TESTING.md`，说明测试账号、白名单、reset 流程、常见失败
+- [x] `.gitignore` 继续忽略真实 `.env.test`，但允许提交 `.env.test.example`
+- [x] `docs/guides/DEVELOPMENT.md` 和恢复入口已链接 L5 专门说明
+- [x] 本地 `.env.test` 已填写并验证：`npm.cmd run test:L5` 3 文件 / 8 项通过
+
+下一步：保持 `.env.test` 本地私有；如改动 Supabase/auth/sync，再跑 `npm.cmd run test:L5`。
+
+## 2026-06-25 - 百度 SEO 补齐：发现型关键词覆盖 ⏳ 代码已完成，待分支合并后提交百度
+
+**目的**：让用户在百度搜索"阿斯汤加 记录"、"瑜伽 打卡工具"等发现型关键词时能搜到官网。
+
+**诊断背景**：品牌词"熬汤日记"已能搜到，但发现型关键词无排名。当前每日 intake 仅 ~1 人，瓶颈在获客通道。
+
+### 已完成的代码改动（在 master2 分支）
+- [x] `app/layout.tsx` — title/description 加入发现型关键词
+- [x] `app/seo/page.tsx` — 新增 SEO 着陆页（纯服务器组件）
+- [x] `app/sitemap.ts` — 新增 sitemap.xml
+- [x] `app/robots.ts` — 新增 robots.txt 指向 sitemap
+
+### ❗ 待 master2 分支所有修改完成并部署后执行
+- [ ] 百度站长平台提交 sitemap：`https://ash.ashtangalife.online/sitemap.xml`
+- [ ] 百度站长平台手动提交收录：`/` 和 `/seo` 两个链接
+- [ ] 2-4 周后确认搜索排名
+
+### 来源
+- dbs-diagnosis 商业模式诊断（2026-06-25）
+- 用户选了搜索流量路径（B），而非内容分发扩量（A）
+
+## 2026-06-25 - README / 开发说明归档 ✅ 已完成
+
+- [x] README 增加开发维护入口、当前验证基线、核心文档链接
+- [x] 新增 `docs/guides/DEVELOPMENT.md`，说明日常启动、门禁命令、L4 seed、L5 `.env.test` 要求
+- [x] 恢复入口文档已把下一步推进到 L5 真实云端环境可重复化
+
+下一步：固化 L5 `.env.test`、测试账号和 reset 流程。
+
+## 2026-06-25 - L4 登录态稳定化 ✅ 已完成
+
+- [x] 登录态 L4 用例改为本地 seed 固化，不再依赖测试账号已有云端记录
+- [x] Journal 补录、分享卡、Settings 导出路径从条件 skip 改成真实断言
+- [x] `npm.cmd run test:L4`：51/51 通过，0 skipped
+
+下一步：README/开发说明已完成；继续固化 L5 `.env.test` 与真实云端测试账号。
+
+> 当前解耦阶段与完整测试缺口以 `docs/architecture/DECOUPLING_ROADMAP.md` 和 `docs/architecture/DECOUPLING_TEST_MATRIX.md` 为准。本文件只保留当前执行项。
+
+## 2026-06-25 - 重构审核补漏 ✅ 已完成
+
+- [x] TypeScript 门禁恢复：`npm.cmd run typecheck` 通过
+- [x] Vitest 全量恢复：49 文件 / 527 项通过
+- [x] L4 smoke 恢复：4/4 通过
+- [x] 生产构建通过
+- [x] 首屏 JS 复测：16 scripts / 1117.0 KiB raw / 335.5 KiB gzip
+- [x] 文档同步：恢复入口、路线图、测试矩阵、性能基线、项目日志已更新
+
+下一步：README/开发说明已完成；如需完整 L5，全量验证前先配置可访问的 `.env.test`/测试云端环境。
+
+## 2026-06-25 - 阶段 6 测试暴露的 3 个缺陷 ✅ 已修复
+
+**来源**: 阶段 6 测试通过 `EXPOSES GAP` 断言暴露，已全部修复并改为 `VERIFIES FIX` 测试。
+
+### 缺口 1：`reset-password` 无幂等机制 ✅ 已修复
+
+**问题**: `app/api/auth/reset-password/route.ts` 不消费任何验证码或一次性 token，可重复触发密码重置。
+
+**修复**: 重置密码现在强制要求 `code` 字段，查询 `verification_codes` 表 `type='reset_password' && used=false && 未过期` 的记录，成功后标记 `used=true`。与 `register`/`verify-code` 的单次消费机制对齐。
+
+**测试**: `__tests__/api-auth-routes.test.ts > VERIFIES FIX: 同一验证码第二次调用失败（已被消费）`
+
+### 缺口 2：`send-verification-code` 无防刷限频 ✅ 已修复
+
+**问题**: `app/api/auth/send-verification-code/route.ts` 没有任何速率限制，可对同一邮箱无限触发。
+
+**修复**: API 入口处加 60s 限频——查询 `verification_codes` 表该邮箱最近一条 `created_at`，未过 60s 则返回 429。查询失败时 fail-open（避免误伤用户）。
+
+**测试**: `__tests__/api-auth-routes.test.ts > VERIFIES FIX: 60s 限频：第一次成功，后续被拒绝`
+
+### 缺口 3：Stats Tab 切换不保持滚动位置 ✅ 已修复
+
+**问题**: 切到其他 Tab 再切回 stats 时，`scrollTop` 重置为 0。原因：AnimatePresence exit 动画先于 unmount 把 scrollTop 重置为 0，最初尝试在 unmount cleanup 中读取已无效。
+
+**修复**: 改用「scroll 事件实时保存 + sessionStorage 持久化 + mount 时轮询恢复」三段式策略。
+- `scroll` 事件 listener 用 rAF throttled 实时把 scrollTop 写入 sessionStorage
+- mount 时读取 sessionStorage，轮询最多 15 次（每次 100ms）等待异步内容撑起足够高度后再设置 scrollTop
+- 选 sessionStorage 而非模块变量：dev 模式下 next/dynamic 可能重新求值模块导致变量重置；选 sessionStorage 而非 localStorage：重启浏览器后回到顶部是合理行为
+
+**测试**: `__tests__/L4/tab.spec.ts > stats Tab 滚动位置：切走再切回保持`
+
+## 2026-06-24 - 照片上传限制：免费 5 MB / 付费 30 MB ✅ 已完成
+
+**问题**: 用户照片超过免费上限时上传失败，无友好提示
+**日志**: `ashtanga-debug-log-2026-06-24.json`（3次 VALIDATION_FAILED：10.27MB / 10.58MB / 10.63MB）
+
+### 方案
+1. **免费用户**：单张照片上限为 5 MB，上传失败时展示友好提示
+2. **付费用户**：单张照片上限为 30 MB（手机 ProRAW 最大约 25MB，30 MB 充裕）
+3. **不做自动压缩** — 文件大小限制是免费与付费的差异点，"不爽"才有付费动力
+
+### 涉及文件
+- [x] `lib/oss.ts` — `validatePhotoFile` 支持免费/Pro 不同文件大小上限
+- [x] `components/PracticeForm.tsx` — 上传时使用实时会员状态传入文件大小校验
+- [x] 前端弹窗提示文案区分免费/Pro，并保留具体文件大小
+- [x] `__tests__/oss-utils.test.ts` — 覆盖免费 5 MB、Pro 30 MB 与友好错误文案
+
+## 2026-06-18 - 解耦阶段 2：练习会话模块 ✅ 已完成
+
+- [x] 记录代码、测试与构建基线
+- [x] 建立完整解耦路线图
+- [x] 建立分层自动化测试矩阵
+- [x] 提交并推送阶段 0 文档（`ecb9a13`）
+- [x] 完成阶段 1：低风险 UI 与工具拆分（`0300ad4`）
+- [x] 修复嵌套会员弹窗层级并补回归测试（`443f75a`、`917812f`）
+- [x] 建立练习会话状态转换模型与保护测试
+- [x] 提取 `usePracticeSession`，保持现有 LocalStorage 键兼容（`30a5700`）
+- [x] 完成保存幂等、失败重试和草稿删除补偿（`ba7824a`）
+- [x] 完成刷新恢复：持久化练习类型快照并使用 SSR 安全的 LocalStorage 适配器
+- [x] 增加真实 hydration、练习类型刷新恢复和损坏存储回退测试；20 文件 / 170 项通过
+- [x] 使用生产版浏览器复验：开始练习 → 刷新 → 类型、计时、暂停状态均正确且控制台无 hydration mismatch
+- [x] 完成 `npm.cmd run build`，Next.js 生产构建通过
+- [x] 完成阶段 2 全量门禁与隔离浏览器回归
+
+## 2026-06-18 - 解耦阶段 3：媒体 Hook ✅ 已完成
+
+**最终状态**：口令模式 L4 已闭环；修复启动时陈旧状态覆盖和失败后控制按钮隐藏。
+
+- [x] 补唱诵倒计时、单次完成、音频失败、重复加载和跳转边界测试
+- [x] 提取 `useGuidedAudio`
+- [x] 提取 `useChantPlayback`
+- [x] 确保页面不再持有 `HTMLAudioElement`
+- [x] 完成普通练习与唱诵生产浏览器回归
+- [x] 复验口令卡片 → 开始圆钮 → 加载/播放/失败 UI 的完整 L4 链路
+- [x] 音频失败后普通计时仍可暂停、继续、结束和清理
+- [x] 完成阶段 3 最终门禁并更新为已完成
+
+## 下一执行项 - 解耦阶段 4：页面编排与按需加载
+
+- [x] 提取 `PracticeDashboard`，保留页面中的选择与启动业务决策
+- [x] 提取 `PracticeNavigation`，统一顶层覆盖层的导航显隐策略
+- [x] 提取 `PracticeSessionView`：全屏计时、唱诵倒计时与口令控制已移出，完成保存/同步仍在页面
+- [x] `PracticeModalHost` 第一部分：提取三步清空数据与唱诵设置状态机
+- [x] `PracticeModalHost` 第二部分：收拢其余独立弹窗渲染接线，业务决策继续留在页面
+- [x] 建立 `/practice` 首屏 JS 可重复基线；427.9 KiB → 333.8 KiB gzip（-22.0%）
+- [x] 将 Journal/Stats/Poses Tab 真正改为按需加载
+- [x] 建立可重复的首屏 JS 基线并比较下降幅度
+- [x] 第七检查点：调试日志采集移入 `lib/practice-debug-log.ts`，页面 1829 → 1406 行
+- [x] 提取记录/选项命令处理器；页面 1406 → 1157 行，阶段 4 行数门槛完成
+
+## 2026-06-24 — L3+L5 测试矩阵补全 ✅ 已完成
+
+- [x] Phase 1.1：useSync.ts `uploadLocalData` 加 `!user` 守卫 + `repoDeleteAllUserOptions` 返回值检查（与 records 分支一致）
+- [x] Phase 1.2：L3 测试 `sync-isolation-and-rollback.test.ts`（4 项全部通过，主套件 440 项）
+- [x] Phase 2：L5 测试基础设施（vitest.config.e2e.mjs + setup.ts + test-client + reset 脚本）
+- [x] Phase 3：L5 测试文件编写（auth.smoke + sync.upload + sync.conflict 共 5 项）
+- [x] Phase 4：测试矩阵文档更新（3 项缺口升级） + 项目日志
+- [x] L5 端到端测试全部跑通（auth.smoke 4/4 + sync.upload 2/2 + sync.conflict 2/2）
+- [x] 全量测试 444 项通过（+4 L3 + 8 L5）
+
+## 下一执行项 - 解耦阶段 5：同步分层 ✅ 已完成
+
+- [x] 第一刀：提取远端记录/选项/profile 的字段映射与归一化纯函数到 `lib/sync-mappers.ts`，新增 45 个纯函数测试（2026-06-23 完成）
+- [x] 第二刀：Supabase I/O 提取到 `lib/supabase-repository.ts`：`fetchAllUserData` / `fetchCloudRecordsForMerge` / `upsertRecords/Option` / `deleteAllUserRecords/Option`（2026-06-23 完成）
+- [x] 第三刀：提取共享的 `applySafeMerge` / `sortAndLimitRecords` / `buildUploadRecordPayload` / `resolveRecordColorLevel` 纯函数到 `lib/sync-utils.ts`，去重 ~93 行重复逻辑（2026-06-23 完成）
+- [x] 第四刀：提取 `detectOptionChanges` / `detectProfileChanges` / `createSyncLogEntry` / `batchUploadRecords` / `buildOptionsUploadPayload`，useSync 首次低于 1000 行（2026-06-23 完成）
+- [x] 第五刀：提取 sync orchestrator（`analyzeSync` / `executeConflictStrategy` / `computeSyncStats` / `recordPracticeIfNeeded`），useSync 897 行（2026-06-23 完成）
+- [x] 合并 `uploadLocalRecords` / `uploadLocalData` 的 build+merge 重复逻辑为 `prepareRecordsForSafeUpload` 助手（2026-06-24）
+- [x] 抽离 `getLatestLocalData` 为模块级 `readLatestLocalData` + 统一 syncDebug 日志（2026-06-24，useSync 955 → 879 行）
+- [x] 最终精简：`exerciseConflict` 三分支提取 + `smartMerge` 归位（useSync 879 → 771 行）
+- [x] **阶段 5 关闭**：771 行是合理终点，剩余 ~8 行 setState 重复是显式胜于隐式的 conscious tradeoff
+
+## 2026-06-23 — 阶段 4 测试矩阵 L2 缺口覆盖 ✅ 已完成
+
+- [x] `__tests__/stats-tab.test.tsx`（7 项）：空态、统计数据、免费/Pro 会员、设置按钮
+- [x] `__tests__/journal-tab.test.tsx`（10 项）：CRUD 渲染/编辑/分享/补录、未登录态、突破笔记、多照片
+- [x] 测试矩阵「日记 CRUD」L2 缺口已覆盖、「统计空态/会员入口」已覆盖
+
+## 2026-06-23 — 阶段 5 L1 纯函数测试覆盖 ✅ 已完成
+
+- [x] `sortAndLimitRecords` 6 项（排序、maxSync 限制、1000 条边界、不可变性）
+- [x] `applySafeMerge` 7 项（各字段安全合并、mergeUpdatedAt）
+- [x] `detectOptionChanges` 5 项 + `detectProfileChanges` 8 项（相同、单边、内容差异检测）
+- [x] `trimSyncLogs` 4 项（单条、50 条上限、100KB 截断、空列表兜底）
+- [x] 测试矩阵 3 项从「缺失/部分覆盖」升级为「已覆盖」
+
+## 2026-06-24 — 阶段 5/6 测试缺口覆盖 + useSync 精简 ✅ 已完成
+
+- [x] 旧版本导入兼容 L1 测试（17 项）
+- [x] AuthModal 组件测试（21 项）
+- [x] AuthModal 无障碍改进 + a11y 测试（9 项）
+- [x] 1000 条限制 L3 集成测试（5 项）
+- [x] handleDeleteRecord 同步路径测试（6 项）
+- [x] 测试矩阵更新 5 项状态
+- [x] syncDebug 日志统一（砍 ~55 行噪音）
+- [x] getLatestLocalData 抽离为模块级函数
+- [x] useSync 955 → 879 行（−76 行）
+- [x] exerciseConflict 三分支执行逻辑提取（`computeSmartMergeData` → sync-utils.ts，`executeConflictStrategy` merge 修复）✅
+- [x] smartMerge 归位（调用 `computeSmartMergeData`，useSync 872 行）✅
+
+### 诚实评估 — useSync 最终精简 ✅ 已完成
+
+**已达成**: useSync 879 → 771 行（−108 行）
+- `computeSmartMergeData` → `sync-utils.ts`
+- `smartMerge` / `executeConflictStrategy` / `resolveConflict` / `prepareRecordsForSafeUpload` 均归位到 orchestrator
+
+**评估**: 771 行是合理终点。剩余 ~8 行 setState 重复是显式胜于隐式的 conscious tradeoff，`uploadLocalData` 三段提取会引入回调注入。阶段 5 关闭。
+
+## 2026-06-24 - 阶段 6 测试缺口填充 ✅ 已完成
+
+- [x] 照片验证纯函数（oss-utils.test.ts，12 项）
+- [x] 照片日志全功能（photo-logger.test.ts，13 项）
+- [x] OSS 网络函数边界（oss-network.test.ts，10 项）
+- [x] API 注册路由输入验证（api-auth-routes.test.ts，7 项）
+- [x] Pro/免费色阶函数（option-color-level.test.ts，16 项）
+- [x] 照片上传验证 → 已覆盖（L1 + L3）
+- [x] 免费/Pro 色阶 → 已覆盖（L1）
+- [x] API 输入验证 → 部分覆盖（register route）
+- [x] 更新项目日志、TODO、测试矩阵、路线图
+- [x] 全量测试 **498 项通过**（+58 项，从 440 起）
+
+## 2026-06-23 — 全站字体修正 ✅ 已完成
+
+- [x] body 从 `font-sans` 改为 `font-serif`，全站文字统一宋体
+
+## 2026-06-23 — 同步弹性 ✅ 已完成
+
+- [x] 第一刀：`withRetry` 指数退避重试 + batch 逐批重试 + uploadLocalData 加固 + 失败 ID 持久化
+- [x] 第二刀：`pendingSyncRef` 并发排队，同步结束后补调，不再静默丢弃
+- [x] `__tests__/sync-retry.test.ts`（10 项）+ `__tests__/sync-upload.test.ts`（4 项）
+
+## 2026-06-23 — 损坏数据防御 ✅ 已完成
+
+- [x] `isValidRemoteRecord` + `mapRemoteRecord` null/undefined fallback
+- [x] `fetchCloudRecordsForMerge` 返回过滤
+- [x] profile 上传响应 JSON 格式校验
+- [x] 新增 9 项测试（sync-mappers.test.ts）
+
+## 2026-06-23 — 动态 Tab error boundary ✅ 已完成
+
+- [x] 新增 `DynamicTabShell` error boundary 捕获动态模块渲染异常
+- [x] 失败时显示「页面加载失败」+「点击重试」按钮，key 递增强制 remount
+- [x] JournalTab / StatsTab / PosesTab 包裹 DynamicTabShell
+- [x] `__tests__/dynamic-tab-error.test.tsx`（2 项）
+- [x] 测试矩阵「动态模块 loading/success/error」升级为已覆盖
+
+## 2026-06-23 — 导入导出纯函数 + 组件测试 ✅ 已完成
+
+- [x] 提取 `lib/import-export.ts`（parseAndValidateImportData / sortRecordsByDate / migrateOldOptions / serializeExportData）
+- [x] `usePracticeData` importData/exportData 改为调用提取函数
+- [x] `__tests__/import-export-utils.test.ts`（25 项 L1 纯函数测试）
+- [x] `__tests__/import-modal.test.tsx`（6 项 L2）
+- [x] `__tests__/export-modal.test.tsx`（6 项 L2）
+- [x] `__tests__/data-conflict-modal.test.tsx`（8 项 L2）
+- [x] 测试矩阵「导入合法/非法、导出、三步清空」升级为已覆盖
+
 ## 2026-06-03 - 会员降级色阶锁定处理 ✅ 已实现
 
 **状态**: ✅ 已实现
@@ -116,29 +385,42 @@ ALTER TABLE practice_records ADD COLUMN color_level INTEGER DEFAULT 3;
 
 ---
 
-## 2026-05-22 - Tab 级代码分割（性能优化第二期）⏳ 待观察
+## 2026-06-18 - 练习页第一阶段解耦 ✅ 已完成
 
-**状态**: 等第一期优化上线后观察效果再决定
+**状态**: 组件文件拆分和测试覆盖已完成；真正按需加载待下一阶段
 
 ### 背景
 第一期已完成：删除 recharts/html2canvas、12 个弹窗懒加载、字体优化（预计减少初始 JS ~400-500KB）。
 
-### 待做内容
-`practice/page.tsx` 中以下大型内联组件仍在初始 bundle 中，可进一步拆分为独立文件 + `dynamic()` 懒加载：
+### 已完成
+
+`practice/page.tsx` 从 6476 行降至 3238 行，以下组件已移出页面：
 
 | 组件 | 行数 | 说明 |
 |------|------|------|
-| StatsTab | ~410 行 | 统计页，只在用户点"我的数据"标签时才需要 |
-| JournalTab | ~520 行 | 日记页，包含分享/编辑/补录等，只在"日记"标签时才需要 |
-| SettingsModal | ~560 行 | 设置页，只在用户点设置时才需要 |
+| StatsTab | `components/stats/StatsTab.tsx` | 已拆分，仍为静态导入 |
+| JournalTab | `components/journal/JournalTab.tsx` | 已拆分，仍为静态导入 |
+| SettingsModal | `components/settings/SettingsModal.tsx` | 已拆分并使用 `dynamic()` |
+| 记录弹窗 | `components/practice-record/` | 完成、补录、编辑和选择器已拆分 |
+
+自动验证：131 项测试、TypeScript、lint、生产构建全部通过；浏览器核心练习与日记流程通过。
+
+### 下一步
+
+1. 提取页面顶部日期选择器、选项弹窗、结束确认框和格式化工具。
+2. 提取练习会话状态与音频逻辑。
+3. 将 JournalTab、StatsTab 改为动态加载，比较首屏构建产物。
+4. 页面降至 1500 行以内后，再单独规划 `useSync` 拆分。
 
 ### 风险
 - 涉及大量 props 传递和状态管理，6800 行文件的拆分有中高风险
 - 需要仔细处理共享状态（计时器状态、同步状态、用户信息等）
 
-### 推进条件
-- Vercel Speed Insights 数据显示 LCP > 2.5 秒
-- 或者首屏 JS 仍超过 500KB
+### 验收要求
+
+- 每阶段独立提交，保持 131 项现有测试持续通过。
+- 浏览器回归不写真实云端；登录同步使用专用测试账号后另测。
+- 解耦完成后更新 README、项目日志和本 TODO。
 
 ---
 
@@ -263,10 +545,10 @@ ALTER TABLE practice_records ADD COLUMN color_level INTEGER DEFAULT 3;
 5. 不需要新增 props，对外部透明
 
 ### 验证
-- [ ] 点击 Expand → 全屏覆盖层出现，textarea 自动聚焦
-- [ ] 输入文字 → 收起 → 文字保留在弹窗中
-- [ ] 字数计数器正常
-- [ ] 照片上传等其他功能不受影响
+- [x] 点击 Expand → 全屏覆盖层出现，textarea 自动聚焦
+- [x] 输入文字 → 收起 → 文字保留在弹窗中
+- [x] 字数计数器正常
+- [x] 照片上传等其他功能不受影响
 
 ---
 

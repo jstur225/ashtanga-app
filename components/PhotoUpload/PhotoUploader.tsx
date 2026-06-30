@@ -12,6 +12,7 @@ interface PhotoUploaderProps {
   recordId: string
   initialPhotos?: Photo[]
   maxPhotos?: number
+  isPro?: boolean
   disabled?: boolean
   onPhotosChange?: (photos: Photo[]) => void
 }
@@ -35,6 +36,7 @@ export function PhotoUploader({
   recordId,
   initialPhotos = [],
   maxPhotos = 9,
+  isPro = false,
   disabled = false,
   onPhotosChange,
 }: PhotoUploaderProps) {
@@ -108,7 +110,7 @@ export function PhotoUploader({
       startProgressSimulation(uploadId)
 
       // 验证文件
-      const validation = validatePhotoFile(file)
+      const validation = validatePhotoFile(file, { isPro })
       if (!validation.valid) {
         toast.error(`${file.name}: ${validation.error}`)
         return
@@ -117,7 +119,7 @@ export function PhotoUploader({
       // 执行实际上传
       doUpload(file, uploadId)
     }, 0)
-  }, [startProgressSimulation])
+  }, [startProgressSimulation, isPro])
 
   // 实际的上传逻辑（从原 uploadSingleFile 提取）
   const doUpload = useCallback(async (file: File, uploadId: string) => {
@@ -246,7 +248,7 @@ export function PhotoUploader({
         setPhotos(prev => {
           if (prev.some(p => p.id === photoId)) return prev
           return photoToDelete ? [...prev, photoToDelete].sort((a, b) =>
-            new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+            new Date(a.created_at ?? a.uploaded_at).getTime() - new Date(b.created_at ?? b.uploaded_at).getTime()
           ) : prev
         })
         toast.error('删除失败，请重试')
@@ -257,7 +259,7 @@ export function PhotoUploader({
       setPhotos(prev => {
         if (prev.some(p => p.id === photoId)) return prev
         return photoToDelete ? [...prev, photoToDelete].sort((a, b) =>
-          new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+          new Date(a.created_at ?? a.uploaded_at).getTime() - new Date(b.created_at ?? b.uploaded_at).getTime()
         ) : prev
       })
       toast.error('删除失败，请重试')

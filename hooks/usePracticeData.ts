@@ -3,9 +3,16 @@
 import { useState, useEffect } from 'react';
 import { useLocalStorage } from 'react-use';
 import { v4 as uuidv4 } from 'uuid';
+import {
+  parseAndValidateImportData,
+  sortRecordsByDate,
+  migrateOldOptions,
+  serializeExportData,
+} from '@/lib/import-export';
 
 export interface PracticeRecord {
   id: string;
+  user_id?: string;
   created_at: string;
   updated_at: string; // ⭐ 新增：最后修改时间，用于同步时判断最新版本
   date: string;
@@ -13,24 +20,32 @@ export interface PracticeRecord {
   duration: number;
   notes: string;
   photos: string[];
-  breakthrough?: string;
-  start_time?: string; // ⭐ 新增：练习开始时间，ISO 8601 格式（如 2026-03-05T11:53:00+08:00）
+  breakthrough?: string | null;
+  start_time?: string | null; // ⭐ 新增：练习开始时间，ISO 8601 格式（如 2026-03-05T11:53:00+08:00）
+  color_level?: number;
+  is_tutorial?: boolean;
 }
 
 export interface PracticeOption {
   id: string;
+  user_id?: string;
   created_at: string;
   label: string;
   notes?: string;
   is_custom: boolean;
+  isCustom?: boolean;
+  is_fixed?: boolean;
   is_preset?: boolean;      // 是否预设特殊选项
+  visible?: boolean;
   audio_src?: string;       // 音频文件路径
   can_edit?: boolean;       // 是否可编辑（默认true）
   updated_at?: string;      // 最后修改时间
+  color_level?: number;
 }
 
 export interface UserProfile {
   id: string;
+  user_id?: string;
   created_at: string;
   updated_at: string; // ⭐ 新增：最后修改时间，用于同步时判断最新版本
   name: string;
@@ -166,6 +181,7 @@ export const usePracticeData = () => {
         {
           id: `tutorial-${Date.now()}-1`,
           created_at: nowStr,
+          updated_at: nowStr,
           date: firstDayOfMonth,
           type: '一序列 Mysore',
           duration: 5400,
@@ -173,11 +189,37 @@ export const usePracticeData = () => {
 👈点击左侧日期区域，可编辑或删除记录
 
 🌟Mysore，让我们找回到自我的锚点`,
-          photos: []
+          photos: [],
+          is_tutorial: true,
         }
       ];
 
       setRecords(tutorialRecords);
+    }
+
+    // ⭐ 一次性迁移：将旧 tutorial- 前缀的教程记录标记为 is_tutorial: true
+    // 迁移完成后此代码可在后续版本移除
+    try {
+      const storedRecords = localStorage.getItem('ashtanga_records');
+      if (storedRecords && storedRecords !== '[]') {
+        const parsedRecords: PracticeRecord[] = JSON.parse(storedRecords);
+        const hasUnmigratedTutorial = parsedRecords.some(
+          r => !r.is_tutorial && r.id && r.id.startsWith('tutorial-')
+        );
+        if (hasUnmigratedTutorial) {
+          console.log('🔄 [数据迁移] 检测到旧版 tutorial- 前缀记录，标记为 is_tutorial: true');
+          const migratedRecords = parsedRecords.map(r =>
+            (r.id && r.id.startsWith('tutorial-') && !r.is_tutorial)
+              ? { ...r, is_tutorial: true }
+              : r
+          );
+          localStorage.setItem('ashtanga_records', JSON.stringify(migratedRecords));
+          setRecords(migratedRecords);
+          console.log('✅ [数据迁移] 教程记录已标记完成');
+        }
+      }
+    } catch (e) {
+      console.error('❌ [数据迁移] tutorial- 迁移失败:', e);
     }
 
     // ⭐ 清理残留的草稿记录并确保排序（用户刷新页面或关闭浏览器导致草稿未被删除）
@@ -390,63 +432,32 @@ export const usePracticeData = () => {
   };
 
   const exportData = () => {
-    // 移除头像，避免 base64 数据过大导致无法复制
-    const { avatar, ...profileWithoutAvatar } = profile;
-    // ⭐ 过滤掉草稿记录，只导出正式记录
-    const nonDraftRecords = (records || []).filter(r => r.type !== '草稿');
-    const data = {
-      records: nonDraftRecords,
-      options,
-      profile: profileWithoutAvatar,
-      export_at: new Date().toISOString(),
-    };
-    const jsonString = JSON.stringify(data, null, 2);
-    return jsonString;
+    return serializeExportData(records || [], options || [], profile || null);
   };
 
   const importData = (jsonString: string) => {
-    try {
-      const data = JSON.parse(jsonString);
-
-      // 验证数据结构
-      if (!data.records && !data.options && !data.profile) {
-        console.error('Invalid data structure: missing required fields');
-        return false;
-      }
-
-      // 修复：导入记录后按日期倒序排序（最新的日期在上面）
-      if (data.records) {
-        const sortedRecords = [...data.records].sort((a, b) => {
-          return new Date(b.date).getTime() - new Date(a.date).getTime();
-        });
-        setRecords(sortedRecords);
-      }
-
-      // 修复：迁移旧的选项数据结构
-      if (data.options) {
-        const migratedOptions = data.options.map((opt: any) => {
-          const { label_zh, isCustom, ...rest } = opt;  // 移除旧字段
-          return {
-            ...rest,
-            // 如果有 label_zh，用它替换 label（中文覆盖英文）
-            label: label_zh || opt.label || '',
-            // 迁移 isCustom → is_custom
-            is_custom: isCustom !== undefined ? isCustom : (opt.is_custom !== undefined ? opt.is_custom : true),
-            // 确保 notes 字段存在
-            notes: opt.notes || '',
-          };
-        });
-        setOptions(migratedOptions);
-      }
-
-      if (data.profile) setProfile(data.profile);
-
-      console.log('Data imported successfully');
-      return true;
-    } catch (e) {
-      console.error('Failed to import data:', e);
+    const result = parseAndValidateImportData(jsonString);
+    if (!result.valid || !result.data) {
+      console.error('Failed to import data:', result.error);
       return false;
     }
+
+    const { data } = result;
+
+    // 导入记录后按日期倒序排序（最新的日期在上面）
+    if (data.records) {
+      setRecords(sortRecordsByDate(data.records) as PracticeRecord[]);
+    }
+
+    // 迁移旧的选项数据结构
+    if (data.options) {
+      setOptions(migrateOldOptions(data.options) as any);
+    }
+
+    if (data.profile) setProfile(data.profile);
+
+    console.log('Data imported successfully');
+    return true;
   };
 
   const clearAllData = () => {

@@ -1,9 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { X, Crown, Loader2, CheckCircle, AlertCircle } from 'lucide-react'
+import { X, Crown, Loader2, CheckCircle, AlertCircle, Copy, Check } from 'lucide-react'
 import { useActivateCode } from '@/hooks/useActivateCode'
-import { PurchaseGuideModal } from '@/components/Membership/PurchaseGuideModal'
+
+const WECHAT_ID = 'xiao519216978'
 
 interface ActivateModalProps {
   isOpen: boolean
@@ -16,10 +17,26 @@ export function ActivateModal({ isOpen, onClose, onSuccess }: ActivateModalProps
     code, loading, error, success, isCodeComplete,
     handleInputChange, handleActivate, handleKeyDown, reset,
   } = useActivateCode(onSuccess)
-  const [showPurchase, setShowPurchase] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  const handleCopyWechat = async () => {
+    try {
+      await navigator.clipboard.writeText(WECHAT_ID)
+    } catch {
+      const ta = document.createElement('textarea')
+      ta.value = WECHAT_ID
+      document.body.appendChild(ta)
+      ta.select()
+      document.execCommand('copy')
+      document.body.removeChild(ta)
+    }
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
 
   const handleClose = async () => {
     await reset()
+    setCopied(false)
     onClose()
   }
 
@@ -75,8 +92,8 @@ export function ActivateModal({ isOpen, onClose, onSuccess }: ActivateModalProps
                   <Crown className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-[#2D3A2D] font-serif">激活 Pro 会员</h3>
-                  <p className="text-sm text-[#8B7355] font-serif">解锁更多专属功能</p>
+                  <h3 className="text-lg font-bold text-[#2D3A2D] font-serif">开通 Pro 会员</h3>
+                  <p className="text-sm text-[#8B7355] font-serif">输入激活码，或联系作者购买</p>
                 </div>
               </div>
             </div>
@@ -129,26 +146,42 @@ export function ActivateModal({ isOpen, onClose, onSuccess }: ActivateModalProps
               </button>
 
               {/* 购买提示 */}
-              <div className="mt-4 text-center">
-                <p className="text-sm text-[#8B7355] font-serif">
-                  还没有激活码？
-                  <button
-                    onClick={() => setShowPurchase(true)}
-                    className="ml-1 text-[#C1A268] hover:text-[#D4AF37] font-medium"
-                  >
-                    去购买
-                  </button>
-                </p>
+              <div className="mt-5 pt-5 border-t border-[#E8E8E3]">
+                <p className="text-sm text-[#6B5A47] font-serif font-medium mb-3">还没有激活码？</p>
+                <div className="bg-[#F9F7F2] rounded-[16px] border border-[#E8E8E3] p-4">
+                  <p className="text-xs text-[#8B7355] font-serif mb-2">联系作者购买</p>
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-base font-mono text-[#2D3A2D] font-semibold select-all">
+                      {WECHAT_ID}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleCopyWechat}
+                      className={`shrink-0 px-3 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-1.5 ${
+                        copied
+                          ? 'bg-green-500 text-white'
+                          : 'bg-[#C1A268] text-white active:scale-[0.98]'
+                      }`}
+                    >
+                      {copied ? (
+                        <>
+                          <Check className="w-4 h-4" />
+                          已复制
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-4 h-4" />
+                          复制
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </>
         )}
       </div>
-
-      <PurchaseGuideModal
-        isOpen={showPurchase}
-        onClose={() => setShowPurchase(false)}
-      />
     </div>
   )
 }

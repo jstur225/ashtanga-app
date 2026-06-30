@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
@@ -10,12 +10,15 @@ export function useAuth() {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
 
+  const loadDeviceInfo = async (_userId: string) => {
+    // Reserved for future device metadata loading.
+  }
+
   // ==================== 初始化：检查登录状态 ====================
   useEffect(() => {
     // ⭐ 检查是否正在退出登录，如果是则强制清除 session
     const isSigningOut = localStorage.getItem('__signing_out__')
     if (isSigningOut) {
-      console.log('[useAuth] 检测到退出标志，强制清除 session')
       localStorage.removeItem('__signing_out__')
       supabase.auth.signOut().then(() => {
         setUser(null)
@@ -32,15 +35,12 @@ export function useAuth() {
 
     // 监听认证状态变化
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('[useAuth] onAuthStateChange:', event, 'session:', !!session)
 
       // ⭐ 如果正在退出，不处理 session 恢复
       if (localStorage.getItem('__signing_out__')) {
-        console.log('[useAuth] onAuthStateChange: 忽略，正在退出中')
         return
       }
 
-      console.log('[useAuth] 设置 user:', session?.user?.email ?? null)
       setUser(session?.user ?? null)
     })
 
@@ -49,22 +49,15 @@ export function useAuth() {
 
   // ==================== 注册 ====================
   const signUp = async (email: string, password: string) => {
-    console.log('[useAuth] 开始注册...', { email })
 
     // 先检测网络连接
     try {
-      const testResponse = await fetch('https://xojbgxvwgvjanxsowqik.supabase.co', {
+      await fetch('https://xojbgxvwgvjanxsowqik.supabase.co', {
         method: 'HEAD',
         mode: 'no-cors',
         signal: AbortSignal.timeout(5000)
       })
-      console.log('[useAuth] 网络连接检测: 成功')
-    } catch (networkError: any) {
-      console.error('[useAuth] ❌ 网络连接检测失败:', networkError.message)
-      console.error('[useAuth] 可能的原因:')
-      console.error('  1. 网络连接问题（VPN/防火墙/公司网络限制）')
-      console.error('  2. DNS 解析失败')
-      console.error('  3. Supabase 服务暂时不可用')
+    } catch {
       throw new Error('无法连接到 Supabase 服务器，请检查网络连接或稍后重试')
     }
 
@@ -79,21 +72,11 @@ export function useAuth() {
         password,
       })
 
-      console.log('[useAuth] 等待 Supabase 响应...')
 
       const { data, error } = await Promise.race([signUpPromise, timeoutPromise]) as any
 
-      console.log('[useAuth] 收到响应:', { data, error })
 
       if (error) {
-        console.error('[useAuth] 注册失败:', error)
-        console.error('[useAuth] 错误详情:', {
-          message: error.message,
-          status: error.status,
-          name: error.name,
-          stack: error.stack
-        })
-
         // 提供更详细的错误信息
         if (error.message?.includes('User already registered')) {
           throw new Error('该邮箱已注册，请直接登录')
@@ -104,7 +87,6 @@ export function useAuth() {
             error.message?.includes('ERR_CONNECTION_CLOSED') ||
             error.message?.includes('ERR_NAME_NOT_RESOLVED') ||
             error.status === 0) {
-          console.error('[useAuth] ❌ 网络连接错误')
           throw new Error('网络连接失败，请检查：\n1. 是否能正常访问其他网站\n2. 是否开启了 VPN/代理（尝试关闭）\n3. 是否在公司/学校网络（可能有限制）\n4. 防火墙是否拦截了请求\n\n建议稍后重试，或使用手机热点测试')
         }
 
@@ -113,21 +95,17 @@ export function useAuth() {
             error.message?.includes('Gateway Timeout') ||
             error.message?.includes('超时') ||
             error.status === 504) {
-          console.log('[useAuth] ⚠️ 注册超时，但可能已成功，尝试登录验证...')
           throw { ...error, isTimeout: true }
         }
 
         throw error
       }
 
-      console.log('[useAuth] 注册成功:', data)
-      console.log('[useAuth] 用户ID:', data.user?.id)
 
       // Profile 会由数据库触发器自动创建，无需客户端处理
 
       // ⭐ 立即更新用户状态（不等待 onAuthStateChange 事件）
       if (data.user) {
-        console.log('[useAuth] 立即更新用户状态')
         setUser(data.user)
 
         // 如果有 session，也加载设备信息
@@ -138,13 +116,6 @@ export function useAuth() {
 
       return data
     } catch (error: any) {
-      console.error('[useAuth] 注册异常:', error)
-      console.error('[useAuth] 错误详情:', {
-        message: error.message,
-        status: error.status,
-        name: error.name
-      })
-
       // 提供友好的错误提示
       if (error.message?.includes('超时')) {
         throw new Error('注册请求超时，可能是网络问题或 Supabase 服务繁忙。建议：1. 检查网络连接 2. 等待几分钟后重试 3. 或稍后直接尝试登录')
@@ -165,7 +136,6 @@ export function useAuth() {
     if (error) throw error
 
     // ⭐ 立即更新用户状态
-    console.log('[useAuth] 登录成功，立即更新用户状态')
     if (data.user) {
       setUser(data.user)
     }

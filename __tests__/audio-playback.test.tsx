@@ -134,7 +134,7 @@ describe('Audio playback decision logic', () => {
       const mockBlobUrl = 'blob:http://localhost/test'
       const revokeSpy = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {})
 
-      let audioBlobUrlRef = mockBlobUrl
+      let audioBlobUrlRef: string | null = mockBlobUrl
       if (audioBlobUrlRef) {
         URL.revokeObjectURL(audioBlobUrlRef)
         audioBlobUrlRef = null

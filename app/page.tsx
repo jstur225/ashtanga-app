@@ -2,15 +2,9 @@
 
 import React, { useEffect, useState } from "react"
 import Link from "next/link"
-import { Playfair_Display } from 'next/font/google'
 import { useRouter } from "next/navigation"
 import { motion, Variants } from "framer-motion"
 import { ArrowRight, Timer, BookOpen, BarChart3, ChevronDown, Moon, Shield, Coffee, Leaf, Wind, Github, Loader2 } from "lucide-react"
-
-const playfair = Playfair_Display({
-  subsets: ["latin"],
-  variable: "--font-playfair",
-})
 
 // --- Animation Variants ---
 const fadeInUp: Variants = {
@@ -24,15 +18,6 @@ const fadeInUp: Variants = {
 
 const stagger: Variants = {
     visible: { transition: { staggerChildren: 0.15 } }
-}
-
-const scaleIn: Variants = {
-    hidden: { opacity: 0, scale: 0.8 },
-    visible: {
-        opacity: 1,
-        scale: 1,
-        transition: { duration: 0.5, ease: "easeOut" }
-    }
 }
 
 export default function MobileLandingPage() {
@@ -55,7 +40,7 @@ export default function MobileLandingPage() {
     }
 
     return (
-        <div className={`${playfair.variable} min-h-screen bg-[#F9F7F2] text-[#2A4B3C] font-serif selection:bg-[#2A4B3C] selection:text-[#F9F7F2] overflow-x-hidden pb-12`}>
+        <div className="min-h-screen bg-[#F9F7F2] text-[#2A4B3C] font-serif selection:bg-[#2A4B3C] selection:text-[#F9F7F2] overflow-x-hidden pb-12">
 
             {/* 1. Navbar - Delicate Design */}
             <nav className="fixed top-0 w-full px-5 py-3 z-50 flex justify-between items-center bg-[#F9F7F2]/90 backdrop-blur-md border-b border-[#2A4B3C]/5 supports-[backdrop-filter]:bg-[#F9F7F2]/60">

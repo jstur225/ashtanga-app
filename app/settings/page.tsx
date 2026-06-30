@@ -6,14 +6,12 @@ import { ChevronLeft } from 'lucide-react'
 import { ActivateModal } from '@/components/Membership/ActivateModal'
 import { MembershipCard } from '@/components/Membership/MembershipCard'
 import { MembershipActions } from '@/components/Membership/MembershipActions'
-import { PurchaseGuideModal } from '@/components/Membership/PurchaseGuideModal'
 import { useMembership } from '@/hooks/useMembership'
 
 export default function SettingsPage() {
   const router = useRouter()
   const { membership, loading, refresh } = useMembership()
   const [showActivateModal, setShowActivateModal] = useState(false)
-  const [showPurchaseModal, setShowPurchaseModal] = useState(false)
 
   return (
     <div className="min-h-screen bg-[#F5F5F0]">
@@ -39,7 +37,6 @@ export default function SettingsPage() {
 
         {/* 操作按钮 */}
         <MembershipActions
-          onPurchase={() => setShowPurchaseModal(true)}
           onActivate={() => setShowActivateModal(true)}
           isActive={membership?.is_active}
         />
@@ -57,11 +54,6 @@ export default function SettingsPage() {
         onSuccess={refresh}
       />
 
-      {/* 购买引导弹窗 */}
-      <PurchaseGuideModal
-        isOpen={showPurchaseModal}
-        onClose={() => setShowPurchaseModal(false)}
-      />
     </div>
   )
 }

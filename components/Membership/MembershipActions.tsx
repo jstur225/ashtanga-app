@@ -1,18 +1,17 @@
 'use client'
 
-import { Crown, Ticket, ChevronRight } from 'lucide-react'
+import { Crown, ChevronRight } from 'lucide-react'
 
 interface MembershipActionsProps {
-  onPurchase: () => void
   onActivate: () => void
   isActive?: boolean
 }
 
-export function MembershipActions({ onPurchase, onActivate, isActive }: MembershipActionsProps) {
+export function MembershipActions({ onActivate, isActive }: MembershipActionsProps) {
   return (
     <div className="space-y-3">
       <button
-        onClick={onPurchase}
+        onClick={onActivate}
         className="w-full flex items-center justify-between p-4 bg-white rounded-[20px] border border-[#E8E8E3] hover:border-[#C1A268]/50 transition-colors group shadow-sm"
       >
         <div className="flex items-center gap-3">
@@ -21,25 +20,9 @@ export function MembershipActions({ onPurchase, onActivate, isActive }: Membersh
           </div>
           <div className="text-left">
             <p className="font-medium text-[#2D3A2D] font-serif">
-              {isActive ? '续费 Pro 会员' : '购买 Pro 会员'}
+              {isActive ? '续费 Pro 会员' : '开通 Pro 会员'}
             </p>
-            <p className="text-sm text-[#8B7355] font-serif">开通 Pro 解锁全部功能</p>
-          </div>
-        </div>
-        <ChevronRight className="w-5 h-5 text-[#C1A268]" />
-      </button>
-
-      <button
-        onClick={onActivate}
-        className="w-full flex items-center justify-between p-4 bg-white rounded-[20px] border border-[#E8E8E3] hover:border-[#C1A268]/50 transition-colors shadow-sm"
-      >
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-[#F5F0E8] rounded-xl flex items-center justify-center">
-            <Ticket className="w-5 h-5 text-[#C1A268]" />
-          </div>
-          <div className="text-left">
-            <p className="font-medium text-[#2D3A2D] font-serif">激活会员</p>
-            <p className="text-sm text-[#8B7355] font-serif">使用激活码开通或续费</p>
+            <p className="text-sm text-[#8B7355] font-serif">激活码开通，或联系作者购买</p>
           </div>
         </div>
         <ChevronRight className="w-5 h-5 text-[#C1A268]" />

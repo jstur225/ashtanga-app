@@ -172,7 +172,7 @@ function useRecordPhotos(recordId: string | undefined, initialPhotoUrls?: string
   }, [pendingDeletePhotos, recordId])
 
   // 上传照片
-  const uploadPhoto = useCallback(async (file: File) => {
+  const uploadPhoto = useCallback(async (file: File, isProUser = false) => {
     if (!recordId) {
       toast.error('请先保存记录')
       return false
@@ -187,7 +187,7 @@ function useRecordPhotos(recordId: string | undefined, initialPhotoUrls?: string
       }
 
       const { uploadPhoto: doUpload } = await import('@/lib/oss')
-      const result = await doUpload(file, recordId)
+      const result = await doUpload(file, recordId, { isPro: isProUser })
 
       if (result.success && result.photo) {
         setPhotos(prev => [...prev, result.photo!])
@@ -202,7 +202,7 @@ function useRecordPhotos(recordId: string | undefined, initialPhotoUrls?: string
           'NOT_AUTHENTICATED': '请先登录',
           'EMAIL_REQUIRED': '绑定邮箱后可使用照片功能',
         }
-        toast.error(errorMessages[result.error || ''] || '上传失败，请重试')
+        toast.error(errorMessages[result.error || ''] || result.error || '上传失败，请重试')
         return false
       }
     } catch (error) {
@@ -341,6 +341,7 @@ export function PracticeForm({
     const { data: { session } } = await supabase.auth.getSession()
     const token = session?.access_token
     let currentMaxPhotos = 1 // 默认1张
+    let currentIsPro = false
 
     if (token) {
       try {
@@ -351,6 +352,7 @@ export function PracticeForm({
           const result = await response.json()
           if (result.success && result.data?.is_active) {
             currentMaxPhotos = 9 // 会员9张
+            currentIsPro = true
           }
         }
       } catch (e) {
@@ -372,7 +374,7 @@ export function PracticeForm({
     }
 
     // 并发上传所有选中的文件
-    await Promise.all(filesToUpload.map(file => uploadPhoto(file)))
+    await Promise.all(filesToUpload.map(file => uploadPhoto(file, currentIsPro)))
 
     // 上传完成后清除占位符
     setTestPlaceholders([])

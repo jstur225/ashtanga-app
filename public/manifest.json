@@ -2,7 +2,7 @@
   "name": "熬汤日记",
   "short_name": "熬汤日记",
   "description": "阿斯汤加瑜伽练习记录 - Practice, practice, and all is coming",
-  "start_url": "/",
+  "start_url": "/practice",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#4a7c59",
@@ -36,14 +36,14 @@
       "name": "开始练习",
       "short_name": "练习",
       "description": "快速开始今日练习",
-      "url": "/?action=start",
+      "url": "/practice",
       "icons": [{"src": "/icon.png", "sizes": "192x192"}]
     },
     {
       "name": "觉察日记",
       "short_name": "日记",
       "description": "查看练习历史",
-      "url": "/?tab=diary",
+      "url": "/practice?tab=journal",
       "icons": [{"src": "/icon.png", "sizes": "192x192"}]
     }
   ]

@@ -1,55 +1,48 @@
-"use client"
+﻿"use client"
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react"
-import { useLocalStorage, useInterval } from 'react-use';
+import { useLocalStorage } from 'react-use';
 import { motion, AnimatePresence } from "framer-motion"
 import dynamic from 'next/dynamic'
 import { usePracticeData, type PracticeRecord, type PracticeOption, type UserProfile, GUIDED_AUDIO_OPTION, MAX_SLOTS_FREE, MAX_SLOTS_PRO } from "@/hooks/usePracticeData"
 import { useMembership } from "@/hooks/useMembership"
 import { useAnnotations } from "@/hooks/useAnnotations"
-import { usePWAInstall } from "@/hooks/usePWAInstall"
 import { useAuth } from "@/hooks/useAuth"
 import { useSync } from "@/hooks/useSync"
-import { BookOpen, BarChart3, Calendar, X, Camera, Pause, Play, Trash2, User, Settings, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Cloud, Download, Upload, Plus, Minus, Share2, Sparkles, Check, Copy, ClipboardPaste, MessageCircle, Bug, AlertCircle, SkipBack, SkipForward, Volume, Volume2, Crown, Ticket, Loader2, Lock, Users, Pencil } from "lucide-react"
+import { usePracticeSession } from "@/hooks/usePracticeSession"
+import { useGuidedAudio } from "@/hooks/useGuidedAudio"
+import { useChantPlayback } from "@/hooks/useChantPlayback"
+import { usePracticeCommands } from "@/hooks/usePracticeCommands"
+import { User, Upload, Plus, Minus, Share2, Sparkles, Check, ClipboardPaste, Volume2, Ticket, Loader2, Users } from "lucide-react"
 import { cn } from '@/lib/utils'
-import { getColorClass, getEffectiveOptionColor } from '@/lib/sync-utils'
+import { getColorClass } from '@/lib/sync-utils'
 import { VoiceButton } from "@/components/VoiceButton"
-import { PracticeForm, type PracticeFormData } from "@/components/PracticeForm"
+import { CompletionSheet } from "@/components/practice-record/CompletionSheet"
 import { PhotoUploadButton } from "@/components/PhotoUploadButton"
-import { PWAInstallBanner } from "@/components/PWAInstallBanner"
-import { AccountBindingSection } from "@/components/AccountBindingSection"
-import { MembershipCard } from "@/components/Membership/MembershipCard"
-import { MembershipActions } from "@/components/Membership/MembershipActions"
 import { toast } from 'sonner'
 import { trackEvent, setUserProfile } from '@/lib/analytics'
-import { captureWithFallback, formatErrorForUser } from '@/lib/screenshot'
-import { MOON_DAYS_2026 } from '@/lib/moon-phase-data'
 import { supabase } from '@/lib/supabase'
-import { deletePracticeRecord } from '@/lib/database'
 import { useRouter } from 'next/navigation'
-import { getVersionInfo } from '@/lib/version'
-import { audioCache } from '@/lib/audioCache'
+import { getLocalDateStr } from '@/lib/practice-utils'
+import { collectPracticeDebugLog, type PracticeExportLog } from '@/lib/practice-debug-log'
+import { hasOpenPracticeOverlay, PracticeNavigation, type PracticeTab } from '@/components/practice/PracticeNavigation'
+import { DynamicTabShell } from '@/components/practice/DynamicTabWrapper'
+import { PracticeDashboard } from '@/components/practice/PracticeDashboard'
+import { PracticeSessionView } from '@/components/practice/PracticeSessionView'
+import { PracticeModalHost } from '@/components/practice/PracticeModalHost'
 
 // 懒加载弹窗（不阻塞首屏渲染）
-const AnnotationManagerModal = dynamic(() => import('@/components/CalendarAnnotation/AnnotationManagerModal').then(m => ({ default: m.AnnotationManagerModal })), { ssr: false })
-const FakeDoorModal = dynamic(() => import('@/components/FakeDoorModal').then(m => ({ default: m.FakeDoorModal })), { ssr: false })
-const ImportModal = dynamic(() => import('@/components/ImportModal').then(m => ({ default: m.ImportModal })), { ssr: false })
-const ExportModal = dynamic(() => import('@/components/ExportModal').then(m => ({ default: m.ExportModal })), { ssr: false })
-const XiaohongshuInviteModal = dynamic(() => import('@/components/XiaohongshuInviteModal').then(m => ({ default: m.XiaohongshuInviteModal })), { ssr: false })
-const PWAInstallTutorialModal = dynamic(() => import('@/components/PWAInstallTutorialModal').then(m => ({ default: m.PWAInstallTutorialModal })), { ssr: false })
-const AuthModal = dynamic(() => import('@/components/AuthModal').then(m => ({ default: m.AuthModal })), { ssr: false })
-const DataConflictModal = dynamic(() => import('@/components/DataConflictModal').then(m => ({ default: m.DataConflictModal })), { ssr: false })
-const DebugLogModal = dynamic(() => import('@/components/DebugLogModal').then(m => ({ default: m.DebugLogModal })), { ssr: false })
-const ActivateModal = dynamic(() => import('@/components/Membership/ActivateModal').then(m => ({ default: m.ActivateModal })), { ssr: false })
-const MembershipPromptModal = dynamic(() => import('@/components/Membership/MembershipPromptModal').then(m => ({ default: m.MembershipPromptModal })), { ssr: false })
-const PurchaseGuideModal = dynamic(() => import('@/components/Membership/PurchaseGuideModal').then(m => ({ default: m.PurchaseGuideModal })), { ssr: false })
+const TabLoading = () => (
+  <div className="flex-1 flex items-center justify-center" role="status" aria-label="正在加载页面">
+    <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+  </div>
+)
 
-// INVITE_VERSION 是常量，需要直接导入
-import { INVITE_VERSION } from "@/components/XiaohongshuInviteModal"
+const PosesTab = DynamicTabShell(dynamic(() => import('@/components/PosesTab').then(m => ({ default: m.PosesTab })), { ssr: false, loading: TabLoading }))
+const JournalTab = DynamicTabShell(dynamic(() => import('@/components/journal/JournalTab').then(m => ({ default: m.JournalTab })), { ssr: false, loading: TabLoading }))
+const StatsTab = DynamicTabShell(dynamic(() => import('@/components/stats/StatsTab').then(m => ({ default: m.StatsTab })), { ssr: false, loading: TabLoading }))
 
-// 月相图标路径
-const NEW_MOON_ICON = '/moon-phase/new-moon.png'
-const FULL_MOON_ICON = '/moon-phase/full-moon.png'
+import { INVITE_VERSION } from "@/lib/invite-version"
 
 // 固定功能栏按钮（不计入用户选项名额）
 const FIXED_BUTTONS = [
@@ -57,4146 +50,35 @@ const FIXED_BUTTONS = [
   { id: "guided_audio", label: "一序列", notes: "老掌门人版口令" },
   { id: "today_count", label: "", notes: "今日练习人数" },
 ]
-// 月相查找函数
-const getMoonPhaseMap = () => {
-  const map: Record<string, { type: 'new' | 'full'; icon: string; name: string }> = {}
-  MOON_DAYS_2026.forEach(moonDay => {
-    map[moonDay.date] = {
-      type: moonDay.type,
-      icon: moonDay.type === 'new' ? NEW_MOON_ICON : FULL_MOON_ICON,
-      name: moonDay.type === 'new' ? '新月' : '满月'
-    }
-  })
-  return map
-}
 
-// Helper functions
-function getLocalDateStr(dateInput?: Date | string) {
-  const now = dateInput ? new Date(dateInput) : new Date()
-  const year = now.getFullYear()
-  const month = String(now.getMonth() + 1).padStart(2, '0')
-  const day = String(now.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
-
-function formatMinutes(seconds: number): string {
-  const minutes = Math.floor(seconds / 60)
-  return `${minutes}`
-}
-
-function formatSeconds(seconds: number): string {
-  const remainingSeconds = seconds % 60
-  return `${remainingSeconds.toString().padStart(2, '0')}`
-}
-
-function formatDuration(seconds: number): string {
-  const minutes = Math.floor(seconds / 60)
-  return `${minutes} 分钟`
-}
-
-function formatDate(dateStr: string): string {
-  const date = new Date(dateStr)
-  const month = date.getMonth() + 1
-  const day = date.getDate()
-  return `${month}/${day}`
-}
-
-// Zen-style Custom Date Picker Component
-function ZenDatePicker({
-  value,
-  onChange,
-  maxDate,
-}: {
-  value: string
-  onChange: (date: string) => void
-  maxDate?: string
-}) {
-  const [isOpen, setIsOpen] = useState(false)
-  const [viewDate, setViewDate] = useState(() => {
-    const d = value ? new Date(value) : new Date()
-    return new Date(d.getFullYear(), d.getMonth(), 1)
-  })
-
-  const today = maxDate ? new Date(maxDate) : new Date()
-  const currentMonth = viewDate.getMonth()
-  const currentYear = viewDate.getFullYear()
-
-  const firstDayOfMonth = new Date(currentYear, currentMonth, 1)
-  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate()
-  const startDayOfWeek = firstDayOfMonth.getDay()
-
-  const calendarDays = useMemo(() => {
-    const days: (number | null)[] = []
-    for (let i = 0; i < startDayOfWeek; i++) {
-      days.push(null)
-    }
-    for (let day = 1; day <= daysInMonth; day++) {
-      days.push(day)
-    }
-    return days
-  }, [startDayOfWeek, daysInMonth])
-
-  // 月相Map
-  const moonPhaseMap = useMemo(() => getMoonPhaseMap(), [])
-
-  const weekDays = ['日', '一', '二', '三', '四', '五', '六']
-
-  const goToPreviousMonth = () => {
-    setViewDate(new Date(currentYear, currentMonth - 1, 1))
-  }
-
-  const goToNextMonth = () => {
-    const nextMonth = new Date(currentYear, currentMonth + 1, 1)
-    setViewDate(nextMonth)
-  }
-
-  const canGoNext = true
-
-  const handleDayClick = (day: number | null) => {
-    if (day === null) return
-    const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-    onChange(dateStr)
-    setIsOpen(false)
-  }
-
-  const selectedDateStr = value
-  const displayValue = value ? `${new Date(value).getFullYear()}年${new Date(value).getMonth() + 1}月${new Date(value).getDate()}日` : '选择日期'
-
-  return (
-    <div className="relative">
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full px-4 py-3 rounded-2xl bg-secondary text-foreground font-serif text-left focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-      >
-        {displayValue}
-      </button>
-
-      <AnimatePresence>
-        {isOpen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-40"
-              onClick={() => setIsOpen(false)}
-            />
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="absolute top-full left-0 right-0 mt-2 bg-card rounded-[20px] p-4 shadow-[0_4px_30px_rgba(0,0,0,0.1)] z-50"
-            >
-              <div className="flex items-center justify-between mb-3">
-                <button
-                  onClick={goToPreviousMonth}
-                  className="p-2 text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </button>
-                <h3 className="text-sm font-serif text-foreground">
-                  {currentYear}年{currentMonth + 1}月
-                </h3>
-                <button
-                  onClick={goToNextMonth}
-                  className="p-2 text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
-
-              <div className="grid grid-cols-7 gap-1">
-                {weekDays.map((day) => (
-                  <div key={day} className="text-center text-xs text-muted-foreground font-serif py-2">
-                    {day}
-                  </div>
-                ))}
-                {calendarDays.map((day, idx) => {
-                  if (day === null) {
-                    return <div key={idx} />
-                  }
-                  const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-                  const isSelected = dateStr === selectedDateStr
-                  const moonInfo = moonPhaseMap[dateStr]
-
-                  return (
-                    <MoonDayButton
-                      key={idx}
-                      day={day}
-                      moonInfo={moonInfo}
-                      practiced={false}
-                      onClick={() => handleDayClick(day)}
-                      className={isSelected ? 'green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white' : 'text-foreground hover:bg-secondary'}
-                    />
-                  )
-                })}
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-    </div>
-  )
-}
-
-// 月相日期按钮组件（供三个日历共用）
-function MoonDayButton({
-  day,
-  moonInfo,
-  practiced,
-  isPast,
-  hasBreakthrough,
-  annotationColors = [],
-  colorLevel,
-  className,
-  ...props
-}: React.ButtonHTMLAttributes<HTMLButtonElement> & {
-  day: number | null
-  moonInfo: { type: 'new' | 'full'; icon: string; name: string } | null
-  practiced: boolean
-  isPast?: boolean
-  hasBreakthrough?: boolean
-  annotationColors?: string[]
-  colorLevel?: number // 色阶等级 1-4（默认3）
-}) {
-  // 修复：已练习的月相日期应该优先显示绿色，而不是月相图标
-  const isMoonDayNotPracticed = moonInfo && !practiced
-  const isFutureMoonDay = moonInfo && !practiced && isPast === false
-
-  const hasMoonDot = moonInfo && practiced
-  const hasBreakthroughDot = hasBreakthrough && !moonInfo
-
-  const greenClass = getColorClass(colorLevel ?? 3)
-
-  return (
-    <button
-      {...props}
-      className={`aspect-square rounded-full flex items-center justify-center text-[9px] font-serif transition-all relative ${
-        // 已练习：绿色背景（优先级最高）
-        practiced
-          ? `${greenClass} border border-white/20 shadow-[0_2px_8px_rgba(45,90,39,0.3)] text-white cursor-pointer hover:shadow-[0_2px_12px_rgba(45,90,39,0.45)]`
-          : isMoonDayNotPracticed
-            ? 'bg-background border-0' // 未练习月相日期：灰色圆圈背景
-            : className || ''
-      } ${!practiced && !moonInfo && isPast === false ? 'text-muted-foreground/50' : ''}`}
-      style={
-        // 只有未练习的月相日期才显示月相图标背景
-        isMoonDayNotPracticed ? {
-          backgroundImage: `url(${moonInfo!.icon})`,
-          backgroundSize: '105%',
-          backgroundRepeat: 'no-repeat',
-          backgroundPosition: 'center',
-          boxShadow: 'none'
-        } : undefined
-      }
-    >
-      {/* 日期数字 - 未来月相日期显示灰色，过去月相日期显示黑色 */}
-      <span className={`relative z-10 ${isFutureMoonDay ? 'text-muted-foreground/50' : ''}`}>{day}</span>
-
-      {/* 多圆点容器 */}
-      {(hasMoonDot || hasBreakthroughDot || annotationColors.length > 0) && (
-        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-[1.5px] z-20">
-          {hasMoonDot && <div className="w-1 h-1 rounded-full bg-[#FFE066] shadow-[0_0_6px_rgba(255,224,102,0.8)]" />}
-          {hasBreakthroughDot && <div className="w-1 h-1 rounded-full bg-[#e67e22] shadow-[0_0_6px_rgba(230,126,34,0.8)]" />}
-          {annotationColors.slice(0, 3).map((color, i) => (
-            <div key={i} className="w-1 h-1 rounded-full" style={{ backgroundColor: color, boxShadow: `0 0 4px ${color}80` }} />
-          ))}
-        </div>
-      )}
-    </button>
-  )
-}
-
-// Custom Practice Modal (for adding new custom option)
-function CustomPracticeModal({
-  isOpen,
-  onClose,
-  onConfirm,
-  isFull,
-  maxSlots,
-  membership,
-  onShowMembershipPrompt,
-}: {
-  isOpen: boolean
-  onClose: () => void
-  onConfirm: (name: string, notes: string, colorLevel?: number) => void
-  isFull: boolean
-  maxSlots: number
-  membership?: { is_active: boolean } | null
-  onShowMembershipPrompt: () => void
-}) {
-  const [practiceName, setPracticeName] = useState("")
-  const [notes, setNotes] = useState("")
-  const [colorLevel, setColorLevel] = useState(3)
-
-  const handleConfirm = () => {
-    if (practiceName.trim()) {
-      onConfirm(practiceName.slice(0, 10), notes.slice(0, 14), colorLevel)
-      setPracticeName("")
-      setNotes("")
-      setColorLevel(3)
-    }
-  }
-
-  return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/30 z-[100]"
-            onClick={onClose}
-          />
-          <motion.div
-            initial={{ y: "100%" }}
-            animate={{ y: 0 }}
-            exit={{ y: "100%" }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 bg-card rounded-t-[24px] z-[110] p-6 pb-10 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]"
-          >
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-serif text-foreground">自定义练习</h2>
-              <button onClick={onClose} className="p-2 -mr-2 text-muted-foreground hover:text-foreground transition-colors">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {isFull ? (
-              <div className="text-center py-8">
-                <p className="text-foreground font-serif mb-2">选项已满（Pro会员最多{maxSlots}个）</p>
-                <p className="text-muted-foreground text-sm font-serif">请双击删除旧选项后再添加</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-serif text-foreground mb-2">
-                    练习名称 <span className="text-muted-foreground text-xs">（最多10字）</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={practiceName}
-                    onChange={(e) => setPracticeName(e.target.value.slice(0, 10))}
-                    placeholder="例如：三序列、恢复性..."
-                    className="w-full px-4 py-3 rounded-2xl bg-secondary text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-serif"
-                  />
-                  <div className="text-right text-xs text-muted-foreground mt-1">{practiceName.length}/10</div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-serif text-foreground mb-2">
-                    备注 <span className="text-muted-foreground text-xs">（最多14字）</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value.slice(0, 14))}
-                    placeholder="简短描述..."
-                    className="w-full px-4 py-3 rounded-2xl bg-secondary text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-serif"
-                  />
-                  <div className="text-right text-xs text-muted-foreground mt-1">{notes.length}/14</div>
-                </div>
-
-                {/* 色阶选择 */}
-                <div>
-                  <label className="block text-sm font-serif text-foreground mb-2">
-                    日历颜色 <span className="text-muted-foreground text-xs">（练习日显示的深浅）</span>
-                  </label>
-                  <div className="flex gap-3 justify-center">
-                    {[1, 2, 3, 4].map((level) => {
-                      const isPro = membership?.is_active
-                      const locked = !isPro && (level === 1 || level === 4)
-                      const selected = colorLevel === level
-                      return (
-                        <button
-                          key={level}
-                          onClick={() => {
-                            if (locked) {
-                              onShowMembershipPrompt()
-                              return
-                            }
-                            setColorLevel(level)
-                          }}
-                          className={`w-10 h-10 rounded-full transition-all relative ${
-                            selected ? 'ring-2 ring-orange-400 ring-offset-2 ring-offset-card scale-110' : ''
-                          } ${locked ? 'opacity-40' : ''}`}
-                        >
-                          <div className={`w-full h-full rounded-full ${getColorClass(level)} border border-white/20`} />
-                          {locked && <Lock className="w-3 h-3 absolute inset-0 m-auto text-white" />}
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-
-                <button
-                  onClick={handleConfirm}
-                  disabled={!practiceName.trim()}
-                  className="w-full py-4 rounded-full green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white font-serif transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.98] backdrop-blur-sm"
-                >
-                  添加选项
-                </button>
-              </div>
-            )}
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
-  )
-}
-
-// Edit Option Modal (for editing/deleting existing options)
-function EditOptionModal({
-  isOpen,
-  onClose,
-  option,
-  onSave,
-  onDelete,
-  canDelete,
-  membership,
-}: {
-  isOpen: boolean
-  onClose: () => void
-  option: PracticeOption | null
-  onSave: (id: string, name: string, notes: string, colorLevel?: number) => void
-  onDelete: (id: string) => void
-  canDelete: boolean
-  membership?: { is_active: boolean } | null
-}) {
-  const [name, setName] = useState("")
-  const [notes, setNotes] = useState("")
-  const [colorLevel, setColorLevel] = useState(3)
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-
-  useEffect(() => {
-    if (option) {
-      setName(option.label)
-      setNotes(option.notes || "")
-      const rawColor = (option as any).color_level ?? 3
-      const effectiveColor = (!membership?.is_active && (rawColor === 1 || rawColor === 4)) ? 3 : rawColor
-      setColorLevel(effectiveColor)
-    }
-  }, [option, membership?.is_active])
-
-  const handleSave = () => {
-    if (option && name.trim()) {
-      onSave(option.id, name.slice(0, 10), notes.slice(0, 14), colorLevel)
-      onClose()
-    }
-  }
-
-  const handleDeleteClick = () => {
-    setShowDeleteConfirm(true)
-  }
-
-  const handleConfirmDelete = () => {
-    if (option) {
-      onDelete(option.id)
-      setShowDeleteConfirm(false)
-      onClose()
-    }
-  }
-
-  return (
-    <AnimatePresence>
-      {isOpen && option && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/30 z-40"
-            onClick={onClose}
-          />
-          <motion.div
-            initial={{ y: "100%" }}
-            animate={{ y: 0 }}
-            exit={{ y: "100%" }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 bg-card rounded-t-[24px] z-50 p-6 pb-10 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]"
-          >
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-serif text-foreground">编辑选项</h2>
-              <button onClick={onClose} className="p-2 -mr-2 text-muted-foreground hover:text-foreground transition-colors">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {showDeleteConfirm ? (
-              <div className="space-y-4">
-                <p className="text-center font-serif text-foreground">确定要删除"{name}"吗？</p>
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => setShowDeleteConfirm(false)}
-                    className="flex-1 py-3 rounded-full bg-secondary text-foreground font-serif transition-all hover:bg-secondary/80 active:scale-[0.98]"
-                  >
-                    取消
-                  </button>
-                  <button
-                    onClick={handleConfirmDelete}
-                    className="flex-1 py-3 rounded-full font-serif transition-all active:scale-[0.98] bg-red-500 text-white shadow-md hover:bg-red-600"
-                  >
-                    删除
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-serif text-foreground mb-2">
-                    名称 <span className="text-muted-foreground text-xs">（最多10字）</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value.slice(0, 10))}
-                    className="w-full px-4 py-3 rounded-2xl bg-secondary text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-serif"
-                  />
-                  <div className="text-right text-xs text-muted-foreground mt-1">{name.length}/10</div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-serif text-foreground mb-2">
-                    备注 <span className="text-muted-foreground text-xs">（最多14字）</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value.slice(0, 14))}
-                    placeholder="简短描述..."
-                    className="w-full px-4 py-3 rounded-2xl bg-secondary text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-serif"
-                  />
-                  <div className="text-right text-xs text-muted-foreground mt-1">{notes.length}/14</div>
-                </div>
-
-                {/* 色阶选择 */}
-                <div>
-                  <label className="block text-sm font-serif text-foreground mb-2">
-                    日历颜色 <span className="text-muted-foreground text-xs">（练习日显示的深浅）</span>
-                  </label>
-                  <div className="flex gap-3 justify-center">
-                    {[1, 2, 3, 4].map((level) => {
-                      const isPro = membership?.is_active
-                      const locked = !isPro && (level === 1 || level === 4)
-                      const selected = colorLevel === level
-                      return (
-                        <button
-                          key={level}
-                          onClick={() => {
-                            if (locked) {
-                              setMembershipPromptReason('color_level')
-                              setShowMembershipPrompt(true)
-                              return
-                            }
-                            setColorLevel(level)
-                          }}
-                          className={`w-10 h-10 rounded-full transition-all relative ${
-                            selected ? 'ring-2 ring-orange-400 ring-offset-2 ring-offset-card scale-110' : ''
-                          } ${locked ? 'opacity-40' : ''}`}
-                        >
-                          <div className={`w-full h-full rounded-full ${getColorClass(level)} border border-white/20`} />
-                          {locked && <Lock className="w-3 h-3 absolute inset-0 m-auto text-white" />}
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-
-                <button
-                  onClick={handleSave}
-                  disabled={!name.trim()}
-                  className="w-full py-4 rounded-full green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white font-serif transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.98]"
-                >
-                  保存
-                </button>
-
-                {canDelete && (
-                  <button
-                    onClick={handleDeleteClick}
-                    className="w-full py-3 rounded-full bg-transparent text-destructive font-serif transition-all hover:bg-destructive/10 active:scale-[0.98] flex items-center justify-center gap-2"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    删除选项
-                  </button>
-                )}
-              </div>
-            )}
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
-  )
-}
-
-
-// Edit Record Modal (for editing/deleting practice records) - 使用 PracticeForm
-function EditRecordModal({
-  isOpen,
-  onClose,
-  record,
-  onSave,
-  onDelete,
-  practiceOptions,
-  practiceHistory = [],
-  onChildModalOpen,
-  onOpenVoiceFakeDoor,
-  onOpenPhotoFakeDoor,
-  user,
-  userProfile,
-  isPro,
-}: {
-  isOpen: boolean
-  onClose: () => void
-  record: PracticeRecord | null
-  onSave: (id: string, data: Partial<PracticeRecord>) => void
-  onDelete: (id: string) => void
-  onOpenVoiceFakeDoor?: () => void
-  onOpenPhotoFakeDoor?: () => void
-  practiceOptions: PracticeOption[]
-  practiceHistory?: PracticeRecord[]
-  onChildModalOpen?: (open: boolean) => void
-  user?: { email?: string | null } | null
-  userProfile?: UserProfile | null
-  isPro?: boolean
-}) {
-  // ⭐ 从最新的 practiceHistory 中获取记录数据（避免照片上传后数据过时）
-  const latestRecord = useMemo(() => {
-    if (!record) return null
-    return practiceHistory.find(r => r.id === record.id) || record
-  }, [record, practiceHistory])
-
-  // 子模态框状态
-  const [showDatePicker, setShowDatePicker] = useState(false)
-  const [showTypeSelector, setShowTypeSelector] = useState(false)
-
-  // 类型默认色阶查找
-  const getTypeColorLevel = useCallback((t: string) => {
-    return getEffectiveOptionColor(practiceOptions, t, !!isPro)
-  }, [practiceOptions, isPro])
-
-  // 表单数据状态（用于 PracticeForm）
-  const [formData, setFormData] = useState({
-    date: '',
-    type: '',
-    duration: 60,
-    notes: '',
-    breakthrough: undefined as string | undefined,
-    color_level: 3,
-  })
-
-  // 当记录变化时，同步表单数据
-  useEffect(() => {
-    if (latestRecord) {
-      setFormData({
-        date: latestRecord.date,
-        type: latestRecord.type,
-        duration: Math.floor(latestRecord.duration / 60), // 转换为分钟
-        notes: latestRecord.notes || '',
-        breakthrough: latestRecord.breakthrough,
-        color_level: latestRecord.color_level ?? getTypeColorLevel(latestRecord.type),
-      })
-    }
-  }, [latestRecord, getTypeColorLevel])
-
-  const handleSave = (data: PracticeFormData) => {
-    if (latestRecord) {
-      onSave(latestRecord.id, {
-        date: data.date,
-        type: data.type,
-        duration: data.duration * 60, // 转换为秒
-        notes: data.notes,
-        breakthrough: data.breakthrough,
-        photos: data.photos, // ⭐ 保存时包含照片
-        color_level: data.color_level, // ⭐ 色阶等级
-      })
-      toast.success('更新成功')
-      onClose()
-    }
-  }
-
-  const handleDelete = () => {
-    if (latestRecord) {
-      onDelete(latestRecord.id)
-      onClose()
-    }
-  }
-
-  const handleDatePickerToggle = (open: boolean) => {
-    setShowDatePicker(open)
-    onChildModalOpen?.(open)
-  }
-
-  const handleTypeSelectorToggle = (open: boolean) => {
-    setShowTypeSelector(open)
-    onChildModalOpen?.(open)
-  }
-
-  return (
-    <AnimatePresence>
-      {isOpen && latestRecord && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/30 z-40"
-            onClick={onClose}
-          />
-          <motion.div
-            initial={{ y: "100%" }}
-            animate={{ y: 0 }}
-            exit={{ y: "100%" }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 bg-card rounded-t-[24px] z-50 p-6 pb-10 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] max-h-[calc(100vh-2rem)] overflow-y-auto"
-          >
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-serif text-foreground">编辑记录</h2>
-              <button onClick={onClose} className="p-2 -mr-2 text-muted-foreground hover:text-foreground transition-colors">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <PracticeForm
-              initialData={formData}
-              recordId={latestRecord?.id}
-              user={{ email: user?.email }} // ⭐ 传入用户信息
-              date={formData.date}
-              type={formData.type}
-              onDateChange={(d) => setFormData(prev => ({ ...prev, date: d }))}
-              onTypeChange={(t) => setFormData(prev => ({ ...prev, type: t, color_level: getTypeColorLevel(t) }))}
-              dateEditable={true}
-              typeEditable={true}
-              durationEditable={true}
-              showDelete={true}
-              showPhotoUpload={true}
-              practiceOptions={practiceOptions}
-              onSave={handleSave}
-              onDelete={handleDelete}
-              onDatePickerOpen={() => handleDatePickerToggle(true)}
-              onTypeSelectorOpen={() => handleTypeSelectorToggle(true)}
-              onChildModalOpen={onChildModalOpen}
-              initialPhotos={latestRecord.photos || []}
-              onShowMembershipPrompt={() => {
-                setMembershipPromptReason('color_level')
-                setShowMembershipPrompt(true)
-              }}
-            />
-          </motion.div>
-
-          {/* DatePicker Modal */}
-          <DatePickerModal
-            isOpen={showDatePicker}
-            onClose={(selectedDate) => {
-              if (selectedDate) {
-                setFormData(prev => ({ ...prev, date: selectedDate }))
-              }
-              handleDatePickerToggle(false)
-            }}
-            maxDate={getLocalDateStr()}
-            practiceHistory={practiceHistory}
-          />
-
-          {/* TypeSelector Modal */}
-          <TypeSelectorModal
-            isOpen={showTypeSelector}
-            onClose={(selectedType) => {
-              if (selectedType) {
-                setFormData(prev => ({ ...prev, type: selectedType, color_level: getTypeColorLevel(selectedType) }))
-              }
-              handleTypeSelectorToggle(false)
-            }}
-            practiceOptions={practiceOptions}
-            selectedType={formData.type}
-          />
-        </>
-      )}
-    </AnimatePresence>
-  )
-}
-// Share Card Modal - v3 "The Aotang Poster" with Magazine Layout
-function ShareCardModal({
-  isOpen,
-  onClose,
-  record,
-  profile,
-  totalPracticeCount,
-  thisMonthDays,
-  totalHours,
-  onEditRecord,
-  onLogExport,
-  syncStatus,
-}: {
-  isOpen: boolean
-  onClose: () => void
-  record: PracticeRecord | null
-  profile: UserProfile
-  totalPracticeCount: number
-  thisMonthDays: number
-  totalHours: number
-  onEditRecord: (id: string, notes: string, photos: string[], breakthrough?: string) => void
-  onLogExport: (log: any) => void
-  syncStatus?: 'idle' | 'syncing' | 'success' | 'error'
-}) {
-  const [isCapturing, setIsCapturing] = useState(false)  // 截图状态
-
-  // 早期返回必须在所有 Hooks 之后
-  if (!record) return null
-
-  // 图片导出功能
-  const handleExportImage = async () => {
-    const element = document.getElementById('share-card-content')
-    if (!element) {
-      toast.error('未找到分享卡片内容')
-      return
-    }
-
-    // 保存原始样式
-    const originalMaxHeight = element.style.maxHeight
-    const originalOverflow = element.style.overflow
-
-    // 找到觉察文字区域，直接操作DOM（不依赖React异步渲染）
-    const notesEl = element.querySelector('p') as HTMLElement | null
-    const originalNotesMaxHeight = notesEl?.style.maxHeight
-
-    try {
-      toast.loading('正在生成图片...', { id: 'export' })
-
-      // 1. 临时移除滚动限制，展开完整内容
-      element.style.maxHeight = 'none'
-      element.style.overflow = 'visible'
-      // 直接移除觉察文字的高度限制（Tailwind class 不会被 React 状态更新即时移除）
-      if (notesEl) notesEl.style.maxHeight = 'none'
-
-      // 2. 等待DOM更新（确保高度扩展完成）
-      await new Promise(resolve => setTimeout(resolve, 100))
-
-      // 3. 执行截图
-      const result = await captureWithFallback(element, {
-        scale: 2,
-        backgroundColor: '#ffffff',
-        filename: `ashtanga-${record?.date || 'practice'}.png`,
-        onLog: (log) => {
-          const logEntry = {
-            ...log,
-            timestamp: log.timestamp,
-            success: log.success,
-            userAgent: log.userAgent,
-            recordDate: log.recordDate
-          }
-          onLogExport(logEntry)
-        }
-      })
-
-      // 记录分享卡片导出事件
-      trackEvent('share_card_export', {
-        export_method: result.method,
-        export_success: result.success
-      })
-
-      toast.dismiss('export')
-
-      if (result.success) {
-        toast.success('图片已保存')
-        onClose()
-      } else {
-        const errorMessage = formatErrorForUser(result, navigator.userAgent)
-        toast.error(errorMessage)
-      }
-    } catch (error) {
-      // 记录失败
-      trackEvent('share_card_export', {
-        export_method: 'error',
-        export_success: false
-      })
-      toast.dismiss('export')
-      toast.error('导出失败，请重试')
-    } finally {
-      // 恢复原始样式
-      element.style.maxHeight = originalMaxHeight
-      element.style.overflow = originalOverflow
-      if (notesEl) notesEl.style.maxHeight = originalNotesMaxHeight || ''
-    }
-  }
-
-  if (!record) return null
-
-  const formattedDate = new Date(record.date).toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '.')
-  const durationMinutes = Math.floor(record.duration / 60)
-
-  return (
-    <AnimatePresence>
-      {isOpen && record && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 z-40"
-            onClick={onClose}
-          />
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-6"
-            onClick={onClose}
-          >
-            <div className="flex flex-col gap-3 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
-              {/* Share Card Content (for screenshot) */}
-              <div
-                id="share-card-content"
-                className="bg-background rounded-3xl shadow-2xl overflow-hidden max-h-[70vh] overflow-y-auto"
-              >
-                {/* Header: Hero Duration Design */}
-                <div className="px-5 pt-5 pb-4 border-b border-border">
-                  {/* Top Line: Date · Type (small, subtle) */}
-                  <div className="text-xs text-muted-foreground font-serif mb-1">
-                    {formattedDate} · {record.type}
-                  </div>
-                  {/* Main Line: Hero Duration (huge, bold Song font) */}
-                  <div className="text-4xl font-serif font-bold text-foreground">
-                    {durationMinutes} <span className="text-xl font-normal">分钟</span>
-                  </div>
-                  {/* Breakthrough Badge - Celebratory stamp if exists */}
-                  {record.breakthrough && (
-                    <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-[#e67e22]/10 to-[#f39c12]/10 rounded-full border border-[#e67e22]/20">
-                      <Sparkles className="w-4 h-4 text-[#e67e22]" />
-                      <span className="text-sm font-serif font-bold text-[#e67e22]">{record.breakthrough}</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Reflection Text - 只读显示 */}
-                <div className="px-5 py-6">
-                  <p className={`text-sm text-foreground font-serif leading-relaxed whitespace-pre-wrap break-words ${
-                    isCapturing ? 'max-h-none' : 'max-h-[50vh] overflow-y-auto'
-                  }`}>
-                    {record.notes || "今日练习完成"}
-                  </p>
-
-                  {/* 照片展示 - 与文案区同宽，垂直排列，一行一张 */}
-                  {record.photos && record.photos.length > 0 && (
-                    <div className="mt-4 mx-auto w-[90%] space-y-3">
-                      {record.photos.map((url, index) => (
-                        <div
-                          key={index}
-                          className="relative rounded-lg overflow-hidden"
-                        >
-                          <img
-                            src={url}
-                            alt={`练习照片 ${index + 1}`}
-                            className="w-full h-auto object-cover"
-                            loading="lazy"
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Footer: Stats & Identity Zone */}
-                <div className="px-5 pb-5 pt-2 border-t border-border">
-                  {/* Stats Grid - 3 columns with units */}
-                  <div className="grid grid-cols-3 gap-3 mb-4 pt-3">
-                    <div className="text-center">
-                      <div className="text-2xl font-serif font-bold text-foreground">
-                        {thisMonthDays} <span className="text-sm font-normal">天</span>
-                      </div>
-                      <div className="text-[10px] text-muted-foreground font-serif">本月熬汤</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-serif font-bold text-foreground">
-                        {totalPracticeCount} <span className="text-sm font-normal">次</span>
-                      </div>
-                      <div className="text-[10px] text-muted-foreground font-serif">累计熬汤</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-serif font-bold text-foreground">
-                        {totalHours} <span className="text-sm font-normal">小时</span>
-                      </div>
-                      <div className="text-[10px] text-muted-foreground font-serif">累计熬汤时长</div>
-                    </div>
-                  </div>
-
-                  {/* Identity Footer: Avatar+Name+Signature (Left) | Brand (Right) */}
-                  <div className="pt-3">
-                    <div className="flex items-center gap-2">
-                      {/* Avatar */}
-                      <div className="w-7 h-7 rounded-full green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] flex items-center justify-center overflow-hidden">
-                        {profile.avatar ? (
-                          <img src={profile.avatar} alt="头像" className="w-full h-full object-cover" />
-                        ) : (
-                          <User className="w-3.5 h-3.5 text-white" />
-                        )}
-                      </div>
-                      {/* Name and Signature - full width */}
-                      <div className="flex flex-col flex-1">
-                        <span className="text-sm font-serif text-[#e67e22]">{profile.name}</span>
-                        <div className="flex justify-between items-center w-full">
-                          <span className="text-[10px] text-muted-foreground italic font-serif">{profile.signature}</span>
-                          <span className="text-[10px] text-muted-foreground italic font-serif">熬汤日记</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Actions (outside screenshot area, but inside stopPropagation div) */}
-              <div className="flex gap-3" onClick={(e) => e.stopPropagation()}>
-                <button
-                  type="button"
-                  onMouseDown={(e) => {
-                    e.stopPropagation()
-                    e.preventDefault()
-                    onClose()
-                  }}
-                  className="flex-1 py-3 rounded-full bg-secondary text-foreground font-serif transition-all hover:bg-secondary/80 active:scale-[0.98]"
-                >
-                  返回
-                </button>
-                <button
-                  type="button"
-                  onMouseDown={(e) => {
-                    console.log('💾 保存按钮')
-                    e.stopPropagation()
-                    e.preventDefault()
-                    handleExportImage()
-                  }}
-                  className="flex-1 py-3 rounded-full green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white font-serif transition-all hover:opacity-90 active:scale-[0.98] flex items-center justify-center gap-2"
-                >
-                  <Share2 className="w-4 h-4" />
-                  保存图片
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
-  )
-}
-
-// Custom Select Component (Zen-style dropdown styled like date picker)
-function ZenSelect({
-  value,
-  onChange,
-  options,
-  placeholder,
-}: {
-  value: string
-  onChange: (value: string) => void
-  options: { value: string; label: string }[]
-  placeholder: string
-}) {
-  const [isOpen, setIsOpen] = useState(false)
-
-  return (
-    <div className="relative">
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full px-4 py-3 rounded-2xl bg-secondary text-foreground font-serif text-left focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all flex items-center justify-between"
-      >
-        <span className={value ? 'text-foreground' : 'text-muted-foreground'}>
-          {value || placeholder}
-        </span>
-        <ChevronRight className={`w-4 h-4 text-muted-foreground transition-transform ${isOpen ? 'rotate-90' : ''}`} />
-      </button>
-
-      <AnimatePresence>
-        {isOpen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-40"
-              onClick={() => setIsOpen(false)}
-            />
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="absolute top-full left-0 right-0 mt-2 bg-card rounded-[20px] p-2 shadow-[0_4px_30px_rgba(0,0,0,0.1)] z-50 max-h-[200px] overflow-y-auto"
-            >
-              {options.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => {
-                    onChange(option.value)
-                    setIsOpen(false)
-                  }}
-                  className={`w-full px-4 py-2.5 rounded-xl text-left font-serif transition-colors ${
-                    value === option.value
-                      ? 'green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white'
-                      : 'text-foreground hover:bg-secondary'
-                  }`}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-    </div>
-  )
-}
-
-// Date Picker Modal - 复用Tab2的月度热力图样式
-function DatePickerModal({
-  isOpen,
-  onClose,
-  maxDate,
-  practiceHistory = [],
-}: {
-  isOpen: boolean
-  onClose: (date: string) => void
-  maxDate?: string
-  practiceHistory?: PracticeRecord[]
-}) {
-  const [viewDate, setViewDate] = useState(new Date())
-  const today = maxDate ? new Date(maxDate) : new Date()
-
-  // 复用MonthlyHeatmap的日历逻辑
-  const currentMonth = viewDate.getMonth()
-  const currentYear = viewDate.getFullYear()
-  const firstDayOfMonth = new Date(currentYear, currentMonth, 1)
-  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate()
-  const startDayOfWeek = firstDayOfMonth.getDay()
-
-  // 练习记录映射
-  const practiceMap = useMemo(() => {
-    const map: Record<string, boolean> = {}
-    practiceHistory.forEach((p) => {
-      map[p.date] = true
-    })
-    return map
-  }, [practiceHistory])
-
-  // 突破日映射
-  const breakthroughMap = useMemo(() => {
-    const map: Record<string, boolean> = {}
-    practiceHistory.forEach((p) => {
-      if (p.breakthrough) {
-        map[p.date] = true
-      }
-    })
-    return map
-  }, [practiceHistory])
-
-  // 月相Map
-  const moonPhaseMap = useMemo(() => getMoonPhaseMap(), [])
-
-  const calendarDays = useMemo(() => {
-    const days: (number | null)[] = []
-    for (let i = 0; i < startDayOfWeek; i++) {
-      days.push(null)
-    }
-    for (let day = 1; day <= daysInMonth; day++) {
-      days.push(day)
-    }
-    return days
-  }, [startDayOfWeek, daysInMonth])
-
-  const weekDays = ['日', '一', '二', '三', '四', '五', '六']
-
-  const goToPreviousMonth = () => {
-    setViewDate(new Date(currentYear, currentMonth - 1, 1))
-  }
-
-  const goToNextMonth = () => {
-    const nextMonth = new Date(currentYear, currentMonth + 1, 1)
-    setViewDate(nextMonth)
-  }
-
-  const canGoNext = true
-
-  const handleDayClick = (day: number | null) => {
-    if (day === null) return
-    const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-    onClose(dateStr)
-  }
-
-  return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          {/* 背景遮罩 - z-[75] */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/30 z-[75]"
-            onClick={() => onClose('')}
-          />
-          {/* 模态框主体 - z-[80] */}
-          <motion.div
-            initial={{ y: "100%" }}
-            animate={{ y: 0 }}
-            exit={{ y: "100%" }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 bg-card rounded-t-[32px] z-[80] p-6 pb-10 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] max-h-[calc(100vh-2rem)] overflow-y-auto"
-          >
-            {/* 标题栏 */}
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-serif text-foreground font-semibold">选择日期</h2>
-              <button
-                onClick={() => onClose('')}
-                className="p-2 -mr-2 text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* 月份导航 */}
-            <div className="flex items-center justify-center gap-4 mb-6">
-              <button
-                onClick={goToPreviousMonth}
-                className="p-2 text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <ChevronLeft className="w-5 h-5" />
-              </button>
-              <h3 className="text-base font-serif text-foreground font-semibold">
-                {currentYear}年{currentMonth + 1}月
-              </h3>
-              <button
-                onClick={goToNextMonth}
-                className="p-2 text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <ChevronRight className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* 日历网格 */}
-            <div className="grid grid-cols-7 gap-2">
-              {weekDays.map((day) => (
-                <div key={day} className="text-center text-xs text-muted-foreground font-serif py-2">
-                  {day}
-                </div>
-              ))}
-              {calendarDays.map((day, idx) => {
-                if (day === null) {
-                  return <div key={idx} />
-                }
-
-                const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-                const hasPractice = practiceMap[dateStr]
-                const moonInfo = moonPhaseMap[dateStr]
-                const hasBreakthrough = breakthroughMap[dateStr]
-
-                return (
-                  <MoonDayButton
-                    key={idx}
-                    day={day}
-                    moonInfo={moonInfo}
-                    practiced={hasPractice}
-                    hasBreakthrough={hasBreakthrough}
-                    onClick={() => handleDayClick(day)}
-                    className="bg-background text-foreground cursor-pointer hover:bg-secondary"
-                  />
-                )
-              })}
-            </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
-  )
-}
-
-// Type Selector Modal - 练习类型选择器（全屏）
-function TypeSelectorModal({
-  isOpen,
-  onClose,
-  practiceOptions,
-  selectedType,
-}: {
-  isOpen: boolean
-  onClose: (type: string) => void
-  practiceOptions: PracticeOption[]
-  selectedType?: string
-}) {
-  // 处理按钮点击
-  const handleOptionTap = (option: PracticeOption) => {
-    // 返回 label + notes 组合以区分同名选项
-    const typeValue = option.notes
-      ? `${option.label} ${option.notes}`
-      : option.label
-    onClose(typeValue)
-  }
-
-  return (
-    <>
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          {/* 背景遮罩 - z-[75] */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/30 z-[75]"
-            onClick={() => onClose('')}
-          />
-          {/* 半屏卡片 - z-[80] */}
-          <motion.div
-            initial={{ y: "100%" }}
-            animate={{ y: 0 }}
-            exit={{ y: "100%" }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 bg-card rounded-t-[32px] z-[80] flex flex-col max-h-[calc(100vh-2rem)] shadow-[0_-4px_20px_rgba(0,0,0,0.08)]"
-          >
-            {/* 标题栏 */}
-            <div className="flex items-center justify-between px-6 py-4 flex-shrink-0">
-              <h2 className="text-lg font-serif text-foreground font-semibold">选择练习类型</h2>
-              <button
-                onClick={() => onClose('')}
-                className="p-2 -mr-2 text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* 3列网格 - 可滚动 */}
-            <div className="flex-1 overflow-y-auto px-6 py-6">
-              <div className="grid grid-cols-3 gap-3">
-                {practiceOptions
-                  .filter(option => option.id !== "custom" && !option.is_fixed)
-                  .map((option) => {
-                  // 显示逻辑：label（名称）+ notes（备注）
-                  const displayName = option.label || ''
-                  const displayNotes = option.notes || ''
-
-                  // 使用 label + notes 组合来精确匹配，避免同名选项同时高亮
-                  const optionTypeValue = displayNotes
-                    ? `${displayName} ${displayNotes}`
-                    : displayName
-                  const isSelected = selectedType === optionTypeValue
-
-                  return (
-                    <motion.button
-                      key={option.id}
-                      whileTap={{ scale: 0.97 }}
-                      onClick={() => handleOptionTap(option)}
-                      className={`
-                        py-3 px-2 rounded-[20px] text-center font-serif transition-all duration-300
-                        min-h-[80px] w-full flex flex-col items-center justify-center
-                        ${
-                          isSelected
-                            ? "green-gradient text-primary-foreground backdrop-blur-[16px] border border-white/30 shadow-[0_8px_24px_rgba(45,90,39,0.3)]"
-                            : "bg-card text-foreground shadow-[0_4px_16px_rgba(0,0,0,0.06)]"
-                        }
-                      `}
-                    >
-                      <span className="text-[14px] leading-snug break-words w-full">
-                        {displayName}
-                      </span>
-                      {displayNotes && (
-                        <span className={`
-                          text-[11px] mt-1 leading-snug break-words w-full line-clamp-1
-                          ${isSelected ? 'text-primary-foreground/70' : 'text-muted-foreground'}
-                        `}>
-                          {displayNotes}
-                        </span>
-                      )}
-                    </motion.button>
-                  )
-                })}
-              </div>
-
-              {/* 提示文本 */}
-              <p className="text-center text-xs text-muted-foreground font-serif mt-6">
-                点击选择练习类型
-              </p>
-            </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
-  </>
-  )
-}
-
-// Add Practice Modal (添加练习) - 使用 PracticeForm
-function AddPracticeModal({
-  isOpen,
-  onClose,
-  onSave,
-  addRecord,
-  updateRecord,
-  deleteRecord,
-  onDeleteDraft,
-  practiceOptions,
-  practiceHistory = [],
-  onChildModalOpen,
-  onOpenVoiceFakeDoor,
-  onOpenPhotoFakeDoor,
-  user,
-  userProfile,
-  isPro,
-}: {
-  isOpen: boolean
-  onClose: () => void
-  onSave: (record: Omit<PracticeRecord, 'id' | 'created_at' | 'updated_at' | 'photos'>) => void
-  addRecord: (record: Omit<PracticeRecord, 'id' | 'created_at' | 'updated_at' | 'photos'>) => PracticeRecord
-  updateRecord: (id: string, data: Partial<PracticeRecord>) => void
-  deleteRecord: (id: string) => void
-  onDeleteDraft?: (id: string) => void
-  practiceOptions: PracticeOption[]
-  practiceHistory?: PracticeRecord[]
-  onChildModalOpen?: (open: boolean) => void
-  onOpenVoiceFakeDoor?: () => void
-  onOpenPhotoFakeDoor?: () => void
-  user?: { email?: string | null } | null
-  userProfile?: UserProfile | null
-  isPro?: boolean
-}) {
-  // 类型默认色阶查找
-  const getTypeColorLevel = useCallback((t: string) => {
-    return getEffectiveOptionColor(practiceOptions, t, !!isPro)
-  }, [practiceOptions, isPro])
-
-  // 表单数据状态（用于 PracticeForm）
-  const [formData, setFormData] = useState({
-    date: getLocalDateStr(),
-    type: '',
-    duration: 60,
-    notes: '',
-    breakthrough: undefined as string | undefined,
-    color_level: 3,
-  })
-
-  // 子模态框状态
-  const [showDatePicker, setShowDatePicker] = useState(false)
-  const [showTypeSelector, setShowTypeSelector] = useState(false)
-
-  // 草稿记录（用于照片上传）
-  const [draftRecord, setDraftRecord] = useState<PracticeRecord | null>(null)
-
-  // 当弹窗打开时，预创建草稿记录
-  useEffect(() => {
-    if (isOpen) {
-      // 创建草稿记录用于照片上传
-      const draft = addRecord({
-        date: getLocalDateStr(),
-        type: '草稿', // 临时类型，不显示在时光轴
-        duration: 60,
-        notes: '',
-      })
-      setDraftRecord(draft)
-    } else if (draftRecord) {
-      // 弹窗关闭时删除草稿（用户取消）- 同时删除云端草稿
-      onDeleteDraft?.(draftRecord.id)
-      setDraftRecord(null)
-    }
-  }, [isOpen])
-
-  // 清理函数：组件卸载时也删除草稿
-  useEffect(() => {
-    return () => {
-      if (draftRecord) {
-        onDeleteDraft?.(draftRecord.id)
-      }
-    }
-  }, [])
-
-  const handleSave = (data: PracticeFormData) => {
-    if (draftRecord) {
-      // 更新草稿为正式记录
-      updateRecord(draftRecord.id, {
-        date: data.date,
-        type: data.type,
-        duration: data.duration * 60, // 转换为秒
-        notes: data.notes || "今日练习完成",
-        breakthrough: data.breakthrough,
-        photos: data.photos, // ⭐ 保存时包含照片
-        color_level: data.color_level, // ⭐ 色阶等级
-      })
-      toast.success('补卡成功！')
-    }
-    // 重置表单
-    setFormData({
-      date: getLocalDateStr(),
-      type: '',
-      duration: 60,
-      notes: '',
-      breakthrough: undefined,
-      color_level: 3,
-    })
-    setDraftRecord(null)
-    onClose()
-  }
-
-  const handleDatePickerToggle = (open: boolean) => {
-    setShowDatePicker(open)
-    onChildModalOpen?.(open)
-  }
-
-  const handleTypeSelectorToggle = (open: boolean) => {
-    setShowTypeSelector(open)
-    onChildModalOpen?.(open)
-  }
-
-  return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/30 z-[60]"
-            onClick={onClose}
-          />
-          <motion.div
-            initial={{ y: "100%" }}
-            animate={{ y: 0 }}
-            exit={{ y: "100%" }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 bg-card rounded-t-[24px] z-[70] p-6 pb-10 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] max-h-[calc(100vh-2rem)] overflow-y-auto"
-          >
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-serif text-foreground font-semibold">🧘‍♀️添加练习</h2>
-              <button onClick={onClose} className="p-2 -mr-2 text-muted-foreground hover:text-foreground transition-colors">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <PracticeForm
-              initialData={formData}
-              recordId={draftRecord?.id}
-              user={{ email: user?.email }} // ⭐ 传入用户信息
-              date={formData.date}
-              type={formData.type}
-              onDateChange={(d) => setFormData(prev => ({ ...prev, date: d }))}
-              onTypeChange={(t) => setFormData(prev => ({ ...prev, type: t, color_level: getTypeColorLevel(t) }))}
-              dateEditable={true}
-              typeEditable={true}
-              durationEditable={true}
-              showDelete={false}
-              showPhotoUpload={true}
-              practiceOptions={practiceOptions}
-              onSave={handleSave}
-              onDatePickerOpen={() => handleDatePickerToggle(true)}
-              onTypeSelectorOpen={() => handleTypeSelectorToggle(true)}
-              onChildModalOpen={onChildModalOpen}
-              onShowMembershipPrompt={() => {
-                setMembershipPromptReason('color_level')
-                setShowMembershipPrompt(true)
-              }}
-            />
-          </motion.div>
-
-          {/* DatePicker Modal */}
-          <DatePickerModal
-            isOpen={showDatePicker}
-            onClose={(selectedDate) => {
-              if (selectedDate) {
-                setFormData(prev => ({ ...prev, date: selectedDate }))
-              }
-              handleDatePickerToggle(false)
-            }}
-            maxDate={getLocalDateStr()}
-            practiceHistory={practiceHistory}
-          />
-
-          {/* TypeSelector Modal */}
-          <TypeSelectorModal
-            isOpen={showTypeSelector}
-            onClose={(selectedType) => {
-              if (selectedType) {
-                setFormData(prev => ({ ...prev, type: selectedType, color_level: getTypeColorLevel(selectedType) }))
-              }
-              handleTypeSelectorToggle(false)
-            }}
-            practiceOptions={practiceOptions}
-            selectedType={formData.type}
-          />
-        </>
-      )}
-    </AnimatePresence>
-  )
-}
-
-// Settings Modal with Account Binding and Data Management
-function SettingsModal({
-  isOpen,
-  onClose,
-  profile,
-  onSave,
-  onOpenExport,
-  onOpenImport,
-  onExportLog,
-  onClearData,
-  user,
-  practiceHistory,
-  practiceOptionsData,
-  initialSection,
-  onShowClearDataConfirm,
-  onOpenLoginModal,
-  onOpenRegisterModal,
-  membership,
-  onActivateMembership,
-  onPurchaseMembership,
-  onUpdateProfile,
-}: {
-  isOpen: boolean
-  onClose: () => void
-  profile: UserProfile
-  onSave: (profile: UserProfile) => void
-  onOpenExport: () => void
-  onOpenImport: () => void
-  onExportLog?: () => void | Promise<void>
-  onClearData?: () => void
-  user?: any
-  practiceHistory?: PracticeRecord[]
-  practiceOptionsData?: PracticeOption[]
-  initialSection?: 'profile' | 'membership' | 'account' | 'data'
-  onShowClearDataConfirm?: () => void
-  onOpenLoginModal?: () => void
-  onOpenRegisterModal?: () => void
-  membership?: { is_active: boolean; expires_at_formatted: string | null; days_remaining: number; type: 'quarter' | 'year' | null } | null
-  onActivateMembership?: () => void
-  onPurchaseMembership?: () => void
-  onUpdateProfile?: (profile: UserProfile) => void
-}) {
-  const [name, setName] = useState(profile.name)
-  const [signature, setSignature] = useState(profile.signature)
-  const [avatar, setAvatar] = useState<string | null>(profile.avatar)
-  const [activeSection, setActiveSection] = useState<'profile' | 'membership' | 'account' | 'data'>(initialSection || 'profile')
-  const [isExportingLog, setIsExportingLog] = useState(false)
-  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
-
-  // 历史数据校准
-  const [historicalDays, setHistoricalDays] = useState(profile.historical_days || 0)
-  const [historicalAvgMinutes, setHistoricalAvgMinutes] = useState(profile.historical_avg_minutes || 0)
-
-  // 当 profile 变化时同步历史数据
-  useEffect(() => {
-    setHistoricalDays(profile.historical_days || 0)
-    setHistoricalAvgMinutes(profile.historical_avg_minutes || 0)
-  }, [profile.historical_days, profile.historical_avg_minutes])
-
-  // 当 initialSection 变化时，切换到对应标签页
-  useEffect(() => {
-    if (initialSection) {
-      setActiveSection(initialSection)
-    }
-  }, [initialSection])
-
-  useEffect(() => {
-    setName(profile.name)
-    setSignature(profile.signature)
-    setAvatar(profile.avatar)
-  }, [profile])
-
-  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    // 检查是否已绑定邮箱
-    if (!user?.email) {
-      toast.info('绑定邮箱后可上传头像', {
-        action: {
-          label: '去绑定',
-          onClick: () => setActiveSection('account'),
-        },
-      })
-      return
-    }
-
-    // 检查文件大小（限制5MB）
-    const MAX_SIZE = 5 * 1024 * 1024
-    if (file.size > MAX_SIZE) {
-      toast.error('图片太大啦，请选择5MB以内的图片')
-      return
-    }
-
-    setIsUploadingAvatar(true)
-
-    try {
-      // 压缩图片
-      const compressedDataUrl = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader()
-        reader.onload = (event) => {
-          const img = new Image()
-          img.onload = () => {
-            const canvas = document.createElement('canvas')
-            const ctx = canvas.getContext('2d')
-
-            const MAX_DIMENSION = 200
-            let width = img.width
-            let height = img.height
-
-            if (width > height) {
-              if (width > MAX_DIMENSION) {
-                height = (height * MAX_DIMENSION) / width
-                width = MAX_DIMENSION
-              }
-            } else {
-              if (height > MAX_DIMENSION) {
-                width = (width * MAX_DIMENSION) / height
-                height = MAX_DIMENSION
-              }
-            }
-
-            canvas.width = width
-            canvas.height = height
-            ctx?.drawImage(img, 0, 0, width, height)
-            resolve(canvas.toDataURL('image/jpeg', 0.85))
-          }
-          img.onerror = reject
-          img.src = event.target?.result as string
-        }
-        reader.onerror = reject
-        reader.readAsDataURL(file)
-      })
-
-      // base64 转 Blob
-      const blob = await fetch(compressedDataUrl).then(r => r.blob())
-      const avatarFile = new File([blob], `avatar-${Date.now()}.jpg`, { type: 'image/jpeg' })
-
-      // 获取预签名 URL
-      const { getPresignedUrl } = await import('@/lib/oss')
-      const presignedResult = await getPresignedUrl(avatarFile.name, avatarFile.type)
-
-      if (!presignedResult.success) {
-        toast.error('获取上传链接失败')
-        return
-      }
-
-      // 上传到 OSS
-      const { uploadToOSS } = await import('@/lib/oss')
-      const uploadResult = await uploadToOSS(avatarFile, presignedResult.data!.presignedUrl, avatarFile.type)
-
-      if (!uploadResult.success) {
-        toast.error('头像上传失败，请重试')
-        return
-      }
-
-      // 保存 OSS URL
-      setAvatar(presignedResult.data!.ossUrl)
-      toast.success('头像上传成功')
-
-      // ⭐ 自动保存到 profile 并触发同步
-      onSave({
-        ...profile,
-        name,
-        signature,
-        avatar: presignedResult.data!.ossUrl,
-        historical_days: historicalDays,
-        historical_avg_minutes: historicalAvgMinutes,
-      })
-    } catch (error) {
-      console.error('头像上传异常:', error)
-      toast.error('头像上传失败，请重试')
-    } finally {
-      setIsUploadingAvatar(false)
-    }
-  }
-
-  const handleSave = () => {
-    try {
-      onSave({
-        ...profile,
-        name,
-        signature,
-        avatar,
-        historical_days: historicalDays,
-        historical_avg_minutes: historicalAvgMinutes,
-      })
-      onClose()
-    } catch (error) {
-      console.error('保存失败:', error)
-      toast.error('保存失败，图片可能太大，请尝试压缩后再上传')
-    }
-  }
-
-  return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/30 z-40"
-            onClick={onClose}
-          />
-          <motion.div
-            initial={{ y: "100%" }}
-            animate={{ y: 0 }}
-            exit={{ y: "100%" }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 bg-card rounded-t-[24px] z-50 p-6 pb-10 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] max-h-[calc(100vh-2rem)] overflow-y-auto"
-          >
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-serif text-foreground">设置</h2>
-              <button onClick={onClose} className="p-2 -mr-2 text-muted-foreground hover:text-foreground transition-colors">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Section Tabs - 顺序：个人资料 | 会员 | 账户同步 | 数据管理 */}
-            <div className="flex gap-2 mb-6">
-              <button
-                onClick={() => setActiveSection('profile')}
-                className={`flex-1 py-2 rounded-full text-sm font-serif transition-all ${
-                  activeSection === 'profile'
-                    ? 'green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white'
-                    : 'bg-secondary text-foreground'
-                }`}
-              >
-                个人资料
-              </button>
-              <button
-                onClick={() => setActiveSection('membership')}
-                className={`flex-1 py-2 rounded-full text-sm font-serif transition-all ${
-                  activeSection === 'membership'
-                    ? 'bg-gradient-to-r from-[#C1A268] to-[#D4AF37] shadow-[0_4px_16px_rgba(193,162,104,0.25)] text-white'
-                    : 'bg-secondary text-foreground'
-                }`}
-              >
-                会员
-              </button>
-              <button
-                onClick={() => setActiveSection('account')}
-                className={`flex-1 py-2 rounded-full text-sm font-serif transition-all ${
-                  activeSection === 'account'
-                    ? 'green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white'
-                    : 'bg-secondary text-foreground'
-                }`}
-              >
-                账户同步
-              </button>
-              <button
-                onClick={() => setActiveSection('data')}
-                className={`flex-1 py-2 rounded-full text-sm font-serif transition-all ${
-                  activeSection === 'data'
-                    ? 'green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white'
-                    : 'bg-secondary text-foreground'
-                }`}
-              >
-                数据管理
-              </button>
-            </div>
-
-            <div className="space-y-6">
-              {activeSection === 'profile' && (
-                <>
-                  {/* Avatar Upload */}
-                  <div className="flex flex-col items-center mb-6">
-                    <div className="relative group">
-                      <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-primary/20 bg-secondary">
-                        {avatar ? (
-                          <img src={avatar} alt="Avatar" className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                            <User className="w-10 h-10" />
-                          </div>
-                        )}
-                      </div>
-                      <button
-                        onClick={() => {
-                          if (!user?.email) {
-                            toast.info('绑定邮箱后可上传头像', {
-                              action: {
-                                label: '去绑定',
-                                onClick: () => setActiveSection('account'),
-                              },
-                            })
-                            return
-                          }
-                          if (!isUploadingAvatar) {
-                            fileInputRef.current?.click()
-                          }
-                        }}
-                        className="absolute bottom-0 right-0 p-2 bg-primary text-white rounded-full shadow-lg hover:scale-110 transition-transform disabled:opacity-50"
-                        disabled={isUploadingAvatar}
-                      >
-                        {isUploadingAvatar ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <Camera className="w-4 h-4" />
-                        )}
-                      </button>
-                    </div>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={handleAvatarUpload}
-                    />
-                  </div>
-
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-xs font-serif text-muted-foreground mb-1.5">昵称</label>
-                      <input
-                        type="text"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        className="w-full px-4 py-3 rounded-2xl bg-secondary text-foreground font-serif focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-serif text-muted-foreground mb-1.5">个人签名</label>
-                      <input
-                        type="text"
-                        value={signature}
-                        onChange={(e) => setSignature(e.target.value)}
-                        className="w-full px-4 py-3 rounded-2xl bg-secondary text-foreground font-serif focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-                      />
-                    </div>
-                  </div>
-
-                  {/* 历史练习数据校准 */}
-                  <div className="pt-2">
-                    {/* 标题行 */}
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-1.5">
-                        <Calendar className="w-3.5 h-3.5 text-primary" />
-                        <h3 className="text-sm font-serif text-foreground">过往练习</h3>
-                      </div>
-                      <span className="text-xs text-primary font-medium">
-                        累计约 {Math.round(historicalDays * historicalAvgMinutes / 60)} 小时
-                      </span>
-                    </div>
-
-                    {/* 左右两个独立卡片 */}
-                    <div className="grid grid-cols-2 gap-2">
-                      {/* 左边：历史练习天数 */}
-                      <div className="bg-white rounded-xl p-3 border border-stone-200">
-                        <div className="text-center">
-                          <input
-                            type="text"
-                            inputMode="numeric"
-                            pattern="[0-9]*"
-                            value={historicalDays === 0 ? '' : historicalDays}
-                            onChange={(e) => {
-                              const val = e.target.value.replace(/[^0-9]/g, '')
-                              setHistoricalDays(val === '' ? 0 : parseInt(val))
-                            }}
-                            className="w-full bg-transparent text-2xl font-serif text-primary text-center focus:outline-none focus:ring-0 p-0 placeholder:text-primary/30"
-                            placeholder="0"
-                          />
-                          <div className="text-[10px] text-muted-foreground font-serif mt-1">天数</div>
-                        </div>
-                      </div>
-
-                      {/* 右边：平均每次时长 */}
-                      <div className="bg-white rounded-xl p-3 border border-stone-200">
-                        <div className="text-center">
-                          <input
-                            type="text"
-                            inputMode="numeric"
-                            pattern="[0-9]*"
-                            value={historicalAvgMinutes === 0 ? '' : historicalAvgMinutes}
-                            onChange={(e) => {
-                              const val = e.target.value.replace(/[^0-9]/g, '')
-                              setHistoricalAvgMinutes(val === '' ? 0 : parseInt(val))
-                            }}
-                            className="w-full bg-transparent text-2xl font-serif text-primary text-center focus:outline-none focus:ring-0 p-0 placeholder:text-primary/30"
-                            placeholder="0"
-                          />
-                          <div className="text-[10px] text-muted-foreground font-serif mt-1">分钟/次</div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* 说明文字 */}
-                    <p className="text-[10px] text-muted-foreground/70 text-center font-serif mt-2">
-                      💡 设置后，统计数据会以此为基础累加
-                    </p>
-                  </div>
-                </>
-              )}
-
-              {activeSection === 'membership' && (
-                <div className="space-y-4">
-                  {/* 会员状态卡片 */}
-                  <MembershipCard showStatus membership={membership} loading={false} />
-
-                  {/* 操作按钮 */}
-                  <MembershipActions
-                    onPurchase={() => onPurchaseMembership?.()}
-                    onActivate={onActivateMembership}
-                    isActive={membership?.is_active}
-                  />
-                </div>
-              )}
-
-              {activeSection === 'account' && (
-                <AccountBindingSection
-                  profile={profile}
-                  localData={{
-                    records: practiceHistory,
-                    options: practiceOptionsData
-                  }}
-                  onSyncComplete={(data) => {
-                    // 同步完成后的回调
-                    console.log('Sync completed:', data)
-                    // ⭐ 更新本地 profile（如果云端有更新）
-                    if (data?.profile) {
-                      console.log('更新本地 profile:', data.profile)
-                      onUpdateProfile?.(data.profile)
-                    }
-                  }}
-                  onClose={onClose}
-                  onOpenLoginModal={onOpenLoginModal}
-                  onOpenRegisterModal={onOpenRegisterModal}
-                  onShowClearDataConfirm={onShowClearDataConfirm}
-                  user={user}
-                />
-              )}
-
-              {/* 临时注释：测试其他Tab是否正常
-              {activeSection === 'account' && (
-                <div className="text-center py-8">
-                  <p>账户与同步功能开发中...</p>
-                </div>
-              )}
-              */}
-
-              {activeSection === 'data' && (
-                <div className="space-y-3">
-                  {/* 只有未登录时才显示备份提示 */}
-                  {!user && (
-                    <div className="p-4 rounded-2xl bg-orange-50 border border-orange-100">
-                      <p className="text-xs text-orange-600 font-serif leading-relaxed">
-                        💡 未开启云端同步，建议定期备份数据，防止意外丢失
-                      </p>
-                    </div>
-                  )}
-
-                  {/* 导出按钮 */}
-                  <button
-                    onClick={onOpenExport}
-                    className="w-full flex items-center justify-between p-4 rounded-2xl bg-secondary hover:bg-secondary/80 transition-all group"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-xl bg-blue-50 text-blue-500">
-                        <Copy className="w-5 h-5" />
-                      </div>
-                      <div className="text-left">
-                        <div className="text-sm font-serif text-foreground">复制数据胶囊</div>
-                        <div className="text-[10px] text-muted-foreground font-serif">一键复制到剪贴板</div>
-                      </div>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
-                  </button>
-
-                  {/* 导入按钮 */}
-                  <button
-                    onClick={onOpenImport}
-                    className="w-full flex items-center justify-between p-4 rounded-2xl bg-secondary hover:bg-secondary/80 transition-all group"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-xl bg-red-50 text-red-500">
-                        <Download className="w-5 h-5" />
-                      </div>
-                      <div className="text-left">
-                        <div className="text-sm font-serif text-foreground">导入数据胶囊</div>
-                        <div className="text-[10px] text-muted-foreground font-serif">从剪贴板恢复数据</div>
-                      </div>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
-                  </button>
-
-                  {/* 导出日志按钮 */}
-                  {onExportLog && (
-                    <button
-                      onClick={async () => {
-                        setIsExportingLog(true)
-                        try {
-                          await onExportLog()
-                        } finally {
-                          setIsExportingLog(false)
-                        }
-                      }}
-                      disabled={isExportingLog}
-                      className="w-full flex items-center justify-between p-4 rounded-2xl bg-secondary hover:bg-secondary/80 transition-all group disabled:opacity-50"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-xl bg-orange-50 text-orange-500">
-                          <Bug className="w-5 h-5" />
-                        </div>
-                        <div className="text-left">
-                          <div className="text-sm font-serif text-foreground">
-                            {isExportingLog ? '正在生成日志...' : '运行日志'}
-                          </div>
-                          <div className="text-[10px] text-muted-foreground font-serif">
-                            {isExportingLog ? '请稍候，正在测试连接...' : '如遇问题，请复制本日志发给开发者'}
-                          </div>
-                        </div>
-                      </div>
-                      {isExportingLog ? (
-                        <div className="w-4 h-4 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
-                      ) : (
-                        <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
-                      )}
-                    </button>
-                  )}
-
-                  {/* 清空数据按钮 - 三层安全防护 */}
-                  {onClearData && (
-                    <button
-                      onClick={() => {
-                        onShowClearDataConfirm && onShowClearDataConfirm()
-                      }}
-                      className="w-full flex items-center justify-between p-4 rounded-2xl bg-red-50 hover:bg-red-100 transition-all group border border-red-200"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-xl bg-red-100 text-red-600">
-                          <Trash2 className="w-5 h-5" />
-                        </div>
-                        <div className="text-left">
-                          <div className="text-sm font-serif text-red-700">清空数据胶囊</div>
-                          <div className="text-[10px] text-red-600 font-serif">删除所有记录，恢复初始状态</div>
-                        </div>
-                      </div>
-                      <ChevronRight className="w-4 h-4 text-red-400 group-hover:translate-x-1 transition-transform" />
-                    </button>
-                  )}
-                </div>
-              )}
-
-              <div className="pt-4">
-                {/* 只在"个人资料"Tab显示保存按钮 */}
-                {activeSection === 'profile' && (
-                  <button
-                    onClick={handleSave}
-                    className="w-full py-4 rounded-full green-gradient text-white font-serif shadow-lg hover:opacity-90 active:scale-[0.98] transition-all"
-                  >
-                    保存设置
-                  </button>
-                )}
-              </div>
-            </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
-  )
-}
-
-// Account & Sync Modal - 专门用于云图标点击
-function AccountSyncModal({
-  isOpen,
-  onClose,
-  profile,
-  practiceHistory,
-  practiceOptionsData,
-  onOpenLoginModal,
-  onOpenRegisterModal,
-  onShowClearDataConfirm,
-  onUpdateProfile,
-  user,
-}: {
-  isOpen: boolean
-  onClose: () => void
-  profile: UserProfile
-  practiceHistory: PracticeRecord[]
-  practiceOptionsData: PracticeOption[]
-  onOpenLoginModal: () => void
-  onOpenRegisterModal: () => void
-  onShowClearDataConfirm?: () => void
-  onUpdateProfile?: (profile: UserProfile) => void
-  user?: any
-}) {
-  return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/30 z-40"
-            onClick={onClose}
-          />
-          <motion.div
-            initial={{ y: "100%" }}
-            animate={{ y: 0 }}
-            exit={{ y: "100%" }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 bg-card rounded-t-[24px] z-50 p-6 pb-10 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] max-h-[calc(100vh-2rem)] overflow-y-auto"
-          >
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-lg font-serif text-foreground">账户同步</h2>
-              <button onClick={onClose} className="p-2 -mr-2 text-muted-foreground hover:text-foreground transition-colors">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <AccountBindingSection
-              profile={profile}
-              localData={{
-                records: practiceHistory,
-                options: practiceOptionsData
-              }}
-              onSyncComplete={(data) => {
-                console.log('Sync completed:', data)
-                // ⭐ 更新本地 profile（如果云端有更新）
-                if (data?.profile) {
-                  console.log('更新本地 profile:', data.profile)
-                  onUpdateProfile?.(data.profile)
-                }
-              }}
-              onClose={onClose}
-              onOpenLoginModal={onOpenLoginModal}
-              onOpenRegisterModal={onOpenRegisterModal}
-              onShowClearDataConfirm={onShowClearDataConfirm}
-              user={user}
-            />
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
-  )
-}
-
-// Confirm End Dialog
-function ConfirmEndDialog({
-  isOpen,
-  onClose,
-  onConfirm,
-  onDiscard,
-}: {
-  isOpen: boolean
-  onClose: () => void
-  onConfirm: () => void
-  onDiscard: () => void
-}) {
-  return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/30 z-[60]"
-            onClick={onClose}
-          />
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ type: "spring", damping: 25, stiffness: 400 }}
-            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card rounded-3xl z-[70] p-6 shadow-[0_4px_30px_rgba(0,0,0,0.1)] w-[calc(100%-48px)] max-w-sm"
-          >
-            {/* 右上角关闭按钮 */}
-            <button
-              onClick={onClose}
-              className="absolute right-4 top-4 p-1 text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-            </button>
-
-            <h2 className="text-lg font-serif text-foreground text-center mb-2">结束练习？</h2>
-            <p className="text-muted-foreground text-center text-sm mb-6 font-serif">选择保存或丢弃这次记录</p>
-
-            <div className="flex gap-3">
-              <button
-                onClick={onDiscard}
-                className="flex-1 py-3 rounded-full bg-secondary text-foreground font-serif transition-all hover:bg-secondary/80 active:scale-[0.98]"
-              >
-                不保存退出
-              </button>
-              <button
-                onClick={onConfirm}
-                className="flex-1 py-3 rounded-full green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white font-serif transition-all hover:opacity-90 active:scale-[0.98]"
-              >
-                保存并退出
-              </button>
-            </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
-  )
-}
-
-// Completion Sheet - 使用 PracticeForm
-function CompletionSheet({
-  isOpen,
-  practiceType,
-  duration,
-  onSave,
-  onClose,
-  addRecord,
-  updateRecord,
-  deleteRecord,
-  autoSync,
-  onOpenVoiceFakeDoor,
-  onOpenPhotoFakeDoor,
-  user,
-  userProfile,
-  practiceOptions,
-  onDeleteDraft,
-  isPro,
-}: {
-  isOpen: boolean
-  practiceType: string
-  duration: string
-  onSave: (notes: string, photos: string[], breakthrough?: string) => void
-  onClose?: () => void
-  addRecord: (record: Omit<PracticeRecord, 'id' | 'created_at' | 'updated_at' | 'photos'>) => PracticeRecord
-  updateRecord: (id: string, data: Partial<PracticeRecord>) => void
-  deleteRecord: (id: string, skipConfirm?: boolean) => void
-  onDeleteDraft?: (id: string) => void
-  autoSync?: (triggerReason?: string) => Promise<void | boolean>
-  onOpenVoiceFakeDoor?: () => void
-  onOpenPhotoFakeDoor?: () => void
-  user?: { email?: string | null } | null
-  userProfile?: UserProfile | null
-  practiceOptions: PracticeOption[]
-  isPro?: boolean
-}) {
-  // 类型默认色阶查找
-  const getTypeColorLevel = useCallback((t: string) => {
-    return getEffectiveOptionColor(practiceOptions, t, !!isPro)
-  }, [practiceOptions, isPro])
-
-  // 表单数据状态（用于 PracticeForm）
-  const [formData, setFormData] = useState({
-    date: getLocalDateStr(),
-    type: practiceType,
-    duration: parseInt(duration) || 0,
-    notes: '',
-    breakthrough: undefined as string | undefined,
-    color_level: 3,
-  })
-
-  // 草稿记录（用于照片上传）
-  const [draftRecord, setDraftRecord] = useState<PracticeRecord | null>(null)
-
-  // 子模态框状态
-  const [showDatePicker, setShowDatePicker] = useState(false)
-  const [showTypeSelector, setShowTypeSelector] = useState(false)
-
-  // 当弹窗打开时，预创建草稿记录并同步数据
-  useEffect(() => {
-    if (isOpen) {
-      // 创建草稿记录用于照片上传（使用实际类型，不是'草稿'）
-      const draftColorLevel = getTypeColorLevel(practiceType)
-      const draft = addRecord({
-        date: getLocalDateStr(),
-        type: practiceType,
-        duration: parseInt(duration) * 60 || 0,
-        notes: '',
-        color_level: draftColorLevel,
-      })
-      setDraftRecord(draft)
-      setFormData({
-        date: getLocalDateStr(),
-        type: practiceType,
-        duration: parseInt(duration) || 0,
-        notes: '',
-        breakthrough: undefined,
-        color_level: draftColorLevel,
-      })
-
-      // ⭐ 延迟 500ms 同步，确保 localStorage 已完全更新
-      // 只有绑定邮箱的用户才同步到云端
-      if (user?.email && autoSync) {
-        console.log('[CompletionSheet] 草稿创建完成，准备同步')
-        setTimeout(() => {
-          autoSync('完成弹窗草稿创建后同步')
-        }, 500)
-      }
-    } else if (draftRecord) {
-      // 弹窗关闭时删除草稿（用户取消）- 同时删除云端草稿
-      onDeleteDraft?.(draftRecord.id)
-      setDraftRecord(null)
-    }
-  }, [isOpen, practiceType, duration])
-
-  // 清理函数：组件卸载时也删除草稿
-  useEffect(() => {
-    return () => {
-      if (draftRecord) {
-        onDeleteDraft?.(draftRecord.id)
-      }
-    }
-  }, [])
-
-  const handleSave = (data: PracticeFormData) => {
-    if (draftRecord) {
-      // 更新草稿为正式记录（包含照片 + 用户可能修改的日期/类型/时长）
-      updateRecord(draftRecord.id, {
-        date: data.date,
-        type: data.type,
-        duration: data.duration * 60, // 转换为秒
-        notes: data.notes || "今日练习完成",
-        breakthrough: data.breakthrough,
-        photos: data.photos, // ⭐ 保存时包含照片
-        color_level: data.color_level, // ⭐ 色阶等级
-      })
-      toast.success('记录已保存！')
-
-      // ⭐ 保存后同步（含 color_level 等变更）
-      if (user?.email && autoSync) {
-        setTimeout(() => {
-          autoSync('完成弹窗保存记录后同步')
-        }, 500)
-      }
-
-      // ⭐ 关闭弹窗
-      onClose?.()
-    }
-    // 重置表单
-    setFormData({
-      date: getLocalDateStr(),
-      type: practiceType,
-      duration: parseInt(duration) || 0,
-      notes: '',
-      breakthrough: undefined,
-    })
-    setDraftRecord(null)
-  }
-
-  return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/30 z-[60]"
-          />
-          <motion.div
-            initial={{ y: "100%" }}
-            animate={{ y: 0 }}
-            exit={{ y: "100%" }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 bg-card rounded-t-[24px] z-[70] p-6 pb-10 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] max-h-[calc(100vh-2rem)] overflow-y-auto"
-          >
-            <h2 className="text-xl font-serif text-foreground text-center mb-6">练习完成</h2>
-
-            <PracticeForm
-              initialData={formData}
-              recordId={draftRecord?.id}
-              user={{ email: user?.email }} // ⭐ 传入用户信息
-              date={formData.date}
-              type={formData.type}
-              onDateChange={(d) => setFormData(prev => ({ ...prev, date: d }))}
-              onTypeChange={(t) => setFormData(prev => ({ ...prev, type: t, color_level: getTypeColorLevel(t) }))}
-              onDatePickerOpen={() => setShowDatePicker(true)}
-              onTypeSelectorOpen={() => setShowTypeSelector(true)}
-              dateEditable={true}
-              typeEditable={true}
-              durationEditable={true}
-              showDelete={false}
-              showPhotoUpload={true}
-              practiceOptions={practiceOptions}
-              onSave={handleSave}
-              onShowMembershipPrompt={() => {
-                setMembershipPromptReason('color_level')
-                setShowMembershipPrompt(true)
-              }}
-            />
-
-            {/* DatePicker Modal */}
-            <DatePickerModal
-              isOpen={showDatePicker}
-              onClose={(selectedDate) => {
-                if (selectedDate) {
-                  setFormData(prev => ({ ...prev, date: selectedDate }))
-                }
-                setShowDatePicker(false)
-              }}
-              maxDate={getLocalDateStr()}
-              practiceHistory={[]}
-            />
-
-            {/* TypeSelector Modal */}
-            <TypeSelectorModal
-              isOpen={showTypeSelector}
-              onClose={(selectedType) => {
-                if (selectedType) {
-                  setFormData(prev => ({ ...prev, type: selectedType, color_level: getTypeColorLevel(selectedType) }))
-                }
-                setShowTypeSelector(false)
-              }}
-              practiceOptions={practiceOptions}
-              selectedType={formData.type}
-            />
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
-  )
-}
-
-// Color Block Fullscreen Viewer (simulates photo viewer)
-// Monthly Stats Card Component
-function MonthlyStatsCard({
-  practiceHistory,
-  year,
-  month,
-  onClick,
-}: {
-  practiceHistory: PracticeRecord[]
-  year: number
-  month: number
-  onClick?: () => void
-}) {
-  // 计算本月统计数据
-  const stats = useMemo(() => {
-    const monthRecords = practiceHistory.filter(r => {
-      const d = new Date(r.date)
-      return d.getFullYear() === year && d.getMonth() === month && r.duration > 0 && r.type !== '草稿'
-    })
-
-    const practiceDays = monthRecords.length
-    const totalSeconds = monthRecords.reduce((acc, r) => acc + r.duration, 0)
-    const totalMinutes = Math.round(totalSeconds / 60)
-    const avgMinutes = practiceDays > 0 ? Math.round(totalMinutes / practiceDays) : 0
-
-    // 计算连续练习周数：检查相邻练习间隔是否超过7天
-    const practiceDates = practiceHistory
-      .filter(r => r.duration > 0 && r.type !== '草稿')
-      .map(r => r.date)
-      .filter((date, idx, arr) => arr.indexOf(date) === idx)
-      .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())
-
-    let consecutiveWeeks = 0
-    if (practiceDates.length > 0) {
-      const today = new Date()
-      const mostRecent = new Date(practiceDates[0])
-      const daysSinceLastPractice = Math.floor((today.getTime() - mostRecent.getTime()) / (1000 * 60 * 60 * 24))
-
-      // 最近一周没练 → 断了
-      if (daysSinceLastPractice <= 7) {
-        let totalSpanDays = 1 // 至少包含最近这次练习
-
-        for (let i = 0; i < practiceDates.length - 1; i++) {
-          const current = new Date(practiceDates[i])
-          const next = new Date(practiceDates[i + 1])
-          const gap = Math.floor((current.getTime() - next.getTime()) / (1000 * 60 * 60 * 24))
-
-          if (gap <= 7) {
-            totalSpanDays += gap
-          } else {
-            break // 间隔超过7天 → 断开
-          }
-        }
-
-        consecutiveWeeks = Math.ceil(totalSpanDays / 7)
-      }
-    }
-
-    return {
-      practiceDays,
-      totalMinutes,
-      avgMinutes,
-      consecutiveWeeks,
-    }
-  }, [practiceHistory, year, month])
-
-  return (
-    <div
-      onClick={onClick}
-      className={`bg-white rounded-[20px] shadow-md border border-stone-200 overflow-hidden p-3 ${onClick ? 'cursor-pointer active:scale-[0.98] transition-transform' : ''}`}
-    >
-      <div className="flex items-center justify-between">
-        <div className="text-center flex-1">
-          <div className="text-2xl font-serif text-primary">{stats.practiceDays}</div>
-          <div className="text-[10px] text-muted-foreground font-serif mt-1">熬汤天数</div>
-        </div>
-        <div className="text-center flex-1">
-          <div className="text-2xl font-serif text-primary">{stats.totalMinutes}</div>
-          <div className="text-[10px] text-muted-foreground font-serif mt-1">累计分钟</div>
-        </div>
-        <div className="text-center flex-1">
-          <div className="text-2xl font-serif text-primary">{stats.avgMinutes}</div>
-          <div className="text-[10px] text-muted-foreground font-serif mt-1">平均时长</div>
-        </div>
-        <div className="text-center flex-1">
-          <div className="text-2xl font-serif text-orange-500">{stats.consecutiveWeeks}</div>
-          <div className="text-[10px] text-muted-foreground font-serif mt-1">连续熬汤(周)</div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// Monthly Stats Share Modal
-function MonthlyStatsShareModal({
-  isOpen,
-  onClose,
-  practiceHistory,
-  year,
-  month,
-  profile,
-}: {
-  isOpen: boolean
-  onClose: () => void
-  practiceHistory: PracticeRecord[]
-  year: number
-  month: number
-  profile: UserProfile
-}) {
-  // 计算统计数据和日历数据
-  const { stats, calendarDays, hasPractice } = useMemo(() => {
-    const monthRecords = practiceHistory.filter(r => {
-      const d = new Date(r.date)
-      return d.getFullYear() === year && d.getMonth() === month && r.duration > 0 && r.type !== '草稿'
-    })
-
-    const totalSeconds = monthRecords.reduce((acc, r) => acc + r.duration, 0)
-    const totalHours = Math.round(totalSeconds / 3600)
-    const breathCount = Math.round(totalSeconds / 6)
-    const photosynthesisCount = breathCount * 144
-
-    // 生成日历数据
-    const firstDay = new Date(year, month, 1)
-    const lastDay = new Date(year, month + 1, 0)
-    const daysInMonth = lastDay.getDate()
-    const startDayOfWeek = firstDay.getDay() // 0 = Sunday
-
-    // 创建日期到练习状态的映射
-    const practiceMap: Record<number, boolean> = {}
-    monthRecords.forEach(r => {
-      const day = new Date(r.date).getDate()
-      practiceMap[day] = true
-    })
-
-    // 生成日历网格（7列，6行最大）
-    const days: { day: number | null; practiced: boolean }[] = []
-
-    // 前置空位
-    for (let i = 0; i < startDayOfWeek; i++) {
-      days.push({ day: null, practiced: false })
-    }
-
-    // 当月日期
-    for (let day = 1; day <= daysInMonth; day++) {
-      days.push({ day, practiced: !!practiceMap[day] })
-    }
-
-    return {
-      stats: { totalHours, breathCount, photosynthesisCount },
-      calendarDays: days,
-      hasPractice: (day: number) => !!practiceMap[day],
-    }
-  }, [practiceHistory, year, month])
-
-  // 格式化大数字（如 1,234,567）
-  const formatNumber = (num: number) => {
-    return num.toLocaleString('zh-CN')
-  }
-
-  // 图片导出功能
-  const handleExportImage = async () => {
-    const element = document.getElementById('monthly-stats-share-content')
-    if (!element) {
-      toast.error('未找到分享卡片内容')
-      return
-    }
-
-    try {
-      toast.loading('正在生成图片...', { id: 'export-monthly' })
-
-      const result = await captureWithFallback(element, {
-        scale: 2,
-        backgroundColor: '#ffffff',
-        filename: `ashtanga-monthly-${year}-${String(month + 1).padStart(2, '0')}.png`,
-      })
-
-      toast.dismiss('export-monthly')
-
-      if (result.success) {
-        toast.success('图片已保存')
-        onClose()
-      } else {
-        const errorMessage = formatErrorForUser(result, navigator.userAgent)
-        toast.error(errorMessage)
-      }
-    } catch (error) {
-      toast.dismiss('export-monthly')
-      toast.error('导出失败，请重试')
-    }
-  }
-
-  const monthNames = ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月']
-
-  return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 z-40"
-            onClick={onClose}
-          />
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-6"
-            onClick={onClose}
-          >
-            <div className="flex flex-col gap-3 items-center" onClick={(e) => e.stopPropagation()}>
-              {/* Share Card (for display & export) - 固定宽度，高度自适应 */}
-              <div id="monthly-stats-share-content" className="relative w-[320px] rounded-3xl shadow-2xl overflow-hidden bg-white">
-                {/* 实际显示内容 */}
-                <div className="flex flex-col p-6">
-                  {/* 顶部：左边年份月份，右边累计熬汤 */}
-                  <div className="flex items-end justify-between mb-4">
-                    {/* 左边：年份月份 */}
-                    <div className="flex flex-col">
-                      <span className="text-xs font-serif mb-1" style={{ color: '#2d5a27' }}>{year}年</span>
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-4xl font-serif font-bold" style={{ color: '#2d5a27' }}>{month + 1}</span>
-                        <span className="text-base font-serif" style={{ color: '#2d5a27' }}>月</span>
-                      </div>
-                    </div>
-                    {/* 右边：已累计熬汤 */}
-                    <div className="text-right">
-                      <div className="text-xs font-serif mb-1" style={{ color: '#2d5a27' }}>已累计熬汤</div>
-                      <div className="flex items-baseline gap-1 justify-end">
-                        <span className="text-4xl font-serif font-bold" style={{ color: '#2d5a27' }}>{stats.totalHours}</span>
-                        <span className="text-base font-serif" style={{ color: '#2d5a27' }}>小时</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* 日历网格 - 圆点样式 */}
-                  <div className="flex-1 flex flex-col justify-center">
-                    <div className="grid grid-cols-7 gap-1 justify-items-center">
-                      {calendarDays.map((item, idx) => (
-                        <div
-                          key={idx}
-                          className={`w-8 h-8 shrink-0 rounded-full ${
-                            item.day === null
-                              ? ''
-                              : item.practiced
-                              ? 'green-gradient-deep border border-white/20'
-                              : 'bg-stone-100'
-                          }`}
-                        />
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* 统计数据 - 像一棵树后面加"进行了" */}
-                  <div className="flex items-end justify-between pt-4">
-                    <div className="text-left">
-                      <div className="text-xs font-serif mb-1" style={{ color: '#2d5a27' }}>相当于</div>
-                      <div className="text-2xl font-serif font-bold" style={{ color: '#2d5a27' }}>{formatNumber(stats.breathCount)}</div>
-                      <div className="text-xs font-serif" style={{ color: '#2d5a27' }}>次深呼吸</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="flex items-center justify-end gap-1 mb-1">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" style={{ color: '#2d5a27' }}>
-                          <path d="M12 2L4 10h4v4h8v-4h4L12 2z" fill="currentColor"/>
-                          <path d="M12 6L6 12h3v6h6v-6h3L12 6z" fill="currentColor"/>
-                        </svg>
-                        <span className="text-xs font-serif" style={{ color: '#2d5a27' }}>像一棵树进行了</span>
-                      </div>
-                      <div className="text-2xl font-serif font-bold text-orange-500">{formatNumber(stats.photosynthesisCount)}</div>
-                      <div className="text-xs font-serif" style={{ color: '#2d5a27' }}>次光合作用</div>
-                    </div>
-                  </div>
-
-                  {/* 底部 - 熬汤日记灰色，与签名底部对齐，增加底部空间 */}
-                  <div className="flex items-end justify-between pt-4">
-                    <div className="flex items-end gap-2">
-                      {profile.avatar ? (
-                        <img src={profile.avatar} alt="头像" className="w-8 h-8 rounded-full object-cover border border-stone-200" />
-                      ) : (
-                        <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
-                          <User className="w-4 h-4 text-emerald-600" />
-                        </div>
-                      )}
-                      <div className="flex flex-col">
-                        <span className="text-xs font-serif font-medium text-stone-800">{profile.name}</span>
-                        <span className="text-[10px] font-serif text-stone-400">{profile.signature}</span>
-                      </div>
-                    </div>
-                    <span className="text-[10px] font-serif text-stone-400">熬汤日记</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Actions - 与时光轴分享卡片同风格 */}
-              <div className="flex gap-3 w-[320px]" onClick={(e) => e.stopPropagation()}>
-                <button
-                  type="button"
-                  onMouseDown={(e) => {
-                    e.stopPropagation()
-                    e.preventDefault()
-                    onClose()
-                  }}
-                  className="flex-1 py-3 rounded-full bg-secondary text-foreground font-serif transition-all hover:bg-secondary/80 active:scale-[0.98]"
-                >
-                  返回
-                </button>
-                <button
-                  type="button"
-                  onMouseDown={(e) => {
-                    e.stopPropagation()
-                    e.preventDefault()
-                    handleExportImage()
-                  }}
-                  className="flex-1 py-3 rounded-full green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white font-serif transition-all hover:opacity-90 active:scale-[0.98] flex items-center justify-center gap-2"
-                >
-                  <Share2 className="w-4 h-4" />
-                  保存图片
-                </button>
-              </div>
-          </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
-  )
-}
-
-// Monthly Heatmap for Journal - Now with CIRCLES instead of squares
-function MonthlyHeatmap({
-  practiceHistory,
-  practiceOptions,
-  onDayClick,
-  onOpenFakeDoor,
-  onAddRecord,
-  votedCloud,
-  syncStatus,
-  user,
-  onMonthChange,
-  annotationMap,
-  onOpenAnnotationManager,
-  onOpenXiaohongshuModal,
-  hasNewXhsMessage,
-  onReadInvite,
-  isPro,
-}: {
-  practiceHistory: PracticeRecord[]
-  practiceOptions: PracticeOption[]
-  onDayClick: (dateStr: string) => void
-  onOpenFakeDoor: () => void
-  onAddRecord: () => void
-  votedCloud: boolean
-  syncStatus: 'idle' | 'syncing' | 'success' | 'error'
-  user: any
-  onMonthChange?: (date: Date) => void
-  annotationMap?: Record<string, { label: string; color: string }[]>
-  onOpenAnnotationManager?: () => void
-  onOpenXiaohongshuModal: () => void
-  hasNewXhsMessage: boolean
-  onReadInvite: () => void
-  isPro?: boolean
-}) {
-  const today = new Date()
-  const todayStr = getLocalDateStr()
-  const [viewDate, setViewDate] = useState(today)
-  
-  const currentMonth = viewDate.getMonth()
-  const currentYear = viewDate.getFullYear()
-  
-  // Get first day of month and total days
-  const firstDayOfMonth = new Date(currentYear, currentMonth, 1)
-  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate()
-  const startDayOfWeek = firstDayOfMonth.getDay() // 0 = Sunday
-
-  // 练习类型 → 色阶等级 映射
-  const typeColorMap = useMemo(() => {
-    const map: Record<string, number> = {}
-    practiceOptions.forEach(o => {
-      map[o.label] = getEffectiveOptionColor(practiceOptions, o.label, !!isPro)
-    })
-    return map
-  }, [practiceOptions, isPro])
-
-  // 日期 → { 是否有练习, 色阶等级 } 映射
-  const practiceMap = useMemo(() => {
-    const map: Record<string, { practiced: boolean; colorLevel: number }> = {}
-    practiceHistory.forEach((p) => {
-      const existing = map[p.date]
-      const level = (p as any).color_level ?? typeColorMap[p.type] ?? 3
-      if (!existing || level > existing.colorLevel) {
-        map[p.date] = { practiced: true, colorLevel: level }
-      }
-    })
-    return map
-  }, [practiceHistory, typeColorMap])
-
-  // 突破日映射
-  const breakthroughMap = useMemo(() => {
-    const map: Record<string, boolean> = {}
-    practiceHistory.forEach((p) => {
-      if (p.breakthrough) {
-        map[p.date] = true
-      }
-    })
-    return map
-  }, [practiceHistory])
-
-  // 月相Map
-  const moonPhaseMap = useMemo(() => getMoonPhaseMap(), [])
-
-  // Moon Day弹窗状态
-  const [moonDayDialog, setMoonDayDialog] = useState<{
-    open: boolean
-    type: 'new' | 'full' | null
-  }>({ open: false, type: null })
-
-  // Generate calendar grid
-  const calendarDays = useMemo(() => {
-    const days: (number | null)[] = []
-    // Add empty cells for days before the first of the month
-    for (let i = 0; i < startDayOfWeek; i++) {
-      days.push(null)
-    }
-    // Add days of the month
-    for (let day = 1; day <= daysInMonth; day++) {
-      days.push(day)
-    }
-    return days
-  }, [startDayOfWeek, daysInMonth])
-  
-  const weekDays = ['日', '一', '二', '三', '四', '五', '六']
-
-  const goToPreviousMonth = () => {
-    const newDate = new Date(currentYear, currentMonth - 1, 1)
-    setViewDate(newDate)
-    onMonthChange?.(newDate)
-  }
-
-  const goToNextMonth = () => {
-    const nextMonth = new Date(currentYear, currentMonth + 1, 1)
-    setViewDate(nextMonth)
-    onMonthChange?.(nextMonth)
-  }
-
-  const canGoNext = true
-
-  const handleDayClick = (day: number | null) => {
-    if (day === null) return
-    const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-
-    // 如果是月相日期且未练习，显示弹窗
-    if (moonPhaseMap[dateStr] && !practiceMap[dateStr]?.practiced) {
-      setMoonDayDialog({
-        open: true,
-        type: moonPhaseMap[dateStr].type
-      })
-      return
-    }
-
-    // 正常练习记录跳转
-    if (practiceMap[dateStr]?.practiced) {
-      onDayClick(dateStr)
-    }
-  }
-  
-  return (
-    <div className="bg-white rounded-[20px] mb-3 shadow-md border border-stone-200 overflow-hidden">
-      {/* Integrated Header: Sync + Month Navigation + Buttons */}
-      <div className="flex items-center justify-between px-3 py-3 border-b border-stone-100 bg-lime-50">
-          {/* Left icons */}
-          <div className="flex items-center gap-1.5">
-            <SyncButton onOpenFakeDoor={onOpenFakeDoor} syncStatus={syncStatus} hasVoted={!!user} />
-            <button
-              onClick={() => {
-                onReadInvite()
-                onOpenXiaohongshuModal()
-              }}
-              className="relative w-7 h-7 rounded-full green-gradient-deep border border-white/20 shadow-[0_2px_6px_rgba(45,90,39,0.2)] flex items-center justify-center text-white"
-              aria-label="小红书群邀请"
-            >
-              <MessageCircle className="w-[11px] h-[11px] -translate-y-[2px]" />
-              <div className={`absolute bottom-1 left-1/2 -translate-x-1/2 rounded-full w-1 h-1 ${hasNewXhsMessage ? 'bg-red-400' : 'bg-green-400'}`} />
-            </button>
-            <button
-              onClick={goToPreviousMonth}
-              className="w-7 h-7 rounded-full green-gradient-deep border border-white/20 shadow-[0_2px_6px_rgba(45,90,39,0.2)] flex items-center justify-center text-white"
-            >
-              <ChevronLeft className="w-3.5 h-3.5" />
-            </button>
-          </div>
-
-          {/* Center month - takes remaining space, centered */}
-          <h3 className="font-serif text-foreground font-semibold text-base text-center flex-1">
-            {currentYear}年{currentMonth + 1}月
-          </h3>
-
-          {/* Right icons */}
-          <div className="flex items-center gap-1.5">
-            <button
-              onClick={goToNextMonth}
-              className="w-7 h-7 rounded-full green-gradient-deep border border-white/20 shadow-[0_2px_6px_rgba(45,90,39,0.2)] flex items-center justify-center text-white"
-            >
-              <ChevronRight className="w-3.5 h-3.5" />
-            </button>
-            {onOpenAnnotationManager && (
-              <button
-                onClick={onOpenAnnotationManager}
-                className="w-7 h-7 rounded-full green-gradient-deep border border-white/20 shadow-[0_2px_6px_rgba(45,90,39,0.2)] flex items-center justify-center text-white"
-              >
-                <Pencil className="w-3 h-3" />
-              </button>
-            )}
-            <button
-              onClick={onAddRecord}
-              className="w-7 h-7 rounded-full green-gradient-deep border border-white/20 shadow-[0_2px_6px_rgba(45,90,39,0.2)] flex items-center justify-center text-white"
-            >
-              <Plus className="w-3.5 h-3.5" />
-            </button>
-          </div>
-      </div>
-      <div className="grid grid-cols-7 gap-[2px] p-4">
-        {weekDays.map((day) => (
-          <div key={day} className="text-center text-[9px] text-muted-foreground font-serif py-0.5">
-            {day}
-          </div>
-        ))}
-        {calendarDays.map((day, idx) => {
-          const dateStr = day ? `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}` : ''
-          const practiced = day ? !!practiceMap[dateStr]?.practiced : false
-          const isPast = day ? dateStr <= todayStr : false
-          const moonInfo = day ? moonPhaseMap[dateStr] : null
-          const hasBreakthrough = day ? breakthroughMap[dateStr] : false
-          const annotationColors = day && annotationMap?.[dateStr]
-            ? annotationMap[dateStr].map(a => a.color)
-            : []
-
-          return (
-            <MoonDayButton
-              key={idx}
-              day={day}
-              moonInfo={moonInfo}
-              practiced={practiced}
-              isPast={isPast}
-              hasBreakthrough={hasBreakthrough}
-              annotationColors={annotationColors}
-              colorLevel={practiceMap[dateStr]?.colorLevel}
-              onClick={() => handleDayClick(day)}
-              disabled={!moonInfo && !practiced}
-              className={
-                !moonInfo && !practiced
-                  ? day === null
-                    ? 'bg-transparent'
-                    : isPast
-                      ? 'bg-background text-foreground'
-                      : 'bg-background text-muted-foreground/50'
-                  : ''
-              }
-            />
-          )
-        })}
-      </div>
-
-      {/* Moon Day提示弹窗 */}
-      <AnimatePresence>
-        {moonDayDialog.open && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/30 z-[100]"
-              onClick={() => setMoonDayDialog({ open: false, type: null })}
-            />
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-card rounded-[20px] p-6 shadow-[0_4px_30px_rgba(0,0,0,0.15)] z-[110] min-w-[280px]"
-            >
-              <div className="text-center">
-                <h3 className="text-lg font-serif text-foreground mb-2">
-                  {moonDayDialog.type === 'new' ? '新月Moon Day🌑' : '满月Moon Day🌕'}
-                </h3>
-                <p className="text-sm text-muted-foreground font-serif mb-4 leading-relaxed">
-                  建议暂停练习
-                  <br />
-                  提前安排练习时间
-                </p>
-                <button
-                  onClick={() => setMoonDayDialog({ open: false, type: null })}
-                  className="w-full py-3 rounded-full green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white font-serif transition-all hover:opacity-90 active:scale-[0.98]"
-                >
-                  知道了
-                </button>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-    </div>
-  )
-}
-
-// Sync Button - Cream cloud icon with colored status dot below
-function SyncButton({ onOpenFakeDoor, syncStatus, hasVoted }: { onOpenFakeDoor: () => void; syncStatus: 'idle' | 'syncing' | 'success' | 'error'; hasVoted: boolean }) {
-  const [isClickSpinning, setIsClickSpinning] = useState(false)
-
-  const handleClick = () => {
-    // 点击时触发一次旋转动画（1秒）
-    setIsClickSpinning(true)
-    setTimeout(() => setIsClickSpinning(false), 1000)
-
-    // 延迟打开弹窗，让用户先看到旋转动画
-    setTimeout(() => {
-      onOpenFakeDoor()
-    }, 100)
-  }
-
-  // 根据同步状态决定颜色
-  const getStatusColor = () => {
-    // 未登录：红色
-    if (!hasVoted) return 'bg-red-400'
-
-    // 已登录 - 只在有明确状态时显示对应颜色
-    if (syncStatus === 'syncing') return 'bg-blue-400' // 同步中：蓝色
-    if (syncStatus === 'success') return 'bg-green-400' // 同步成功：绿色
-    if (syncStatus === 'error') return 'bg-red-400' // 同步失败：红色
-
-    // 默认：等待同步或空闲状态 - 显示灰色
-    return 'bg-stone-400'
-  }
-
-  // 是否应该旋转：正在同步 或 点击动画
-  const shouldSpin = syncStatus === 'syncing' || isClickSpinning
-
-  return (
-    <button
-      onClick={handleClick}
-      className={`relative w-7 h-7 rounded-full backdrop-blur-md border border-white/20 shadow-[0_2px_6px_rgba(45,90,39,0.2)] flex items-center justify-center transition-all ${
-        hasVoted
-          ? 'green-gradient'
-          : 'bg-stone-400'
-      }`}
-    >
-      <motion.div
-        animate={shouldSpin ? { rotate: 360 } : { rotate: 0 }}
-        transition={{
-          duration: 0.8,
-          ease: "easeInOut",
-          repeat: syncStatus === 'syncing' ? Infinity : (isClickSpinning ? 1 : 0)
-        }}
-      >
-        <Cloud className={`w-3.5 h-3.5 ${hasVoted ? 'text-[#FAF7F2]' : 'text-stone-200'}`} />
-      </motion.div>
-      {/* Status dot - 根据同步状态显示不同颜色 */}
-      <div className={`absolute bottom-1 left-1/2 -translate-x-1/2 rounded-full w-1 h-1 ${getStatusColor()}`} />
-    </button>
-  )
-}
-
-// Journal Tab Component with Timeline - Split interaction zones
-function JournalTab({
-  practiceHistory,
-  practiceOptions,
-  profile,
-  onEditRecord,
-  onDeleteRecord,
-  onAddRecord,
-  onOpenFakeDoor,
-  onOpenVoiceFakeDoor,
-  onOpenPhotoFakeDoor,
-  onAddOption,
-  votedCloud,
-  onLogExport,
-  editingRecord,
-  onSetEditingRecord,
-  showAddModal,
-  onSetShowAddModal,
-  syncStatus,
-  user,
-  annotationMap,
-  onOpenAnnotationManager,
-  onJournalMonthChange,
-  onOpenXiaohongshuModal,
-  hasNewXhsMessage,
-  onReadInvite,
-  isPro,
-}: {
-  practiceHistory: PracticeRecord[]
-  practiceOptions: PracticeOption[]
-  profile: UserProfile
-  onEditRecord: (id: string, data: Partial<PracticeRecord>) => void
-  onDeleteRecord: (id: string) => void
-  onAddRecord: (record: Omit<PracticeRecord, 'id' | 'created_at' | 'updated_at' | 'photos'>) => void
-  onOpenFakeDoor: () => void
-  onOpenVoiceFakeDoor?: () => void
-  onOpenPhotoFakeDoor?: () => void
-  onAddOption?: (name: string, notes: string) => void
-  votedCloud: boolean
-  onLogExport: (log: any) => void
-  editingRecord: PracticeRecord | null
-  onSetEditingRecord: (record: PracticeRecord | null) => void
-  showAddModal: boolean
-  onSetShowAddModal: (show: boolean) => void
-  syncStatus: 'idle' | 'syncing' | 'success' | 'error'
-  user: any
-  annotationMap?: Record<string, { label: string; color: string }[]>
-  onOpenAnnotationManager?: () => void
-  onJournalMonthChange?: (date: Date) => void
-  onOpenXiaohongshuModal: () => void
-  hasNewXhsMessage: boolean
-  onReadInvite: () => void
-  isPro?: boolean
-}) {
-  const [sharingRecordId, setSharingRecordId] = useState<string | null>(null)
-  const [childModalOpen, setChildModalOpen] = useState(false)
-  const [showBackToTop, setShowBackToTop] = useState(false)
-  const [highlightedDate, setHighlightedDate] = useState<string | null>(null)
-  const [previewImage, setPreviewImage] = useState<string | null>(null) // ⭐ 图片预览状态
-  const [showStatsShare, setShowStatsShare] = useState(false) // ⭐ 月度统计分享弹窗状态
-  const recordRefs = useRef<Record<string, HTMLDivElement | null>>({})
-  const scrollContainerRef = useRef<HTMLDivElement>(null)
-
-  // ⭐ 已加载的月份列表（无限滚动）
-  const [loadedMonths, setLoadedMonths] = useState<Date[]>([new Date()])
-  const [isLoadingMore, setIsLoadingMore] = useState(false)
-
-  // ⭐ 计算最早有记录的月份
-  const earliestRecordMonth = useMemo(() => {
-    if (practiceHistory.length === 0) return null
-    const validRecords = practiceHistory.filter(r => r.type !== '草稿' && r.duration > 0)
-    if (validRecords.length === 0) return null
-
-    const earliestDate = validRecords.reduce((earliest, r) => {
-      return new Date(r.date) < new Date(earliest.date) ? r : earliest
-    }, validRecords[0])
-
-    const d = new Date(earliestDate.date)
-    return new Date(d.getFullYear(), d.getMonth(), 1)
-  }, [practiceHistory])
-
-  // ⭐ 检查是否已经到达最早月份
-  const hasReachedEarliest = earliestRecordMonth && loadedMonths.some(month =>
-    month.getFullYear() === earliestRecordMonth.getFullYear() &&
-    month.getMonth() === earliestRecordMonth.getMonth()
-  )
-
-  // 月相Map
-  const moonPhaseMap = useMemo(() => getMoonPhaseMap(), [])
-
-  // ⭐ 创建日期到记录ID的映射（修复修改日期后无法跳转的问题）
-  const dateToIdMap = useMemo(() => {
-    const map: Record<string, string> = {}
-    practiceHistory.forEach(r => {
-      map[r.date] = r.id
-    })
-    return map
-  }, [practiceHistory])
-
-  // 根据 ID 从最新的 practiceHistory 中查找记录
-  const sharingRecord = useMemo(() => {
-    return sharingRecordId
-      ? practiceHistory.find(r => r.id === sharingRecordId) || null
-      : null
-  }, [sharingRecordId, practiceHistory])
-
-  // 提取练习类型名称（去除备注）
-  const getTypeDisplayName = (type: string) => {
-    // type格式可能是："一序列 Mysore" 或 "Primary 1 - Mysore"
-    // 提取第一部分（在空格或" - "之前）
-    return type.split(/\s+|-\s*/)[0]
-  }
-
-  // Handle scroll to show/hide back-to-top button and infinite scroll
-  useEffect(() => {
-    const container = scrollContainerRef.current
-    if (!container) return
-
-    const handleScroll = () => {
-      setShowBackToTop(container.scrollTop > 400)
-
-      // ⭐ 无限滚动：接近底部时加载上一个月
-      const { scrollTop, scrollHeight, clientHeight } = container
-      const isNearBottom = scrollHeight - scrollTop - clientHeight < 100
-
-      if (isNearBottom && !isLoadingMore) {
-        const lastMonth = loadedMonths[loadedMonths.length - 1]
-        const prevMonth = new Date(lastMonth.getFullYear(), lastMonth.getMonth() - 1, 1)
-
-        // 检查是否已有记录在这个月份，有才加载
-        const hasRecordsInPrevMonth = practiceHistory.some(r => {
-          const d = new Date(r.date)
-          return d.getFullYear() === prevMonth.getFullYear() &&
-                 d.getMonth() === prevMonth.getMonth() &&
-                 r.type !== '草稿' &&
-                 r.duration > 0
-        })
-
-        if (hasRecordsInPrevMonth) {
-          setIsLoadingMore(true)
-          setLoadedMonths(prev => [...prev, prevMonth])
-          setTimeout(() => setIsLoadingMore(false), 300)
-        }
-      }
-    }
-
-    container.addEventListener('scroll', handleScroll, { passive: true })
-    return () => container.removeEventListener('scroll', handleScroll)
-  }, [loadedMonths, isLoadingMore, practiceHistory])
-
-  const scrollToTop = () => {
-    scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
-  }
-
-  // Calculate vanity metrics for share card
-  const totalPracticeCount = practiceHistory.length + (profile?.historical_days || 0)
-  const today = new Date()
-  const thisMonthDays = useMemo(() => {
-    const currentMonth = today.getMonth()
-    const currentYear = today.getFullYear()
-    return practiceHistory.filter(r => {
-      const d = new Date(r.date)
-      return d.getMonth() === currentMonth && d.getFullYear() === currentYear && r.duration > 0 && r.type !== '草稿'
-    }).length
-  }, [practiceHistory, today])
-  const totalHours = useMemo(() => {
-    const localSeconds = practiceHistory.reduce((acc, r) => acc + r.duration, 0)
-    const historicalMinutes = (profile?.historical_days || 0) * (profile?.historical_avg_minutes || 0)
-    return Math.round((localSeconds / 60 + historicalMinutes) / 60)
-  }, [practiceHistory, profile])
-
-  const handleDayClick = (dateStr: string) => {
-    // ⭐ 通过日期找到记录ID，再通过ID找到ref（修复修改日期后无法跳转的问题）
-    const recordId = dateToIdMap[dateStr]
-    if (recordId) {
-      const ref = recordRefs.current[recordId]
-      if (ref) {
-        // Trigger highlight animation
-        setHighlightedDate(dateStr)
-
-        // Scroll to the record
-        ref.scrollIntoView({ behavior: 'smooth', block: 'center' })
-
-        // Clear highlight after animation completes (1s)
-        setTimeout(() => {
-          setHighlightedDate(null)
-        }, 1000)
-      }
-    }
-  }
-
-  // Left click -> Edit record
-  const handleLeftClick = (record: PracticeRecord, e: React.MouseEvent) => {
-    e.stopPropagation()
-    onSetEditingRecord(record)
-  }
-
-  // Right click -> Share card
-  const handleRightClick = (record: PracticeRecord, e: React.MouseEvent) => {
-    e.stopPropagation()
-    setSharingRecordId(record.id)
-  }
-
-  // Share card edit adapter - converts old signature to new
-  const handleShareCardEdit = (id: string, notes: string, photos: string[], breakthrough?: string) => {
-    const updateData: Partial<PracticeRecord> = {
-      notes,
-      photos,
-      ...(breakthrough !== undefined && { breakthrough })
-    }
-    onEditRecord(id, updateData)
-  }
-
-  return (
-    <div ref={scrollContainerRef} className="flex-1 overflow-y-auto pb-24 pt-12 relative">
-      {/* Calendar with integrated header */}
-      <div className="px-6">
-        {!user && (
-          <p
-            className="text-[11px] pl-4 mb-1.5 cursor-pointer"
-            style={{ color: '#C1A268' }}
-            onClick={onOpenFakeDoor}
-          >
-            👇绑定邮箱，免费领 31 天 Pro 会员（绑定后自动发放）
-          </p>
-        )}
-        <MonthlyHeatmap
-          practiceHistory={practiceHistory}
-          practiceOptions={practiceOptions}
-          onDayClick={handleDayClick}
-          onOpenFakeDoor={onOpenFakeDoor}
-          onAddRecord={() => onSetShowAddModal(true)}
-          votedCloud={votedCloud}
-          syncStatus={syncStatus}
-          user={user}
-          annotationMap={annotationMap}
-          onOpenAnnotationManager={onOpenAnnotationManager}
-          onOpenXiaohongshuModal={onOpenXiaohongshuModal}
-          hasNewXhsMessage={hasNewXhsMessage}
-          onReadInvite={onReadInvite}
-          isPro={isPro}
-          onMonthChange={(date) => {
-            // ⭐ 切换月份时重置加载的月份列表
-            setLoadedMonths([date])
-            // ⭐ 通知父组件月份变化
-            onJournalMonthChange?.(date)
-          }}
-        />
-      </div>
-
-      {/* Monthly Stats Card - 独立的统计卡片 */}
-      <div className="px-6 mt-3">
-        <MonthlyStatsCard
-          practiceHistory={practiceHistory}
-          year={loadedMonths[0].getFullYear()}
-          month={loadedMonths[0].getMonth()}
-          onClick={() => setShowStatsShare(true)}
-        />
-      </div>
-
-      {/* Timeline - continuous, split click zones */}
-      <div className="px-2 pb-10 mt-3">
-        {practiceHistory
-          .filter(r => {
-            if (r.type === '草稿') return false
-            // ⭐ 筛选所有已加载月份的记录
-            const d = new Date(r.date)
-            return loadedMonths.some(month =>
-              d.getFullYear() === month.getFullYear() && d.getMonth() === month.getMonth()
-            )
-          })
-          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-          .map((practice, index) => (
-          <motion.div
-            key={practice.id}
-            ref={(el) => { recordRefs.current[practice.id] = el }}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{
-              opacity: 1,
-              y: 0,
-              boxShadow: highlightedDate === practice.date ? [
-                '0 0 0 rgba(230, 126, 34, 0)',
-                '0 0 30px rgba(230, 126, 34, 0.6)',
-                '0 0 0 rgba(230, 126, 34, 0)'
-              ] : '0 0 0 rgba(45, 90, 39, 0)'
-            }}
-            transition={{
-              opacity: { duration: 0.3, delay: index * 0.05 },
-              y: { duration: 0.3, delay: index * 0.05 },
-              boxShadow: {
-                duration: highlightedDate === practice.date ? 1.0 : 0,
-                delay: highlightedDate === practice.date ? 0 : 0,
-                times: highlightedDate === practice.date ? [0, 0.5, 1] : undefined
-              }
-            }}
-            className="flex flex-col rounded-lg"
-          >
-            {/* Single Row Layout - Date-Anchored Alignment with Symmetrical Spacing */}
-            <div className="flex items-start rounded-lg">
-              {/* Left Column: 3-line stack (Date, Duration, Type) - Right-aligned with breathing room */}
-              <button
-                onClick={(e) => handleLeftClick(practice, e)}
-                className="w-[70px] flex-shrink-0 pr-3 pt-1 pb-1 text-right hover:bg-secondary/30 rounded-l-lg transition-colors"
-                style={{ borderRadius: '0.5rem 0 0 0.5rem' }}
-              >
-                <div className="text-sm font-serif italic text-foreground leading-none">{formatDate(practice.date)}</div>
-                {practice.duration > 0 && (
-                  <div className="flex items-center justify-end mt-1">
-                    <span className="text-xs font-serif italic text-muted-foreground leading-none">{formatMinutes(practice.duration)}</span>
-                    <span className="text-xs font-serif italic text-muted-foreground ml-0.5">
-                      分钟
-                    </span>
-                  </div>
-                )}
-                <div className="text-[10px] font-serif italic text-muted-foreground mt-0.5">{getTypeDisplayName(practice.type)}</div>
-              </button>
-              
-              {/* Center: Vertical line with Dot - balanced whitespace on both sides */}
-              <div className="w-[1px] bg-border flex-shrink-0 self-stretch relative">
-                <div className={`absolute mt-[10px] left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full ${moonPhaseMap[practice.date] ? 'bg-[#FFE066] shadow-[0_0_6px_rgba(255,224,102,0.8)]' : practice.breakthrough ? 'bg-gradient-to-br from-[#e67e22] to-[#f39c12]' : 'green-gradient-deep'}`} />
-              </div>
-
-              {/* Right Column: Content - Left-aligned with matching breathing room */}
-              <div className="flex-1 pl-3 pr-8 pb-1">
-                {/* First line: Breakthrough OR Notes - must align with Date */}
-                {practice.breakthrough ? (
-                  <div className="flex items-start gap-1 leading-snug mb-1 mt-[3px]">
-                    <Sparkles className="w-3 h-3 text-[#e67e22] flex-shrink-0 mt-[2px]" />
-                    <span className="text-sm font-serif font-bold text-[#e67e22] leading-snug">{practice.breakthrough}</span>
-                  </div>
-                ) : null}
-                {/* Notes area - Click for Share Card */}
-                <button
-                  onClick={(e) => handleRightClick(practice, e)}
-                  className="w-full text-left hover:bg-secondary/30 rounded-lg transition-colors overflow-hidden"
-                  style={{ borderRadius: '0 0.5rem 0.5rem 0' }}
-                >
-                  <p className="text-sm text-foreground font-serif leading-snug whitespace-pre-wrap break-words w-full text-justify">
-                    {practice.notes}
-                  </p>
-                  {/* ⭐ 照片展示 - 时光轴 */}
-                  {practice.photos && practice.photos.length > 0 && (
-                    <div className={cn(
-                      "mt-2",
-                      practice.photos.length === 1
-                        ? "w-[90%]" // 1张大图：觉察文案宽度的90%
-                        : "grid grid-cols-3 gap-1" // 2张以上：九宫格
-                    )}>
-                      {practice.photos.map((url, idx) => (
-                        <div
-                          key={idx}
-                          className={cn(
-                            "rounded-md overflow-hidden border border-border/50 cursor-pointer",
-                            practice.photos.length === 1
-                              ? "w-full" // 1张：宽度100%（容器已限制90%），高度自适应
-                              : "aspect-square w-full" // 多张：正方形
-                          )}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setPreviewImage(url);
-                          }}
-                        >
-                          <img
-                            src={url}
-                            alt={`照片 ${idx + 1}`}
-                            className={cn(
-                              "w-full",
-                              practice.photos.length === 1 ? "h-auto" : "h-full object-cover"
-                            )}
-                            loading="lazy"
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        ))}
-
-        {/* ⭐ 加载提示 */}
-        {isLoadingMore && (
-          <div className="flex items-center justify-center py-4">
-            <div className="w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-            <span className="ml-2 text-sm text-muted-foreground font-serif">加载中...</span>
-          </div>
-        )}
-
-        {/* ⭐ 底部状态提示 */}
-        {!isLoadingMore && (
-          <div className="flex items-center justify-center py-4">
-            {hasReachedEarliest ? (
-              <span className="text-sm text-muted-foreground font-serif">已经到底啦~</span>
-            ) : (
-              <button
-                onClick={() => {
-                  const lastMonth = loadedMonths[loadedMonths.length - 1]
-                  const prevMonth = new Date(lastMonth.getFullYear(), lastMonth.getMonth() - 1, 1)
-                  setLoadedMonths(prev => [...prev, prevMonth])
-                }}
-                className="text-sm text-muted-foreground font-serif hover:text-foreground transition-colors flex items-center gap-1"
-              >
-                <span>查看更多</span>
-                <ChevronDown className="w-4 h-4" />
-              </button>
-            )}
-          </div>
-        )}
-      </div>
-
-      <EditRecordModal
-        isOpen={!!editingRecord}
-        onClose={() => onSetEditingRecord(null)}
-        record={editingRecord}
-        onSave={onEditRecord}
-        onDelete={onDeleteRecord}
-        practiceOptions={practiceOptions}
-        practiceHistory={practiceHistory}
-        onChildModalOpen={(open) => setChildModalOpen(open)}
-        onOpenVoiceFakeDoor={onOpenVoiceFakeDoor}
-        onOpenPhotoFakeDoor={onOpenPhotoFakeDoor}
-        user={user}
-        userProfile={profile}
-        isPro={isPro}
-      />
-
-      <ShareCardModal
-        isOpen={!!sharingRecord}
-        onClose={() => setSharingRecordId(null)}
-        record={sharingRecord}
-        profile={profile}
-        totalPracticeCount={totalPracticeCount}
-        thisMonthDays={thisMonthDays}
-        totalHours={totalHours}
-        onEditRecord={handleShareCardEdit}
-        onLogExport={onLogExport}
-        syncStatus={syncStatus}
-      />
-
-      <AddPracticeModal
-        isOpen={showAddModal}
-        onClose={() => onSetShowAddModal(false)}
-        onSave={onAddRecord}
-        addRecord={onAddRecord}
-        updateRecord={onEditRecord}
-        deleteRecord={onDeleteRecord}
-        onDeleteDraft={onDeleteRecord}
-        practiceOptions={practiceOptions}
-        practiceHistory={practiceHistory}
-        onChildModalOpen={(open) => setChildModalOpen(open)}
-        onOpenVoiceFakeDoor={onOpenVoiceFakeDoor}
-        onOpenPhotoFakeDoor={onOpenPhotoFakeDoor}
-        user={user}
-        userProfile={profile}
-        isPro={isPro}
-      />
-
-      {/* ⭐ 月度统计分享弹窗 */}
-      <MonthlyStatsShareModal
-        isOpen={showStatsShare}
-        onClose={() => setShowStatsShare(false)}
-        practiceHistory={practiceHistory}
-        year={loadedMonths[0]?.getFullYear() || new Date().getFullYear()}
-        month={loadedMonths[0]?.getMonth() || new Date().getMonth()}
-        profile={profile}
-      />
-
-{/* Back to Top Button - Floating, Jade Glassmorphism */}
-      <AnimatePresence>
-  {showBackToTop && (
-          <motion.button
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            transition={{ duration: 0.5, ease: "easeOut" }}
-            onClick={scrollToTop}
-            className="fixed bottom-32 right-10 z-40 w-14 h-14 rounded-full green-gradient backdrop-blur-md border border-white/20 shadow-[0_8px_32px_rgba(45,90,39,0.4)] flex items-center justify-center text-white hover:shadow-[0_8px_40px_rgba(45,90,39,0.5)] transition-shadow active:scale-95"
-          >
-            <ChevronUp className="w-6 h-6" />
-          </motion.button>
-        )}
-      </AnimatePresence>
-
-      {/* ⭐ 图片预览 Modal */}
-      <AnimatePresence>
-        {previewImage && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60]"
-              onClick={() => setPreviewImage(null)}
-            />
-            {/* 关闭按钮 */}
-            <motion.button
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed top-4 right-4 z-[80] w-10 h-10 rounded-full flex items-center justify-center bg-black/60 hover:bg-black/80 text-white transition-colors shadow-lg"
-              onClick={() => setPreviewImage(null)}
-            >
-              <X className="w-6 h-6" />
-            </motion.button>
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              className="fixed inset-0 z-[70] flex items-center justify-center p-4 overflow-y-auto"
-              onClick={() => setPreviewImage(null)}
-            >
-              <img
-                src={previewImage}
-                alt="预览"
-                className="w-[90%] max-w-[900px] h-auto object-contain rounded-2xl my-auto"
-                onClick={(e) => e.stopPropagation()}
-                draggable={false}
-              />
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-    </div>
-  )
-}
-
-// PRO Badge Component — 遵循设计规范
-function ProBadge({ isPro, daysRemaining }: { isPro: boolean; daysRemaining?: number }) {
-  if (!isPro) {
-    return (
-      <span className="ml-2 px-2 py-0.5 text-[10px] font-serif rounded-full bg-[#E8EDE7] text-[#6B7280] border border-[#E5E5E5]">
-        FREE
-      </span>
-    )
-  }
-
-  return (
-    <span className="ml-2 px-2 py-0.5 text-[10px] font-serif rounded-full bg-gradient-to-r from-[#C1A268] to-[#D4AF37] text-white shadow-sm">
-      PRO
-    </span>
-  )
-}
-
-function StatsTab({
-  practiceHistory,
-  practiceOptions,
-  profile,
-  membership,
-  membershipLoading,
-  onOpenSettings,
-  onOpenMembership,
-  onOpenFakeDoor,
-  showXiaohongshuModal,
-  setShowXiaohongshuModal,
-  user,
-  showPWAInstallTutorial,
-  setShowPWAInstallTutorial,
-}: {
-  practiceHistory: PracticeRecord[]
-  practiceOptions: PracticeOption[]
-  profile: UserProfile
-  membership: { is_active: boolean; expires_at_formatted: string | null; days_remaining: number; type: 'quarter' | 'year' | null } | null
-  membershipLoading: boolean
-  onOpenSettings: () => void
-  onOpenMembership: () => void
-  onOpenFakeDoor: () => void
-  showXiaohongshuModal: boolean
-  setShowXiaohongshuModal: (value: boolean) => void
-  user?: any
-  showPWAInstallTutorial: boolean
-  setShowPWAInstallTutorial: (value: boolean) => void
-}) {
-  // 隐藏邮箱的辅助函数
-  const maskEmail = (email: string): string => {
-    if (!email) return ''
-
-    const [username, domain] = email.split('@')
-    if (!username || !domain) return email
-
-    // 用户名长度处理：前3位 + **** + 后3位
-    if (username.length <= 6) {
-      // 用户名太短，只显示前3位
-      return username.slice(0, 3) + '***@' + domain
-    }
-
-    const prefix = username.slice(0, 3)
-    const suffix = username.slice(-3)
-    return `${prefix}****${suffix}@${domain}`
-  }
-
-  const { isInstallable, promptInstall } = usePWAInstall()
-
-    const handleInstallClick = async () => {
-    // 检查是否已经安装到主屏幕
-    const isInstalled = window.matchMedia('(display-mode: standalone)').matches
-
-    if (isInstalled) {
-      // 已安装到主屏幕，推荐给朋友
-      toast('💚 已安装到主屏幕！推荐给朋友一起练习吧', {
-        duration: 3000,
-      })
-      return
-    }
-
-    const installed = await promptInstall()
-    if (installed) {
-      toast.success('✅ 已安装到主屏幕！现在可以从主屏幕打开了')
-    } else {
-      // 无法自动弹出安装提示，显示图片教程弹窗
-      setShowPWAInstallTutorial(true)
-    }
-  }
-  const [hasVotedPro] = useLocalStorage('has_voted_pro', false)
-
-  const today = new Date()
-  const todayStr = getLocalDateStr()
-
-  // Calculate stats - Current month only (from 1st to today)
-  const currentMonthStats = useMemo(() => {
-    const currentMonth = today.getMonth()
-    const currentYear = today.getFullYear()
-    let practiceDays = 0
-    let totalSeconds = 0
-
-    practiceHistory.forEach((record) => {
-      const date = new Date(record.date)
-      // Check if record is in current month and year, and not in future (by string comparison for safety)
-      if (date.getMonth() === currentMonth && date.getFullYear() === currentYear && record.date <= todayStr) {
-        if (record.duration > 0) {
-          practiceDays++
-          totalSeconds += record.duration
-        }
-      }
-    })
-
-    const totalMinutes = Math.round(totalSeconds / 60)
-    const avgDuration = practiceDays > 0 ? Math.round(totalSeconds / practiceDays / 60) : 0
-
-    return { practiceDays, totalMinutes, avgDuration }
-  }, [practiceHistory, today, todayStr])
-
-  // Total stats (all time) - 包含历史数据校准
-  const totalStats = useMemo(() => {
-    let localDays = 0
-    let localSeconds = 0
-
-    practiceHistory.forEach((record) => {
-      if (record.duration > 0) {
-        localDays++
-        localSeconds += record.duration
-      }
-    })
-
-    // 添加历史数据
-    const historicalDays = profile?.historical_days || 0
-    const historicalAvgMinutes = profile?.historical_avg_minutes || 0
-    const totalDays = localDays + historicalDays
-    const localMinutes = Math.round(localSeconds / 60)
-    const historicalMinutes = historicalDays * historicalAvgMinutes
-    const totalMinutes = localMinutes + historicalMinutes
-
-    const avgMinutes = totalDays > 0 ? Math.round(totalMinutes / totalDays) : 0
-
-    return {
-      localDays,
-      totalDays,
-      totalHours: Math.round(totalMinutes / 60),
-      avgMinutes,
-    }
-  }, [practiceHistory, profile])
-
-  const dynamicText = '练习是连贯的珍珠'
-
-  // 月分组热力图类型
-  const UNIFIED_COLS = 16
-
-  interface HeatmapDot {
-    date: string
-    count: number
-    colorLevel: number
-  }
-
-  interface MonthGroup {
-    monthKey: string
-    monthLabel: string
-    days: HeatmapDot[]
-  }
-
-  // 按月份分组，固定显示当前年份，统一16列，1月→12月正序
-  const currentYear = today.getFullYear()
-  const moonPhaseMap = useMemo(() => getMoonPhaseMap(), [])
-
-  // 练习类型 → 色阶等级
-  const typeColorMap = useMemo(() => {
-    const map: Record<string, number> = {}
-    practiceOptions.forEach(o => {
-      map[o.label] = getEffectiveOptionColor(practiceOptions, o.label, !!membership?.is_active)
-    })
-    return map
-  }, [practiceOptions, membership?.is_active])
-
-  const monthGroups = useMemo(() => {
-    if (!practiceHistory.length) return []
-
-    // 建立 date → { totalSeconds, maxColorLevel } 映射
-    const dayDataMap = new Map<string, { totalSeconds: number; maxColorLevel: number }>()
-    practiceHistory.forEach((r) => {
-      const prev = dayDataMap.get(r.date) ?? { totalSeconds: 0, maxColorLevel: 0 }
-      prev.totalSeconds += r.duration
-      const level = (r as any).color_level ?? typeColorMap[r.type] ?? 3
-      if (level > prev.maxColorLevel) prev.maxColorLevel = level
-      dayDataMap.set(r.date, prev)
-    })
-
-    const startDate = new Date(currentYear, 0, 1)  // 1月1日
-    const endDate = new Date(currentYear, 11, 31)  // 12月31日，显示全年
-
-    const groups = new Map<string, HeatmapDot[]>()
-    const cursor = new Date(startDate)
-    while (cursor <= endDate) {
-      const monthKey = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}`
-      if (!groups.has(monthKey)) groups.set(monthKey, [])
-
-      const dateStr = getLocalDateStr(cursor)
-      const data = dayDataMap.get(dateStr)
-      const totalSeconds = data?.totalSeconds ?? 0
-      const count = Math.round(totalSeconds / 60)
-      const colorLevel = data?.maxColorLevel ?? 0
-      groups.get(monthKey)!.push({ date: dateStr, count, colorLevel })
-
-      cursor.setDate(cursor.getDate() + 1)
-    }
-
-    // 正序：1月 → 12月
-    return Array.from(groups.entries())
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([monthKey, days]) => ({
-        monthKey,
-        monthLabel: `${parseInt(monthKey.split('-')[1])}月`,
-        days,
-      }))
-  }, [practiceHistory, currentYear, typeColorMap])
-
-  // Dot config — 固定值，不依赖 viewMode
-  const dotConfig = {
-    gap: 4,
-    dotSize: 12,
-    radius: 3,
-    cols: UNIFIED_COLS,
-    labelWidth: 32,
-    labelFontSize: 11,
-    sectionGap: 8,
-  } as const
-
-  return (
-    <div className="flex-1 overflow-y-auto pb-24 pt-4">
-      {/* Header - install and settings icons */}
-      <div className="px-6 flex items-center justify-between mb-4 pt-10">
-        {/* Install button - always show */}
-        <button
-          onClick={handleInstallClick}
-          className="p-2 text-muted-foreground hover:text-foreground transition-colors"
-          title="安装到主屏幕"
-        >
-          <Download className="w-5 h-5" />
-        </button>
-
-        <button
-          onClick={onOpenSettings}
-          className="p-2 text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <Settings className="w-5 h-5" />
-        </button>
-      </div>
-
-      {/* PWA Install Banner */}
-      <PWAInstallBanner />
-<PWAInstallTutorialModal
-        isOpen={showPWAInstallTutorial}
-        onClose={() => setShowPWAInstallTutorial(false)}
-      />
-
-      <div className="px-6 pb-48">
-        {/* Profile Section with PRO Badge - NOW FIRST */}
-        <div className="flex flex-col items-center mb-6">
-          {/* 头像容器 */}
-          <div className="relative mb-3">
-            {/* 头像 */}
-            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[rgba(45,90,39,0.85)] to-[rgba(74,122,68,0.7)] backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] flex items-center justify-center overflow-hidden">
-              {profile.avatar ? (
-                <img src={profile.avatar || "/placeholder.svg"} alt="头像" className="w-full h-full object-cover" />
-              ) : (
-                <User className="w-10 h-10 text-white" />
-              )}
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-xl font-serif text-[#2D5A27]">{profile.name}</h2>
-            {(() => { console.log('[StatsTab] membership:', membership, 'loading:', membershipLoading); return null })()}
-            {membershipLoading ? (
-              <span className="ml-2 px-2 py-0.5 text-[10px] font-serif rounded-full bg-gray-100 text-gray-400">
-                加载中...
-              </span>
-            ) : (
-              <ProBadge isPro={membership?.is_active ?? false} daysRemaining={membership?.days_remaining} />
-            )}
-          </div>
-
-          {/* 会员状态显示 — 遵循设计规范 */}
-          {membershipLoading ? (
-            <div className="mt-2 flex items-center gap-2 px-4 py-2 text-xs text-gray-400 font-serif">
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              <span>正在加载会员状态...</span>
-            </div>
-          ) : membership?.is_active ? (
-            <div className="mt-2 flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#F9F7F2] to-[#F5F0E8] rounded-full border border-[#C1A268]/30">
-              <Crown className="w-4 h-4 text-[#C1A268]" />
-              <span className="text-xs text-[#8B7355] font-serif">
-                Pro 有效期至 {membership.expires_at_formatted}
-              </span>
-              <span className="text-[10px] text-[#C1A268]">
-                · {membership.days_remaining}天
-              </span>
-            </div>
-          ) : (
-            <button
-              onClick={onOpenMembership}
-              className="mt-2 flex items-center gap-2 px-4 py-2 text-xs text-[#8B7355] hover:text-[#6B5A47] font-serif bg-[#F9F7F2] hover:bg-[#F5F0E8] rounded-full border border-[#C1A268]/30 transition-colors"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-[#C1A268]" />
-              <span>升级 Pro 解锁更多功能</span>
-              <ChevronRight className="w-3.5 h-3.5" />
-            </button>
-          )}
-          <p className="text-[10px] font-mono text-gray-400 mt-1">
-            ID: {user?.email ? maskEmail(user.email) : (profile.id?.slice(0, 8) || 'ANONYMOUS')}
-          </p>
-          <p className="text-sm text-muted-foreground font-serif mt-1">{profile.signature}</p>
-        </div>
-
-        {/* Stats Cards - NOW SECOND */}
-        <div className="grid grid-cols-3 gap-3 mb-4">
-          <div className="bg-white rounded-[20px] p-4 text-center shadow-md border border-stone-200">
-            <div className="text-2xl font-serif text-primary">{totalStats.totalDays}</div>
-            <div className="text-xs text-muted-foreground font-serif mt-1">总熬汤天数</div>
-          </div>
-          <div className="bg-white rounded-[20px] p-4 text-center shadow-md border border-stone-200">
-            <div className="text-2xl font-serif text-primary">{totalStats.totalHours}</div>
-            <div className="text-xs text-muted-foreground font-serif mt-1">总熬汤时长（小时）</div>
-          </div>
-          <div className="bg-white rounded-[20px] p-4 text-center shadow-md border border-stone-200">
-            <div className="text-2xl font-serif text-primary">{totalStats.avgMinutes}</div>
-            <div className="text-xs text-muted-foreground font-serif mt-1">平均分钟</div>
-          </div>
-        </div>
-
-        {/* Flowing Grid Heatmap - NOW THIRD */}
-        <div className="bg-white rounded-[20px] shadow-md border border-stone-200 overflow-hidden">
-          {/* Single-Row Header: Poetry (Left) + Data (Right) */}
-          <div className="flex items-center justify-between px-4 py-3">
-            {/* Left: Philosophy Title - Serif, Italic, clean text */}
-            <AnimatePresence mode="wait">
-              <motion.h3
-                key={dynamicText}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                className="text-sm font-serif italic text-stone-500"
-              >
-                {dynamicText}
-              </motion.h3>
-            </AnimatePresence>
-            
-          </div>
-
-          {/* Flowing Dots Grid by Month — Breathing Fade animation */}
-          <div className="p-4 pt-0">
-            {monthGroups.length === 0 ? (
-              <div className="text-center text-sm text-stone-400 font-serif py-8">
-                暂无练习数据
-              </div>
-            ) : (
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key="heatmap"
-                  initial={{ opacity: 0, scale: 1.05 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{
-                    enter: { duration: 0.3, ease: "easeOut" },
-                    exit: { duration: 0.15 }
-                  }}
-                  className="flex flex-col"
-                  style={{ gap: dotConfig.sectionGap }}
-                >
-                  {monthGroups.map((month) => (
-                    <div key={month.monthKey} className="flex items-start" style={{ gap: dotConfig.gap }}>
-                      {/* 月份标签 — 1个dot宽度，占2行高度 */}
-                      <div
-                        className="text-xs text-zinc-400 font-serif italic shrink-0 flex items-center justify-start"
-                        style={{
-                          width: dotConfig.labelWidth,
-                          height: dotConfig.dotSize,
-                        }}
-                      >
-                        {month.monthLabel}
-                      </div>
-
-                      {/* 2行网格 — 固定16列 */}
-                      <div
-                        className="grid flex-1"
-                        style={{
-                          gridTemplateColumns: `repeat(${UNIFIED_COLS}, minmax(0, 1fr))`,
-                          gap: dotConfig.gap,
-                        }}
-                      >
-                        {month.days.map((day) => {
-                          const moonInfo = moonPhaseMap[day.date]
-                          const isMoonDay = !!moonInfo
-                          const hasPractice = day.count > 0
-                          // 新月/满月 + 无练习 → 灰色底圆 + 月相图标
-                          if (isMoonDay && !hasPractice) {
-                            return (
-                              <div
-                                key={day.date}
-                                className="rounded-full w-[12px] h-[12px] bg-stone-100"
-                                style={{
-                                  backgroundImage: `url(${moonInfo!.icon})`,
-                                  backgroundSize: '115%',
-                                  backgroundPosition: 'center',
-                                }}
-                                title={`${day.date}: ${moonInfo!.name}`}
-                              />
-                            )
-                          }
-                          // 新月/满月 + 有练习 → 绿色底 + 中间小黄点(2px)
-                          if (isMoonDay) {
-                            return (
-                              <div key={day.date} className="relative w-[12px] h-[12px] flex items-center justify-center" title={`${day.date}: ${day.count} 分钟 · ${moonInfo!.name}`}>
-                                <div className={`${getColorClass(day.colorLevel || 3)} rounded-full w-[12px] h-[12px] shadow-[0_2px_8px_rgba(45,90,39,0.3)]`} />
-                                <div className="absolute w-[2px] h-[2px] rounded-full bg-[#FFE066] shadow-[0_0_4px_rgba(255,224,102,0.8)]" />
-                              </div>
-                            )
-                          }
-                          // 普通日
-                          const dayColor = day.colorLevel > 0 ? getColorClass(day.colorLevel) : 'bg-stone-100'
-                          return (
-                            <div
-                              key={day.date}
-                              className={`${dayColor} rounded-full w-[12px] h-[12px]`}
-                              title={`${day.date}: ${day.count} 分钟`}
-                            />
-                          )
-                        })}
-                      </div>
-                    </div>
-                  ))}
-                </motion.div>
-              </AnimatePresence>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// Breathing Ripple Component - can be paused
-function BreathingRipples({ isPaused }: { isPaused: boolean }) {
-  if (isPaused) return null
-  
-  return (
-    <>
-      <div className="absolute inset-0 rounded-full border-2 border-primary/30 animate-ripple" />
-      <div className="absolute inset-0 rounded-full border-2 border-primary/20 animate-ripple-delayed" />
-    </>
-  )
-}
-
-function clean_html(text: string): string {
-  if (!text) return ''
-  // 移除 HTML 标签
-  text = text.replace(/<[^>]*>/g, '')
-  // 解码 HTML 实体
-  text = text.replace(/&nbsp;/g, ' ')
-  text = text.replace(/&lt;/g, '<')
-  text = text.replace(/&gt;/g, '>')
-  text = text.replace(/&amp;/g, '&')
-  text = text.replace(/&quot;/g, '"')
-  // 移除多余空行（保留单个换行）
-  text = text.replace(/\n{3,}/g, '\n\n')
-  return text.trim()
+const APP_LOCAL_STORAGE_KEYS = [
+  'ashtanga_records',
+  'ashtanga_options',
+  'ashtanga_profile',
+  'ashtanga_uuid',
+  'ashtanga_is_practicing',
+  'ashtanga_is_paused',
+  'ashtanga_start_time',
+  'ashtanga_pause_start_time',
+  'ashtanga_total_paused_time',
+  'ashtanga_active_practice',
+  'ashtanga_chant_enabled',
+  'ashtanga_chant_delay',
+  'ashtanga_export_logs',
+  'ashtanga_photo_logs',
+  'sync_logs',
+  'failed_sync_ids',
+  '__debug_sync__',
+  '__errorHistory',
+  '__signing_out__',
+]
+
+function clearAppLocalStorage() {
+  APP_LOCAL_STORAGE_KEYS.forEach((key) => localStorage.removeItem(key))
 }
 
 export default function AshtangaTracker() {
+  const router = useRouter()
   const {
     records: practiceHistory,
     options: practiceOptionsData,
@@ -4260,21 +142,35 @@ export default function AshtangaTracker() {
   const [selectedOption, setSelectedOption] = useState<string | null>(null)
   const [todayCount, setTodayCount] = useState<number | null>(null)
   const [customPracticeName, setCustomPracticeName] = useState("")
-  const [isPracticing, setIsPracticing] = useLocalStorage('ashtanga_is_practicing', false)
-  const [isPaused, setIsPaused] = useLocalStorage('ashtanga_is_paused', false)
-  const [startTime, setStartTime] = useLocalStorage<number | null>('ashtanga_start_time', null)
-  const [pauseStartTime, setPauseStartTime] = useLocalStorage<number | null>('ashtanga_pause_start_time', null)
-  const [totalPausedTime, setTotalPausedTime] = useLocalStorage<number>('ashtanga_total_paused_time', 0)
-  const [elapsedTime, setElapsedTime] = useState(0)
+  const {
+    isPracticing,
+    isPaused,
+    totalPausedTime,
+    elapsedTime,
+    showConfirmEnd,
+    showCompletion,
+    finalDuration,
+    isHydrated: sessionHydrated,
+    activePractice,
+    completedStartTimeRef: startTimeRef,
+    start: startPracticeSession,
+    restartTimer: restartPracticeTimer,
+    pause: pausePracticeSession,
+    resume: resumePracticeSession,
+    requestEnd: requestPracticeEnd,
+    cancelEnd: cancelPracticeEnd,
+    confirmEnd: confirmPracticeEnd,
+    discardEnd: discardPracticeEnd,
+    finishCompletion,
+  } = usePracticeSession()
   const [showEditModal, setShowEditModal] = useState(false)
   const [showCustomModal, setShowCustomModal] = useState(false)
   const [editingOption, setEditingOption] = useState<PracticeOption | null>(null)
   const [editingRecord, setEditingRecord] = useState<PracticeRecord | null>(null)
   const [showAddModal, setShowAddModal] = useState(false)
-  const [showConfirmEnd, setShowConfirmEnd] = useState(false)
-  const [showCompletion, setShowCompletion] = useState(false)
-  const [finalDuration, setFinalDuration] = useState("")
-  const [activeTab, setActiveTab] = useState<'practice' | 'journal' | 'stats'>('practice')
+  const [activeTab, setActiveTab] = useState<PracticeTab>('practice')
+  const [posesDetailOpen, setPosesDetailOpen] = useState(false)
+  const autoPauseRef = useRef(false)
 
   // ⭐ 读取 URL 参数，切换 Tab（客户端 only，只执行一次）
   useEffect(() => {
@@ -4287,6 +183,8 @@ export default function AshtangaTracker() {
       setActiveTab('journal')
     } else if (tab === 'practice') {
       setActiveTab('practice')
+    } else if (tab === 'poses') {
+      setActiveTab('poses')
     }
     // 清除 URL 参数，避免刷新时再次触发
     if (tab) {
@@ -4298,7 +196,6 @@ export default function AshtangaTracker() {
   const [settingsInitialSection, setSettingsInitialSection] = useState<'profile' | 'membership' | 'account' | 'data'>('profile')
   const [showAccountSync, setShowAccountSync] = useState(false)
   const [showActivateModal, setShowActivateModal] = useState(false)
-  const [showPurchaseModal, setShowPurchaseModal] = useState(false)
   const [showMembershipPrompt, setShowMembershipPrompt] = useState(false)
   const [membershipPromptReason, setMembershipPromptReason] = useState<'options_full' | 'locked_option' | 'locked_practice' | 'locked_annotation' | 'color_level'>('options_full')
   const [showFakeDoor, setShowFakeDoor] = useState<{ type: 'cloud' | 'pro' | 'voice' | 'photo', isOpen: boolean }>({ type: 'cloud', isOpen: false })
@@ -4322,55 +219,87 @@ export default function AshtangaTracker() {
   // 清空数据确认弹窗状态
   const [showClearDataConfirm, setShowClearDataConfirm] = useState(false)
   const [clearDataStep, setClearDataStep] = useState<1 | 2 | 3>(1)
+
+  // 恢复练习状态后，如果是口令模式则自动加载音频
+  // 仅在 hydration 时触发（sessionHydrated 从 false→true），activePractice 变化不触发
+  // 避免新练习开始时误触发 auto-pause
+  useEffect(() => {
+    if (!sessionHydrated) return
+    if (!activePractice) return
+    if (activePractice.optionId !== 'guided_audio') return
+    const wasPaused = isPaused
+    loadGuidedAudio()
+    // 标记：onReady resume 后需重新暂停
+    if (wasPaused) autoPauseRef.current = true
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionHydrated])
+
+  // 自动暂停：音频加载完毕后 onReady 会 resume，此 effect 检测到 isPaused 变化后重新暂停
+  useEffect(() => {
+    if (!autoPauseRef.current) return
+    if (isPaused) return
+    if (!isPracticing) return
+    autoPauseRef.current = false
+    pausePracticeSession(Date.now())
+  }, [isPaused, isPracticing])
+
   const [confirmPhrase, setConfirmPhrase] = useState('')
   const [isSaving, setIsSaving] = useState(false)
-
-  // 音频播放器状态
-  const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null)
-  const [audioProgress, setAudioProgress] = useState(0)  // 0-100
-  const [audioDuration, setAudioDuration] = useState(0)  // 总时长（秒）
-  const [audioCurrentTime, setAudioCurrentTime] = useState(0)  // 当前时间（秒）
-  const [isAudioLoaded, setIsAudioLoaded] = useState(false)
-  const [isAudioLoading, setIsAudioLoading] = useState(false)  // 加载中状态
-  const [audioError, setAudioError] = useState<string | null>(null)  // 加载错误
-  const [seekStep, setSeekStep] = useState<number>(15)  // 快进/后退步长（默认15秒）
-  const [audioDownloadProgress, setAudioDownloadProgress] = useState<number>(0)  // 下载进度（0-100）
-  const [isUsingCache, setIsUsingCache] = useState<boolean>(false)  // 是否使用缓存
-  const [isBackgroundCaching, setIsBackgroundCaching] = useState<boolean>(false)  // 后台缓存中
-  const audioBlobUrlRef = useRef<string | null>(null)  // Blob URL 追踪（防内存泄漏）
 
   // 唱诵状态
   const [chantEnabled, setChantEnabled] = useLocalStorage('ashtanga_chant_enabled', false)
   const [chantDelay, setChantDelay] = useLocalStorage('ashtanga_chant_delay', 60) // 秒
-  const [isChantCountdown, setIsChantCountdown] = useState(false)
-  const [chantCountdown, setChantCountdown] = useState(0) // 剩余秒数
-  const [isChantPlaying, setIsChantPlaying] = useState(false)
+  const chantDelaySeconds = chantDelay ?? 60
   const [showChantSettings, setShowChantSettings] = useState(false)
   const [chantMins, setChantMins] = useState(1)
   const [chantSecs, setChantSecs] = useState(0)
-  const chantAudioRef = useRef<HTMLAudioElement | null>(null)
-  const chantCountdownRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  const {
+    progress: audioProgress,
+    duration: audioDuration,
+    currentTime: audioCurrentTime,
+    isLoaded: isAudioLoaded,
+    isLoading: isAudioLoading,
+    error: audioError,
+    seekStep,
+    isUsingCache,
+    setSeekStep,
+    load: loadGuidedAudio,
+    retry: retryGuidedAudio,
+    pause: pauseGuidedAudio,
+    play: playGuidedAudio,
+    seek: handleAudioSeek,
+    reset: resetGuidedAudio,
+  } = useGuidedAudio({
+    source: GUIDED_AUDIO_OPTION.audio_src || '',
+    onReady: resumePracticeSession,
+    onEnded: requestPracticeEnd,
+  })
+
+  const {
+    isCountdown: isChantCountdown,
+    countdown: chantCountdown,
+    isPlaying: isChantPlaying,
+    start: startChantCountdown,
+    skip: skipChantCountdown,
+    reset: resetChantPlayback,
+  } = useChantPlayback({
+    delaySeconds: chantDelaySeconds,
+    onStart: (context, now) => { startPracticeSession(true, now, context) },
+    onFinished: restartPracticeTimer,
+    onError: () => { toast.error('唱诵音频加载失败') },
+  })
 
   // 今日练习人数
   const [todayPracticeCount, setTodayPracticeCount] = useState<number>(0)
   const [todayCountLoading, setTodayCountLoading] = useState(true)
 
-  // ⭐ 用于保存练习开始时间（在 handleConfirmEnd 重置 startTime state 后仍能使用）
-  const startTimeRef = useRef<number | null>(null)
-
-  const [exportLogs, setExportLogs] = useLocalStorage<{
-    timestamp: string
-    success: boolean
-    error?: string
-    userAgent: string
-    recordDate?: string
-  }[]>('ashtanga_export_logs', [])
+  const [exportLogs, setExportLogs] = useLocalStorage<PracticeExportLog[]>('ashtanga_export_logs', [])
 
   // ⭐ 页面可见性变化时刷新会员状态（从设置页返回时）
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        console.log('[Practice] 页面重新可见，刷新会员状态')
         refreshMembership()
       }
     }
@@ -4401,8 +330,6 @@ export default function AshtangaTracker() {
     async (data) => {
       // 同步完成后的回调：更新本地数据
       if (data.records) {
-        console.log('🔄 同步完成，更新本地数据...')
-        console.log('   云端记录数:', data.records.length)
 
         try {
           // ⭐ 保存当前正在编辑的记录ID（在清空数据前）
@@ -4410,29 +337,20 @@ export default function AshtangaTracker() {
 
           // 清空本地数据
           clearAllData()
-          console.log('   ✅ 本地数据已清空')
 
           // 导入云端数据（importData 需要 JSON 字符串）
           const jsonData = JSON.stringify(data)
           const importResult = importData(jsonData)
 
           if (importResult) {
-            console.log('   ✅ 云端数据已导入')
 
             // ⭐ 重新设置正在编辑的记录（从新的记录列表中查找）
             if (editingRecordId) {
               const newEditingRecord = data.records.find((r: PracticeRecord) => r.id === editingRecordId)
-              console.error('   🔍 [Sync] 查找编辑记录:', {
-                editingRecordId,
-                found: !!newEditingRecord,
-                cloudRecordCount: data.records.length
-              })
               if (newEditingRecord) {
                 setEditingRecord(newEditingRecord)
-                console.error('   ✅ [Sync] 已恢复编辑状态')
                 toast.success('同步完成，编辑状态已恢复')
               } else {
-                console.error('   ❌ [Sync] 编辑的记录在云端找不到，保持本地编辑状态')
                 toast.warning('同步提示：新记录尚未上传到云端，继续编辑')
                 // 不要关闭弹窗，让用户继续编辑
                 // setEditingRecord(null)
@@ -4446,8 +364,7 @@ export default function AshtangaTracker() {
           } else {
             throw new Error('导入云端数据失败')
           }
-        } catch (error: any) {
-          console.error('   ❌ 更新本地数据失败:', error)
+        } catch {
           toast.error('❌ 同步数据失败，请重试', {
             duration: 3000,
             position: 'top-center'
@@ -4464,34 +381,37 @@ export default function AshtangaTracker() {
   )
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
-  const lastTapRef = useRef<{ id: string; time: number } | null>(null)
 
   // 跟踪子组件内部的弹窗状态（无法直接访问）
   const [childModalOpen, setChildModalOpen] = useState(false)
 
   // 派生状态：判断是否有需要隐藏导航栏的弹窗打开
-  const hasAnyModalOpen = useMemo(() => {
-    return (
-      showEditModal ||
-      editingOption !== null ||
-      showAddModal ||
-      showSettings ||
-      childModalOpen ||  // 子组件的弹窗（包含确认删除等）
-      editingRecord !== null ||  // 编辑记录弹窗
-      showConfirmEnd ||  // 确认结束弹窗
-      showCompletion    // 完成练习弹窗
-    )
-  }, [
+  const hasAnyModalOpen = hasOpenPracticeOverlay({
     showEditModal,
-    showEditModal,
-    editingOption,
+    showCustomModal,
+    editingOption: editingOption !== null,
     showAddModal,
     showSettings,
     childModalOpen,
-    editingRecord,
+    editingRecord: editingRecord !== null,
     showConfirmEnd,
-    showCompletion
-  ])
+    showCompletion,
+    posesDetailOpen,
+    showAnnotationManager,
+    showAccountSync,
+    showActivateModal,
+    showMembershipPrompt,
+    showFakeDoor: showFakeDoor.isOpen,
+    showImportModal,
+    showDebugLogModal,
+    showExportModal,
+    showAuthModal,
+    showPWAInstallTutorial,
+    showDataConflict,
+    showClearDataConfirm,
+    showChantSettings,
+    showXiaohongshuModal,
+  })
 
   // Initialize practice options from hook data
   useEffect(() => {
@@ -4505,10 +425,12 @@ export default function AshtangaTracker() {
       // 固定按钮（第一行）
       ...FIXED_BUTTONS.map(b => ({
         id: b.id,
+        created_at: '',
         label: b.id === 'today_count' ? (todayCount !== null ? String(todayCount) : '--') : b.label,
         notes: b.id === 'chant_switch'
-          ? (chantEnabled ? `${chantDelay}秒后播放` : '关')
+          ? (chantEnabled ? `${chantDelaySeconds}秒后播放` : '关')
           : b.notes,
+        is_custom: false,
         isCustom: false,
         is_fixed: true,      // 固定按钮
         is_preset: b.id === 'guided_audio',  // 口令跟练显示喇叭图标
@@ -4517,17 +439,19 @@ export default function AshtangaTracker() {
       // 用户选项
       ...userOptions.map(o => ({
         id: o.id,
+        created_at: o.created_at,
         label: o.label,
         notes: o.notes,
+        is_custom: o.is_custom,
         isCustom: o.is_custom,
         is_fixed: false,
         can_edit: o.can_edit,
         color_level: o.color_level
       })),
       // 自定义按钮
-      { id: "custom", label: "自定义", notes: null, isCustom: false }
+      { id: "custom", created_at: '', label: "自定义", notes: '', is_custom: false, isCustom: false }
     ])
-  }, [practiceOptionsData, todayCount, chantEnabled, chantDelay])
+  }, [practiceOptionsData, todayCount, chantEnabled, chantDelaySeconds])
 
   // 获取今日练习次数
   const fetchTodayCount = useCallback(() => {
@@ -4572,293 +496,45 @@ export default function AshtangaTracker() {
     }
   }, [isPracticing])
 
-  // Timer logic - Timestamp based for background/lock screen support
-  useInterval(() => {
-    if (isPracticing && !isPaused && startTime) {
-      const now = Date.now()
-      const diff = Math.floor((now - startTime - (totalPausedTime || 0)) / 1000)
-      setElapsedTime(Math.max(0, diff))
-    }
-  }, isPracticing && !isPaused ? 1000 : null)
-
-  // Sync elapsed time on resume/mount
-  useEffect(() => {
-    if (isPracticing && startTime) {
-      const now = Date.now()
-      const pausedAt = isPaused ? (pauseStartTime || now) : now
-      const currentTotalPaused = (totalPausedTime || 0) + (isPaused ? (now - (pauseStartTime || now)) : 0)
-      const diff = Math.floor((pausedAt - startTime - (totalPausedTime || 0)) / 1000)
-      setElapsedTime(Math.max(0, diff))
-    }
-  }, [])
-
-  const handleOptionTap = (option: PracticeOption) => {
-    const now = Date.now()
-    const lastTap = lastTapRef.current
-
-    // Check for double tap (within 300ms on the same option)
-    if (lastTap && lastTap.id === option.id && now - lastTap.time < 300) {
-      lastTapRef.current = null
-      // 固定按钮双击
-      if (option.is_fixed) {
-        if (option.id === 'chant_switch') {
-          setChantMins(Math.floor(chantDelay / 60))
-          setChantSecs(chantDelay % 60)
-          setShowChantSettings(true)
-        }
-        return
-      }
-      // Double tap - open edit modal (but not for custom button and preset options)
-      // 预设选项不能编辑
-      if (option.id !== "custom" && !option.is_preset && option.can_edit !== false) {
-        setEditingOption(option)
-        setShowEditModal(true)
-      } else if (option.is_preset || option.can_edit === false) {
-        toast('预设按钮暂不支持编辑')
-      }
-      return
-    }
-
-    // Single tap - store for double tap detection
-    lastTapRef.current = { id: option.id, time: now }
-
-    // 固定按钮特殊处理（单击）
-    if (option.is_fixed) {
-      if (option.id === "guided_audio") {
-        // 口令跟练：直接选中
-        // 互斥：如果唱诵开启，先关闭唱诵
-        if (chantEnabled) {
-          setChantEnabled(false)
-          toast('已关闭唱诵')
-        }
-        setSelectedOption('guided_audio')
-        setCustomPracticeName("")
-      } else if (option.id === 'today_count') {
-        fetchTodayCount()
-        toast('今天你熬汤了吗？')
-      } else if (option.id === 'chant_switch') {
-        const newEnabled = !chantEnabled
-        setChantEnabled(newEnabled)
-        if (newEnabled) {
-          toast('唱诵已开启')
-          // 互斥：如果当前选中口令跟练，取消选中
-          if (selectedOption === 'guided_audio') {
-            setSelectedOption(null)
-            toast('已关闭口令跟练')
-          }
-        } else {
-          toast('唱诵已关闭')
-        }
-      }
-      return
-    }
-
-    // Select the option
-    if (option.id === "custom") {
-      if (isOptionsFull && !membershipIsPro) {
-        // 免费用户已满 → 会员转化弹窗
-        setMembershipPromptReason('options_full')
-        setShowMembershipPrompt(true)
-      } else {
-        setShowCustomModal(true)
-      }
-    } else if (lockedOptionIds.has(option.id)) {
-      // 锁定选项：单击打开会员转化弹窗
-      setMembershipPromptReason('locked_option')
-      setShowMembershipPrompt(true)
-    } else {
-      setSelectedOption(option.id)
-      setCustomPracticeName("")
-    }
-  }
-
-  const handleEditSave = (id: string, name: string, notes: string, colorLevel?: number) => {
-    // 免费用户：被锁定的色阶强制降为 3
-    const safeColorLevel = (!membershipIsPro && (colorLevel === 1 || colorLevel === 4)) ? 3 : (colorLevel ?? 3)
-    // Update localStorage (also persists color_level for type default)
-    updateOption(id, name, notes, safeColorLevel)
-
-    // Update local state (including color_level)
-    setPracticeOptions(prev => prev.map(o =>
-      o.id === id ? { ...o, label: name, notes, color_level: safeColorLevel } : o
-    ))
-
-    toast.success('已保存修改')
-
-    // 如果已登录，自动同步到云端
-    if (user) {
-      setTimeout(async () => {
-        await autoSync('编辑选项后同步')
-      }, 500)
-    }
-  }
-
-  const handleEditDelete = async (id: string) => {
-    // Cannot delete if only 2 non-custom options remain
-    const nonCustomOptions = practiceOptions.filter(o => o.id !== "custom")
-    if (nonCustomOptions.length <= 2) {
-      toast.error('至少需要保留2个练习选项')
-      return
-    }
-
-    // Update localStorage
-    deleteOption(id)
-
-    // Update local state
-    setPracticeOptions(prev => prev.filter(o => o.id !== id))
-    if (selectedOption === id) {
-      setSelectedOption(null)
-    }
-
-    toast.success('已删除选项')
-
-    // ⭐ 新增：如果已登录，从云端删除并触发同步
-    if (user) {
-      console.log('[handleEditDelete] 用户已登录，从云端删除选项...')
-      try {
-        // 调用 Supabase 删除选项
-        const { error } = await supabase
-          .from('practice_options')
-          .delete()
-          .eq('id', id)
-          .eq('user_id', user.id)
-
-        if (error) {
-          console.error('[handleEditDelete] 云端删除失败:', error)
-          toast.error('云端删除失败，选项仅在本设备删除')
-        } else {
-          console.log('[handleEditDelete] 云端删除成功')
-          // 触发同步确保状态一致
-          await autoSync('删除选项后同步')
-        }
-      } catch (err) {
-        console.error('[handleEditDelete] 删除异常:', err)
-        toast.error('删除同步失败，选项仅在本设备删除')
-      }
-    }
-  }
-
-  const handleEditRecord = (id: string, data: Partial<PracticeRecord>) => {
-    updateRecord(id, data, () => {
-      // 编辑后触发同步
-      if (user) {
-        autoSync('编辑记录后同步')
-      }
-    })
-    toast.success('更新成功')
-  }
-
-  const handleDeleteRecord = async (id: string, skipConfirm = false) => {
-    // Confirm before deleting (skip for draft records)
-    if (!skipConfirm && !confirm('确定要删除这条记录吗？')) return
-
-    // 1. 从本地状态移除
-    deleteRecord(id)
-
-    // 2. 软删除 Supabase 中的记录（设置 deleted_at）
-    const success = await deletePracticeRecord(id)
-    if (success) {
-      // 只有正式记录才显示删除成功提示（草稿记录静默删除）
-      if (!skipConfirm) {
-        toast.success('已删除记录')
-      }
-      // 3. 触发同步（如果用户已登录）
-      if (user) {
-        autoSync('删除记录后同步')
-      }
-    } else {
-      toast.error('删除同步失败，记录仅在本设备删除')
-    }
-  }
-
-  const handleAddRecord = (record: Omit<PracticeRecord, 'id' | 'created_at' | 'updated_at' | 'photos'>) => {
-    const newRecord = addRecord(record)
-    trackEvent('add_record', {
-      type: record.type,
-      duration: record.duration,
-      date: record.date,
-      has_breakthrough: !!record.breakthrough,
-      has_notes: !!record.notes && record.notes.length > 0
-    })
-
-    // ⭐ 更新 Mixpanel User Profile（实时同步总数）
-    setTimeout(() => {
-      const recordsData = localStorage.getItem('ashtanga_records')
-      if (recordsData) {
-        try {
-          const records = JSON.parse(recordsData)
-          if (Array.isArray(records)) {
-            const totalRecords = records.length
-            const recordsWithNotes = records.filter((r: any) =>
-              r.notes && r.notes.trim().length > 0
-            ).length
-            const recordsWithBreakthrough = records.filter((r: any) =>
-              r.breakthrough && r.breakthrough.trim().length > 0
-            ).length
-
-            setUserProfile({
-              total_records: totalRecords,
-              records_with_notes: recordsWithNotes,
-              records_with_breakthrough: recordsWithBreakthrough,
-              notes_rate: totalRecords > 0 ? Math.round((recordsWithNotes / totalRecords) * 100) : 0,
-              last_patch_at: new Date().toISOString()
-            })
-          }
-        } catch (e) {
-          console.error('[add_record] 更新 Mixpanel Profile 失败:', e)
-        }
-      }
-    }, 100)
-
-    // 只有非草稿记录才显示 toast
-    if (record.type !== '草稿') {
-      toast.success('补卡成功！')
-    }
-
-    // 记录练习行为到设备活动统计（补卡也记录）
-    const recordUuid = localStorage.getItem('ashtanga_uuid')
-    if (recordUuid) {
-      fetch('/api/stats/record-practice', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ uuid: recordUuid }),
-      }).catch(() => {})
-    }
-
-    // 延迟 500ms 同步，确保 localStorage 已完全更新
-    // ⭐ 只有绑定邮箱的用户才同步到云端
-    if (user?.email) {
-      setTimeout(() => {
-        autoSync('添加记录后同步')
-      }, 500)
-    }
-    return newRecord
-  }
-
-  const handleAddOption = async (name: string, notes: string, colorLevel?: number) => {
-    const maxSlots = membershipIsPro ? MAX_SLOTS_PRO : MAX_SLOTS_FREE
-    // Check if we can add more options
-    const userOptions = practiceOptions.filter(o => !o.is_fixed && o.id !== "custom")
-    if (userOptions.length >= maxSlots) {
-      setMembershipPromptReason('options_full')
-      setShowMembershipPrompt(true)
-      return
-    }
-
-    const result = addOption(name, name, notes, undefined, membershipIsPro, colorLevel)
-    if (!result) {
-      toast.error('添加选项失败，可能已达到上限')
-      return
-    }
-
-    toast.success('已添加自定义选项')
-    // 如果已登录，自动同步到云端
-    if (user) {
-      setTimeout(async () => {
-        await autoSync('添加自定义选项后同步')
-      }, 500)
-    }
-  }
+  const {
+    canDeleteOption,
+    isOptionsFull,
+    lockedOptionIds,
+    handleOptionTap,
+    handleEditSave,
+    handleEditDelete,
+    handleEditRecord,
+    handleDeleteRecord,
+    handleAddRecord,
+    handleAddOption,
+  } = usePracticeCommands({
+    user,
+    practiceOptions,
+    selectedOption,
+    membershipIsPro,
+    chantEnabled,
+    chantDelaySeconds,
+    setPracticeOptions,
+    setSelectedOption,
+    setCustomPracticeName,
+    setChantEnabled,
+    setChantMins,
+    setChantSecs,
+    setShowChantSettings,
+    setEditingOption,
+    setShowEditModal,
+    setShowCustomModal,
+    setMembershipPromptReason,
+    setShowMembershipPrompt,
+    fetchTodayCount,
+    updateOption,
+    deleteOption,
+    addOption,
+    updateRecord,
+    deleteRecord,
+    addRecord,
+    autoSync,
+  })
 
   const handleVoteCloud = () => {
     // Update the votedCloud state directly
@@ -4873,708 +549,48 @@ export default function AshtangaTracker() {
   }
 
   const handleExportDebugLog = async () => {
-    // ⭐ 先发起 Supabase 连接测试（异步）
-    let supabaseConnectionTest = { status: 'testing', latency: -1, error: null as string | null }
     try {
-      const testStart = Date.now()
-      // 执行一个简单的查询来测试连接
-      const { data, error } = await supabase.from('user_profiles').select('count', { count: 'exact', head: true })
-      const latency = Date.now() - testStart
-      if (error) {
-        supabaseConnectionTest = { status: 'error', latency, error: error.message }
-      } else {
-        supabaseConnectionTest = { status: 'success', latency, error: null }
-      }
-    } catch (e: any) {
-      supabaseConnectionTest = { status: 'exception', latency: -1, error: e?.message || String(e) }
-    }
-
-    // ===== 1. Service Worker 状态 =====
-    let serviceWorkerStatus: any = { supported: false, controller: null, state: null, scope: null }
-    if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
-      serviceWorkerStatus.supported = true
-      const controller = navigator.serviceWorker.controller
-      if (controller) {
-        serviceWorkerStatus.controller = true
-        serviceWorkerStatus.state = controller.state
-        serviceWorkerStatus.scope = controller.scriptURL
-      } else {
-        serviceWorkerStatus.controller = false
-      }
-      // 尝试获取注册信息
-      try {
-        const registrations = await navigator.serviceWorker.getRegistrations()
-        serviceWorkerStatus.registrations = registrations.map(r => ({
-          scope: r.scope,
-          active: !!r.active,
-          installing: !!r.installing,
-          waiting: !!r.waiting,
-          updateViaCache: r.updateViaCache
-        }))
-      } catch (e) {
-        serviceWorkerStatus.registrationsError = String(e)
-      }
-    }
-
-    // ===== 2. 环境信息 =====
-    const environment = {
-      userAgent: navigator.userAgent,
-      browser: {
-        language: navigator.language,
-        languages: navigator.languages,
-        onLine: navigator.onLine,
-        cookieEnabled: navigator.cookieEnabled,
-        pdfViewerEnabled: navigator.pdfViewerEnabled
-      },
-      deviceType: /mobile|tablet|android|iphone/i.test(navigator.userAgent) ? 'mobile' : 'desktop',
-      screen: {
-        width: window.screen.width,
-        height: window.screen.height,
-        availWidth: window.screen.availWidth,
-        availHeight: window.screen.availHeight,
-        colorDepth: window.screen.colorDepth,
-        pixelRatio: window.devicePixelRatio,
-        orientation: window.screen.orientation?.type || 'unknown'
-      },
-      viewport: {
-        width: window.innerWidth,
-        height: window.innerHeight,
-        visualViewport: {
-          width: window.visualViewport?.width,
-          height: window.visualViewport?.height,
-          scale: window.visualViewport?.scale
-        }
-      },
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      timezoneOffset: new Date().getTimezoneOffset(),
-      exportTime: new Date().toISOString(),
-      appVersion: '1.0.1'
-    }
-
-    // ===== 2. 网络状态 =====
-    const networkInfo = {
-      onLine: navigator.onLine,
-      connection: (navigator as any).connection ? {
-        effectiveType: (navigator as any).connection.effectiveType,
-        downlink: (navigator as any).connection.downlink,
-        rtt: (navigator as any).connection.rtt,
-        saveData: (navigator as any).connection.saveData
-      } : 'Not supported'
-    }
-
-    // ⭐ 2.5 Supabase 连接测试
-    const supabaseConnection = {
-      testStatus: supabaseConnectionTest.status,
-      latency: supabaseConnectionTest.latency,
-      error: supabaseConnectionTest.error,
-      timestamp: new Date().toISOString()
-    }
-
-    // ===== 3. 认证状态 =====
-    const authState = {
-      isLoggedIn: !!user,
-      userId: user?.id || null,
-      email: user?.email || null,
-      lastSignInAt: user?.last_sign_in_at || null,
-      createdAt: user?.created_at || null,
-      appMetadata: user?.app_metadata || null,
-      userMetadata: user?.user_metadata || null
-    }
-
-    // ===== 4. 同步状态 =====
-    const syncState = {
-      syncStatus,
-      lastSyncTime,
-      failedSyncIds: failedSyncIds || [],
-      failedSyncCount: failedSyncIds?.length || 0,
-      conflictLocalCount,
-      conflictRemoteCount,
-      showDataConflict
-    }
-
-    // ===== 5. 应用数据状态 =====
-    const nonDraftRecords = practiceHistory.filter(r => r.type !== '草稿')
-    const appState = {
-      records: {
-        totalCount: nonDraftRecords.length,
-        withPhotos: nonDraftRecords.filter(r => r.photos?.length > 0).length,
-        withNotes: nonDraftRecords.filter(r => r.notes?.trim()).length,
-        withBreakthrough: nonDraftRecords.filter(r => r.breakthrough).length,
-        totalDuration: nonDraftRecords.reduce((sum, r) => sum + (r.duration || 0), 0),
-        averageDuration: nonDraftRecords.length > 0
-          ? Math.round(nonDraftRecords.reduce((sum, r) => sum + (r.duration || 0), 0) / nonDraftRecords.length)
-          : 0,
-        dateRange: nonDraftRecords.length > 0 ? {
-          earliest: nonDraftRecords[nonDraftRecords.length - 1]?.date,
-          latest: nonDraftRecords[0]?.date
-        } : null,
-        colorLevelDistribution: {
-          level1: nonDraftRecords.filter(r => r.color_level === 1).length,
-          level2: nonDraftRecords.filter(r => r.color_level === 2).length,
-          level3: nonDraftRecords.filter(r => r.color_level === 3 || r.color_level === undefined).length,
-          level4: nonDraftRecords.filter(r => r.color_level === 4).length,
-        }
-      },
-      options: {
-        totalCount: practiceOptions.length,
-        customCount: practiceOptions.filter(o => o.is_custom).length,
-        systemCount: practiceOptions.filter(o => !o.is_custom).length,
-        list: practiceOptions.map(o => ({
-          id: o.id,
-          label: o.label.substring(0, 50),
-          hasNotes: !!o.notes,
-          isCustom: o.is_custom,
-          colorLevel: (o as any).color_level ?? 3
-        }))
-      },
-      profile: {
-        name: userProfile?.name || '未设置',
-        hasSignature: !!userProfile?.signature,
-        hasAvatar: !!userProfile?.avatar,
-        isPro: membershipIsPro
-      }
-    }
-
-    // ===== 6. LocalStorage 完整分析 =====
-    const allKeys = Object.keys(localStorage)
-    const storageState = {
-      totalKeys: allKeys.length,
-      appKeys: allKeys.filter(key => key.startsWith('ashtanga_') || key.includes('practice')),
-      otherKeys: allKeys.filter(key => !key.startsWith('ashtanga_') && !key.includes('practice')).slice(0, 20),
-      keyDetails: allKeys
-        .filter(key => key.startsWith('ashtanga_') || key.includes('practice'))
-        .map(key => {
-          try {
-            const value = localStorage.getItem(key)
-            return {
-              key,
-              size: value ? new Blob([value]).size : 0,
-              type: value?.startsWith('{') || value?.startsWith('[') ? 'json' : 'string'
-            }
-          } catch (e) {
-            return { key, size: 0, type: 'error', error: String(e) }
-          }
-        }),
-      estimatedTotalSize: new Blob(Object.values(localStorage)).size
-    }
-
-    // ===== 7. 所有练习记录（含完整觉察内容、照片URL用于排查） =====
-    const recentRecords = practiceHistory.map(r => ({
-      id: r.id,
-      date: r.date,
-      type: r.type?.substring(0, 30),
-      duration: r.duration,
-      notes: r.notes || '',
-      breakthrough: r.breakthrough || '',
-      photos: r.photos || [],
-      hasPhotos: !!r.photos?.length,
-      photosCount: r.photos?.length || 0,
-      colorLevel: (r as any).color_level ?? 3,
-      createdAt: r.created_at,
-      updatedAt: r.updated_at
-    }))
-
-    // ===== 8. 导出历史（最近10条） =====
-    const recentExportLogs = (exportLogs || []).slice(-10).map(log => ({
-      timestamp: log.timestamp,
-      success: log.success,
-      error: log.error,
-      recordDate: log.recordDate,
-      deviceType: log.userAgent ?
-        (/mobile|tablet|android|iphone/i.test(log.userAgent) ? 'mobile' : 'desktop') : 'unknown'
-    }))
-
-    // ===== 9. 错误历史（从 localStorage 读取） =====
-    let errorHistory: any[] = []
-    try {
-      const storedErrors = localStorage.getItem('__errorHistory')
-      if (storedErrors) {
-        errorHistory = JSON.parse(storedErrors)
-      }
-    } catch (e) {
-      errorHistory = [{ error: '读取错误历史失败', details: String(e) }]
-    }
-
-    // ===== 10. 性能指标 =====
-    const performanceInfo = {
-      navigation: performance.getEntriesByType('navigation')[0] ? {
-        domComplete: Math.round((performance.getEntriesByType('navigation')[0] as any).domComplete),
-        loadEventEnd: Math.round((performance.getEntriesByType('navigation')[0] as any).loadEventEnd),
-        domInteractive: Math.round((performance.getEntriesByType('navigation')[0] as any).domInteractive)
-      } : 'Not available',
-      memory: (performance as any).memory ? {
-        usedJSHeapSize: Math.round((performance as any).memory.usedJSHeapSize / 1024 / 1024) + ' MB',
-        totalJSHeapSize: Math.round((performance as any).memory.totalJSHeapSize / 1024 / 1024) + ' MB'
-      } : 'Not available'
-    }
-
-    // ===== 11. 当前应用状态 =====
-    const currentAppState = {
-      activeTab,
-      isPracticing: false,
-      showSettings,
-      showAccountSync,
-      showAuthModal,
-      authMode,
-      showDataConflict,
-      showClearDataConfirm,
-      clearDataStep,
-      currentPath: window.location.pathname,
-      currentHash: window.location.hash,
-      // 练习状态
-      selectedOption,
-      isPaused,
-      elapsedTime,
-      totalPausedTime,
-      // 选项状态（用于诊断新增选项问题）
-      optionsStatus: {
-        totalCount: practiceOptions.length,
-        customCount: practiceOptions.filter(o => o.is_custom).length,
-        systemCount: practiceOptions.filter(o => !o.is_custom).length,
-        isFull: practiceOptions.filter(o => o.id !== "custom").length >= 8,
-        canDelete: practiceOptions.filter(o => o.id !== "custom").length > 2,
-        selectedOptionId: selectedOption,
-        customPracticeName: customPracticeName || null
-      },
-      // 弹窗状态
-      modals: {
-        showImportModal: showImportModal,
-        showExportModal: showExportModal,
-        showDebugLogModal: showDebugLogModal,
-        showCompletion: showCompletion,
-        showFakeDoor: showFakeDoor.isOpen
-      },
-      // 数据存储状态
-      storage: {
-        hasLocalData: practiceHistory.length > 0,
-        localStorageKeysCount: Object.keys(localStorage).length,
-        sessionStorageKeysCount: Object.keys(sessionStorage).length
-      }
-    }
-
-    // ===== 12. 同步日志（从 localStorage 读取） =====
-    let syncLogs: any = { entries: [], summary: {} }
-    try {
-      const storedLogs = localStorage.getItem('sync_logs')
-      if (storedLogs) {
-        const rawLogs = JSON.parse(storedLogs)
-        // ⭐ 提取同步摘要：统计各触发原因下的本地/云端数量
-        const triggers = rawLogs.filter((l: any) => l.triggerReason && l.triggerReason !== '未知触发原因')
-        const conflictLogs = rawLogs.filter((l: any) => l.action.includes('冲突') || l.status === 'warning')
-        const uploadLogs = rawLogs.filter((l: any) => l.action.includes('上传') || l.action.includes('仅本地'))
-        const downloadLogs = rawLogs.filter((l: any) => l.action.includes('云端') || l.action.includes('下载'))
-        syncLogs = {
-          entries: rawLogs,
-          summary: {
-            total: rawLogs.length,
-            conflicts: conflictLogs.length,
-            uploadCount: uploadLogs.length,
-            downloadCount: downloadLogs.length,
-            lastTriggerReason: triggers[0]?.triggerReason || '未知',
-            lastLocalCount: triggers[0]?.localCount,
-            lastRemoteCount: triggers[0]?.remoteCount,
-            lastSyncTime: rawLogs[0]?.timestamp,
-          }
-        }
-      }
-    } catch (e) {
-      syncLogs = { entries: [{ action: '读取同步日志失败', error: String(e), timestamp: new Date().toISOString() }], summary: {} }
-    }
-
-    // ===== 13. 照片操作日志 =====
-    let photoLogs: any[] = []
-    try {
-      const { getPhotoLogs, getPhotoErrorLogs } = await import('@/lib/photo-logger')
-      photoLogs = {
-        all: getPhotoLogs().slice(0, 50),
-        errors: getPhotoErrorLogs().slice(0, 20),
-        summary: {
-          total: getPhotoLogs().length,
-          errors: getPhotoErrorLogs().length,
-        }
-      }
-    } catch (e) {
-      photoLogs = { error: '读取照片日志失败', details: String(e) }
-    }
-
-    // ===== 14. 会员状态日志 =====
-    let membershipLogs: any = { source: 'local_only' }
-    try {
-      // 14a. 本地 hook 状态
-      membershipLogs.localState = {
-        membership: membership ? {
-          is_active: membership.is_active,
-          type: membership.type,
-          expires_at: membership.expires_at,
-          expires_at_formatted: membership.expires_at_formatted,
-          days_remaining: membership.days_remaining,
-        } : null,
-        isPro: membershipIsPro,
-        loading: membershipLoading,
-      }
-
-      // 14b. 从 Supabase session 获取 token，调 API 查询后端会员状态
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session?.access_token) {
-        membershipLogs.hasSession = true
-        membershipLogs.authUserId = user?.id || null
-        membershipLogs.authEmail = user?.email || null
-
-        try {
-          const resp = await fetch('/api/membership/status', {
-            headers: { 'Authorization': `Bearer ${session.access_token}` },
-          })
-          membershipLogs.apiStatus = resp.status
-          const apiResult = await resp.json()
-          membershipLogs.apiResponse = apiResult
-        } catch (e: any) {
-          membershipLogs.apiError = e?.message || String(e)
-        }
-
-        // 14c. 调 debug API 获取全链路数据
-        try {
-          const debugResp = await fetch('/api/debug/membership', {
-            headers: { 'Authorization': `Bearer ${session.access_token}` },
-          })
-          const debugResult = await debugResp.json()
-          // 只取关键信息，避免日志过大
-          if (debugResult.success && debugResult.data) {
-            const d = debugResult.data
-            membershipLogs.debugOverview = {
-              envOk: d.env?.hasUrl && d.env?.hasKey,
-              membershipCount: d.tables?.user_memberships?.count || 0,
-              membershipRecords: d.tables?.user_memberships?.records || [],
-              viewRecords: d.tables?.user_membership_status?.records || [],
-              userSpecific: d.user_specific || null,
-            }
-          }
-        } catch (e: any) {
-          membershipLogs.debugApiError = e?.message || String(e)
-        }
-      } else {
-        membershipLogs.hasSession = false
-        membershipLogs.note = '用户未登录，无法查询后端会员状态'
-      }
-
-      // 14d. 唱诵相关状态
-      membershipLogs.chantState = {
-        enabled: chantEnabled,
-        delay: chantDelay,
-      }
-    } catch (e: any) {
-      membershipLogs.error = '收集会员日志失败: ' + (e?.message || String(e))
-    }
-
-    // ===== 15. 色阶同步诊断 =====
-    let colorSyncDiag: any = {}
-    try {
-      // 15a. 本地 localStorage 原始数据
-      const localOptsStr = localStorage.getItem('ashtanga_options')
-      const localOpts = localOptsStr ? JSON.parse(localOptsStr) : []
-      colorSyncDiag.localStorageOptions = localOpts.map((o: any) => ({
-        id: o.id?.substring(0, 8),
-        label: o.label,
-        color_level: o.color_level,
-        is_custom: o.is_custom,
-      }))
-
-      // 15b. 本地记录的 color_level 情况（最近10条）
-      const localRecsStr = localStorage.getItem('ashtanga_records')
-      const localRecs = localRecsStr ? JSON.parse(localRecsStr) : []
-      colorSyncDiag.recentRecordColors = localRecs.slice(0, 10).map((r: any) => ({
-        id: r.id?.substring(0, 8),
-        date: r.date,
-        type: r.type?.substring(0, 10),
-        color_level: r.color_level,
-        updated_at: r.updated_at,
-      }))
-
-      // 15c. 云端选项（直接查 Supabase）
-      const userId = user?.id
-      if (userId) {
-        try {
-          // 先查一次不带 color_level 的列，检测列是否存在
-          const { data: testOpts, error: testError } = await supabase
-            .from('practice_options')
-            .select('id, label, color_level, is_custom, user_id')
-            .eq('user_id', userId)
-            .limit(1)
-          if (testError) {
-            colorSyncDiag.cloudQueryError = `practice_options.color_level 列可能不存在: ${testError.message}`
-            colorSyncDiag.cloudQueryErrorCode = testError.code
-          }
-          const { data: cloudOpts } = await supabase
-            .from('practice_options')
-            .select('id, label, color_level, is_custom, user_id')
-            .eq('user_id', userId)
-          colorSyncDiag.cloudOptions = (cloudOpts || []).map((o: any) => ({
-            id: o.id?.substring(0, 8),
-            label: o.label,
-            color_level: o.color_level,
-            is_custom: o.is_custom,
-          }))
-
-          // 云端记录的 color_level（最近10条）
-          const { data: cloudRecs } = await supabase
-            .from('practice_records')
-            .select('id, date, type, color_level, updated_at')
-            .eq('user_id', userId)
-            .is('deleted_at', null)
-            .order('date', { ascending: false })
-            .limit(10)
-          colorSyncDiag.cloudRecordColors = (cloudRecs || []).map((r: any) => ({
-            id: r.id?.substring(0, 8),
-            date: r.date,
-            type: r.type?.substring(0, 10),
-            color_level: r.color_level,
-            updated_at: r.updated_at,
-          }))
-        } catch (e: any) {
-          colorSyncDiag.cloudQueryError = e?.message || String(e)
-        }
-      } else {
-        colorSyncDiag.cloudNote = '未登录，无法查询云端色阶数据'
-      }
-
-      // 15d. 同步日志中与选项相关的条目
-      const storedLogs = localStorage.getItem('sync_logs')
-      if (storedLogs) {
-        const rawLogs = JSON.parse(storedLogs)
-        colorSyncDiag.optionRelatedLogs = rawLogs
-          .filter((l: any) => l.action?.includes('选项') || l.action?.includes('option'))
-          .slice(0, 10)
-      }
-    } catch (e: any) {
-      colorSyncDiag.error = '收集色阶诊断失败: ' + (e?.message || String(e))
-    }
-
-    // 生成完整日志
-    const debugLog = {
-      _meta: {
-        version: '2.5',
-        exportTime: new Date().toISOString(),
-        description: '熬汤日记调试日志 - 用于问题排查',
-        gitVersion: getVersionInfo()
-      },
-      serviceWorkerStatus,
-      environment,
-      networkInfo,
-      supabaseConnection,
-      authState,
-      syncState,
-      appState,
-      storageState,
-      recentRecords,
-      recentExportLogs,
-      errorHistory,
-      performanceInfo,
-      currentAppState,
-      syncLogs,
-      photoLogs,
-      membershipLogs,
-      colorSyncDiag
-    }
-
-    // 转换为JSON字符串并显示在弹窗中
-    const jsonString = JSON.stringify(debugLog, null, 2)
-    setDebugLogContent(jsonString)
-    setShowDebugLogModal(true)
-  }
-
-  const canDeleteOption = useMemo(() => {
-    const userOptions = practiceOptions.filter(o => !o.is_fixed && o.id !== "custom")
-    return userOptions.length > 1
-  }, [practiceOptions])
-
-  const isOptionsFull = useMemo(() => {
-    const maxSlots = membershipIsPro ? MAX_SLOTS_PRO : MAX_SLOTS_FREE
-    // 只计算用户自定义选项（排除固定按钮和自定义添加按钮）
-    const userOptions = practiceOptions.filter(o => !o.is_fixed && o.id !== "custom")
-    return userOptions.length >= maxSlots
-  }, [practiceOptions, membershipIsPro])
-
-  const lockedOptionIds = useMemo(() => {
-    if (membershipIsPro) return new Set<string>()
-    const maxSlots = MAX_SLOTS_FREE
-    // 只计算用户自定义选项
-    const userOptions = practiceOptions.filter(o => !o.is_fixed && o.id !== "custom")
-    return new Set(userOptions.slice(maxSlots).map(o => o.id))
-  }, [practiceOptions, membershipIsPro])
-
-  // 唱诵倒计时结束 → 播放唱诵音频
-  const playChantAudio = useCallback(() => {
-    setIsChantCountdown(false)
-    setIsChantPlaying(true)
-    const audio = new Audio('/audio/opening-chant.mp3')
-    chantAudioRef.current = audio
-    audio.addEventListener('ended', () => {
-      // 唱诵结束，重置起始时间，从0开始练习计时
-      chantAudioRef.current = null
-      setIsChantPlaying(false)
-      const now = Date.now()
-      setStartTime(now)
-      startTimeRef.current = now
-      setElapsedTime(0)
-      setIsPaused(false)
-    })
-    audio.addEventListener('error', () => {
-      chantAudioRef.current = null
-      setIsChantPlaying(false)
-      const now = Date.now()
-      setStartTime(now)
-      startTimeRef.current = now
-      setElapsedTime(0)
-      setIsPaused(false)
-      toast.error('唱诵音频加载失败')
-    })
-    audio.play().catch(() => {
-      chantAudioRef.current = null
-      setIsChantPlaying(false)
-      const now = Date.now()
-      setStartTime(now)
-      startTimeRef.current = now
-      setElapsedTime(0)
-      setIsPaused(false)
-    })
-  }, [])
-
-  // 跳过倒计时，直接播放唱诵
-  const skipChantCountdown = useCallback(() => {
-    if (chantCountdownRef.current) {
-      clearInterval(chantCountdownRef.current)
-      chantCountdownRef.current = null
-    }
-    playChantAudio()
-  }, [playChantAudio])
-
-  // 启动唱诵倒计时
-  const startChantCountdown = useCallback(() => {
-    // 先进入练习界面
-    const now = Date.now()
-    setStartTime(now)
-    startTimeRef.current = now
-    setIsPracticing(true)
-    setIsPaused(true)
-    setTotalPausedTime(0)
-    setPauseStartTime(null)
-    setElapsedTime(0)
-
-    // 启动倒计时
-    let remaining = chantDelay
-    setChantCountdown(remaining)
-    setIsChantCountdown(true)
-
-    chantCountdownRef.current = setInterval(() => {
-      remaining -= 1
-      if (remaining <= 0) {
-        if (chantCountdownRef.current) {
-          clearInterval(chantCountdownRef.current)
-          chantCountdownRef.current = null
-        }
-        playChantAudio()
-      } else {
-        setChantCountdown(remaining)
-      }
-    }, 1000)
-  }, [chantDelay, playChantAudio])
-
-  // 统一设置 Audio 事件监听（DRY）
-  const setupAudioEvents = (audio: HTMLAudioElement, onError: (e: Event) => void) => {
-    audio.addEventListener('loadedmetadata', () => {
-      setAudioDuration(audio.duration)
-      setIsAudioLoaded(true)
-      setIsAudioLoading(false)
-      setIsPaused(false)
-      audio.play()
-    })
-
-    audio.addEventListener('timeupdate', () => {
-      setAudioCurrentTime(audio.currentTime)
-      setAudioProgress((audio.currentTime / audio.duration) * 100)
-    })
-
-    audio.addEventListener('ended', () => {
-      handleEndRequest()
-    })
-
-    audio.addEventListener('error', onError)
-  }
-
-  // 口令跟练音频加载（可独立调用，重试按钮复用）
-  const loadGuidedAudio = async () => {
-    setIsAudioLoading(true)
-    setAudioError(null)
-    setAudioDownloadProgress(0)
-    setIsBackgroundCaching(false)
-    setIsPaused(true)
-
-    // 释放旧的 Blob URL
-    if (audioBlobUrlRef.current) {
-      URL.revokeObjectURL(audioBlobUrlRef.current)
-      audioBlobUrlRef.current = null
-    }
-
-    try {
-      const hasCache = await audioCache.isCacheValid()
-
-      if (hasCache) {
-        // 缓存命中：IndexedDB → Blob URL → Audio
-        console.log('[音频] 使用本地缓存')
-        setIsUsingCache(true)
-        const audioBuffer = await audioCache.getAudioBuffer()
-
-        if (audioBuffer) {
-          const blob = new Blob([audioBuffer], { type: 'audio/mp4' })
-          const url = URL.createObjectURL(blob)
-          audioBlobUrlRef.current = url // 追踪 Blob URL
-
-          const audio = new Audio()
-          audio.src = url
-
-          setupAudioEvents(audio, (e) => {
-            console.error('[音频] 缓存播放失败:', e)
-            audioCache.clearCache()
-            setAudioError('音频播放失败，请重试')
-            setIsAudioLoading(false)
-          })
-
-          setAudioElement(audio)
-        } else {
-          throw new Error('缓存数据无效')
-        }
-      } else {
-        // 缓存未命中：直接流式播放 + 后台缓存
-        console.log('[音频] 流式播放 + 后台缓存')
-        setIsUsingCache(false)
-
-        const audio = new Audio(GUIDED_AUDIO_OPTION.audio_src)
-
-        setupAudioEvents(audio, (e) => {
-          console.error('[音频] 流式播放失败:', e)
-          setIsAudioLoading(false)
-          setAudioError('音频播放失败，请检查网络连接')
-        })
-
-        setAudioElement(audio)
-
-        // 后台缓存到 IndexedDB（不阻塞播放，静默进行）
-        setIsBackgroundCaching(true)
-        audioCache.downloadAndCache(
-          GUIDED_AUDIO_OPTION.audio_src,
-          undefined, // 不显示进度——流式播放不需要
-          { priority: 'low' }
-        ).then(() => {
-          console.log('[音频] 后台缓存完成')
-          setIsBackgroundCaching(false)
-        }).catch((err) => {
-          console.error('[音频] 后台缓存失败（不影响播放）:', err)
-          setIsBackgroundCaching(false)
-        })
-      }
-    } catch (err) {
-      console.error('[音频] 加载失败:', err)
-      setAudioError('音频加载失败')
-      setIsAudioLoading(false)
+      const debugLog = await collectPracticeDebugLog({
+        user,
+        syncStatus,
+        lastSyncTime,
+        failedSyncIds,
+        conflictLocalCount,
+        conflictRemoteCount,
+        showDataConflict,
+        practiceHistory,
+        practiceOptions,
+        userProfile,
+        membership,
+        membershipIsPro,
+        membershipLoading,
+        exportLogs,
+        activeTab,
+        showSettings,
+        showAccountSync,
+        showAuthModal,
+        authMode,
+        showClearDataConfirm,
+        clearDataStep,
+        selectedOption,
+        isPracticing,
+        isPaused,
+        elapsedTime,
+        totalPausedTime,
+        customPracticeName,
+        showImportModal,
+        showExportModal,
+        showDebugLogModal,
+        showCompletion,
+        showFakeDoor: showFakeDoor.isOpen,
+        chantEnabled,
+        chantDelaySeconds,
+      })
+      setDebugLogContent(JSON.stringify(debugLog, null, 2))
+      setShowDebugLogModal(true)
+    } catch (error) {
+      console.error('[Practice] 生成调试日志失败:', error)
+      toast.error('生成调试日志失败')
     }
   }
 
@@ -5593,23 +609,26 @@ export default function AshtangaTracker() {
         return
       }
       if (chantEnabled) {
-        startChantCountdown()
+        startChantCountdown({
+          optionId: selectedOption,
+          label: getSelectedLabel(),
+          notes: getSelectedNotes(),
+        })
         trackEvent('start_practice', { type: getSelectedLabel(), chant: true })
         return
       }
 
       // 先进入练习界面（立即给用户反馈）
       const now = Date.now()
-      setStartTime(now)
-      startTimeRef.current = now // ⭐ 保存到 ref
-      setIsPracticing(true)
-      setIsPaused(false)
-      setTotalPausedTime(0)
-      setPauseStartTime(null)
-      setElapsedTime(0)
+      const isGuidedAudio = selectedOption === 'guided_audio'
+      startPracticeSession(isGuidedAudio, now, {
+        optionId: selectedOption,
+        label: getSelectedLabel(),
+        notes: getSelectedNotes(),
+      })
 
       // 口令跟练模式：加载音频
-      if (selectedOption === 'guided_audio') {
+      if (isGuidedAudio) {
         await loadGuidedAudio()
       }
 
@@ -5620,181 +639,72 @@ export default function AshtangaTracker() {
   const handlePauseResume = () => {
     const now = Date.now()
     if (!isPaused) {
-      // Pause
-      setPauseStartTime(now)
+      pausePracticeSession(now)
       // 音频同步暂停
-      if (audioElement && selectedOption === 'guided_audio') {
-        audioElement.pause()
+      if ((selectedOption ?? activePractice?.optionId) === 'guided_audio') {
+        pauseGuidedAudio()
       }
     } else {
-      // Resume
-      if (pauseStartTime) {
-        const pausedDuration = now - pauseStartTime
-        setTotalPausedTime((totalPausedTime || 0) + pausedDuration)
-      }
-      setPauseStartTime(null)
+      resumePracticeSession(now)
       // 音频同步继续
-      if (audioElement && selectedOption === 'guided_audio') {
-        audioElement.play()
+      if ((selectedOption ?? activePractice?.optionId) === 'guided_audio') {
+        playGuidedAudio()
       }
     }
-    setIsPaused(!isPaused)
     trackEvent(isPaused ? 'resume_practice' : 'pause_practice')
   }
 
   const getSelectedLabel = useCallback(() => {
+    if (!selectedOption && activePractice) {
+      return activePractice.label
+    }
     if ((selectedOption === "custom" || selectedOption === "custom-temp") && customPracticeName) {
       return customPracticeName
     }
     const option = practiceOptions.find((o) => o.id === selectedOption)
     return option?.label || ""
-  }, [selectedOption, customPracticeName, practiceOptions])
+  }, [selectedOption, activePractice, customPracticeName, practiceOptions])
 
   const getSelectedNotes = useCallback(() => {
+    if (!selectedOption && activePractice) {
+      return activePractice.notes
+    }
     const option = practiceOptions.find((o) => o.id === selectedOption)
     return option?.notes || ""
-  }, [selectedOption, practiceOptions])
+  }, [selectedOption, activePractice, practiceOptions])
 
-  // 音频时间格式化
-  const formatAudioTime = (seconds: number): string => {
-    if (!seconds || isNaN(seconds)) return '00:00'
-    const mins = Math.floor(seconds / 60)
-    const secs = Math.floor(seconds % 60)
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
-  }
-
-  // 快进/后退功能
-  const handleAudioSeek = (direction: 'forward' | 'backward') => {
-    if (audioElement && isAudioLoaded) {
-      const seconds = direction === 'forward' ? seekStep : -seekStep
-      const newTime = Math.max(0, Math.min(audioElement.duration, audioElement.currentTime + seconds))
-      audioElement.currentTime = newTime
-      setAudioCurrentTime(newTime)
-    }
-  }
+  const activeOptionId = selectedOption ?? activePractice?.optionId ?? null
 
   // 步长选项
   const SEEK_STEP_OPTIONS = [10, 15, 30]
 
   const handleEndRequest = () => {
-    setShowConfirmEnd(true)
+    requestPracticeEnd()
   }
 
   const handleConfirmEnd = () => {
-    setShowConfirmEnd(false)
-    setFinalDuration(formatMinutes(elapsedTime))
-    setShowCompletion(true)
-    setIsPracticing(false)
-    // Clear timer persistence
-    setStartTime(null)
-    // ⭐ 注意：不清空 startTimeRef，供 handleSavePractice 使用
-    setPauseStartTime(null)
-    setTotalPausedTime(0)
+    confirmPracticeEnd()
 
-    // 清理唱诵资源
-    if (chantCountdownRef.current) {
-      clearInterval(chantCountdownRef.current)
-      chantCountdownRef.current = null
-    }
-    if (chantAudioRef.current) {
-      chantAudioRef.current.pause()
-      chantAudioRef.current.src = ''
-      chantAudioRef.current = null
-    }
-    setIsChantCountdown(false)
-    setChantCountdown(0)
-    setIsChantPlaying(false)
-
-    // 清理音频资源
-    if (audioElement) {
-      audioElement.pause()
-      audioElement.src = ''
-      setAudioElement(null)
-      setIsAudioLoaded(false)
-      setAudioProgress(0)
-      setAudioCurrentTime(0)
-      setAudioDuration(0)
-      // 释放 Blob URL（防内存泄漏）
-      if (audioBlobUrlRef.current) {
-        URL.revokeObjectURL(audioBlobUrlRef.current)
-        audioBlobUrlRef.current = null
-      }
-    }
+    resetChantPlayback()
+    resetGuidedAudio()
   }
 
   // 不保存结束：丢弃记录，直接回到初始状态
   const handleDiscardEnd = () => {
-    setShowConfirmEnd(false)
-    setIsPracticing(false)
-    setStartTime(null)
-    startTimeRef.current = null
-    setPauseStartTime(null)
-    setTotalPausedTime(0)
+    discardPracticeEnd()
 
-    // 清理唱诵资源
-    if (chantCountdownRef.current) {
-      clearInterval(chantCountdownRef.current)
-      chantCountdownRef.current = null
-    }
-    if (chantAudioRef.current) {
-      chantAudioRef.current.pause()
-      chantAudioRef.current.src = ''
-      chantAudioRef.current = null
-    }
-    setIsChantCountdown(false)
-    setChantCountdown(0)
-    setIsChantPlaying(false)
-
-    // 清理音频资源
-    if (audioElement) {
-      audioElement.pause()
-      audioElement.src = ''
-      setAudioElement(null)
-      setIsAudioLoaded(false)
-      setAudioProgress(0)
-      setAudioCurrentTime(0)
-      setAudioDuration(0)
-      // 释放 Blob URL（防内存泄漏）
-      if (audioBlobUrlRef.current) {
-        URL.revokeObjectURL(audioBlobUrlRef.current)
-        audioBlobUrlRef.current = null
-      }
-    }
+    resetChantPlayback()
+    resetGuidedAudio()
   }
 
-  const handleSavePractice = useCallback((notes: string, photos: string[], breakthrough?: string) => {
-    console.log('handleSavePractice called', { notes, photos, breakthrough, isSaving })
+  const handleSavePractice = useCallback((record: PracticeRecord) => {
     if (isSaving) {
-      console.log('Already saving, returning')
       return
     }
     setIsSaving(true)
-    console.log('setIsSaving(true) called')
 
     try {
-      const selectedLabel = getSelectedLabel()
-      console.log('getSelectedLabel returned:', selectedLabel)
-      console.log('elapsedTime:', elapsedTime)
-
-      // 将开始时间戳转换为 ISO 8601 格式（使用 ref，因为 startTime state 已被重置）
-      const startTimeISO = startTimeRef.current
-        ? new Date(startTimeRef.current).toISOString()
-        : undefined
-
-      // Create new practice record
-      const record = addRecord({
-        date: getLocalDateStr(),
-        type: selectedLabel,
-        duration: elapsedTime,
-        notes: notes || "今日练习完成",
-        breakthrough,
-        start_time: startTimeISO, // ⭐ 记录练习开始时间（完整 ISO 格式）
-      })
-
-      // ⭐ 清空 ref（保存完成后）
       startTimeRef.current = null
-
-      console.log('Record added:', record)
 
       trackEvent('finish_practice', {
         type: record.type,
@@ -5829,18 +739,11 @@ export default function AshtangaTracker() {
         }
       }
 
-      // Reset UI and switch to journal tab
-      console.log('Resetting UI and switching to journal tab')
-      setShowCompletion(false)
+      finishCompletion()
       setSelectedOption(null)
       setCustomPracticeName("")
-      setElapsedTime(0)
-      setIsPaused(false)
       setActiveTab('journal') // Switch to 觉察日记 tab
-      console.log('UI reset complete')
 
-      // Show success toast
-      console.log('Showing success toast')
       toast.success('✅ 打卡成功！', {
         duration: 2000,
         position: 'top-center'
@@ -5848,7 +751,6 @@ export default function AshtangaTracker() {
 
       // 刷新今日练习人数
       fetchTodayCount()
-        .catch(() => {})
 
       // 记录练习行为到设备活动统计（匿名用户也记录）
       const uuid = localStorage.getItem('ashtanga_uuid')
@@ -5860,18 +762,6 @@ export default function AshtangaTracker() {
         }).catch(() => {})
       }
 
-      // ⭐ 延迟 500ms 同步，确保 localStorage 已完全更新
-      // 只有绑定邮箱的用户才同步到云端
-      console.log('[handleSavePractice] 准备同步，user:', user?.email || '未登录')
-      if (user?.email) {
-        console.log('[handleSavePractice] 用户已绑定邮箱，启动同步')
-        setTimeout(() => {
-          console.log('[handleSavePractice] 执行 autoSync')
-          autoSync('保存练习后同步')
-        }, 500)
-      } else {
-        console.log('[handleSavePractice] 用户未绑定邮箱，跳过同步')
-      }
     } catch (error) {
       console.error('保存失败:', error)
       toast.error('❌ 保存失败，请重试', {
@@ -5880,268 +770,76 @@ export default function AshtangaTracker() {
       })
     } finally {
       setIsSaving(false)
-      console.log('setIsSaving(false) called')
     }
-  }, [elapsedTime, getSelectedLabel, addRecord, isSaving, autoSync, user])
+  }, [isSaving, fetchTodayCount, finishCompletion, startTimeRef])
+
+  // Keep the server HTML and the first client render identical. Persisted
+  // practice state is revealed only after the client has mounted.
+  if (!sessionHydrated) {
+    return <div className="h-screen bg-background" aria-label="正在恢复练习" />
+  }
 
   // Full-screen Timer View with Hero Transition
   if (isPracticing) {
     return (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="min-h-screen bg-background flex flex-col relative"
-      >
-        {/* 唱诵倒计时全屏覆盖 */}
-        <AnimatePresence>
-          {isChantCountdown && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-white/30 backdrop-blur-[8px] z-50 flex flex-col items-center border border-white/30"
-            >
-              <main className="flex-1 flex items-center justify-center px-6">
-                <div className="w-[200px] h-[200px] sm:w-[220px] sm:h-[220px] rounded-full border border-white/40 bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                  <span className="text-5xl sm:text-6xl font-light text-foreground font-serif">
-                    {chantCountdown}
-                  </span>
-                </div>
-              </main>
-              <div className="px-6 pb-32 flex justify-center">
-                <button
-                  onClick={skipChantCountdown}
-                  className="flex items-center gap-2 px-8 py-4 rounded-full bg-card/80 backdrop-blur-md border border-white/10 text-foreground font-serif shadow-[0_4px_20px_rgba(0,0,0,0.05)] hover:bg-card transition-colors"
-                >
-                  跳过
-                </button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-        {/* 唱诵播放中提示 */}
-        {isChantPlaying && (
-          <div className="absolute top-4 left-0 right-0 flex justify-center z-10">
-            <span className="text-xs text-foreground/70 font-serif bg-white/30 backdrop-blur-[8px] border border-white/30 px-4 py-1.5 rounded-full">
-              唱诵中...
-            </span>
-          </div>
-        )}
-        <main className="flex-1 flex items-center justify-center px-6">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 1.05 }}
-            transition={{ type: "spring", damping: 20, stiffness: 200 }}
-            className="relative"
-          >
-            {/* Breathing Ripples - paused when timer is paused */}
-            <div className="absolute inset-[-20px]">
-              <BreathingRipples isPaused={isPaused} />
-            </div>
-            
-            {/* Main circle with glassmorphism gradient border - scaled down 30% */}
-            <div className={`w-[200px] h-[200px] sm:w-[220px] sm:h-[220px] rounded-full green-gradient p-[2px] shadow-[0_12px_48px_rgba(45,90,39,0.45)] ${!isPaused ? 'animate-breathe' : ''}`}>
-              <div className="w-full h-full rounded-full bg-background/95 backdrop-blur-[16px] flex flex-col items-center justify-center border border-white/30 relative">
-                {/* Timer display - Minutes large, unit below */}
-                <div className="flex flex-col items-center">
-                  <span className="text-5xl sm:text-6xl font-light text-foreground tracking-wider font-serif">
-                    {formatMinutes(elapsedTime)}
-                  </span>
-                  <div className="flex items-baseline gap-0.5">
-                    <span className="text-foreground text-lg font-serif">
-                      分
-                    </span>
-                    {formatSeconds(elapsedTime) !== '00' && (
-                      <span className="text-muted-foreground text-sm font-serif">
-                        {formatSeconds(elapsedTime)}秒
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Practice type and notes below */}
-                <div className="flex flex-col items-center mt-2">
-                  <span className="text-[14px] leading-snug text-center text-foreground font-serif">
-                    {getSelectedLabel()}
-                  </span>
-                  {getSelectedNotes() && (
-                    <span className="text-[11px] leading-snug text-center text-muted-foreground/70 font-serif mt-0.5">
-                      {getSelectedNotes()}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        </main>
-
-        {/* 音频播放器进度条 - 仅在口令跟练模式显示，放在大圆圈和按钮之间 */}
-        {selectedOption === 'guided_audio' && isAudioLoaded && !isAudioLoading && !audioError && (
-          <motion.div
-            className="w-full max-w-sm mx-auto px-6 mb-4"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            {/* 进度条 */}
-            <div className="relative h-1.5 bg-white/20 backdrop-blur-sm rounded-full overflow-hidden border border-white/10">
-              <div
-                className="absolute inset-y-0 left-0 bg-primary/80 rounded-full transition-all duration-300"
-                style={{ width: `${audioProgress}%` }}
-              />
-            </div>
-
-            {/* 时间显示 */}
-            <div className="flex justify-between text-xs text-foreground/50 mt-2 font-serif">
-              <span>{formatAudioTime(audioCurrentTime)}</span>
-              <span>{formatAudioTime(audioDuration)}</span>
-            </div>
-          </motion.div>
-        )}
-
-        {/* Control buttons - moved up 30% to avoid clipping on mobile */}
-        <div className="px-6 pb-32">
-          {/* 音频加载状态 - 仅在口令跟练模式显示 */}
-          {selectedOption === 'guided_audio' && isAudioLoading && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex flex-col items-center justify-center py-3 bg-white/20 backdrop-blur-[8px] rounded-2xl border border-white/30"
-            >
-              <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-              <p className="text-sm text-foreground/70 mt-4 font-serif">
-                {isUsingCache ? '从缓存读取...' : '加载音频中...'}
-              </p>
-            </motion.div>
-          )}
-
-          {/* 音频错误状态 - 仅在口令跟练模式显示 */}
-          {selectedOption === 'guided_audio' && audioError && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex flex-col items-center justify-center py-6 bg-white/20 backdrop-blur-[8px] rounded-2xl border border-white/30"
-            >
-              <AlertCircle className="w-12 h-12 text-destructive mb-3" />
-              <p className="text-sm text-destructive font-serif text-center">
-                {audioError}
-              </p>
-              <button
-                onClick={() => {
-                  setAudioError(null)
-                  loadGuidedAudio()
-                }}
-                className="mt-4 px-6 py-2 rounded-full green-gradient text-white text-sm font-serif"
-              >
-                重试
-              </button>
-            </motion.div>
-          )}
-
-          {/* 暂停/结束按钮 - 音频加载完成后显示 */}
-          {(!selectedOption || selectedOption !== 'guided_audio' || (isAudioLoaded && !isAudioLoading && !audioError)) && (
-          <>
-          {/* 暂停/结束按钮 - 恢复原始样式 */}
-          <div className="flex gap-4 justify-center">
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={handlePauseResume}
-              className="flex items-center gap-2 px-8 py-4 rounded-full bg-card/80 backdrop-blur-md border border-white/10 text-foreground font-serif shadow-[0_4px_20px_rgba(0,0,0,0.05)] hover:bg-card transition-colors"
-            >
-              {isPaused ? (
-                <>
-                  <Play className="w-5 h-5" />
-                  继续
-                </>
-              ) : (
-                <>
-                  <Pause className="w-5 h-5" />
-                  暂停
-                </>
-              )}
-            </motion.button>
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={handleEndRequest}
-              className="px-8 py-4 rounded-full green-gradient backdrop-blur-md border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] text-white font-serif shadow-[0_4px_20px_rgba(45,90,39,0.2)] hover:opacity-90 transition-opacity"
-            >
-              结束
-            </motion.button>
-          </div>
-
-          {/* 步长选择器 + 前进/后退按钮 - 仅在口令跟练模式显示 */}
-          {selectedOption === 'guided_audio' && isAudioLoaded && !isAudioLoading && !audioError && (
-            <div className="flex items-center justify-center gap-3 mt-4 bg-white/20 backdrop-blur-[8px] rounded-full px-3 py-1.5 border border-white/30">
-              {/* 后退按钮 */}
-              <motion.button
-                whileTap={{ scale: 0.9 }}
-                onClick={() => handleAudioSeek('backward')}
-                className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-foreground/50 hover:text-foreground transition-all"
-              >
-                <SkipBack className="w-3.5 h-3.5" />
-              </motion.button>
-
-              {/* 步长选择器 */}
-              <div className="flex items-center gap-1">
-                {SEEK_STEP_OPTIONS.map((step) => (
-                  <button
-                    key={step}
-                    onClick={() => setSeekStep(step)}
-                    className={`px-2 py-1 rounded-full text-xs font-mono transition-all ${
-                      seekStep === step
-                        ? 'green-gradient text-white shadow-sm'
-                        : 'text-foreground/50 hover:text-foreground'
-                    }`}
-                  >
-                    {step}秒
-                  </button>
-                ))}
-              </div>
-
-              {/* 前进按钮 */}
-              <motion.button
-                whileTap={{ scale: 0.9 }}
-                onClick={() => handleAudioSeek('forward')}
-                className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-foreground/50 hover:text-foreground transition-all"
-              >
-                <SkipForward className="w-3.5 h-3.5" />
-              </motion.button>
-            </div>
-          )}
-          </>
-          )}
-        </div>
-
-        <ConfirmEndDialog isOpen={showConfirmEnd} onClose={() => setShowConfirmEnd(false)} onConfirm={handleConfirmEnd} onDiscard={handleDiscardEnd} />
+      <>
+        <PracticeSessionView
+          elapsedTime={elapsedTime}
+          isPaused={Boolean(isPaused)}
+          practiceLabel={getSelectedLabel()}
+          practiceNotes={getSelectedNotes()}
+          activeOptionId={activeOptionId}
+          isChantCountdown={isChantCountdown}
+          chantCountdown={chantCountdown}
+          onSkipChantCountdown={skipChantCountdown}
+          isChantPlaying={isChantPlaying}
+          isAudioLoaded={isAudioLoaded}
+          isAudioLoading={isAudioLoading}
+          audioError={audioError}
+          isUsingCache={isUsingCache}
+          audioProgress={audioProgress}
+          audioCurrentTime={audioCurrentTime}
+          audioDuration={audioDuration}
+          onRetryAudio={retryGuidedAudio}
+          onPauseResume={handlePauseResume}
+          onRequestEnd={handleEndRequest}
+          seekStepOptions={SEEK_STEP_OPTIONS}
+          seekStep={seekStep}
+          onSeekStepChange={setSeekStep}
+          onAudioSeek={handleAudioSeek}
+          showConfirmEnd={showConfirmEnd}
+          onCancelEnd={cancelPracticeEnd}
+          onConfirmEnd={handleConfirmEnd}
+          onDiscardEnd={handleDiscardEnd}
+        />
 
         <CompletionSheet
           isOpen={showCompletion}
           practiceType={getSelectedLabel()}
           duration={finalDuration}
-          onSave={handleSavePractice}
+          startTime={startTimeRef.current ? new Date(startTimeRef.current).toISOString() : undefined}
+          onFinalizeRecord={handleSavePractice}
           onClose={() => {
-            setShowCompletion(false)
+            finishCompletion()
             setSelectedOption(null)
             setCustomPracticeName("")
-            setElapsedTime(0)
-            setIsPaused(false)
             setActiveTab('journal')
           }}
           addRecord={addRecord}
           updateRecord={updateRecord}
-          deleteRecord={deleteRecord}
           autoSync={autoSync}
           onDeleteDraft={handleDeleteRecord}
-          onOpenVoiceFakeDoor={() => setShowFakeDoor({ type: 'voice', isOpen: true })}
-          onOpenPhotoFakeDoor={() => setShowFakeDoor({ type: 'photo', isOpen: true })}
+          onShowMembershipPrompt={() => {
+            setMembershipPromptReason('color_level')
+            setShowMembershipPrompt(true)
+          }}
           user={user}
-          userProfile={userProfile}
           practiceOptions={practiceOptionsData}
+          isPro={membershipIsPro}
         />
-      </motion.div>
+      </>
     )
   }
-
   // Dashboard View
   return (
     <div className="h-screen bg-background flex flex-col">
@@ -6150,129 +848,14 @@ export default function AshtangaTracker() {
       <AnimatePresence mode="wait">
       {activeTab === 'practice' && (
         <motion.div key="practice" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="flex-1 flex flex-col min-h-0">
-        <main className="flex-1 px-6 flex flex-col pb-32 overflow-y-auto">
-          {/* Header - scrolls with content, can be clipped */}
-          <header className="pt-12 pb-4 flex items-center justify-center">
-            <div className="flex flex-row items-center gap-3">
-              <img src="/icon.png" alt="熬汤日记" className="w-[34px] h-[34px] rounded-lg shadow-sm" />
-              <div className="flex flex-col">
-                <h1 className="text-lg font-serif text-foreground tracking-wide font-semibold">
-                  熬汤日记
-                  <span className="text-muted-foreground/50 font-normal">·呼吸</span>
-                  <span className="text-muted-foreground/70 font-normal">·觉察</span>
-                </h1>
-                <p className="text-[9px] text-muted-foreground/50 font-serif tracking-wide leading-tight">
-                  Practice, practice, and all is coming.
-                </p>
-              </div>
-            </div>
-          </header>
-          {/* Selection Grid - Glassmorphism on selected */}
-          <div className="grid grid-cols-3 gap-2 p-4">
-            {practiceOptions.map((option) => {
-              const isSelected = selectedOption === option.id
-              const isCustomButton = option.id === "custom"
-              const isLocked = !isCustomButton && lockedOptionIds.has(option.id)
-              const isChantOn = option.id === 'chant_switch' && chantEnabled
-
-              return (
-                <motion.button
-                  key={option.id}
-                  whileTap={{ scale: 0.97 }}
-                  onClick={() => handleOptionTap(option)}
-                  className={`
-                    py-[6px] px-1 rounded-[20px] text-center font-serif transition-all duration-300
-                    min-h-[72px] w-full flex flex-col items-center justify-center relative
-                    ${
-                      (isSelected || isChantOn) && !isLocked
-                        ? "green-gradient text-primary-foreground backdrop-blur-[16px] border border-white/30 shadow-[0_8px_24px_rgba(45,90,39,0.3)]"
-                        : isLocked
-                          ? "bg-muted/50 text-muted-foreground/50 shadow-[0_2px_8px_rgba(0,0,0,0.03)] border border-stone-100/30 opacity-50"
-                          : isCustomButton
-                            ? "bg-background text-muted-foreground border-2 border-dashed border-muted-foreground/30 shadow-[0_2px_12px_rgba(0,0,0,0.03)]"
-                            : "bg-background text-foreground shadow-[0_4px_16px_rgba(0,0,0,0.06)] border border-stone-100/50"
-                    }
-                  `}
-                >
-                  {isLocked && (
-                    <Lock className="absolute top-1.5 right-1.5 w-3 h-3 text-muted-foreground/40" />
-                  )}
-                  {option.id === 'today_count' ? (
-                    <>
-                      <span className="text-[14px] leading-snug flex items-center justify-center">
-                        <span className="text-[#C5975C] font-bold">{option.label}</span>
-                      </span>
-                      <span className={`text-[11px] mt-0.5 leading-snug ${isSelected ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
-                        {option.notes}
-                      </span>
-                    </>
-                  ) : (
-                  <>
-                  <span className={`text-[14px] leading-snug break-words w-full line-clamp-2 flex items-center justify-center gap-1`}>
-                    {isCustomButton ? "+ 自定义" : (
-                      <>
-                        <span>{option.label}</span>
-                        {option.is_preset && <Volume className="w-4 h-4" style={{ color: isSelected && !isLocked ? 'white' : 'rgba(74, 122, 68)' }} />}
-                      </>
-                    )}
-                  </span>
-                  {!isCustomButton && option.notes && (
-                    <span className={`text-[11px] mt-0.5 leading-snug break-words w-full line-clamp-2 ${(isSelected || isChantOn) && !isLocked ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
-                      {option.notes}
-                    </span>
-                  )}
-                  </>
-                  )}
-                </motion.button>
-              )
-            })}
-          </div>
-
-          {/* Hint text */}
-          <p className="text-center text-xs text-muted-foreground font-serif mt-[-4px]">
-            单击选择·双击编辑
-          </p>
-
-          {/* Spacer - takes up remaining space to center the button */}
-          <div className="flex-1" />
-
-          {/* Start Practice Button - vertically centered between grid and nav */}
-          <div className="flex flex-col items-center justify-center py-6">
-            <motion.div
-              layout={false}
-              animate={{ scale: [1, 1.05, 1] }}
-              transition={{
-                duration: 3,
-                repeat: Infinity,
-                ease: "easeInOut",
-                repeatType: "loop"
-              }}
-              className={`
-                w-36 h-36 rounded-full flex items-center justify-center relative overflow-hidden
-                transition-colors duration-500
-                ${selectedOption
-                  ? "green-gradient cursor-pointer backdrop-blur-[16px] border border-white/30 shadow-[0_12px_48px_rgba(45,90,39,0.45)]"
-                  : "bg-muted/50 backdrop-blur-sm"
-                }
-              `}
-              onClick={selectedOption ? handleStartPractice : undefined}
-              whileTap={selectedOption ? { scale: 0.95 } : {}}
-            >
-              {/* Meditation figure - green on light circle, cream on green circle */}
-              <img 
-                src={selectedOption ? "/icon-light.png" : "/icon-green.png"} 
-                alt="" 
-                className="w-24 h-24 transition-all duration-500 opacity-60"
-              />
-            </motion.div>
-            <span className={`
-              mt-3 text-sm font-serif text-center
-              ${selectedOption ? "text-primary" : "text-muted-foreground"}
-            `}>
-              {selectedOption ? "开始练习" : "请选择练习类型"}
-            </span>
-          </div>
-        </main>
+        <PracticeDashboard
+          practiceOptions={practiceOptions}
+          selectedOption={selectedOption}
+          lockedOptionIds={lockedOptionIds}
+          chantEnabled={Boolean(chantEnabled)}
+          onOptionTap={handleOptionTap}
+          onStartPractice={handleStartPractice}
+        />
         </motion.div>
       )}
 
@@ -6292,8 +875,8 @@ export default function AshtangaTracker() {
           onOpenVoiceFakeDoor={() => setShowFakeDoor({ type: 'voice', isOpen: true })}
           onOpenPhotoFakeDoor={() => setShowFakeDoor({ type: 'photo', isOpen: true })}
           onAddOption={handleAddOption}
-          votedCloud={votedCloud}
-          onLogExport={(log) => setExportLogs([...exportLogs, log])}
+          votedCloud={votedCloud ?? false}
+          onLogExport={(log) => setExportLogs([...(exportLogs ?? []), log])}
           editingRecord={editingRecord}
           onSetEditingRecord={setEditingRecord}
           showAddModal={showAddModal}
@@ -6312,7 +895,19 @@ export default function AshtangaTracker() {
           onOpenXiaohongshuModal={() => setShowXiaohongshuModal(true)}
           hasNewXhsMessage={hasNewXhsMessage}
           onReadInvite={() => setReadInviteVersion(INVITE_VERSION)}
+          onShowMembershipPrompt={() => {
+            setMembershipPromptReason('color_level')
+            setShowMembershipPrompt(true)
+          }}
           isPro={membershipIsPro}
+        />
+        </motion.div>
+      )}
+      {activeTab === 'poses' && (
+        <motion.div key="poses" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="flex-1 flex flex-col min-h-0">
+        <PosesTab
+          onDetailOpen={() => setPosesDetailOpen(true)}
+          onDetailClose={() => setPosesDetailOpen(false)}
         />
         </motion.div>
       )}
@@ -6340,629 +935,256 @@ export default function AshtangaTracker() {
       )}
       </AnimatePresence>
       </div>
-      <AnimatePresence>
-
-        {!hasAnyModalOpen && (
-          <motion.nav
-            initial={{ y: 0, opacity: 1 }}
-            exit={{ y: 100, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="fixed bottom-5 left-1/2 -translate-x-1/2 z-30"
-          >
-            <div className="bg-white/30 backdrop-blur-[8px] rounded-full px-1 py-1 shadow-[0_4px_20px_rgba(0,0,0,0.08)] border border-white/30">
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => {
-                    console.log('[Tab] 点击今日练习, 当前:', activeTab)
-                    setActiveTab('practice')
-                  }}
-                  className={`flex flex-col items-center gap-1 px-5 py-2 rounded-full transition-all ${activeTab === 'practice' ? 'green-gradient text-white shadow-sm' : 'text-stone-400 hover:text-stone-600'}`}
-                >
-                  <Calendar className="w-5 h-5" />
-                  <span className="text-[10px] font-serif whitespace-nowrap">今日练习</span>
-                </button>
-                <button
-                  onClick={() => {
-                    console.log('[Tab] 点击觉察日记, 当前:', activeTab)
-                    setActiveTab('journal')
-                  }}
-                  className={`flex flex-col items-center gap-1 px-5 py-2 rounded-full transition-all ${activeTab === 'journal' ? 'green-gradient text-white shadow-sm' : 'text-stone-400 hover:text-stone-600'}`}
-                >
-                  <BookOpen className="w-5 h-5" />
-                  <span className="text-[10px] font-serif whitespace-nowrap">觉察日记</span>
-                </button>
-                <button
-                  onClick={() => {
-                    console.log('[Tab] 点击我的数据, 当前:', activeTab)
-                    setActiveTab('stats')
-                  }}
-                  className={`flex flex-col items-center gap-1 px-5 py-2 rounded-full transition-all ${activeTab === 'stats' ? 'green-gradient text-white shadow-sm' : 'text-stone-400 hover:text-stone-600'}`}
-                >
-                  <BarChart3 className="w-5 h-5" />
-                  <span className="text-[10px] font-serif whitespace-nowrap">我的数据</span>
-                </button>
-              </div>
-            </div>
-          </motion.nav>
-        )}
-      </AnimatePresence>
-
-      {/* Custom Practice Modal */}
-      <CustomPracticeModal
-        isOpen={showCustomModal}
-        onClose={() => setShowCustomModal(false)}
-        onConfirm={handleAddOption}
-        isFull={isOptionsFull}
-        maxSlots={membershipIsPro ? MAX_SLOTS_PRO : MAX_SLOTS_FREE}
-        membership={membership}
-        onShowMembershipPrompt={() => {
-          setMembershipPromptReason('color_level')
-          setShowMembershipPrompt(true)
-        }}
-      />
-
-      {/* Edit Option Modal */}
-      <EditOptionModal
-        isOpen={showEditModal}
-        onClose={() => {
-          setShowEditModal(false)
-          setEditingOption(null)
-        }}
-        option={editingOption}
-        onSave={handleEditSave}
-        onDelete={handleEditDelete}
-        canDelete={canDeleteOption && editingOption?.id !== "custom"}
-        membership={membership}
-      />
-
-      {/* Settings Modal */}
-      <SettingsModal
-        isOpen={showSettings}
-        onClose={() => {
-          setShowSettings(false)
-          setSettingsInitialSection('profile') // 重置初始标签页
-        }}
-        initialSection={settingsInitialSection}
-        profile={userProfile}
-        onSave={async (profile) => {
-          // 先保存到本地
-          updateProfile(profile)
-          // 如果已登录，自动同步到云端
-          if (user) {
-            toast.loading('正在同步到云端...', { id: 'sync-profile' })
-            try {
-              const result = await autoSync('保存个人资料后同步')
-              toast.dismiss('sync-profile')
-              if (result) {
-                toast.success('✅ 资料已同步到云端')
-              } else {
-                toast.error('❌ 同步失败，请稍后重试')
-              }
-            } catch (e) {
-              toast.dismiss('sync-profile')
-              toast.error('❌ 同步失败')
+      <PracticeNavigation activeTab={activeTab} hidden={hasAnyModalOpen} onChange={setActiveTab} />
+      <PracticeModalHost
+        clearData={{
+          isOpen: showClearDataConfirm,
+          step: clearDataStep,
+          confirmPhrase,
+          onClose: () => setShowClearDataConfirm(false),
+          onStepChange: setClearDataStep,
+          onConfirmPhraseChange: setConfirmPhrase,
+          onInvalidConfirmPhrase: () => toast.error('确认词输入错误，请重新输入'),
+          onComplete: async () => {
+            clearAppLocalStorage()
+            if (user && clearAllData) {
+              await clearAllData()
             }
-          }
+            setShowClearDataConfirm(false)
+            setClearDataStep(1)
+            await supabase.auth.signOut()
+            router.push('/')
+          },
         }}
-        onOpenExport={() => {
-          const data = exportData()
-          setExportedData(data)
-          setShowExportModal(true)
+        chantSettings={{
+          isOpen: showChantSettings,
+          isPro: membershipIsPro,
+          minutes: chantMins,
+          seconds: chantSecs,
+          delaySeconds: chantDelaySeconds,
+          onMinutesChange: setChantMins,
+          onSecondsChange: setChantSecs,
+          onDelayChange: setChantDelay,
+          onClose: () => setShowChantSettings(false),
+          onUpgrade: () => {
+            setShowChantSettings(false)
+            setMembershipPromptReason('options_full')
+            setShowMembershipPrompt(true)
+          },
         }}
-        onOpenImport={() => setShowImportModal(true)}
-        onExportLog={handleExportDebugLog}
-        onClearData={clearAllData}
-        user={user}
-        practiceHistory={practiceHistory}
-        practiceOptionsData={practiceOptionsData}
-        onShowClearDataConfirm={() => {
-          setClearDataStep(1)
-          setConfirmPhrase('')
-          setShowClearDataConfirm(true)
-        }}
-        onOpenLoginModal={() => {
-          setShowAuthModal(true)
-          setAuthMode('login')
-        }}
-        onOpenRegisterModal={() => {
-          setShowAuthModal(true)
-          setAuthMode('register')
-        }}
-        membership={membership}
-        onActivateMembership={() => {
-          setShowActivateModal(true)
-        }}
-        onPurchaseMembership={() => setShowPurchaseModal(true)}
-        onUpdateProfile={updateProfile}
-      />
-
-      {/* Annotation Manager Modal */}
-      <AnnotationManagerModal
-        isOpen={showAnnotationManager}
-        onClose={() => setShowAnnotationManager(false)}
-        types={annotationTypes}
-        maxTypes={maxAnnotationTypes}
-        isPro={membershipIsPro}
-        onCreateType={createAnnotationType}
-        onUpdateType={updateAnnotationType}
-        onDeleteType={deleteAnnotationType}
-        onAddAnnotation={addAnnotation}
-        onRemoveAnnotation={removeAnnotation}
-        onLockedClick={() => {
-          setMembershipPromptReason('locked_annotation')
-          setShowMembershipPrompt(true)
-        }}
-        annotationDates={annotationDates}
-      />
-
-      {/* Activate Membership Modal */}
-      <ActivateModal
-        isOpen={showActivateModal}
-        onClose={() => setShowActivateModal(false)}
-        onSuccess={async () => {
-          // ⭐ 刷新会员状态，等待完成后再关闭弹窗
-          console.log('[Practice] 激活成功，准备刷新会员状态')
-          await refreshMembership()
-          console.log('[Practice] refreshMembership 完成')
-        }}
-      />
-
-      {/* Membership Prompt Modal - 纯转化弹窗 */}
-      <MembershipPromptModal
-        isOpen={showMembershipPrompt}
-        onClose={() => setShowMembershipPrompt(false)}
-        reason={membershipPromptReason}
-        onActivate={() => setShowActivateModal(true)}
-      />
-
-      {/* Purchase Guide Modal */}
-      <PurchaseGuideModal
-        isOpen={showPurchaseModal}
-        onClose={() => setShowPurchaseModal(false)}
-      />
-
-      {/* Account & Sync Modal */}
-      <AccountSyncModal
-        isOpen={showAccountSync}
-        onClose={() => setShowAccountSync(false)}
-        profile={userProfile}
-        practiceHistory={practiceHistory}
-        practiceOptionsData={practiceOptionsData}
-        onOpenLoginModal={() => {
-          setShowAuthModal(true)
-          setAuthMode('login')
-        }}
-        onOpenRegisterModal={() => {
-          setShowAuthModal(true)
-          setAuthMode('register')
-        }}
-        onShowClearDataConfirm={() => {
-          setShowClearDataConfirm(true)
-          setClearDataStep(2) // 直接从 Step 2（输入确认词）开始
-        }}
-        onUpdateProfile={updateProfile}
-        user={user}
-      />
-
-      {/* 清空数据确认弹窗 - 居中显示 */}
-      {showClearDataConfirm && (
-        <>
-          <div
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50"
-            onClick={() => setShowClearDataConfirm(false)}
-          />
-          {/* Modal - 居中显示 */}
-          <div className="fixed inset-0 flex items-center justify-center z-50 p-4 pointer-events-none">
-            <div className="bg-card rounded-[24px] shadow-[0_8px_32px_rgba(0,0,0,0.12)] w-full max-w-md pointer-events-auto">
-              <div className="p-6 pb-10">
-              {/* 第一层：警告 */}
-              {clearDataStep === 1 && (
-                <>
-                  <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-lg font-serif text-foreground">⚠️ 危险操作警告</h2>
-                    <button onClick={() => setShowClearDataConfirm(false)} className="p-2 -mr-2 text-muted-foreground hover:text-foreground transition-colors">
-                      <X className="w-5 h-5" />
-                    </button>
-                  </div>
-
-                  <div className="space-y-4">
-                    <p className="text-sm font-serif text-foreground text-center leading-relaxed">
-                      您正在尝试清空本地数据胶囊。
-                    </p>
-
-                    <div className="bg-red-50 rounded-xl p-4 border border-red-200">
-                      <p className="text-sm font-serif text-red-700 font-medium mb-2">此操作将永久删除：</p>
-                      <ul className="text-sm font-serif text-red-600 space-y-1 pl-4">
-                        <li>• 所有练习记录</li>
-                        <li>• 练习选项</li>
-                        <li>• 个人信息</li>
-                        <li>• 同步日志</li>
-                      </ul>
-                    </div>
-
-                    <p className="text-sm font-serif text-red-600 text-center font-medium">
-                      ⚠️ 此操作不可撤销！
-                    </p>
-
-                    <div className="flex gap-3 pt-2">
-                      <button
-                        onClick={() => setShowClearDataConfirm(false)}
-                        className="flex-1 px-4 py-3 bg-secondary text-foreground rounded-xl border border-border hover:bg-secondary/80 transition-all font-serif"
-                      >
-                        取消
-                      </button>
-                      <button
-                        onClick={() => setClearDataStep(2)}
-                        className="flex-1 px-4 py-3 bg-gradient-to-r from-red-500/80 to-red-600/80 backdrop-blur-md text-white rounded-xl border border-white/20 shadow-[0_4px_16px_rgba(220,38,38,0.25)] hover:from-red-600/80 hover:to-red-700/80 transition-all font-serif"
-                      >
-                        继续操作
-                      </button>
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {/* 第二层：输入确认词 */}
-              {clearDataStep === 2 && (
-                <>
-                  <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-lg font-serif text-foreground">⚠️ 二次确认</h2>
-                    <button onClick={() => setShowClearDataConfirm(false)} className="p-2 -mr-2 text-muted-foreground hover:text-foreground transition-colors">
-                      <X className="w-5 h-5" />
-                    </button>
-                  </div>
-
-                  <div className="space-y-4">
-                    <p className="text-sm font-serif text-foreground text-center leading-relaxed">
-                      为防止误操作，请输入确认词。
-                    </p>
-
-                    <div className="bg-red-50 rounded-xl p-4 border border-red-200">
-                      <p className="text-sm font-serif text-red-700 text-center mb-2">确认词：</p>
-                      <p className="text-lg font-serif text-red-800 text-center font-bold">确认删除</p>
-                    </div>
-
-                    <input
-                      type="text"
-                      value={confirmPhrase}
-                      onChange={(e) => setConfirmPhrase(e.target.value)}
-                      placeholder="请输入确认词（不含引号）"
-                      className="w-full px-4 py-3 border border-border rounded-xl focus:ring-2 focus:ring-red-500/20 focus:border-red-500 bg-secondary font-serif"
-                      autoFocus
-                    />
-
-                    <div className="flex gap-3 pt-2">
-                      <button
-                        onClick={() => setClearDataStep(1)}
-                        className="flex-1 px-4 py-3 bg-secondary text-foreground rounded-xl border border-border hover:bg-secondary/80 transition-all font-serif"
-                      >
-                        返回
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (confirmPhrase === '确认删除') {
-                            setClearDataStep(3)
-                          } else {
-                            toast.error('确认词输入错误，请重新输入')
-                          }
-                        }}
-                        className="flex-1 px-4 py-3 bg-gradient-to-r from-red-500/80 to-red-600/80 backdrop-blur-md text-white rounded-xl border border-white/20 shadow-[0_4px_16px_rgba(220,38,38,0.25)] hover:from-red-600/80 hover:to-red-700/80 transition-all font-serif"
-                      >
-                        确认
-                      </button>
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {/* 第三层：完成 */}
-              {clearDataStep === 3 && (
-                <>
-                  <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-lg font-serif text-foreground">✅ 数据已清空</h2>
-                    <button onClick={() => setShowClearDataConfirm(false)} className="p-2 -mr-2 text-muted-foreground hover:text-foreground transition-colors">
-                      <X className="w-5 h-5" />
-                    </button>
-                  </div>
-
-                  <div className="space-y-4">
-                    <p className="text-sm font-serif text-foreground text-center leading-relaxed">
-                      所有本地数据已成功删除。
-                    </p>
-
-                    <p className="text-sm font-serif text-muted-foreground text-center">
-                      点击完成后将退出登录并返回首页。
-                    </p>
-
-                    <div className="flex gap-3 pt-2">
-                      <button
-                        onClick={async () => {
-                          localStorage.clear()
-                          if (user && clearAllData) {
-                            await clearAllData()
-                          }
-                          setShowClearDataConfirm(false)
-                          setClearDataStep(1)
-                          await supabase.auth.signOut() // 确保退出登录
-                          router.push('/')
-                        }}
-                        className="w-full px-4 py-3 green-gradient backdrop-blur-md text-white rounded-xl border border-white/20 shadow-[0_4px_16px_rgba(45,90,39,0.25)] hover:opacity-90 transition-all font-serif"
-                      >
-                        完成
-                      </button>
-                    </div>
-                  </div>
-                </>
-              )}
-              </div>
-            </div>
-          </div>
-        </>
-      )}
-      {/* Import Modal */}
-      <ImportModal
-        isOpen={showImportModal}
-        onClose={() => setShowImportModal(false)}
-        onImport={(json) => {
-          const result = importData(json)
-
-          if (result) {
-            toast.success('✅ 数据导入成功！', {
-              duration: 3000,
-              position: 'top-center'
-            })
-            trackEvent('import_data')
-            setTimeout(() => {
-              setShowImportModal(false)
+        external={{
+          customPractice: {
+            isOpen: showCustomModal,
+            onClose: () => setShowCustomModal(false),
+            onConfirm: handleAddOption,
+            isFull: isOptionsFull,
+            maxSlots: membershipIsPro ? MAX_SLOTS_PRO : MAX_SLOTS_FREE,
+            membership,
+            onShowMembershipPrompt: () => {
+              setMembershipPromptReason('color_level')
+              setShowMembershipPrompt(true)
+            },
+          },
+          editOption: {
+            isOpen: showEditModal,
+            onClose: () => {
+              setShowEditModal(false)
+              setEditingOption(null)
+            },
+            option: editingOption,
+            onSave: handleEditSave,
+            onDelete: handleEditDelete,
+            canDelete: canDeleteOption && editingOption?.id !== 'custom',
+            membership,
+            onShowMembershipPrompt: () => {
+              setMembershipPromptReason('color_level')
+              setShowMembershipPrompt(true)
+            },
+          },
+          settings: {
+            isOpen: showSettings,
+            onClose: () => {
               setShowSettings(false)
-            }, 500)
-          } else {
-            toast.error('❌ 数据导入失败，请检查格式', {
-              duration: 3000,
-              position: 'top-center'
-            })
-          }
+              setSettingsInitialSection('profile')
+            },
+            initialSection: settingsInitialSection,
+            profile: userProfile,
+            onSave: async (profile) => {
+              updateProfile(profile)
+              if (user) {
+                toast.loading('正在同步到云端...', { id: 'sync-profile' })
+                try {
+                  const result = await autoSync('保存个人资料后同步')
+                  toast.dismiss('sync-profile')
+                  if (result) toast.success('✅ 资料已同步到云端')
+                  else toast.error('❌ 同步失败，请稍后重试')
+                } catch {
+                  toast.dismiss('sync-profile')
+                  toast.error('❌ 同步失败')
+                }
+              }
+            },
+            onOpenExport: () => {
+              setExportedData(exportData())
+              setShowExportModal(true)
+            },
+            onOpenImport: () => setShowImportModal(true),
+            onExportLog: handleExportDebugLog,
+            onClearData: clearAllData,
+            user,
+            practiceHistory,
+            practiceOptionsData,
+            onShowClearDataConfirm: () => {
+              setClearDataStep(1)
+              setConfirmPhrase('')
+              setShowClearDataConfirm(true)
+            },
+            onOpenLoginModal: () => {
+              setShowAuthModal(true)
+              setAuthMode('login')
+            },
+            onOpenRegisterModal: () => {
+              setShowAuthModal(true)
+              setAuthMode('register')
+            },
+            membership,
+            onActivateMembership: () => setShowActivateModal(true),
+            onUpdateProfile: updateProfile,
+          },
+          annotationManager: {
+            isOpen: showAnnotationManager,
+            onClose: () => setShowAnnotationManager(false),
+            types: annotationTypes,
+            maxTypes: maxAnnotationTypes,
+            isPro: membershipIsPro,
+            onCreateType: createAnnotationType,
+            onUpdateType: updateAnnotationType,
+            onDeleteType: deleteAnnotationType,
+            onAddAnnotation: addAnnotation,
+            onRemoveAnnotation: removeAnnotation,
+            onLockedClick: () => {
+              setMembershipPromptReason('locked_annotation')
+              setShowMembershipPrompt(true)
+            },
+            annotationDates,
+          },
+          activate: {
+            isOpen: showActivateModal,
+            onClose: () => setShowActivateModal(false),
+            onSuccess: async () => {
+              await refreshMembership()
+            },
+          },
+          membershipPrompt: {
+            isOpen: showMembershipPrompt,
+            onClose: () => setShowMembershipPrompt(false),
+            reason: membershipPromptReason,
+            onActivate: () => setShowActivateModal(true),
+          },
+          accountSync: {
+            isOpen: showAccountSync,
+            onClose: () => setShowAccountSync(false),
+            profile: userProfile,
+            practiceHistory,
+            practiceOptionsData,
+            onOpenLoginModal: () => {
+              setShowAuthModal(true)
+              setAuthMode('login')
+            },
+            onOpenRegisterModal: () => {
+              setShowAuthModal(true)
+              setAuthMode('register')
+            },
+            onShowClearDataConfirm: () => {
+              setShowClearDataConfirm(true)
+              setClearDataStep(2)
+            },
+            onUpdateProfile: updateProfile,
+            user,
+          },
+          importModal: {
+            isOpen: showImportModal,
+            onClose: () => setShowImportModal(false),
+            onImport: (json) => {
+              const result = importData(json)
+              if (result) {
+                toast.success('✅ 数据导入成功！', { duration: 3000, position: 'top-center' })
+                trackEvent('import_data')
+                setTimeout(() => {
+                  setShowImportModal(false)
+                  setShowSettings(false)
+                }, 500)
+              } else {
+                toast.error('❌ 数据导入失败，请检查格式', { duration: 3000, position: 'top-center' })
+              }
+            },
+          },
+          exportModal: {
+            isOpen: showExportModal,
+            onClose: () => setShowExportModal(false),
+            data: exportedData,
+          },
+          debugLogModal: {
+            isOpen: showDebugLogModal,
+            onClose: () => setShowDebugLogModal(false),
+            logContent: debugLogContent,
+          },
+          completion: {
+            isOpen: showCompletion,
+            practiceType: getSelectedLabel(),
+            duration: finalDuration,
+            startTime: startTimeRef.current ? new Date(startTimeRef.current).toISOString() : undefined,
+            onFinalizeRecord: handleSavePractice,
+            onClose: () => {
+              finishCompletion()
+              setSelectedOption(null)
+              setCustomPracticeName('')
+              setActiveTab('journal')
+            },
+            addRecord,
+            updateRecord,
+            autoSync,
+            onDeleteDraft: handleDeleteRecord,
+            onShowMembershipPrompt: () => {
+              setMembershipPromptReason('color_level')
+              setShowMembershipPrompt(true)
+            },
+            user,
+            practiceOptions: practiceOptionsData,
+            isPro: membershipIsPro,
+          },
+          fakeDoor: {
+            type: showFakeDoor.type,
+            isOpen: showFakeDoor.isOpen,
+            onClose: () => setShowFakeDoor({ ...showFakeDoor, isOpen: false }),
+            onVote: handleVoteCloud,
+          },
+          xiaohongshu: {
+            isOpen: showXiaohongshuModal,
+            onClose: () => {
+              setShowXiaohongshuModal(false)
+              setReadInviteVersion(INVITE_VERSION)
+            },
+          },
+          auth: {
+            isOpen: showAuthModal,
+            onClose: () => setShowAuthModal(false),
+            mode: authMode,
+            onAuthSuccess: () => {
+              setShowAuthModal(false)
+              refreshMembership()
+            },
+            onModeChange: setAuthMode,
+          },
+          dataConflict: {
+            isOpen: showDataConflict,
+            localCount: conflictLocalCount,
+            remoteCount: conflictRemoteCount,
+            onSelect: handleResolveConflict,
+          },
         }}
       />
 
-      {/* Export Modal */}
-      <ExportModal
-        isOpen={showExportModal}
-        onClose={() => setShowExportModal(false)}
-        data={exportedData}
-      />
-
-      {/* Debug Log Modal */}
-      <DebugLogModal
-        isOpen={showDebugLogModal}
-        onClose={() => setShowDebugLogModal(false)}
-        logContent={debugLogContent}
-      />
-
-      {/* Completion Sheet */}
-      <CompletionSheet
-        isOpen={showCompletion}
-        practiceType={getSelectedLabel()}
-        duration={finalDuration}
-        onSave={handleSavePractice}
-        onClose={() => {
-          setShowCompletion(false)
-          setSelectedOption(null)
-          setCustomPracticeName("")
-          setElapsedTime(0)
-          setIsPaused(false)
-          setActiveTab('journal')
-        }}
-        addRecord={addRecord}
-        updateRecord={updateRecord}
-        deleteRecord={deleteRecord}
-        autoSync={autoSync}
-        onDeleteDraft={handleDeleteRecord}
-        onOpenVoiceFakeDoor={() => setShowFakeDoor({ type: 'voice', isOpen: true })}
-        onOpenPhotoFakeDoor={() => setShowFakeDoor({ type: 'photo', isOpen: true })}
-        user={user}
-        userProfile={userProfile}
-        practiceOptions={practiceOptionsData}
-        isPro={membershipIsPro}
-      />
-
-      {/* Fake Door Modal */}
-      <FakeDoorModal
-        type={showFakeDoor.type}
-        isOpen={showFakeDoor.isOpen}
-        onClose={() => setShowFakeDoor({ ...showFakeDoor, isOpen: false })}
-        onVote={handleVoteCloud}
-      />
-
-      {/* 小红书群邀请弹窗 */}
-      <XiaohongshuInviteModal
-        isOpen={showXiaohongshuModal}
-        onClose={() => {
-          setShowXiaohongshuModal(false)
-          // 关闭时再次确保标记为已读（双重保险）
-          setReadInviteVersion(INVITE_VERSION)
-        }}
-      />
-
-      {/* Auth Modal - 登录/注册/忘记密码 */}
-      <AuthModal
-        isOpen={showAuthModal}
-        onClose={() => setShowAuthModal(false)}
-        mode={authMode}
-        onAuthSuccess={() => { setShowAuthModal(false); refreshMembership() }}
-        onModeChange={(newMode) => setAuthMode(newMode)}
-      />
-
-      {/* 唱诵设置 Sheet */}
-      <AnimatePresence>
-        {showChantSettings && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/30 z-[100]"
-              onClick={() => setShowChantSettings(false)}
-            />
-            <motion.div
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="fixed bottom-0 left-0 right-0 bg-card rounded-t-[24px] z-[110] p-6 pb-10 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]"
-              onAnimationComplete={() => {
-                // 动画完成（保留 ref 以备后用）
-              }}
-            >
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-serif text-foreground">唱诵设置</h2>
-                <button onClick={() => {
-                  // 关闭时同步到 chantDelay
-                  const total = chantMins * 60 + chantSecs
-                  if (total >= 5) setChantDelay(total)
-                  setShowChantSettings(false)
-                }} className="p-2 -mr-2 text-muted-foreground hover:text-foreground transition-colors">
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              {membershipIsPro ? (
-                <div className="space-y-5">
-                  <label className="block text-sm font-serif text-foreground">
-                    倒计时时长
-                  </label>
-                  <div className="flex items-center justify-center gap-3">
-                    <div className="flex flex-col items-center">
-                      <button
-                        onClick={() => {
-                          const v = Math.min(180, chantMins + 1)
-                          setChantMins(v)
-                          const total = v * 60 + chantSecs
-                          if (total >= 5) setChantDelay(total)
-                        }}
-                        className="w-[72px] h-9 flex items-center justify-center text-muted-foreground hover:text-foreground active:scale-90 transition-transform rounded-lg hover:bg-secondary/60"
-                      >
-                        <ChevronUp className="w-5 h-5" />
-                      </button>
-                      <input
-                        type="number"
-                        min={0}
-                        max={180}
-                        value={chantMins}
-                        onChange={(e) => {
-                          const v = Math.min(180, Math.max(0, parseInt(e.target.value) || 0))
-                          setChantMins(v)
-                          const total = v * 60 + chantSecs
-                          if (total >= 5) setChantDelay(total)
-                        }}
-                        className="w-[72px] h-16 text-center text-3xl font-light text-foreground bg-secondary/60 rounded-2xl border border-border/30 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:bg-secondary appearance-none [moz-appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                        inputMode="numeric"
-                      />
-                      <button
-                        onClick={() => {
-                          const v = Math.max(0, chantMins - 1)
-                          setChantMins(v)
-                          const total = v * 60 + chantSecs
-                          if (total >= 5) setChantDelay(total)
-                        }}
-                        className="w-[72px] h-9 flex items-center justify-center text-muted-foreground hover:text-foreground active:scale-90 transition-transform rounded-lg hover:bg-secondary/60"
-                      >
-                        <ChevronDown className="w-5 h-5" />
-                      </button>
-                    </div>
-                    <span className="text-base font-serif text-muted-foreground mt-1">分</span>
-                    <div className="flex flex-col items-center">
-                      <button
-                        onClick={() => {
-                          const v = Math.min(59, chantSecs + 1)
-                          setChantSecs(v)
-                          const total = chantMins * 60 + v
-                          if (total >= 5) setChantDelay(total)
-                        }}
-                        className="w-[72px] h-9 flex items-center justify-center text-muted-foreground hover:text-foreground active:scale-90 transition-transform rounded-lg hover:bg-secondary/60"
-                      >
-                        <ChevronUp className="w-5 h-5" />
-                      </button>
-                      <input
-                        type="number"
-                        min={0}
-                        max={59}
-                        value={chantSecs}
-                        onChange={(e) => {
-                          const v = Math.min(59, Math.max(0, parseInt(e.target.value) || 0))
-                          setChantSecs(v)
-                          const total = chantMins * 60 + v
-                          if (total >= 5) setChantDelay(total)
-                        }}
-                        className="w-[72px] h-16 text-center text-3xl font-light text-foreground bg-secondary/60 rounded-2xl border border-border/30 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:bg-secondary appearance-none [moz-appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                        inputMode="numeric"
-                      />
-                      <button
-                        onClick={() => {
-                          const v = Math.max(0, chantSecs - 1)
-                          setChantSecs(v)
-                          const total = chantMins * 60 + v
-                          if (total >= 5) setChantDelay(total)
-                        }}
-                        className="w-[72px] h-9 flex items-center justify-center text-muted-foreground hover:text-foreground active:scale-90 transition-transform rounded-lg hover:bg-secondary/60"
-                      >
-                        <ChevronDown className="w-5 h-5" />
-                      </button>
-                    </div>
-                    <span className="text-base font-serif text-muted-foreground mt-1">秒</span>
-                  </div>
-                  <p className="text-center text-xs text-muted-foreground/60 font-serif">
-                    当前：{Math.floor(chantDelay / 60)}分{String(chantDelay % 60).padStart(2, '0')}秒（最少5秒，最长3小时）
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-5">
-                  <div className="flex items-center gap-2">
-                    <Lock className="w-4 h-4 text-muted-foreground/40" />
-                    <span className="text-xs text-muted-foreground/60 font-serif">Pro 功能</span>
-                  </div>
-                  <label className="block text-sm font-serif text-foreground">
-                    倒计时时长
-                  </label>
-                  {/* 灰色滚轮预览（静态展示当前值） */}
-                  <div className="flex items-center justify-center gap-3 opacity-40 pointer-events-none">
-                    <div className="w-20 h-[160px] flex items-center justify-center">
-                      <span className="text-4xl font-serif text-foreground">{Math.floor(chantDelay / 60)}</span>
-                    </div>
-                    <span className="text-sm font-serif text-muted-foreground">分</span>
-                    <div className="w-20 h-[160px] flex items-center justify-center">
-                      <span className="text-4xl font-serif text-foreground">{String(chantDelay % 60).padStart(2, '0')}</span>
-                    </div>
-                    <span className="text-sm font-serif text-muted-foreground">秒</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground font-serif leading-relaxed">
-                    开启后，开始练习前会先全屏倒计时，然后播放开篇唱诵音频，结束后自动开始练习计时。
-                  </p>
-                  <button
-                    onClick={() => {
-                      setShowChantSettings(false)
-                      setMembershipPromptReason('options_full')
-                      setShowMembershipPrompt(true)
-                    }}
-                    className="w-full mt-2 px-6 py-2.5 rounded-full bg-gradient-to-r from-amber-500 to-yellow-500 text-white text-sm font-serif shadow-[0_4px_12px_rgba(245,158,11,0.3)]"
-                  >
-                    <Crown className="w-4 h-4 inline mr-1" />
-                    升级 Pro 解锁自定义时长
-                  </button>
-                </div>
-              )}
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-
-      {/* Data Conflict Modal - 数据冲突处理 */}
-      <DataConflictModal
-        isOpen={showDataConflict}
-        localCount={conflictLocalCount}
-        remoteCount={conflictRemoteCount}
-        onSelect={handleResolveConflict}
-      />
     </div>
   )
 }

@@ -1,22 +1,638 @@
 # 阿斯汤加打卡 app - 项目记录
 
-## 2026-06-12: 色阶系统推送到生产
+## 2026-06-26: 会员页开通流程收口 + 免费照片上限调整
 
 ### 背景
-master2 上积累了 57 个 commit（色阶 + 体式库 + 小修），用户只需色阶，不要体式库。master3 闲置可覆盖。
 
-### 操作
-1. master2 提交当前改动（注释修正 + 函数提取 + 测试导入修复 + 文档归档）
-2. master3 reset --hard 到 master2
-3. 从新到旧 revert 6 个体式库 commit（f0e92e5 → 9473f0f），无冲突
-4. 105 个测试全部通过
-5. master3 force push 到远端
-6. master reset --hard 到 master3，force push
-7. 运行日志补全 `colorLevel` 字段到每条练习记录
+会员页原来有购买和激活两个入口，点击后还会再弹购买引导/激活码弹窗，交互显得绕。会员权益展示也和真实上传限制出现口径分叉。
+
+### 修改内容
+
+- 会员提示弹窗整合成单张卡片：标题、关闭按钮、普通/Pro 对比表和开通按钮都在同一个容器内。
+- 购买/激活入口收口为一个「开通/续费 Pro」流程：统一弹窗内支持输入激活码，也直接展示开发者微信 `xiao519216978` 和复制按钮。
+- 删除旧 `PurchaseGuideModal` 独立购买弹窗，避免弹窗套弹窗。
+- 会员权益对比统一为：普通每条记录 1 张照片、单张 5 MB、3 个练习选项、1 种日历标注、2 种日历颜色、1 分钟唱诵倒计时；Pro 每条记录 9 张照片、单张 30 MB、11 个练习选项、9 种日历标注、4 种日历颜色、自定义唱诵倒计时。
+- 真实上传逻辑同步调整：免费用户单张照片上限从 10 MB 改为 5 MB，Pro 保持 30 MB。
+
+### 验证
+
+- `npm.cmd run typecheck` → 通过
+- `npx.cmd vitest run --config vitest.config.ts __tests__/oss-utils.test.ts __tests__/membership-prompt-stacking.regression-1.test.tsx __tests__/settings-modal.test.tsx` → 3 文件 / 25 项通过
+
+## 2026-06-26: 照片上传限制与友好提示
+
+### 背景
+
+用户上传超过免费上限的照片时会失败，但前端提示不够友好；同时 Pro 用户应能上传更大的练习照片。这个任务属于真实产品痛点，不是结构型重构。
+
+### 修改内容
+
+- `lib/oss.ts` 增加免费/Pro 文件大小上限：免费 5 MB，Pro 30 MB。
+- `validatePhotoFile(file, { isPro })` 根据会员状态返回不同限制与友好错误文案。
+- `uploadPhoto(file, recordId, { isPro })` 在上传流程入口复用同一套校验。
+- `components/PracticeForm.tsx` 在文件选择后使用实时会员状态判断 `isPro`，并传给上传流程。
+- 前端不再把校验错误吞成“上传失败，请重试”，会展示具体原因，例如免费版超过 5 MB 或 Pro 超过 30 MB。
+- `components/PhotoUpload/PhotoUploader.tsx` 同步支持 `isPro` 参数，保留导出组件的一致性。
+
+### 验证
+
+- `npm.cmd run typecheck` → 通过
+- `npm.cmd run lint` → 通过
+- `npx.cmd vitest run --config vitest.config.ts __tests__/oss-utils.test.ts` → 1 文件 / 16 项通过
+- `npx.cmd vitest run --config vitest.config.ts` → 49 文件 / 539 项通过
+
+## 2026-06-26: 会员激活 API 对口测试补齐
+
+### 背景
+
+会员激活 API 完成最后一刀后，已有 typecheck、lint、API auth routes 和全量 Vitest 兜底，但缺少直接覆盖 `POST /api/membership/activate` 的对口测试。为避免“最后一刀”只靠横向回归保护，本次补齐最小必要 L3 API 测试。
+
+### 测试覆盖
+
+- 未登录返回 `NOT_AUTHENTICATED`。
+- malformed JSON 返回 `INVALID_REQUEST`。
+- 缺少 code 返回 `MISSING_CODE`。
+- code 格式错误返回 `INVALID_CODE_FORMAT`。
+- 已使用激活码返回 `CODE_USED`。
+- 已过期激活码返回 `CODE_EXPIRED`。
+- 新开通会员会写入 `user_memberships`、消费激活码，并返回原响应字段。
+- 续费会员会从当前未过期会员的到期时间继续累加，而不是从当前时间重新计算。
+
+### 验证
+
+- `npm.cmd run typecheck` → 通过
+- `npm.cmd run lint` → 通过
+- `npx.cmd vitest run --config vitest.config.ts __tests__/api-auth-routes.test.ts` → 1 文件 / 35 项通过
+- `npx.cmd vitest run --config vitest.config.ts` → 49 文件 / 535 项通过
+
+## 2026-06-26: 会员激活 API 最后一刀 — 重构正式收口
+
+### 背景
+
+解耦重构已进入维护模式后，仅保留一个可选的小刀：会员激活 API。它仍把鉴权、激活码查询、会员写入、激活码消费和响应格式化集中在同一个 route 主流程里。按“真实职责分离，而不是为了降行数”的标准，这刀值得做完；做完后不再保留默认下一刀。
+
+### 修改内容
+
+- `app/api/membership/activate/route.ts` 保持单文件 route，不新增对外 API。
+- 将主流程收敛为顶层编排：创建 Supabase client、鉴权、解析激活码、查询/校验激活码、获取 profile、计算到期时间、写入会员、消费激活码、返回成功响应。
+- 抽出 route 内部 helper：`authenticateRequest`、`parseActivationCode`、`getActivationCode`、`getProfileId`、`getCurrentLatestExpiry`、`calculateMembershipExpiry`、`createMembershipRecord`、`consumeActivationCode`。
+- 未改数据库 schema、未改响应字段、未改用户可见行为。
+- 更新恢复入口、路线图和 TODO：重构正式收口，进入维护模式；后续不再以“继续阶段 N”或默认“下一刀”为节奏。
+
+### 验证
+
+- `npm.cmd run typecheck` → 通过
+- `npx.cmd vitest run --config vitest.config.ts __tests__/api-auth-routes.test.ts` → 1 文件 / 35 项通过
+- `npx.cmd vitest run --config vitest.config.ts` → 49 文件 / 535 项通过
+
+### 下一步
+
+默认不再主动拆。后续优先业务增长、获客、转化、线上 bug 与安全问题；只有具体业务改动重新制造多职责热点，或出现明确维护痛点时，再顺手做小范围优化。
+
+## 2026-06-25: L5 真实云端测试模板、说明与实测通过
+
+### 背景
+L5 基础设施已经存在，但缺少可复制的 `.env.test` 模板和独立说明。没有这层文档，下次容易误跑真实账号，或者不知道 reset 流程实际会删哪些表。
+
+### 修改内容
+
+- 新增 `.env.test.example`，列出 `TEST_USER_EMAIL`、`TEST_USER_PASSWORD`、Supabase URL、anon key、service role key。
+- `.gitignore` 增加 `!.env.test.example`，继续忽略真实 `.env.test`，允许提交安全模板。
+- 新增 `docs/guides/L5_TESTING.md`，说明 L5 运行条件、测试账号准备、reset 流程、常见失败和 L4/L5 区别。
+- `docs/guides/DEVELOPMENT.md` 和 `docs/architecture/REFACTOR_RESUME.md` 增加 L5 说明链接。
+- `TODO.md` 增加 L5 模板与说明完成项。
+- 用户已填写本地 `.env.test`；验证 `npm.cmd run test:L5` 通过：3 个测试文件 / 8 项测试。
+
+### 下一步
+
+保持 `.env.test` 本地私有，不提交真实密钥。后续改动 Supabase/auth/sync 时，把 `npm.cmd run test:L5` 纳入回归。
+
+## 2026-06-25: README / 开发说明归档
+
+### 背景
+重构补漏和 L4 登录态稳定化完成后，项目已经不缺代码入口，缺的是“下次打开直接知道怎么继续”的维护入口。
+
+### 修改内容
+
+- `README.md` 增加“开发维护入口”，写清当前重构状态、恢复文档、开发说明、验证基线。
+- 新增 `docs/guides/DEVELOPMENT.md`，集中说明日常启动、门禁命令、L4 seed、L5 `.env.test` 要求和已知 Git 全局 ignore 权限噪声。
+- `docs/architecture/REFACTOR_RESUME.md` 的下一步更新为 L5 真实云端环境可重复化。
+- `TODO.md` 增加 README/开发说明归档完成项。
+
+### 下一步
+
+固化 L5 真实云端测试环境：专用测试账号、`.env.test` 模板、reset 脚本和运行说明。
+
+## 2026-06-25: L4 登录态稳定化 — 51/51 全量通过
+
+### 背景
+上一轮审核补漏后，L4 全量仍有 3 个登录态用例因为测试账号缺少稳定云端数据而 `skipped`。这会让下次排查误以为还需要先处理 auth 环境。
+
+### 修复内容
+
+- `__tests__/L4/fixtures.ts` 新增 `seedL4PracticeData(page)`，在应用启动前写入固定 records/options/profile。
+- seed 时设置 `window.__hasAutoSynced__ = true`，避免真实 auth session 下首屏自动同步覆盖本地测试数据。
+- Journal L4 用例改为断言固定 seed 记录、补录 sheet、分享卡真实路径。
+- Settings L4 用例改为进入“数据管理”分区后断言导出弹窗。
+- 为 Journal 补录、记录分享触发器、Settings 导出按钮补充稳定 `data-testid`，降低文案/图标变更导致的测试脆弱性。
+
+### 验证
+
+- `npm.cmd run typecheck` → 通过
+- `npm.cmd run lint` → 通过
+- `npx.cmd playwright test __tests__/L4/journal.spec.ts __tests__/L4/settings.spec.ts --project=auth-chromium` → 5/5 通过
+- `npm.cmd run test:L4` → 51/51 通过，0 skipped
+
+### 注意
+
+当前沙箱访问 Supabase 测试云端仍会被网络权限拦截，因此 `auth.setup` 会保存空白 storageState；L4 登录态 UI 现在不再依赖该云端数据。真正仍需要 `.env.test`/测试云端的是 L5 真实上传、下载、冲突与 auth 冒烟。
+
+## 2026-06-25: 重构审核补漏 — 门禁恢复绿色
+
+### 背景
+对阶段 1–6 解耦结果做重新审核后，发现主体架构已经完成，但当前门禁有三类红灯：TypeScript 类型边界、全量 Vitest 中同步 L3 测试污染、L4 smoke 被本地/外部网络噪声污染。
+
+### 修复内容
+
+- `hooks/useSync.ts`：`readLatestLocalData` 返回明确 `RemoteSyncData`，避免 `unknown[]` 流入同步编排。
+- `hooks/usePracticeData.ts` / `components/practice-record/RecordModals.tsx`：兼容同步层返回的 `breakthrough/start_time: null`。
+- `lib/import-export.ts`：`migrateOldOptions` 同时接受旧 option 胶囊和当前 `PracticeOption`。
+- `__tests__/sync-isolation-and-rollback.test.ts`：测试手动冲突路径时禁用自动同步，避免调用计数被 hook mount 副作用污染。
+- `__tests__/L4/fixtures.ts`：等待 `document.head` 可用后再注入禁用动画样式，修复 `appendChild` pageerror。
+- `app/api/stats/today/route.ts`：缺 Supabase service key 时返回 `{ count: 0 }`，不在本地 L4 中制造 console error。
+- `app/layout.tsx` / `lib/analytics.ts`：开发环境不挂 Vercel Analytics / Speed Insights；localhost 不加载 Mixpanel。
+
+### 验证
+
+- `npm.cmd run typecheck` → 通过
+- `npm.cmd run lint` → 通过
+- `npx.cmd vitest run` → 49 文件 / 527 项通过
+- `npm.cmd run build` → 通过
+- `npm.cmd run measure:initial-js` → 16 scripts / 1117.0 KiB raw / 335.5 KiB gzip
+- `npx.cmd playwright test __tests__/L4/smoke.spec.ts --project=guest-chromium` → 4/4 通过
+
+### 注意
+
+历史备注：本条记录写入时 L4 登录态仍可能 skip；随后已通过本地 seed 固化解决，当前 L4 为 51/51 通过、0 skipped。L5 真实云端仍需要可访问的 `.env.test`/测试云端环境。
+
+## 2026-06-25: 阶段 6 测试暴露的 3 个缺陷修复
+
+### 背景
+阶段 6 跨模块测试缺口填充过程中，通过 `EXPOSES GAP` 测试暴露了 3 个真实缺陷。本日完成全部修复，并把对应测试改为 `VERIFIES FIX`。
+
+### 修复内容
+
+**缺陷 1：`reset-password` 无幂等机制**
+- 文件：`app/api/auth/reset-password/route.ts`
+- 改动：现在强制要求 `code` 字段，查询 `verification_codes` 表 `type='reset_password' && used=false && 未过期` 记录，成功后标记 `used=true`。与 register/verify-code 单次消费机制对齐。
+
+**缺陷 2：`send-verification-code` 无防刷限频**
+- 文件：`app/api/auth/send-verification-code/route.ts`
+- 改动：API 入口加 60s 限频——查询该邮箱 `verification_codes` 表最近一条 `created_at`，未过 60s 返回 429。查询失败 fail-open。
+
+**缺陷 3：Stats Tab 切换不保持滚动位置**
+- 文件：`components/stats/StatsTab.tsx`
+- 改动：三段式策略「scroll 事件实时保存 + sessionStorage 持久化 + mount 时轮询恢复」。
+- 关键发现：最初用模块变量 + unmount 时读取 `el.scrollTop` 失败。诊断显示 unmount cleanup 运行时 `scrollTop` 已是 0——**AnimatePresence exit 动画先于 unmount 把 scrollTop 重置为 0**。所以必须用 scroll 事件实时保存。
+- sessionStorage 选择理由：dev 模式下 next/dynamic 可能重新求值模块变量；sessionStorage 在 tab 关闭时清空（重启浏览器后回到顶部是合理行为），比 localStorage 更合适。
+
+### 测试结果
+- vitest：527 项全部通过（含新增 VERIFIES FIX 测试）
+- L4 Playwright：48 项通过、3 项 skipped
+- TODO.md 3 个缺陷全部标记为 ✅ 已修复
 
 ### 涉及文件
-- 删除：`components/PosesTab.tsx`、`lib/pose-data.ts`、`public/poses/*.png`（4 张）
-- 修改：`app/practice/page.tsx`（移除体式库 tab + 补全 colorLevel 日志字段）
+- `app/api/auth/reset-password/route.ts`
+- `app/api/auth/send-verification-code/route.ts`
+- `components/stats/StatsTab.tsx`
+- `__tests__/api-auth-routes.test.ts`
+- `__tests__/L4/tab.spec.ts`
+- `TODO.md`
+
+## 2026-06-24（续2）: 阶段 5 最终精简 — resolveConflict + smartMerge 提取
+
+### 背景
+阶段 5 最后一项工作：将 `resolveConflict`（三分支执行逻辑）和 `smartMerge` 从 useSync.ts 提取到 sync-orchestrator.ts，合计约 132 行。
+
+### 修改内容
+
+**`lib/sync-orchestrator.ts`**（267 → 402 行）：
+- 新增 `ConflictDeps` 接口（依赖注入类型）
+- 新增 `RemoteSyncData` 类型
+- 新增 `resolveConflict(strategy, userId, user, localData, deps)` — 三分支执行编排
+  - `remote` 分支：下载远程 → 构建 profile → onSyncComplete → localStorage
+  - `local` 分支：删除远程 → uploadLocalData
+  - `merge` 分支：diffRecords → smartMerge
+- 新增 `smartMerge(localOnly, remoteOnly, localNewer, remoteNewer, remoteData, userId, localData, deps)` — 合并并上传
+- 两个函数均接受 `localData` 作为参数（而非调用 getter），避免测试中 localStorage 为空导致数据丢失
+
+**`hooks/useSync.ts`**（872 → 771 行）：
+- 删除 `smartMerge` 内联函数（35 行）
+- 删除 `resolveConflict` 内联函数（97 行），替换为 20 行包装器
+- 移除 `diffRecords`、`computeSmartMergeData` 的 import（不再直接使用）
+- 包装器传递 `localDataRef.current` 作为 localData 参数
+
+### 关键决策
+- `getLatestLocalData` 从 `ConflictDeps` 移除，改为传参 `localData`
+- 原因为：`readLatestLocalData` 从 localStorage 读取，在测试中为空。使用调用方传入的引用（`localDataRef.current`）确保数据一致性
+
+### 结果
+- useSync 872 → 771 行（−101 行，距合理目标 ~600–650 行差 ~120 行，主要由 autoSync 和 uploadLocalData 不可削减的业务逻辑构成）
+- Vitest 440 项全部通过
+- L4 39 项全部通过
+- Phase 5 正式结束
+
+## 2026-06-24（续）: L4 测试回归修复
+
+### 背景
+L4 测试中 practice #19（普通计时：选择→开始→暂停→继续→结束）和 refresh #24（暂停中刷新保持状态）因 auto-pause 逻辑缺陷持续失败。
+
+### 根因
+hydration 效果使用了 `[sessionHydrated, activePractice, isPaused]` 作为依赖数组。当用户新开始练习时：
+1. `handleStartPractice` 调用 `startPracticeSession` → `activePractice` 从 `null` 变为对象
+2. 效果重新触发 → 调用 `loadGuidedAudio()`（第二次加载）+ 设置 `autoPauseRef.current = true`
+3. onReady(resumePracticeSession) 恢复练习后，auto-pause 效果立即重新暂停
+4. 测试期望正常暂停/恢复流程，但被中断
+
+### 修复
+将依赖改为仅 `[sessionHydrated]`，使自动加载/暂停效果仅在 hydration 结束时触发一次。新练习不会触发此效果。
+
+```tsx
+// 修改前
+useEffect(() => { ... }, [sessionHydrated, activePractice, isPaused])
+
+// 修改后
+useEffect(() => { ... }, [sessionHydrated])  // eslint-disable-line
+```
+
+### 结果
+- L4 测试 39/39 全部通过，零失败
+- 练习中刷新：保持练习状态 ✓
+- 暂停中刷新：暂停状态保持 ✓
+- 多次刷新：无 hydration 错误 ✓
+- 普通计时开始→暂停→继续→结束：正常 ✓
+- 全量 Vitest 440 项继续通过 ✓
+
+## 2026-06-24: 阶段 5/6 测试缺口覆盖 + useSync 精简
+
+### 完成内容
+
+**Path A — 测试缺口覆盖（47 项新测试）**
+
+- `__tests__/auth-modal.test.tsx`（21 项 L2 组件测试）：
+  - login/register/forgot-password 三模式渲染与切换
+  - X 按钮、Cancel、背景遮罩三种关闭路径
+  - 密码强度验证（长度/字母/数字/弱密码列表）
+  - 注册步骤 1→2 流转、忘记密码邮箱/验证码验证
+  - 登录成功/失败/网络错误翻译
+- `__tests__/auth-modal-accessibility.test.tsx`（9 项 L2 无障碍测试）：
+  - X 关闭按钮 `aria-label="关闭"`
+  - Esc 键关闭弹窗（loading 时禁用）
+  - submit 按钮 type、Tab 聚焦、required/minLength 验证
+- `__tests__/sync-limit-integration.test.ts`（5 项 L3 集成测试）：
+  - 通过 `useSync.uploadLocalData` 真实调用路径验证 1000 条限制
+  - 1001/1002/1000/500/0 条记录分别验证上传数量与排除最旧记录
+  - 修复了测试数据用 `i%28+1` 生成导致日期重复、排序不稳定的问题
+- `__tests__/practice-commands.test.tsx`（+6 项 handleDeleteRecord 同步路径）：
+  - 已登录 + skipConfirm true/false、草稿删除、远端失败、未登录、网络异常
+- `__tests__/import-export-utils.test.ts`（+17 项 L1 旧版本兼容）：
+  - 旧 records 缺 updated_at/photos 为字符串、profile 含 is_pro、options 含 label_zh
+  - 斜杠/ISO/混合日期格式排序、真实旧版数据胶囊端到端
+
+**AuthModal 改进**
+- X 关闭按钮加 `aria-label="关闭"`
+- Esc 键关闭弹窗（loading 时禁用，避免取消请求中途）
+
+**Path B — useSync 精简（955 → 879 行，−76 行）**
+- 抽离 `getLatestLocalData` 为模块级 `readLatestLocalData<T>(fallback)` 函数（hook 内 23 行 → 2 行包装器）
+- 统一并精简 syncDebug 日志（删除 ~55 行噪音）：
+  - 多行 "function called" banner（`🚨🚨🚨` + `=`.repeat(50) + 详情对象）
+  - useEffect 触发详情、autoSync 微步骤（设置同步标志/添加日志/状态已设置）
+  - 与 addLog 重复的提示（分析结果、数据对比、数据已一致）
+  - downloadRemoteData 逐字段日志（5 行 error/data.length 合并为 1 行）
+  - uploadLocalData profile 调试、记录 IDs 列表
+  - 顺手修复 uploadLocalRecords 中重复的 `准备上传 N 条记录` addLog
+- 保留的 syncDebug：跳过原因、限制触达、队列行为、重试、脏数据过滤、merge 成功
+
+**测试矩阵状态升级（5 项）**
+- 旧版本导入兼容 L1：缺失 → 已覆盖
+- 登录/注册/忘记密码 L2：缺失 → 已覆盖
+- 无障碍名称/键盘/焦点 L2：缺失 → 已覆盖
+- 1000 条限制 L3：部分覆盖 → 已覆盖（L1+L3）
+- 草稿/软删除 L1：部分覆盖 → 已覆盖
+
+### 关键决策
+
+**Path B 目标修正**：原计划目标"250–350 行"被诚实评估为不可达。原因：
+- `autoSync` 包含 ~200 行 orchestrator 调度 + switch case 4 分支业务流（upload-local、merge-remote、use-remote-only、conflict）
+- `smartMerge`、`resolveConflict`、`uploadLocalData`、`uploadLocalRecords` 都是独立业务流，强提取会增加抽象成本
+- 实际健康目标约 600–650 行（已达成 879 行，距目标还差 ~230 行）
+
+**保留的诚实做法**：合并 `uploadLocalRecords`/`uploadLocalData` 的 build+merge 重复逻辑为 `prepareRecordsForSafeUpload` 助手（30 行助手 vs 42 行重复，净 +11 行，但消除重复便于后续维护）+ 本次 syncDebug 清理 + getLatestLocalData 抽离。
+
+### 状态
+- 全量 42 个测试文件 / 436 项通过（+55 项 / +3 文件）
+- 提交：`03f63d3` test+refactor: 阶段5/6 测试缺口覆盖 + useSync 精简
+
+## 2026-06-23: 阶段 5 L1 纯函数测试覆盖 — sync-utils 剩余缺口
+
+### 完成内容
+
+- 新增 `sortAndLimitRecords` 测试（6 项）：
+  - 空数组、日期排序、maxSync 限制、1000 条边界 >1000 进 localOnly、maxSync=0、不可变性
+  - 覆盖「1000 条限制与排序」（L1 从「缺失」→「已覆盖」）
+- 新增 `applySafeMerge` 测试（7 项）：
+  - 无云端匹配、本地 notes 空→保留云端、本地 notes 有内容→保持本地、breakthrough 空→保留云端、photos 空→保留云端、mergeUpdatedAt 同步时间
+  - 覆盖安全合并逻辑剩余分支
+- 新增 `detectOptionChanges` 测试（5 项）：
+  - 完全相同、local 更多、remote 更多、数量相同 ID 不同、都空
+- 新增 `detectProfileChanges` 测试（8 项）：
+  - 完全相同、仅 local/remote、都空、内容优先于时间、本地/云端新
+  - 覆盖「profile/options/records 独立变化」（L1 从「部分覆盖」→「已覆盖」）
+- 新增 `trimSyncLogs` 测试（4 项）：
+  - 单条、50 条上限、100KB 截断到 20、空列表兜底
+  - 覆盖「日志数量/大小/敏感信息过滤」（L1 从「部分覆盖」→「已覆盖」）
+
+### 状态
+- 测试矩阵阶段 5 同步 L1 缺口大面积收窄：3 项从「缺失/部分覆盖」升级为「已覆盖」
+- 全量 39 个测试文件 / 381 项通过（+28 项）
+
+## 2026-06-23: 阶段 4 测试矩阵 L2 缺口覆盖 — JournalTab + StatsTab
+
+### 完成内容
+
+- 新增 `__tests__/stats-tab.test.tsx`（7 项 L2 组件测试）：
+  - 空态显示「暂无练习数据」
+  - 统计数据卡片渲染（总天数/总时长/平均分钟）
+  - 免费用户 FREE 标签 + 升级入口
+  - Pro 用户 PRO 标签 + 到期信息
+  - 会员加载中 spinner
+  - 设置按钮点击回调
+  - 升级按钮点击回调
+- 新增 `__tests__/journal-tab.test.tsx`（10 项 L2 组件测试）：
+  - 无记录时显示「查看更多」
+  - 记录所在月与加载月相同时显示「已经到底啦~」
+  - 记录时间线渲染（日期/时长/类型/笔记）
+  - 点击日期触发编辑回拨
+  - 点击笔记打开分享弹窗
+  - 未登录用户显示绑定邮箱提示
+  - 已登录用户隐藏绑定邮箱提示
+  - 突破笔记显示 Sparkles 图标
+  - 多照片网格渲染
+  - 补录按钮打开添加弹窗
+- 更新测试矩阵：日记 CRUD 状态「部分覆盖 → L2 已覆盖」、统计空态/会员「部分覆盖 → 已覆盖」
+
+### 状态
+- 测试矩阵「日记 CRUD、分享、月份切换」L2 缺口已覆盖；L4 仍待补
+- 测试矩阵「统计空态/历史数据/会员入口」已覆盖
+- 全量 39 个测试文件 / 353 项通过（+2 文件 / +17 项）
+
+## 2026-06-23: 导入导出纯函数提取 + L2 组件测试覆盖
+
+### 完成内容
+
+- 新增 `lib/import-export.ts`，从 `usePracticeData` 提取以下纯函数：
+  - `parseAndValidateImportData` — JSON 解析 + 结构校验（至少含 records/options/profile 之一）
+  - `sortRecordsByDate` — 导入记录按日期倒序
+  - `migrateOldOptions` — 迁移 label_zh→label、isCustom→is_custom
+  - `serializeExportData` — 导出 JSON 构建（过滤草稿、移除头像 base64）
+- 更新 `hooks/usePracticeData.ts`：importData/exportData 改为调用提取的纯函数
+- 新增 `__tests__/import-export-utils.test.ts` — 25 项 L1 纯函数测试（合法/非法 JSON、结构校验、排序、旧字段迁移、导出过滤）
+- 新增 `__tests__/import-modal.test.tsx` — 6 项 L2 组件测试（渲染/隐藏、文本输入、确认回调、清空输入、背景关闭、空文本提示）
+- 新增 `__tests__/export-modal.test.tsx` — 6 项 L2 组件测试（渲染/隐藏、数据显示、只读、复制按钮、提示信息、背景关闭）
+- 新增 `__tests__/data-conflict-modal.test.tsx` — 8 项 L2 组件测试（渲染/隐藏、条数显示、三种策略选择、二次确认逻辑）
+- 三步清空已在 practice-modal-host.test.tsx（`转发清空数据三步确认流程`）覆盖，无需新增
+- 全量 37 个测试文件 / 336 项通过；TypeScript 编译通过
+
+### 状态
+- 测试矩阵「导入合法/非法、导出、三步清空」从「缺失」升级为「已覆盖」
+
+## 2026-06-23: 动态 Tab error boundary — DynamicTabShell 错误捕获与重试
+
+### 完成内容
+
+- 新增 `components/practice/DynamicTabWrapper.tsx`：
+  - `ErrorBoundaryInner` — class 组件错误边界，`getDerivedStateFromError` 捕获渲染异常
+  - `DynamicTabShell(Component)` — HOC 包装器，key 递增强制卸载/重建触发动 import()
+  - 错误态展示「页面加载失败」+「点击重试」按钮，重试时通过 `setMountKey` 递增强制 remount
+- 更新 `app/practice/page.tsx`：
+  - `JournalTab` / `StatsTab` / `PosesTab` 的 `dynamic()` 调用包裹 `DynamicTabShell()`
+  - 所有 Tab 保留原有 `loading: TabLoading` 和 `ssr: false`
+- 新增 `__tests__/dynamic-tab-error.test.tsx`（2 项）：正常渲染 + 子组件崩溃显示重试
+- 更新 `__tests__/modal-lazy-loading.test.ts`：Tab 动态导入模式匹配更新为 `DynamicTabShell(dynamic(`
+- 全量 33 个测试文件 / 293 项通过；TypeScript 编译通过
+
+### 状态
+
+- 阶段 4 测试矩阵「动态模块 loading/success/error」从「部分覆盖」升级为「已覆盖」
+- 消除 chunk 加载失败白屏风险
+
+## 2026-06-23: 损坏数据防御 — isValidRemoteRecord + 安全 fallback
+
+### 完成内容
+
+- `lib/sync-mappers.ts`：
+  - 新增 `isValidRemoteRecord(raw)` — 严格校验远端记录类型（`typeof id === 'string'` + `date != null`）
+  - `mapRemoteRecord` 增加 null/undefined 参数安全回退（返回空 photos 数组）
+  - 新增 `isValidRemoteOption` 用于选项数据校验
+- `lib/supabase-repository.ts`：
+  - `fetchCloudRecordsForMerge` 返回前过滤非法记录
+- `hooks/useSync.ts`：
+  - `downloadRemoteData` 对远端记录批量调用 `isValidRemoteRecord` 过滤
+- 新增 9 项测试（sync-mappers.test.ts）
+- 全量 31 个测试文件 / 282 项通过
+
+## 2026-06-23: 全站字体修正 — body 改为宋体（font-sans → font-serif）
+
+### 改动
+- `app/layout.tsx` body className 从 `font-sans` 改为 `font-serif`。
+- 全站文字使用宋体（`Songti SC` / `STSong` / `SimSun` / `Noto Serif CJK SC`），对齐项目设计哲学"宋体禅意"。
+- 此前 body 一直使用 `--font-sans`（系统无衬线字体栈），虽然 `app/globals.css` 中已有正确的 `--font-serif` 宋体配置，但未应用到 body。
+
+### 验证
+- TypeScript 编译通过
+- 无需新增测试（纯 CSS class 变更）
+- TODO.md 已跟新
+
+## 2026-06-23: 阶段 5 第五刀 — sync orchestrator 提取（useSync 897 行）
+
+### 完成内容
+
+- 新增 `lib/sync-orchestrator.ts`（252 行），包含：
+  - `analyzeSync` — 6 分支同步决策树纯函数（both/remote-only/local-only/no-data + noop/upload/merge/conflict）
+  - `executeConflictStrategy` — 冲突策略数据选择（local/remote/merge）
+  - `computeSyncStats` — 统计计算（totalPractices/recentMonthsTotal/thisMonthTotal）
+  - `recordPracticeIfNeeded` — finally 块 API 调用提取
+  - `SyncAction`、`SyncAnalysis`、`SyncStats`、`ConflictStrategy` 类型
+- `hooks/useSync.ts`：
+  - autoSync 中的 ~130 行 6 分支决策树（含内联色阶 diff、diffRecords/detectOptionChanges/detectProfileChanges）替换为 `analyzeSync()` + switch-case
+  - finally 块内联 API 调用替换为 `recordPracticeIfNeeded()`
+  - 统计 useEffect 使用 `computeSyncStats()` 计算统计
+- **useSync.ts 从 997 行降至 897 行**。全量 30 个测试文件 / 268 项通过；typecheck 通过。
+
+### 设计决策
+
+- 色阶同步不再通过内联 `updated_at` 突变触发 diffRecords 差检测，改由 orchestrator 的 `colorLevelDiffers` 直接检测。
+- orchestrator 只做决策不做执行：`analyzeSync` 返回 `SyncAction` union，useSync switch-case 负责实际的上传/下载/合并操作。
+- `executeConflictStrategy` 返回 resolved data + shouldDeleteRemote/shouldUpload 标记，简化冲突处理的数据选择。
+
+### 规模总结
+
+| 文件 | 行数 |
+|------|-----:|
+| `app/practice/page.tsx` | 1157 |
+| `hooks/useSync.ts` | 897 |
+
+## 2026-06-23: 同步弹性 — 重试+并发锁（第一、二刀）
+
+### 第一刀：超时、重试、部分失败恢复
+- 新增 `lib/sync-retry.ts`：
+  - `withRetry(fn, options)` — 通用指数退避重试包装器（默认 1s, 2s，最多 3 次）
+  - `persistFailedSyncIds` / `loadFailedSyncIds` — 失败记录 ID 持久化到 LocalStorage
+- 加固 `batchUploadRecords`（`lib/sync-utils.ts`）：
+  - 每批自动重试（重试耗尽后才记为失败），不再一次失败丢弃整批
+- 加固 `hooks/useSync.ts`：
+  - `uploadLocalData` 中的 `repoUpsertRecords` / `repoUpsertOptions` 包裹 `withRetry`
+  - 失败 ID 双写（React state + LocalStorage 持久化）
+  - `autoSync` 顶层 catch 自动重试一次（2s 延迟）
+
+### 第二刀：并发同步锁
+- 新增 `pendingSyncRef`：并发调用不再静默丢弃，标记排队
+- finally 块检测排队标记，同步完成后自动补一次
+
+### 新增测试
+- `__tests__/sync-retry.test.ts` — `withRetry` 行为 + 持久化（10 项）
+- `__tests__/sync-upload.test.ts` — `batchUploadRecords` 重试（4 项）
+
+### 验证
+- 32 个测试文件 / 282 项测试全部通过
+- TypeScript 编译通过
+- 已有同步行为零变化
+
+### 第三刀：损坏本地数据和异常远端响应
+- 新增 `isValidRemoteRecord` 防御：`downloadRemoteData` 中过滤 id/date 缺失的坏记录，`mapRemoteRecord` 对 null/undefined 安全 fallback
+- 加固 `fetchCloudRecordsForMerge`：返回结果过滤无 id 条目
+- 加固 `uploadLocalData`：profile 上传响应加入 JSON 格式校验，非 2xx 且非 JSON 时使用 statusText
+- 新增 9 项防御性测试
+
+### 验证
+- 32 个测试文件 / 291 项测试全部通过
+
+| 文件 | 行数 |
+|------|-----:|
+| `app/practice/page.tsx` | 1157 |
+| `hooks/useSync.ts` | 897 |
+| `lib/sync-orchestrator.ts` | 252 |
+| `lib/sync-utils.ts` | 496 |
+| `lib/sync-mappers.ts` | 96 |
+| `lib/supabase-repository.ts` | 147 |
+
+## 2026-06-23: 阶段 5 第四刀 — 差异检测/日志/批量上传/options payload 提取（useSync < 1000 行 🎯）
+
+### 完成内容
+
+- `lib/sync-utils.ts` 新增 `detectOptionChanges` / `detectProfileChanges` / `createSyncLogEntry` / `trimSyncLogs` / `appendSyncErrorHistory` / `batchUploadRecords` / `buildOptionsUploadPayload` 等 7 个纯函数 + 类型。
+- 去重 ~60 行 autoSync 选项/profile 差异检测、~40 行批量上传循环、~20 行日志格式、~20 行 options payload。
+- `hooks/useSync.ts` autoSync 差异检测、uploadLocalRecords 批量循环、addLog 格式化、uploadLocalData options 映射全部替换为共享函数。
+- **里程碑：useSync.ts 首次低于 1000 行（997 行）**。全量 30 个测试文件 / 268 项通过；typecheck、lint 通过。
+
+### 设计决策
+
+- `batchUploadRecords` 不包含日志输出，由调用方根据返回的 `BatchUploadResult` 自行处理，保持通用性。
+- `createSyncLogEntry` / `trimSyncLogs` / `appendSyncErrorHistory` 三者分离：纯创建、纯裁剪、副作用写入，职责清晰。
+- `detectOptionChanges` / `detectProfileChanges` 返回结构化结果对象，而非松散变量，便于组合使用。
+
+### 下一刀
+
+阶段 5 第五刀：提取 sync orchestrator + 冲突决策提取，目标 `useSync.ts` 500–700 行。
+
+## 2026-06-23: 阶段 5 第三刀 — 共享纯函数提取
+
+### 完成内容
+
+- `lib/sync-utils.ts` 新增 `applySafeMerge`、`sortAndLimitRecords`、`buildUploadRecordPayload`、`resolveRecordColorLevel`、`UploadRecordPayload` 类型。
+- 去重 ~63 行 safe-merge 逻辑（uploadLocalRecords 和 uploadLocalData 两处重复）和 ~30 行 sort/limit/mapping 逻辑。
+- `hooks/useSync.ts` 两处 safe-merge 块替换为共享 `applySafeMerge` 调用（一处带 mergeUpdatedAt=true，一处不带）；三处 sort+limit+payload 替换为 `sortAndLimitRecords` + `buildUploadRecordPayload` + `resolveRecordColorLevel`。
+- 修复 `buildUploadRecordPayload` 返回 `Record<string, unknown>` 导致下游 `.id` 访问为 `unknown` 的类型问题，改用显式 `UploadRecordPayload` 接口。
+- `useSync.ts` 从 1244 行降至 1149 行。全量 30 个测试文件 / 268 项通过；typecheck、lint 通过。
+
+### 设计决策
+
+- `applySafeMerge` 使用泛型 `<T extends Record<string, any>>` 并设可选的 `mergeUpdatedAt` 参数，单函数服务两个调用点。
+- `sortAndLimitRecords` 使用泛型 `<T extends { date: string }>`，不绑定 PracticeRecord 类型。
+- `buildUploadRecordPayload` 返回具名 `UploadRecordPayload` 接口而非 `Record<string, unknown>`，保持下游 `.id`/`.date` 等字段的类型安全。
+
+### 下一刀
+
+阶段 5 第四刀：提取同步编排函数，精简批量上传循环，冲突决策提取；目标 `useSync.ts` < 1000 行。
+
+## 2026-06-23: 阶段 5 第二刀 — Supabase 仓库层提取
+
+### 完成内容
+
+- 新增 `lib/supabase-repository.ts`，承接 7 个仓库原语：`fetchAllUserData`（并发下载+超时）、`fetchCloudRecordsForMerge`（安全合并查询）、`repoUpsertRecords` / `repoUpsertOptions`（单次 upsert）、`repoDeleteAllUserRecords` / `repoDeleteAllUserOptions`（冲突策略清空）、`withQueryTimeout`（通用超时保护）。
+- `hooks/useSync.ts` 删除 `supabase` / `TABLES` 直接导入和内联 `queryWithTimeout`，7 处 Supabase 调用替换为仓库原语。重试、安全合并、批量分片、日志等业务逻辑保留在 useSync。
+- 修复类型问题：`CloudRecordForMerge` 类型、`withQueryTimeout` 对 Supabase thenable 的支持、merge updated_at 可空性。
+- `useSync.ts` 从 1306 行降至 1244 行（累计从 1348 → 1244，降 104 行）。全量 30 个测试文件 / 268 项通过；typecheck、lint、生产 build 通过。
+
+### 设计决策
+
+- 仓库层只做 I/O 原语，不做业务决策：不重试、不分批、不安全合并、不归一化。
+- `fetchAllUserData` 返回 `any` 风格的响应（与原 useSync 内联实现一致），因为 downloadRemoteData 后续会有自己的归一化。
+- `fetchCloudRecordsForMerge` 用 `await` + 显式 `as unknown as` 转换来获得类型安全的响应，而不是让 Supabase 推断。
+
+### 下一刀
+
+阶段 5 第三刀：安全合并逻辑在 uploadLocalRecords 和 uploadLocalData 中几乎完全重复（~160 行），提取为共享函数后可再节省 ~80 行，目标 `useSync.ts` < 1000 行。
+
+## 2026-06-23: 阶段 5 第一刀 — 远端映射纯函数提取
+
+### 完成内容
+
+- 新增 `lib/sync-mappers.ts`，承接 5 个纯函数：`parseRemotePhotos` / `buildCompleteProfile` / `mapRemoteRecord` / `isValidRemoteOption` / `mapRemoteProfile`，以及 `DEFAULT_PROFILE_NAME` / `DEFAULT_PROFILE_SIGNATURE` / `RemoteProfileInput`。
+- `hooks/useSync.ts` 删除三个内联函数和两个常量，改为 import；`downloadRemoteData` 中三段内联归一化（records photos、options 过滤、profile 数字名兼容）替换为对应纯函数。
+- 行为零变化：`buildCompleteProfile`（宽松）继续供 conflict/merge 路径（514/1190 行）使用；`mapRemoteProfile`（叠加数字名脏数据兼容）仅供下载路径使用，保留原历史兼容逻辑。
+- `useSync.ts` 从 1348 行降至 1306 行；新增 45 个纯函数测试，全量 30 个测试文件 / 268 项通过；typecheck、lint、生产 build 全部通过。
+
+### 设计决策
+
+- `mapRemoteRecord` 用 `Omit<T, 'photos'> & { photos: string[] }` 而不是 `T & { photos: string[] }`，避免传入 `{ photos: null }` 时返回类型归约为 `never`。
+- 没有把 Supabase I/O 移入新模块（暂保持下载路径不变），下一刀再单独提取仓库层。
+- 没有合并 `buildCompleteProfile` 与 `mapRemoteProfile`，因为两个调用路径行为差异（脏数据兼容）是历史结果，不能改动。
+
+### 下一刀
+
+阶段 5 第二刀：把 Supabase 下载、上传、重试和超时提取为 `lib/supabase-repository.ts`，目标 `useSync.ts` 进入 1000 行以内。
+
+## 2026-06-18: master2 练习页第一阶段解耦收尾
+
+### 完成内容
+
+- `app/practice/page.tsx` 从 6476 行降至 3238 行，减少约 50%。
+- 拆出日记、统计、设置、练习完成/补录/编辑弹窗、日期/类型选择器和分享卡片。
+- 抽取 `journal-utils`、`stats-utils` 纯函数，并补齐组件边界与交互测试。
+- 整理同步数据类型、远端照片解析和开发环境同步日志，移除 Google 字体运行时依赖。
+- 解耦基线提交：`0f81449 refactor: 拆分练习页并整理类型边界`，已推送 `origin/master2`。
+
+### 自动验证
+
+- Vitest：13 个测试文件，131 项全部通过。
+- `npm run typecheck`：通过。
+- `npm run lint`：通过。
+- `npm run build`：通过，22 个页面/路由完成构建。
+- 浏览器回归使用移动端视口和假 Supabase 地址，不写真实云端数据。
+- 已验证：落地页、练习选择、开始/暂停/恢复、保存/放弃、完成表单、日记新增/编辑/删除、统计页、设置页。
+- 浏览器安全策略在“数据管理”入口阻止继续操作；导入导出、体式和账号弹窗由现有组件测试与静态检查覆盖，本轮未做真实云端登录回归。
+
+### 下一阶段解耦
+
+1. 移出日期选择器、选项编辑弹窗、结束确认框和格式化工具。
+2. 提取练习会话控制器，统一计时、暂停、草稿、结束和保存状态。
+3. 拆分唱诵与口令音频 hook。
+4. 将 `JournalTab`、`StatsTab` 改为真正动态加载，并比较构建产物。
+5. 单独拆分 1110 行的 `useSync`，不与练习页重构混做。
+
+目标：`practice/page.tsx` 降到 1500 行以内，只保留页面组合与顶层导航。
 
 ## 2026-06-03: 颜色同步修复 + 色阶选择器优化
 
@@ -2931,3 +3547,541 @@ export const INVITE_VERSION = 'v2'  // 从 v1 更新到 v2
 - `ff94251` - fix: 流式播放时隐藏下载进度条，后台缓存完全静默
 - `82c7219` - perf: 网站加载速度优化 — 减少初始 JS ~400-500KB
 - `7a65d5f` - feat: 添加 Vercel Speed Insights 性能监控
+
+---
+
+## 2026-06-18 - 完整解耦阶段 1：基础 UI 与工具 ✅ 已完成
+
+**提交**：`0300ad4`、`443f75a`、`917812f`
+
+### 实现
+
+- 新增 `lib/practice-utils.ts`，集中日期、时长和 HTML 清理纯函数。
+- 新增 `components/practice/PracticePickers.tsx`，包含日期选择器与下拉选择器。
+- 新增 `components/practice/OptionModals.tsx`，包含自定义练习与编辑选项弹窗。
+- 新增 `components/practice/PracticeSessionControls.tsx`，包含结束确认与呼吸动画。
+- `practice/page.tsx` 本轮移除 682 行内联实现，当前 2738 行。
+
+### 测试与 QA
+
+- 新增工具、选择器、选项弹窗、结束确认与嵌套弹窗回归测试。
+- 全量结果：18 个测试文件、150 项测试通过；TypeScript、lint、生产构建通过。
+- 隔离浏览器通过落地页导航、选择练习、开始、暂停、继续、结束、放弃、自定义选项及免费色阶锁定。
+- QA 发现会员提示层级低于父弹窗，修复遮罩/内容层级并增加关闭按钮无障碍名称。
+- 修复后二次浏览器刷新被本地 URL 安全策略拦截；永久组件回归测试已通过，下一阶段浏览器回归继续复验。
+
+### 下一步
+
+进入阶段 2：提取 `usePracticeSession`，先覆盖计时、暂停累计、刷新恢复、草稿和幂等保存状态转换。
+
+## 2026-06-18 - 完整解耦阶段 2：练习会话 ✅ 已完成
+
+**提交**：`30a5700`、`ba7824a`、`dfbcadf`
+
+- 已提取计时状态模型和 `usePracticeSession`，保留五个原 LocalStorage 键。
+- 已覆盖开始、重复开始、暂停/恢复、多次暂停、跨天、设备时间倒退、损坏状态、0 分钟结束、保存失败重试和草稿删除补偿。
+- 当前 20 个测试文件、167 项测试通过；TypeScript、lint、生产构建通过。
+- 浏览器刷新后计时恢复，但练习类型丢失，且控制台报告 hydration mismatch。
+- 三轮候选修复均未通过真实浏览器复验，已全部撤回，未将猜测性改动提交到 `master2`。
+- 下一步先独立审计 SSR/客户端持久化初始化顺序，再完成阶段 2；阶段 3 音频拆分暂不提前。
+
+### 2026-06-18 续：刷新恢复第四版候选修复（未提交）
+
+**工作区状态**：`master2@edb1e93`，3 个代码/测试文件有未提交修改。
+
+- `hooks/usePracticeSession.ts` 新增 `activePractice` 持久化快照，记录选项 ID、显示名称和备注。
+- Hook 新增 `isHydrated`，页面在客户端挂载前渲染确定性空壳，避免服务端 HTML 与客户端首屏不同。
+- `app/practice/page.tsx` 在刷新恢复时优先使用持久化练习快照，不再依赖异步加载的选项列表。
+- `__tests__/use-practice-session.test.tsx` 新增首屏一致和练习类型恢复两个回归场景。
+- 验证：TypeScript 通过，轻量 lint 通过，20 个测试文件 / 169 项测试通过。
+- 生产构建未完成：`.next/server/chunks/ssr` 文件被运行中的 Node 进程占用，报 `EBUSY`。停止开发服务后重跑即可判断构建结果。
+- 尚未完成真实浏览器刷新复验，因此没有提交，也没有把阶段 2 标成完成。
+
+**下次直接执行**：阅读 `docs/architecture/REFACTOR_RESUME.md`，先保留现有未提交修改，完成浏览器刷新回归和生产构建。通过后再提交阶段 2；不要先进入音频拆分。
+
+### 2026-06-18 续：阶段 2 完成 ✅
+
+**最终根因**：`react-use/useLocalStorage` 根据运行环境条件性调用 Hook。服务端直接返回默认值，客户端调用 `useRef/useState/useLayoutEffect/useCallback`，因此页面恢复壳仍可能在真实 Next.js hydration 中失配。
+
+**最终实现**：
+
+- `usePracticeSession` 内新增 SSR 安全的 LocalStorage 适配器，服务端和客户端首次渲染统一使用默认状态。
+- 客户端挂载后读取原有五个计时键和新增的 `ashtanga_active_practice`，保持历史数据格式兼容。
+- 练习快照保存 `optionId`、`label`、`notes`，刷新恢复不再依赖选项列表的异步加载顺序。
+- 完成或放弃后清理练习快照；存储不可用时仍保留内存会话，非法 JSON 自动回退为空会话。
+
+**验收**：
+
+- 生产版隔离浏览器完成正常计时刷新、暂停后刷新、练习类型恢复和不保存退出清理。
+- 每次刷新后检查新产生的浏览器日志，均无 hydration mismatch。
+- 20 个测试文件 / 170 项测试通过；TypeScript、轻量 lint、Next.js 生产构建全部通过。
+
+**结论**：解耦阶段 2 完成。下一阶段只处理 `useGuidedAudio` 与 `useChantPlayback`，不提前混入同步拆分。
+
+## 2026-06-18 - 完整解耦阶段 3：媒体 Hook ✅ 已完成
+
+### 第一检查点
+
+- 新增 `hooks/useGuidedAudio.ts`：口令音频元素、缓存决策、进度、跳转、失败恢复和 Blob URL 清理全部移出页面。
+- 新增 `hooks/useChantPlayback.ts`：唱诵倒计时、跳过、播放、失败降级、单次完成保护和 interval 清理全部移出页面。
+- 页面不再持有任何 `HTMLAudioElement`，结束保存与放弃统一调用两个 Hook 的 `reset`，删除两段重复清理代码。
+- 口令音频加载失败会恢复普通练习计时，不再让用户停在暂停状态；加载中的重复启动被拒绝。
+- `practice/page.tsx` 从 2701 行降至 2500 行，页面 `useState` 从 57 个降至 43 个。
+- 新增 2 个测试文件、6 项 Hook 测试；全量为 22 文件 / 176 项通过，TypeScript、轻量 lint、生产构建通过。
+- 生产浏览器验证普通练习与唱诵倒计时、跳过、音频失败降级。口令 Hook 的 L3 测试通过，但口令卡片的 L4 开始链路仍待复验，因此阶段 3 保持进行中。
+
+### 最终检查点：阶段 3 完成 ✅
+
+- 真实根因：页面先创建普通运行会话，再立即用启动前的旧状态执行暂停，导致刚创建的口令会话被覆盖回未开始；音频事件也捕获了启动前的回调。
+- 修复：口令练习直接以暂停状态启动，`useGuidedAudio` 用 ref 调用最新的 `resume/end` 回调。
+- 修复失败降级 UI：音频失败后继续普通计时，并保留暂停、继续、结束按钮。
+- 新增口令暂停启动、最新回调和失败状态控制策略测试。
+- 最终全量：22 个测试文件 / 179 项通过；TypeScript、轻量 lint、生产构建通过。
+- 生产 L4：口令卡片选择 → 开始 → 失败降级 → 暂停 → 继续 → 结束 → 放弃清理全链路通过，无新增控制台错误。
+
+**结论**：阶段 3 完成，下一步进入阶段 4 页面编排与真正按需加载。
+
+## 2026-06-19 - 完整解耦阶段 4：页面编排第一检查点
+
+- 提取 `components/practice/PracticeNavigation.tsx`，页面只传入当前 Tab、显隐状态和切换回调。
+- `JournalTab`、`StatsTab`、`PosesTab` 改为 `next/dynamic` 按需加载，加入统一 loading UI。
+- 浏览器 QA 发现自定义练习弹窗打开后导航仍在背景显示；已将所有页面顶层覆盖层收口到统一显隐策略。
+- 生产浏览器复验：弹窗打开后等待退出动画，导航数量为 0；关闭后恢复为 1。
+- 当前规模：`practice/page.tsx` 2456 行、43 个 `useState`；23 个测试文件 / 185 项测试通过，typecheck、lint、生产 build 通过。
+- 阶段 4 仍在进行：下一刀提取 `PracticeDashboard` 和 `PracticeSessionView`，之后处理 `PracticeModalHost` 与首屏 JS 基线。
+
+### 第二检查点：PracticeDashboard
+
+- 新增 `components/practice/PracticeDashboard.tsx`，承接首页标题、练习选项网格、锁定/口令提示和开始按钮。
+- 页面仅传入选项、选择状态、锁定集合、唱诵状态与两个事件；会员判断、双击编辑和会话启动仍由页面负责。
+- 新增组件测试，覆盖选项事件、会员锁定、口令提示，以及开始按钮禁用/启用。
+- 页面从 2456 行降至 2342 行；24 个测试文件 / 187 项测试、typecheck、lint、生产 build 通过。
+- 生产浏览器完成选择、开始、计时、结束和放弃回归，控制台 0 错误。
+- 下一步直接提取 `PracticeSessionView`，不重新调查 Dashboard 边界。
+
+### 第三检查点：PracticeSessionView
+
+- 新增 `components/practice/PracticeSessionView.tsx`，承接全屏计时、唱诵倒计时、口令状态、暂停/继续、音频跳转与结束确认。
+- `CompletionSheet` 和完成保存/同步留在页面，SessionView 仅接收状态与事件，不拥有业务副作用。
+- 新增 4 项组件测试，覆盖普通计时、唱诵、口令 loading/error/progress 和跳转控制。
+- 页面从 2342 行降至 2151 行；25 个测试文件 / 191 项测试、typecheck、lint、生产 build 通过。
+- 生产浏览器通过普通练习完整链路；口令媒体失败后暂停、继续、结束和放弃仍可用。仅出现用于触发降级的浏览器媒体 `NotAllowedError`，无新增业务异常。
+- 下一步直接提取 `PracticeModalHost`，不重新调查 SessionView。
+
+### 第四检查点：PracticeModalHost 第一部分
+
+- 新增 `components/practice/PracticeModalHost.tsx`，承接三步清空数据与唱诵设置；页面保留清空、退出登录、路由和会员转化副作用。
+- 新增 3 项组件测试，覆盖清空三步确认、唱诵数值边界和免费用户升级入口。
+- 页面从 2151 行降至 1883 行；26 个测试文件 / 194 项测试、typecheck、lint、生产 build 通过。
+- 给统计页设置按钮补充 `aria-label="打开设置"`。
+- 生产 QA 发现清空确认低于设置弹窗，点击取消会穿透并误开导入；将嵌套警告提升至 `z-[200]/z-[210]` 并补层级回归。
+- 修复后生产验证：取消清空会关闭警告、保留设置、不会打开导入，控制台 0 错误；唱诵设置关闭与导航恢复正常。
+- 下一步继续收拢其余独立弹窗的渲染接线，ModalHost 尚未整体完成。
+
+### 第五检查点：PracticeModalHost 完成
+
+- Custom/Edit、Settings、会员、账户、导入导出、Auth、FakeDoor、邀请、冲突等独立弹窗的动态加载与渲染接线已移入 `PracticeModalHost`；页面继续保留业务状态和决策。
+- 页面从 1883 行降至 1829 行；新增源码约束回归，防止弹窗渲染重新回流页面。
+- 26 个测试文件 / 209 项测试、typecheck、lint、生产 build 全部通过。
+- 生产浏览器已验证自定义练习→会员提示、设置→清空数据、设置→登录的嵌套关闭与父层恢复；无新增应用错误。
+- 下一次直接建立 `/practice` 首屏 JS 可重复基线，确认动态弹窗未进入初始包，再依据包体证据决定页面编排的下一刀；不要重新排查阶段 1–3 或已完成的 ModalHost。
+
+### 第六检查点：首屏 JS 基线与 Mixpanel 延迟加载
+
+- 新增可重复测量脚本：生产构建后自动启动服务器并统计 `/practice` HTML 直接引用的 JavaScript。
+- 初始基线 427.9 KiB gzip；拆出邀请版本常量后 426.5 KiB；Mixpanel 改为空闲期异步加载后 333.8 KiB，累计下降 22.0%。
+- Mixpanel 代码仍在独立异步 chunk 中，没有删除分析能力；真实浏览器开始/放弃练习与控制台检查通过。
+- 当前门禁：27 个测试文件 / 213 项测试、typecheck、lint、生产 build 全部通过。
+- 下一次直接提取 `handleExportDebugLog` 内约 480 行采集逻辑，不重新排查性能基线；页面保留触发、显示和下载编排。
+
+### 第七检查点：调试日志采集模块
+
+- 新增 `lib/practice-debug-log.ts`，调试采集与 React 页面解耦；页面通过显式快照传参，不改变 `useSync`。
+- `app/practice/page.tsx` 从 1829 行降至 1406 行；页面 handler 只负责调用、JSON、弹窗和错误提示。
+- 首屏复测 334.1 KiB gzip，相比拆分前 +0.3 KiB，阶段累计降幅仍为 21.9%。
+- 28 个测试文件 / 218 项测试、typecheck、lint、生产 build 通过；完整采集测试覆盖未登录降级、照片/同步摘要和 JSON 序列化。
+- 浏览器插件三次阻塞在本地导航，未把真实浏览器回归冒充为通过；端口已清理。
+- 下一次直接提取记录/选项命令处理器，接收 `autoSync` 回调但不拆 `useSync`，目标让页面进入 800–1200 行。
+
+### 阶段 4 最终检查点：记录/选项命令与正式结项
+
+- 新增 `hooks/usePracticeCommands.ts`，收拢选项交互、会员名额、色阶保护、记录/选项 CRUD 和同步触发条件。
+- `autoSync` 仅作为显式回调注入，没有改动 `useSync`；页面从 1406 行降至 1157 行。
+- 29 个测试文件 / 223 项测试、typecheck、lint、生产 build 通过；首屏 334.6 KiB gzip，累计下降 21.8%。
+- 生产浏览器验证选项选择、自定义弹窗、运行日志完整 JSON、父子弹窗关闭与导航恢复，控制台 0 应用错误。
+- 阶段 4 全部门槛完成。下一次进入阶段 5，先拆远端字段映射与输入归一化纯函数，再处理 Supabase 仓库层。
+
+### 第四批（续）：L3 用户隔离 + resolveConflict 错误一致性 + L5 基础设施
+
+**代码修复**：
+- `hooks/useSync.ts`：`uploadLocalData` 首行加 `if (!user) return` 守卫（external call 路径）
+- `hooks/useSync.ts`：`resolveConflict('local')` 中 `repoDeleteAllUserOptions` 返回值未检查 → 改为 throw，与 `repoDeleteAllUserRecords` 一致
+
+**L3 新增测试 (sync-isolation-and-rollback.test.ts 4 项)**：
+- user=null 调 uploadLocalData → fetch/upsert 均未被调用，返回 `{ success: false }`
+- user=undefined → 同样被拒绝（falsy 守卫）
+- resolveConflict('local') deleteOptions 失败 → syncStatus='error'
+- resolveConflict('local') 删除成功 + upsert 失败 → syncStatus='error'
+
+**L5 新增基础设施**：
+- `vitest.config.e2e.mjs` — node 环境、30s 超时、串行、加载 `.env.test`
+- `__tests__/L5/setup.ts` — 环境变量 fail-fast + 邮箱白名单 + service_role key 格式校验
+- `__tests__/L5/helpers/test-client.ts` — signInTestUser / signOutTestUser / getTestClient
+- `scripts/reset-test-account.ts` — `resetTestAccountByUserId()` 按 FK 顺序清空 7 张表
+- `package.json` 新增 `test:L5` / `test:L5:watch` 脚本
+- 主 `vitest.config.ts` 排除 `__tests__/L5/` 防止被默认套件扫到
+
+**L5 端到端测试全部跑通（3 文件 / 8 项）**：
+- ✅ `auth.smoke.e2e.test.ts`（4/4）— 登录/reset/CRUD/退登 RLS
+- ✅ `sync.upload.e2e.test.ts`（2/2）— 批量 upsert + 幂等
+- ✅ `sync.conflict.e2e.test.ts`（2/2）— 双设备冲突检测 + smartMerge
+
+**修复**：
+- `hooks/useSync.ts`：`uploadLocalData` 添加 `!user` 守卫；`repoDeleteAllUserOptions` 失败后 throw
+- `scripts/reset-test-account.ts`：修复删除顺序（user_memberships 先于 user_profiles），移除不存在的 `calendar_annotations`
+- 冲突测试改用 `beforeEach` 逐条 reset 保证隔离
+
+**状态**：
+- 全量 43 个测试文件 / 444 项通过（+4 L3 + 8 L5）
+- 当前未 commit（后续统一发版流程处理）
+
+## 2026-06-24: 阶段 6 测试缺口填充
+
+### 背景
+按照解耦路线图，阶段 6 填补测试矩阵中"缺失"和"部分覆盖"的缺口。用户指定"先补缺口"。
+
+### 完成的测试文件（5 个新文件，58 项新测试）
+
+**`__tests__/oss-utils.test.ts`（12 项，L1）**
+- `validatePhotoFile`：图片类型（JPEG/PNG/WebP/GIF）、非图片类型（PDF/TXT/空类型）、文件大小边界（恰好上限、超出1字节、2倍上限、0字节）
+- `ERROR_MESSAGES`：所有错误码均有非空消息
+
+**`__tests__/photo-logger.test.ts`（13 项，L1）**
+- `addPhotoLog`/`getPhotoLogs`：添加、逆序排列、100 条上限、自动生成 id/timestamp、localStorage 异常容错
+- `clearPhotoLogs`、`getRecentPhotoLogs`、`getPhotoLogsByRecord`、`getPhotoErrorLogs`
+
+**`__tests__/oss-network.test.ts`（10 项，L3）**
+- `getPresignedUrl`：成功返回、fetch 网络异常、请求体验证
+- `savePhotoMetadata`：成功返回、API 错误传播、网络异常
+- `uploadToOSS`：200 成功、403/400 错误码映射、网络异常
+
+**`__tests__/api-auth-routes.test.ts`（7 项，L3）**
+- `POST /api/auth/register`：缺失 email/password/verificationCode、非法 JSON、密码 < 8 位、无字母、无数字
+- 使用 `NextRequest` 直接调用路由处理器，mock Supabase 依赖
+
+**`__tests__/option-color-level.test.ts`（16 项，L1）**
+- `getEffectiveOptionColor`：Pro 保留全部色阶（1/2/3/4）、免费降级（1→3、4→3）、保留（2/3）、未知 label、undefined color_level、空 options
+- `getColorClass`：1→绿色1、2→绿色2、3→绿色3、4→绿色4、undefined/0/5→默认
+
+### 覆盖的测试矩阵缺口
+
+| 缺口 | 之前状态 | 现在状态 |
+|---|---|---|
+| 照片上传/删除失败恢复与上限 | 缺失 | 已覆盖（L1 validate + 网络边界） |
+| API 输入、未授权、异常、幂等 | 缺失 | 部分覆盖（register 输入验证） |
+| 免费/Pro 色阶 | 部分覆盖 | 已覆盖（L1 纯函数） |
+
+### 未覆盖的缺口（为后续保留）
+
+| 缺口 | 原因 |
+|---|---|
+| 教程记录与真实记录隔离 | 依赖 usePracticeData hook，需要复杂 mock，且当前无对应源文件 |
+| API 幂等性 | 需要数据库状态，不适用纯单元测试 |
+| send-verification-code/reset-password API 验证 | 使用 `@supabase/supabase-js` 直接构造 client，mock 复杂度较高 |
+
+### 结果
+- 48 个测试文件 / **498 项通过**（+5 文件，+58 项）
+- TypeScript、lint 未改动
+- 阶段 6 测试缺口部分完成，继续推进大型组件审计与最终归档
+
+## 2026-06-25: 阶段 6 完成 - 跨模块测试缺口清零
+
+### 背景
+继续阶段 6 测试缺口填充。按用户偏好串行推进，L1/L3 优先（无浏览器依赖），L4 浏览器测试最后。
+
+按计划完成 4 个「缺失」矩阵项清零：
+1. 教程记录与真实记录隔离（L1/L3）
+2. API 幂等与 AUTH 路由完整验证（L3）
+3. 媒体后台恢复进度（L3/L4）
+4. Tab 滚动与内部状态保持（L4）
+5. URL 参数/返回/刷新/深链接（L4）
+
+### P1: 教程记录隔离（新增 `__tests__/tutorial-record.test.ts`，9 项）
+
+**问题**：教程记录（`hooks/usePracticeData.ts`）唯一可识别信号是 `tutorial-` id 前缀，但代码库任何地方都不读取此前缀。后果：教程记录被原样同步到 Supabase 云端、原样导出到数据胶囊、计入用户统计（duration=5400s, date=本月1号）。
+
+**方案 A**：加 `is_tutorial: boolean` 字段（而非 id 前缀 hack），与 `type: '草稿'` 的处理方式保持一致。
+
+**生产代码改动**：
+- `lib/supabase.ts` — `PracticeRecord` 接口新增 `is_tutorial?: boolean`
+- `hooks/usePracticeData.ts` — 本地 `PracticeRecord` 接口同步；教程记录创建时添加 `is_tutorial: true`；新增一次性迁移：旧 `tutorial-` 前缀记录标记为 `is_tutorial: true`（与草稿清理同位置）
+- `lib/import-export.ts` — `serializeExportData` 过滤 `is_tutorial`（`nonDraftRecords` → `nonSystemRecords`）
+- `hooks/useSync.ts` — `prepareRecordsForSafeUpload` 函数开头加 `recordsToSync.filter(r => !r.is_tutorial)`
+
+**架构决策**：纯函数 `diffRecords`/`sortAndLimitRecords`/`applySafeMerge` 不修改，过滤在上层做。测试 4-6 验证这一接口契约（is_tutorial 记录流经纯函数无特殊处理）。
+
+**测试 9 项**：
+1. serializeExportData 过滤 is_tutorial
+2. serializeExportData 不凭 tutorial- 前缀误过滤
+3. serializeExportData 保留普通记录
+4. diffRecords 保持纯函数（is_tutorial 无特殊处理）
+5. sortAndLimitRecords 保持纯函数
+6. applySafeMerge 保持纯函数
+7. prepareRecordsForSafeUpload 上传前过滤（验证过滤逻辑）
+8. 旧 tutorial- 前缀迁移契约（保守策略：所有 tutorial- 前缀都标记）
+9. 已 is_tutorial: true 的记录不被重复处理
+
+### P2: API 幂等 + AUTH 路由（扩展 `__tests__/api-auth-routes.test.ts`，+18 项）
+
+**重构 mock 策略**：从全局 `vi.mock` 改为 `vi.hoisted` 模式，让每个测试可独立控制 mock 返回值。同时新增 `@supabase/supabase-js` 的 `createClient` mock（reset-password 和 send-verification-code 直接用 createClient 而非 @/lib/supabase）。
+
+**register +2 项幂等**：
+- 同一 (email, code) 第二次调用失败（验证码已 used=true）
+- 重复赠送会员被 `.maybeSingle()` 检查阻止
+
+**verify-code +5 项**（之前 0 项）：
+- 3 项输入验证（缺 email、缺 code、malformed JSON）
+- 2 项幂等（第一次成功第二次失败；标记 used=true 被调用）
+
+**reset-password +7 项**（之前 0 项）：
+- 6 项输入验证（缺 email、缺 newPassword、< 8 位、无字母、无数字、malformed JSON）
+- 1 项 `EXPOSES GAP`：两次相同请求都成功 → 暴露无验证码消费机制
+
+**send-verification-code +4 项**（之前 0 项）：
+- 3 项输入验证（缺 email、邮箱格式错误、malformed JSON）
+- 1 项 `EXPOSES GAP`：连续 5 次调用都生成新验证码 → 暴露无 60s 限频
+
+**暴露的缺陷已记入 `TODO.md`**（2026-06-25 条目），不在本阶段修复（遵循"surgical changes"原则）。
+
+### P3: L4 浏览器测试（4 文件 +9 项）
+
+**新增 `__tests__/L4/visibility.spec.ts`（3 项）**：
+- 练习中切后台 → UI 应进入暂停态（用 `page.evaluate` 模拟 visibilitychange）
+- 暂停后切回前台 → 仍处于暂停态
+- 口令模式中切后台 → 控件状态保持
+
+**扩展 `__tests__/L4/tab.spec.ts`（+1 项）**：
+- stats Tab 滚动位置：切走再切回保持（容差 50px；内容不够长时跳过断言）
+
+**扩展 `__tests__/L4/deep-link.spec.ts`（+3 项）**：
+- `?tab=invalid` → 应回退到 practice（默认）
+- `?tab=` 空值 → 应回退到 practice
+- 深链接刷新 → 无 hydration 错误
+
+**新增 `__tests__/L4/url-state.spec.ts`（2 项）**：
+- 浏览器返回 → 无 hydration 错误
+- 浏览器前进 → 无 hydration 错误
+
+### 覆盖的测试矩阵缺口
+
+| 缺口 | 之前状态 | 现在状态 |
+|---|---|---|
+| 教程记录与真实记录隔离 | 缺失 | 已覆盖（L1 9 项） |
+| API 输入、未授权、异常、幂等 | 部分覆盖（7 项 register 输入） | 已覆盖（L3 25 项，含 4 个 AUTH 路由 + 幂等 + 暴露缺陷） |
+| Tab 滚动与内部状态保持 | 缺失 | 已覆盖（L4 1 项） |
+| URL 参数、返回、刷新、深链接 | 缺失 | 已覆盖（L4 6 项：deep-link 扩展 + url-state 新增 + visibility 新增） |
+| 媒体后台恢复进度 | 缺失 | 已覆盖（L4 visibility.spec.ts 3 项） |
+
+### 最终状态
+
+| 指标 | 阶段 6 开始 | 阶段 6 完成 |
+|---|---|---|
+| 测试文件数 | 48 | **49**（+1 P1；P2/P3 扩展现有文件） |
+| 测试通过数 | 498 | **525**（+27 L1/L3） |
+| L4 测试数 | 39 | **51**（+9 P3，需 dev server 验证） |
+| 矩阵「缺失」项 | 4 | **0** |
+| 阶段 6 状态 | 进行中 | **已完成** |
+
+### 暴露但未修复的缺陷（记入 TODO.md）
+1. `reset-password` 无幂等机制（无验证码消费）
+2. `send-verification-code` 无防刷限频（无限频）
+
+### 文件变更清单
+
+**生产代码（4 文件）**：
+- `lib/supabase.ts` — PracticeRecord 加 `is_tutorial?: boolean`
+- `hooks/usePracticeData.ts` — 教程记录加 `is_tutorial: true` + 旧前缀迁移
+- `lib/import-export.ts` — serializeExportData 过滤 is_tutorial
+- `hooks/useSync.ts` — prepareRecordsForSafeUpload 过滤 is_tutorial
+
+**测试文件（6 文件）**：
+- `__tests__/tutorial-record.test.ts`（新增，9 项）
+- `__tests__/api-auth-routes.test.ts`（重写，25 项 = 7 原有 + 18 新）
+- `__tests__/L4/visibility.spec.ts`（新增，3 项）
+- `__tests__/L4/tab.spec.ts`（扩展，+1 项）
+- `__tests__/L4/deep-link.spec.ts`（扩展，+3 项）
+- `__tests__/L4/url-state.spec.ts`（新增，2 项）
+
+**文档（3 文件）**：
+- `TODO.md` — 新增 AUTH 路由幂等/防刷缺口条目
+- `docs/architecture/DECOUPLING_TEST_MATRIX.md` — 缺失项清零，基线 49/525
+- `docs/architecture/DECOUPLING_ROADMAP.md` — 阶段 6 状态改为「已完成」
+
+### 验证
+- `npx vitest run` → 49 文件 / 525 项通过（baseline 498 + P1 9 + P2 18 = 525）
+- L4 浏览器测试待 `npm run test:L4`（需 dev server @ port 3100）
+
+### 架构决策记录
+
+**为什么 is_tutorial 过滤只在上层做，不修改纯函数？**
+保持纯函数单一职责。`diffRecords`/`sortAndLimitRecords`/`applySafeMerge` 是数据结构操作函数，不感知业务语义（草稿、教程、软删除等）。业务过滤责任在边界（导出/上传）。这样：
+1. 纯函数可被复用（如未来用于统计、迁移脚本）
+2. 测试更稳定（纯函数测试不依赖业务规则）
+3. 业务规则集中可见（`serializeExportData` 和 `prepareRecordsForSafeUpload` 一眼看出过滤了什么）
+
+**为什么用 `EXPOSES GAP` 而非直接修复 reset-password / send-verification-code？**
+遵循 "Surgical Changes" 原则。本阶段目标是测试缺口填充，不是修复 API 缺陷。暴露的缺陷需要单独评估（影响面、修复方案、回归测试），不应混在测试 PR 中。测试通过 `EXPOSES GAP` 标记明确告知读者：测试本身是断言"缺陷存在"，未来修复后需把 `EXPOSES GAP` 测试改为 `VERIFIES FIX` 测试。
+
+
+## 2026-06-25: 百度 SEO 补齐 — 发现型关键词覆盖
+
+### 背景
+商业模式诊断确认核心瓶颈：每日 intake 仅 ~1 人，需求在获客通道。品牌词「熬汤日记」能搜到官网，但发现型关键词零排名（「阿斯汤加 记录」「瑜伽 打卡工具」等均搜不到）。
+
+### 修改内容
+
+- `app/layout.tsx` — title 改为「熬汤日记 - 阿斯汤加瑜伽练习记录与打卡工具」，description 融入「免费」「Mysore 计时」「无需下载」等搜索意图。
+- `app/seo/page.tsx` — 新增 SEO 着陆页，纯服务端组件（无 'use client'），6 个功能卡片自然融入关键词，底部 CTA 链接回首页。
+- `app/sitemap.ts` — 新增，包含 `/` `/practice` `/seo` 三个 URL。
+- `app/robots.ts` — 新增，允许所有爬虫，指向 sitemap。
+
+### 验证
+
+- `npx next build` → 通过
+- `/seo` 预渲染为静态内容 ✓
+- `/robots.txt` `/sitemap.xml` 正确生成 ✓
+
+### 下一步
+
+部署后到百度站长平台提交 sitemap 和手动收录。
+
+## 2026-06-25: 留存数据 — 全量 3877 条练习记录分布
+
+来源：数据库全量查询，105 个有练习记录的用户。
+
+### 用户分层
+
+| 练习次数 | 人数 | 占比 | 解读 |
+|---------|------|------|------|
+| 1 次 | 7 人 | 6.7% | 试了一次就走了 |
+| 2-5 次 | 20 人 | 19% | 试了几次放弃了 |
+| 6-20 次 | 22 人 | 21% | 坚持了一阵 |
+| 21-50 次 | 30 人 | 28.6% | 核心用户 |
+| 51-100 次 | 19 人 | 18.1% | 重度用户 |
+| 100+ 次 | 7 人 | 6.7% | 铁粉 |
+
+### 关键洞察
+
+- **核心+重度+铁粉 = 53.4%**（超过一半用户练习超过 20 次），说明产品留存侧没问题
+- **26.7% 用户试了 5 次以内就走**，这部分可能不是产品问题，而是「不是目标用户」（随便试试就走的过客）
+- 瓶颈确实在获客（daily intake ~1 人），而非留存
+
+
+## 2026-06-25: 购买弹窗优化 — 闲鱼改微信号 + z-index 修复
+
+### 背景
+用户反馈：在 Tab1 点击加锁的练习选项后弹出 Pro 会员提示，点击"购买"按钮无反应。
+
+### Bug 修复
+- `components/Membership/PurchaseGuideModal.tsx` — 遮罩层 z-index 从 `z-50` 提升到 `z-[140]`，内容层从 `z-[110]` 提升到 `z-[150]`
+- 根因：`MembershipPromptModal` 的 z-index 为 `z-[120]/z-[130]`，购买弹窗实际打开了但被挡在后方不可见
+- 影响范围：所有调用了 `PurchaseGuideModal` 的地方（MembershipPromptModal、ActivateModal、Settings 页）
+
+### 功能调整
+- 购买弹窗内容从「闲鱼链接 + 一键复制链接」改为「微信号 xiao519216978 + 复制微信号」，减少一步操作
+
+### 涉及文件
+- `components/Membership/PurchaseGuideModal.tsx`
+
+### 提交
+- `7ec65a4` — 闲鱼链接改为微信号
+- `02fd308` — z-index 修复
+
+## 2026-06-25: 解耦重构安全卫生清理
+
+### 背景
+
+重构主体完成后做复审，发现历史排查阶段留下的 debug/test API 与敏感日志仍在运行路径中。它们不影响 L4/L5 通过，但会扩大生产日志和接口暴露面。
+
+### 修改内容
+
+- 删除公开临时路由：`/api/debug/env`、`/api/debug/membership`、`/api/test/membership`。
+- Auth/验证码路径去除验证码、session、注册响应、邮箱流程等调试输出。
+- 会员接口去除 auth header、token、请求体、激活码、原始会员记录等敏感日志。
+- `membership/status` 从调试型多路 fallback/全表扫描收束为正式查询链路。
+- 调试日志导出不再调用 `/api/debug/membership`。
+- 清空本地数据从 `localStorage.clear()` 改为只清本应用 key。
+- 删除记录和日历标注类型删除不再使用原生 `confirm/window.confirm`。
+
+### 验证
+
+- `npm.cmd run typecheck` → 通过
+- `npm.cmd run lint` → 通过
+- `npx.cmd vitest run __tests__/api-auth-routes.test.ts` → 1 文件 / 27 项通过
+- `npm.cmd run test:L5` → 3 文件 / 8 项通过
+- `npx.cmd playwright test __tests__/L4/practice.spec.ts --project=guest-chromium` → 4 项通过
+
+## 2026-06-25: AuthModal 流程拆分
+
+### 背景
+
+安全卫生清理后，`components/AuthModal.tsx` 仍是剩余较大的前端组件，混合了登录、注册、忘记密码、验证码倒计时和错误翻译逻辑。
+
+### 修改内容
+
+- `components/AuthModal.tsx` 从 933 行降到 579 行，继续只负责弹窗 UI 与接线。
+- 新增 `hooks/useRegisterFlow.ts`，封装注册验证码发送/重发、注册倒计时、服务端注册与自动登录。
+- 新增 `hooks/useForgotPasswordFlow.ts`，封装忘记密码三步流程、验证码重发倒计时与密码重置。
+- 新增 `hooks/useCountdownTimer.ts`，复用 60 秒倒计时。
+- 新增 `lib/auth-modal-utils.ts`，集中 Auth 错误翻译、密码强度校验与 Auth POST helper。
+- 修正忘记密码前端重置密码请求，显式传递验证码 `code`。
+- 更新 `practice-commands` 测试，适配删除记录确认已从原生 confirm 改为 Sonner Toast action。
+
+### 验证
+
+- `npm.cmd run typecheck` → 通过
+- `npm.cmd run lint` → 通过
+- `npx.cmd vitest run --config vitest.config.ts __tests__/auth-modal.test.tsx __tests__/auth-modal-accessibility.test.tsx` → 2 文件 / 30 项通过
+- `npx.cmd vitest run --config vitest.config.ts` → 49 文件 / 527 项通过
+
+## 2026-06-26: 解耦重构收尾 — 进入维护模式
+
+### 背景
+
+复盘整个解耦任务后确认：继续按行数驱动拆分的边际收益已经下降，容易制造文件跳转成本。重构目标已经达成，后续应按真实痛点、风险和业务优先级推进。
+
+### 收尾结论
+
+- 核心阶段 1–6 已完成，可以停止主动重构。
+- `app/practice/page.tsx` 已在目标范围内，不再为了降到 800 行硬拆。
+- `hooks/useSync.ts`、`lib/sync-utils.ts`、`components/AuthModalForms.tsx` 暂不主动拆。
+- 会员 API helper/repository 化只保留为可选优化，不作为默认下一阶段。
+- 后续优先级改为：业务增长/获客/转化、线上 bug、安全问题、有测试保护的小范围优化。
+
+### 后续规则
+
+只有出现具体 bug、具体业务改动、具体维护痛点，才开启下一刀。纯行数型拆分暂停。
+
+## 2026-06-26: AuthModal 表单视图拆分
+
+### 背景
+
+上一刀已将 AuthModal 的注册/忘记密码/倒计时流程抽到 hook，但弹窗组件仍包含大量 Login/Register/ForgotPassword JSX。
+
+### 修改内容
+
+- `components/AuthModal.tsx` 从 579 行降到 226 行，只保留弹窗壳、标题、模式切换、hook 接线和 submit 编排。
+- 新增 `components/AuthModalForms.tsx`，承接：
+  - `LoginForm`
+  - `RegisterForm`
+  - `ForgotPasswordForm`
+  - 共享输入框、密码要求、验证码提示、重发按钮和错误提示。
+- 未改 API 与用户可见流程。
+- 补齐 `practice-commands` 测试中 Sonner Toast action mock 的 TypeScript 类型。
+
+### 验证
+
+- `npm.cmd run typecheck` → 通过
+- `npm.cmd run lint` → 通过
+- `npx.cmd vitest run --config vitest.config.ts __tests__/auth-modal.test.tsx __tests__/auth-modal-accessibility.test.tsx` → 2 文件 / 30 项通过
+- `npx.cmd vitest run --config vitest.config.ts` → 49 文件 / 527 项通过

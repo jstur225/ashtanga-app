@@ -100,7 +100,7 @@ export function FakeDoorModal({ type, isOpen, onClose, onVote }: FakeDoorModalPr
     }
   }
 
-  const activeContent = content[type]
+  const activeContent = content[type] as any
 
   return (
     <AnimatePresence>
