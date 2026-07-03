@@ -4,26 +4,23 @@ import type { ReactNode } from "react"
 export function PublicSiteHeader() {
   return (
     <header className="border-b border-[#2A4B3C]/15 bg-[#F6F1E7]/95">
-      <div className="mx-auto max-w-5xl px-5">
-        <div className="flex items-center justify-between border-b border-[#2A4B3C]/10 py-2 text-[10px] tracking-[0.22em] text-[#2A4B3C]/55 sm:text-xs">
-          <span className="animate-enter">呼吸 · 觉察</span>
-          <span className="hidden animate-enter animate-enter-delay-1 tracking-[0.18em] text-[#98783E] sm:inline">阿斯汤加 Ashtanga</span>
-          <span className="italic tracking-[0.12em] animate-enter animate-enter-delay-2">Practice, practice, and all is coming.</span>
-        </div>
-        <div className="flex flex-col gap-4 py-5 sm:flex-row sm:items-end sm:justify-between">
-          <Link href="/" className="animate-enter animate-enter-delay-2 flex shrink-0 items-center gap-3 whitespace-nowrap text-[#203D31]">
-            <img src="/icon.png" alt="" width={36} height={36} className="rounded-full ring-1 ring-[#C1A268]/20" />
-            <span className="block text-2xl tracking-[0.08em]">熬汤日记</span>
+      <div className="mx-auto flex max-w-5xl items-center justify-between px-5 py-3">
+        <div className="animate-enter flex items-center gap-3 sm:gap-4">
+          <Link href="/" className="flex shrink-0 items-center gap-2 whitespace-nowrap text-[#203D31]">
+            <img src="/icon.png" alt="" width={24} height={24} className="rounded-full ring-1 ring-[#C1A268]/20" />
+            <span className="text-lg tracking-[0.06em]">熬汤日记</span>
           </Link>
-          <nav
-            aria-label="公开内容导航"
-            className="animate-enter animate-enter-delay-3 flex w-full items-center gap-6 whitespace-nowrap border-t border-[#2A4B3C]/10 pt-3 text-sm text-[#2A4B3C]/65 sm:w-auto sm:border-0 sm:pt-0"
-          >
-            <Link href="/tools/ashtanga-practice-tracker" className="transition-colors hover:text-[#98783E]">记录工具</Link>
-            <Link href="/ashtanga" className="transition-colors hover:text-[#98783E]">阿斯汤加</Link>
-            <Link href="/authors/shao-bingbing" className="transition-colors hover:text-[#98783E]">关于作者</Link>
-          </nav>
+          <span className="hidden text-[10px] tracking-[0.2em] text-[#2A4B3C]/50 sm:inline">呼吸 · 觉察</span>
+          <span className="hidden italic tracking-[0.08em] text-[10px] text-[#2A4B3C]/40 md:inline">Practice, practice, and all is coming.</span>
         </div>
+        <nav
+          aria-label="公开内容导航"
+          className="animate-enter animate-enter-delay-1 flex items-center gap-4 whitespace-nowrap text-xs text-[#2A4B3C]/60 sm:gap-5 sm:text-sm"
+        >
+          <Link href="/tools/ashtanga-practice-tracker" className="transition-colors hover:text-[#98783E]">记录工具</Link>
+          <Link href="/ashtanga" className="transition-colors hover:text-[#98783E]">阿斯汤加</Link>
+          <Link href="/authors/shao-bingbing" className="transition-colors hover:text-[#98783E]">关于作者</Link>
+        </nav>
       </div>
     </header>
   )
