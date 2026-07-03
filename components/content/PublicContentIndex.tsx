@@ -23,31 +23,54 @@ export function PublicContentIndex({
 }: PublicContentIndexProps) {
   return (
     <PublicSiteFrame>
-      <main className="mx-auto max-w-3xl px-5 py-12 sm:py-16">
-        <p className="text-sm tracking-[0.16em] text-[#98783e]">{eyebrow}</p>
-        <h1 className="mt-4 text-4xl font-semibold text-[#203d31]">{title}</h1>
-        <p className="mt-5 max-w-2xl text-lg leading-8 text-[#2A4B3C]/75">{description}</p>
+      <main className="mx-auto max-w-5xl px-5 py-12 sm:py-20">
+        <div className="grid gap-8 border-b border-[#2A4B3C]/20 pb-12 sm:grid-cols-[1fr_2.3fr] sm:gap-12 sm:pb-16">
+          <div>
+            <p className="text-xs tracking-[0.22em] text-[#98783E]">VOL. 01 · 2026</p>
+            <p className="mt-3 text-sm tracking-[0.16em] text-[#2A4B3C]/55">{eyebrow}</p>
+          </div>
+          <div>
+            <h1 className="max-w-3xl text-4xl font-medium leading-[1.18] tracking-[-0.025em] text-[#203D31] sm:text-5xl">
+              {title}
+            </h1>
+            <p className="mt-7 max-w-2xl text-lg leading-9 text-[#2A4B3C]/72">{description}</p>
+          </div>
+        </div>
 
         {children ? (
-          <div className="mt-10 space-y-7 rounded-2xl border border-[#2A4B3C]/10 bg-white p-6 text-base leading-8 text-[#2A4B3C]/80">
+          <div className="mt-12 grid gap-8 border-b border-[#2A4B3C]/15 pb-12 text-base leading-8 text-[#2A4B3C]/80 sm:grid-cols-3 sm:gap-10 [&_h2]:text-xl [&_h2]:font-medium [&_h2]:leading-8 [&_p]:text-[#2A4B3C]/68">
             {children}
           </div>
         ) : null}
 
-        <div className="mt-10 grid gap-4">
+        <div className="mt-14">
+          <div className="mb-5 flex items-end justify-between border-b border-[#2A4B3C]/20 pb-3">
+            <h2 className="text-2xl text-[#203D31]">本期目录</h2>
+            <span className="text-xs tracking-[0.18em] text-[#98783E]">CONTENTS</span>
+          </div>
           {entries.length > 0 ? (
-            entries.map((entry) => (
+            entries.map((entry, index) => (
               <Link
                 key={`${section}-${entry.slug}`}
                 href={getPublicContentUrl(entry)}
-                className="rounded-2xl border border-[#2A4B3C]/10 bg-white p-5 transition-transform hover:-translate-y-0.5"
+                className="group grid gap-3 border-b border-[#2A4B3C]/12 py-7 transition-colors hover:bg-[#EDE5D6]/45 sm:grid-cols-[4rem_1fr_auto] sm:items-start sm:gap-6 sm:px-3"
               >
-                <h2 className="text-xl font-semibold text-[#203d31]">{entry.title}</h2>
-                <p className="mt-2 text-sm leading-6 text-[#2A4B3C]/65">{entry.description}</p>
+                <span className="text-sm tabular-nums tracking-[0.15em] text-[#98783E]">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+                <div>
+                  <h3 className="text-2xl leading-8 text-[#203D31] transition-transform group-hover:translate-x-1">
+                    {entry.title}
+                  </h3>
+                  <p className="mt-3 max-w-2xl text-base leading-7 text-[#2A4B3C]/62">
+                    {entry.description}
+                  </p>
+                </div>
+                <span aria-hidden="true" className="hidden pt-1 text-xl text-[#98783E] sm:block">↗</span>
               </Link>
             ))
           ) : (
-            <p className="rounded-2xl bg-white p-5 text-[#2A4B3C]/65">内容正在整理。</p>
+            <p className="border-b border-[#2A4B3C]/15 py-8 text-[#2A4B3C]/65">内容正在整理。</p>
           )}
         </div>
       </main>
