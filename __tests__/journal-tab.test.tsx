@@ -1,6 +1,6 @@
 import React, { type ComponentProps } from "react"
 import { cleanup, fireEvent, render, screen } from "@testing-library/react"
-import { afterEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { JournalTab } from "@/components/journal/JournalTab"
 import type { PracticeOption, PracticeRecord, UserProfile } from "@/hooks/usePracticeData"
 
@@ -54,7 +54,15 @@ vi.mock("@/components/MonthlyStatsShareModal", () => ({
     isOpen ? <div data-testid="stats-share-modal" /> : null,
 }))
 
-afterEach(() => cleanup())
+beforeEach(() => {
+  vi.useFakeTimers()
+  vi.setSystemTime(new Date("2026-06-15T08:00:00+08:00"))
+})
+
+afterEach(() => {
+  cleanup()
+  vi.useRealTimers()
+})
 
 function record(overrides: Partial<PracticeRecord> = {}): PracticeRecord {
   return {

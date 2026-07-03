@@ -4085,3 +4085,221 @@ export const INVITE_VERSION = 'v2'  // 从 v1 更新到 v2
 - `npm.cmd run lint` → 通过
 - `npx.cmd vitest run --config vitest.config.ts __tests__/auth-modal.test.tsx __tests__/auth-modal-accessibility.test.tsx` → 2 文件 / 30 项通过
 - `npx.cmd vitest run --config vitest.config.ts` → 49 文件 / 527 项通过
+
+## 2026-06-30: 同步重复事故修复与 master 恢复上线
+
+### 背景
+
+生产环境上线后出现严重同步异常：部分用户本地练习记录数量翻倍，但 Supabase 审查显示云端没有重复记录。用户手动回滚后，继续基于导出的调试日志排查。
+
+### 排查结论
+
+- 重复主要发生在本地 `localStorage` 的 `ashtanga_records` 中，云端未被污染。
+- 典型日志表现：
+  - 本地 `localCount: 78`
+  - 云端 `remoteCount: 39`
+  - `failedSyncIds` 中每个记录 ID 重复出现
+  - 错误历史出现 `ON CONFLICT DO UPDATE command cannot affect row a second time`
+- 根因不是应用层“审查机制”拦截，而是同一批 upsert 内包含重复 `id`，Postgres/Supabase 在 `ON CONFLICT(id)` 时拒绝同一目标行被同一条 SQL 更新两次。
+- 因此批量上传失败，没有把本地重复记录写成云端重复行。
+
+### 修复内容
+
+- `lib/sync-utils.ts`
+  - 新增 `dedupeRecordsById`
+  - `diffRecords`、`mergeRecords` 在参与比较/合并前去重
+  - 同一 ID 保留 `updated_at` 较新的记录
+- `hooks/useSync.ts`
+  - 读取本地数据时对 `ashtanga_records` 去重
+  - 发现本地重复后，把清理后的数组写回 `localStorage`
+  - `merge-remote` 写入前再次去重
+- `lib/sync-orchestrator.ts`
+  - 修正同步方向判断：
+    - 无记录/颜色/选项变化时 `noop`
+    - 只有本地记录变化时 `upload-local`
+    - 只有远端记录变化时 `merge-remote`
+    - 双边变化才进入冲突/合并路径
+- 补充测试：
+  - 本地同 ID 重复不会翻倍
+  - 同 ID 保留更新时间较新的记录
+  - 本地新增只触发上传
+  - 远端新增只触发下载
+  - 两端同 ID 无变化时不做多余同步
+
+### 移动端字体修复
+
+用户确认 `master2` 上重复记录已消失后，又发现手机 Chrome 仍显示默认黑体，电脑 Chrome 正常显示宋体。
+
+排查结论：
+
+- 之前 CSS 只依赖 `'Songti SC' / 'STSong' / 'SimSun'` 等系统字体。
+- macOS/Windows 桌面通常有对应宋体，所以显示正常。
+- Android Chrome 通常没有这些系统宋体，会 fallback 到系统黑体。
+
+修复：
+
+- `app/layout.tsx` 引入 `next/font/google` 的 `Noto_Serif_SC`，生成 `--font-noto-serif-sc`。
+- `app/globals.css` 让 `--font-sans`、`--font-serif`、`--font-playfair`、`--font-mono` 全部优先使用 `var(--font-noto-serif-sc)`。
+- 对 `html/body/button/input/textarea/select` 增加全局字体兜底，避免表单控件继续使用系统默认黑体。
+
+### 上线状态
+
+- `master2` 修复提交：
+  - `1ecf515 fix: prevent sync duplicate records`
+  - `080612d fix: load serif font on mobile`
+- 已合并到 `master`：
+  - `4a34f23 merge master2 hotfixes into master`
+- 已推送 `origin/master`，触发生产部署。
+
+### 验证
+
+- `npm.cmd run typecheck` → 通过
+- `npm.cmd exec vitest run __tests__/sync-utils.test.ts __tests__/sync-orchestrator.test.ts` → 2 文件 / 59 项通过
+- `npm.cmd run build` → 通过
+
+### 当前恢复点
+
+- 生产分支：`master`
+- 最新生产提交：`4a34f23`
+- 重点观察：
+  - 用户打开新版本后，本地重复记录应自动清理并写回本地。
+  - 后续导出日志/数据胶囊应基于清理后的本地数据。
+  - Android Chrome 应加载 `Noto Serif SC`，不再回落到系统黑体。
+- 工作区仍有两个与本次上线无关的本地项未处理：
+  - `.claude/skills/gstack`
+  - `.claude/skills/gstack.bak/`
+
+## 2026-07-03: SEO / GEO 阶段 0 完成，公开内容技术地基落地
+
+### 目标
+
+把网站从只有品牌落地页和客户端应用的结构，扩展为搜索引擎与 AI 可以直接抓取、理解和引用的公开内容层。中文市场优先，内容来自正确的运营真源：
+
+`D:\BaiduSyncdisk\work\cursor app\xiaohongshu内容运营`
+
+### 阶段 0
+
+- 建立 20 个固定 SEO 查询和 20 个固定 GEO 问题。
+- 完成首批 15 页的关键词、搜索意图、素材、来源和 CTA 映射。
+- 记录百度现状：网站已提交，品牌词“熬汤日记”可搜，非品牌词暂无可见度。
+- 明确外部笔记只用于研究，烧冰冰原创稿和内容单元才可改编为网站正文。
+
+### 技术地基
+
+- 新增 Markdown 内容目录、frontmatter 校验和服务端内容读取器。
+- 新增公开内容模板、索引页、作者页、公众号二维码和统一页头页尾。
+- 首批页面：
+  - `/tools/ashtanga-practice-tracker`
+  - `/ashtanga/practice-record`
+  - `/poses/padangusthasana-padahastasana`
+  - `/authors/shao-bingbing`
+- 首页增加可抓取的工具、练习指南、体式库和作者入口。
+- 增加 canonical、Open Graph、Twitter Card、Article、SoftwareApplication、Person 和 BreadcrumbList。
+- sitemap 改用内容真实更新时间，收录公开内容并移除 `/practice` 与旧 `/seo`。
+- `/practice` 设置 `noindex, follow`。
+- `/seo` 永久重定向到真正的工具页。
+- robots 明确允许公开抓取和 `OAI-SearchBot` / `Baiduspider`，阻止 `/api/`。
+
+### 测试
+
+- 新增 SEO 内容、frontmatter、canonical、sitemap、robots 和二维码测试。
+- 修正两类既有测试：
+  - 字体测试更新为当前 Noto Serif SC 自托管方案。
+  - 日记组件测试固定系统日期，避免跨月后自动失败。
+- Vitest：55 文件 / 560 项通过。
+- TypeScript：通过。
+- 生产构建：当前环境连接 Google Fonts 失败，需联网后复验；与本次页面代码无关。
+
+### 当前恢复点
+
+继续补 `/ashtanga/awareness-journal`，然后进入 Mysore、一序列、月相和唱诵知识支柱。生产发布前必须补跑联网构建。
+
+## 2026-07-03: SEO / GEO 首批 15 页开发完成
+
+### 本次完成
+
+- 补齐阿斯汤加知识中心与 5 个专题：
+  - `/ashtanga/mysore`
+  - `/ashtanga/primary-series`
+  - `/ashtanga/moon-days`
+  - `/ashtanga/opening-chant`
+  - `/ashtanga/awareness-journal`
+- `/ashtanga` 增加“阿斯汤加是什么、初学者从哪里开始、知识库提供什么”的可抓取正文。
+- 补齐公开体式库与剩余 4 个体式详情：
+  - `/poses/upavishta-konasana`
+  - `/poses/supta-konasana`
+  - `/poses/matsyasana`
+  - `/poses/uttana-padasana`
+- `/poses` 增加体式提示的用途、边界和安全说明。
+- 12 篇 Markdown 内容互相加入相关页面链接；15 个计划页面均可由首页经聚合页在两次点击内到达。
+- 月相页明确区分阿斯汤加传统休息安排与缺乏依据的“月亮牵引人体水分”解释。
+- 体式页沿用 App 当前 WebP 图片与简明提示，不加入医疗效果，不把图片深度写成练习标准。
+
+### 验证
+
+- 定向 Vitest：3 文件 / 24 项通过。
+- 全量 Vitest：55 文件 / 560 项通过。
+- `npm.cmd run typecheck`：通过。
+- `npm.cmd run lint`：通过。
+- 生产构建仍需在可连接 Google Fonts 的环境复验；此前失败点为 Noto Serif SC 下载，不是页面编译错误。
+
+### 下一次恢复点
+
+不再扩写第二批 SEO 页面，直接进入发布验收：
+
+1. 补跑联网生产构建。
+2. 人工确认 5 张体式图片使用权、作者简介和公众号二维码真机识别。
+3. 在预览环境检查 15 页移动端排版、CTA、内部链接、图片和结构化数据。
+4. 部署后提交 Google、Bing、百度 sitemap 与新增 canonical URL。
+5. 补录站长平台基线，30 天后根据抓取、索引和非品牌词展现决定是否继续。
+
+## 2026-07-03: SEO 内容定位校正——工具与科普，不做教学
+
+### 定位
+
+用户明确熬汤日记不是专业教学网站。公开内容的长期边界调整为：
+
+- 产品核心是阿斯汤加练习记录工具。
+- 内容面向小白和普通练习者，提供入门科普、工具说明和烧冰冰的个人练习感悟。
+- 体式页只帮助识别中文名、梵文名、图片、序列位置和相邻体式关系。
+- 不发布进入、停留、退出、呼吸计数、纠错、辅助或身体调整教程。
+- 不评价动作是否标准，不以专业老师或医疗人员身份发言。
+
+### 页面调整
+
+- 重写首批 5 个体式详情页，删除所有编号动作步骤和练法说明。
+- `/poses` 从“体式提示库”改为“体式名称科普”，明确能做什么和不做什么。
+- `/ashtanga` 改为“普通练习者的阿斯汤加科普”。
+- 一序列页改成结构与常见误解科普，不再回答具体怎样练。
+- 唱诵页删除步骤式跟唱方法，改为新手体验和个人感受。
+- 首页、作者页、公开导航与页脚统一“工具 + 小白科普 + 个人感悟、不做体式教学”的表达。
+- SEO / GEO 计划、内容地图与固定问题集同步调整，避免用“怎么做体式”吸引错误搜索意图。
+
+### 防回退
+
+- SEO 内容测试新增非教学边界：
+  - 体式标题不得出现“怎么做、怎样练、练习提示”。
+  - 描述不得使用“动作顺序、呼吸提示、安全提示”。
+  - 正文不得出现动作步骤标题或编号步骤。
+  - 每页必须明确说明非教学边界。
+
+### 最终验证
+
+- Vitest：55 文件 / 561 项通过。
+- TypeScript 与轻量 lint：通过。
+- 联网生产构建：通过，39 个路由完成静态生成。
+- 本地生产服务：主页、聚合页、15 个计划页面、sitemap 和 robots 共 19 个入口全部返回 200。
+- 浏览器检查：
+  - 手机 375px、平板 768px、桌面 1280px 响应式页面可读。
+  - 发现并修复手机公开导航逐字断行问题。
+  - 体式详情没有编号动作步骤或横向溢出。
+  - 体式图片、公众号二维码和自托管 Noto Serif SC 均返回 200。
+  - canonical、Article 和 BreadcrumbList JSON-LD 输出正确。
+  - 本地出现的 Vercel Analytics / Speed Insights 404 属于非 Vercel 本地运行的预期现象。
+
+### 剩余人工项
+
+- 确认 5 张体式图片的公开使用权。
+- 用微信真机确认公众号二维码扫码和长按识别。
+- 最终确认作者页“四年练习经历”的公开表述。
+- 部署后提交搜索平台并记录 30 天基线。

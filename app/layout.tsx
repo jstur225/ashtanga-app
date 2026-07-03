@@ -26,8 +26,27 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://ash.ashtangalife.online'),
   title: '熬汤日记 - 阿斯汤加瑜伽练习记录与打卡工具',
   description: '免费在线记录阿斯汤加瑜伽练习，支持每日打卡、练习统计、Mysore 风格计时。无需下载，打开网页即用。',
+  alternates: {
+    canonical: '/',
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'zh_CN',
+    siteName: '熬汤日记',
+    title: '熬汤日记 - 阿斯汤加瑜伽练习记录与打卡工具',
+    description: '免费在线记录阿斯汤加瑜伽练习，支持每日打卡、练习统计、Mysore 风格计时。',
+    url: '/',
+    images: [{ url: '/icon1204.png', alt: '熬汤日记' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: '熬汤日记 - 阿斯汤加瑜伽练习记录与打卡工具',
+    description: '免费在线记录阿斯汤加瑜伽练习，支持每日打卡、练习统计、Mysore 风格计时。',
+    images: ['/icon1204.png'],
+  },
   generator: 'v0.app',
   manifest: '/manifest.json',
   icons: {

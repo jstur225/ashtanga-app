@@ -16,6 +16,15 @@ const { commitHash, commitDate, branch } = getGitVersion()
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  async redirects() {
+    return [
+      {
+        source: '/seo',
+        destination: '/tools/ashtanga-practice-tracker',
+        permanent: true,
+      },
+    ]
+  },
   typescript: {
     ignoreBuildErrors: true,
   },

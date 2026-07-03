@@ -17,15 +17,17 @@ describe('字体优化', () => {
     expect(layoutContent).not.toContain('Playfair_Display')
   })
 
-  it('不再依赖 next/font/google', () => {
-    expect(layoutContent).not.toContain('next/font/google')
+  it('使用 next/font/google 自托管 Noto Serif SC', () => {
+    expect(layoutContent).toContain('next/font/google')
+    expect(layoutContent).toContain('Noto_Serif_SC')
+    expect(layoutContent).toContain("variable: '--font-noto-serif-sc'")
     expect(pageContent).not.toContain('next/font/google')
   })
 
-  it('全局字体使用本地/系统字体栈', () => {
-    expect(cssContent).toContain("--font-sans: 'Songti SC'")
-    expect(cssContent).toContain("--font-serif: 'Songti SC'")
-    expect(cssContent).toContain("--font-playfair: 'Songti SC'")
+  it('全局字体优先使用自托管宋体并保留系统回退', () => {
+    expect(cssContent).toContain("--font-sans: var(--font-noto-serif-sc), 'Songti SC'")
+    expect(cssContent).toContain("--font-serif: var(--font-noto-serif-sc), 'Songti SC'")
+    expect(cssContent).toContain("--font-playfair: var(--font-noto-serif-sc), 'Songti SC'")
   })
 
   it('app/page.tsx 不导入 Playfair_Display', () => {
@@ -36,15 +38,14 @@ describe('字体优化', () => {
     expect(layoutContent).not.toContain('jetbrainsMono')
   })
 
-  it('body className 不含字体变量 class', () => {
-    expect(layoutContent).toContain('className="font-serif antialiased"')
+  it('body className 注入 Noto Serif SC 字体变量', () => {
+    expect(layoutContent).toContain('notoSerifSC.variable')
     expect(layoutContent).not.toContain('inter.variable')
-    expect(layoutContent).not.toContain('notoSerifSC.variable')
   })
 
-  it('globals.css font-mono 使用系统等宽字体', () => {
+  it('globals.css font-mono 也遵循全站宋体要求', () => {
     expect(cssContent).not.toContain('jetbrains-mono')
     expect(cssContent).not.toContain('JetBrains Mono')
-    expect(cssContent).toContain("--font-mono: 'Songti SC'")
+    expect(cssContent).toContain("--font-mono: var(--font-noto-serif-sc), 'Songti SC'")
   })
 })
