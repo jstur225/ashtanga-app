@@ -9,6 +9,8 @@
 - 当前重构状态：阶段 1–6 主体完成，审核补漏完成，L4 登录态稳定化完成。
 - 恢复入口：[`docs/architecture/REFACTOR_RESUME.md`](./docs/architecture/REFACTOR_RESUME.md)
 - 开发说明：[`docs/guides/DEVELOPMENT.md`](./docs/guides/DEVELOPMENT.md)
+- SEO / GEO 增长计划：[`docs/growth/SEO_GEO_GROWTH_PLAN.md`](./docs/growth/SEO_GEO_GROWTH_PLAN.md)
+- SEO / GEO 基线与内容地图：[`docs/growth/SEO_GEO_BASELINE.md`](./docs/growth/SEO_GEO_BASELINE.md) · [`docs/growth/SEO_GEO_CONTENT_MAP.md`](./docs/growth/SEO_GEO_CONTENT_MAP.md)
 - 重构路线图：[`docs/architecture/DECOUPLING_ROADMAP.md`](./docs/architecture/DECOUPLING_ROADMAP.md)
 - 测试矩阵：[`docs/architecture/DECOUPLING_TEST_MATRIX.md`](./docs/architecture/DECOUPLING_TEST_MATRIX.md)
 

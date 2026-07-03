@@ -317,6 +317,30 @@ export default function MobileLandingPage() {
                     </div>
                 </motion.div>
 
+                <motion.div
+                    variants={fadeInUp}
+                    className="rounded-3xl border border-[#2A4B3C]/10 bg-white p-6 text-left"
+                >
+                    <h2 className="text-xl font-serif text-[#2A4B3C]">阿斯汤加工具与小白科普</h2>
+                    <p className="mt-2 text-sm leading-6 text-[#2A4B3C]/65">
+                        记录自己的练习，读懂常见名词和体式名称。这里不做体式教学。
+                    </p>
+                    <div className="mt-5 grid gap-3 text-sm sm:grid-cols-2">
+                        <Link href="/tools/ashtanga-practice-tracker" className="rounded-xl bg-[#F9F7F2] p-4 text-[#2A4B3C]">
+                            阿斯汤加练习记录工具
+                        </Link>
+                        <Link href="/ashtanga/practice-record" className="rounded-xl bg-[#F9F7F2] p-4 text-[#2A4B3C]">
+                            怎样记录一次练习
+                        </Link>
+                        <Link href="/ashtanga" className="rounded-xl bg-[#F9F7F2] p-4 text-[#2A4B3C]">
+                            阿斯汤加入门科普
+                        </Link>
+                        <Link href="/authors/shao-bingbing" className="rounded-xl bg-[#F9F7F2] p-4 text-[#2A4B3C]">
+                            关于烧冰冰
+                        </Link>
+                    </div>
+                </motion.div>
+
                 {/* 底部CTA按钮 */}
                 <div className="flex justify-center mt-8 mb-4">
                     <Link

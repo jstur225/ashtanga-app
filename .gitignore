@@ -36,3 +36,4 @@ nul
 /playwright/report/
 /playwright/.cache/
 /test-results/
+.claude/skills/gstack.bak/
