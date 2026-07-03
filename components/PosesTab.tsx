@@ -21,7 +21,6 @@ export function PosesTab({ onDetailOpen, onDetailClose }: PosesTabProps) {
   const [imagesLoaded, setImagesLoaded] = useState<Record<string, boolean>>({})
   const [poseLibraryVote, setPoseLibraryVote] = useLocalStorage<'yes' | 'no'>('pose_library_improvement_vote')
   const [isSubmittingVote, setIsSubmittingVote] = useState(false)
-  const [isVoteStatusLoading, setIsVoteStatusLoading] = useState(true)
 
   const categoryPoses = POSES.filter(p => p.category === activeCategory)
   const filteredPoses = useMemo(() => {
@@ -85,8 +84,6 @@ export function PosesTab({ onDetailOpen, onDetailClose }: PosesTabProps) {
         }
       } catch {
         // 统计加载失败不阻塞体式库浏览。
-      } finally {
-        if (!cancelled) setIsVoteStatusLoading(false)
       }
     }
 
@@ -159,39 +156,37 @@ export function PosesTab({ onDetailOpen, onDetailClose }: PosesTabProps) {
 
       {/* 体式网格 */}
       <div className="flex-1 overflow-y-auto px-3 py-3">
-        {!isVoteStatusLoading && (
-          <div className="mb-4 rounded-2xl border border-[#5B7553]/15 bg-[#5B7553]/5 p-4">
-            {poseLibraryVote ? (
-              <p className="text-center text-sm font-serif text-[#5B7553] py-2">
-                您已投票，感谢参与。
+        <div className="mb-4 rounded-2xl border border-[#5B7553]/15 bg-[#5B7553]/5 p-4">
+          {poseLibraryVote ? (
+            <p className="text-center text-sm font-serif text-[#5B7553] py-2">
+              您已投票，感谢参与。
+            </p>
+          ) : (
+            <>
+              <p className="text-center text-base font-serif text-stone-700 mb-3">
+                要不要继续完善体式库？
               </p>
-            ) : (
-              <>
-                <p className="text-center text-base font-serif text-stone-700 mb-3">
-                  要不要继续完善体式库？
-                </p>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => voteForPoseLibrary('yes')}
-                    disabled={isSubmittingVote}
-                    className="py-2.5 rounded-full bg-[#5B7553] text-white text-sm font-serif transition-transform active:scale-95 disabled:opacity-50"
-                  >
-                    要
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => voteForPoseLibrary('no')}
-                    disabled={isSubmittingVote}
-                    className="py-2.5 rounded-full bg-white border border-stone-200 text-stone-500 text-sm font-serif transition-transform active:scale-95 disabled:opacity-50"
-                  >
-                    不需要
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-        )}
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => voteForPoseLibrary('yes')}
+                  disabled={isSubmittingVote}
+                  className="py-2.5 rounded-full bg-[#5B7553] text-white text-sm font-serif transition-transform active:scale-95 disabled:opacity-50"
+                >
+                  要
+                </button>
+                <button
+                  type="button"
+                  onClick={() => voteForPoseLibrary('no')}
+                  disabled={isSubmittingVote}
+                  className="py-2.5 rounded-full bg-white border border-stone-200 text-stone-500 text-sm font-serif transition-transform active:scale-95 disabled:opacity-50"
+                >
+                  不需要
+                </button>
+              </div>
+            </>
+          )}
+        </div>
 
         {filteredPoses.length === 0 ? (
           <div className="flex items-center justify-center h-40 text-stone-300 text-sm font-serif">
