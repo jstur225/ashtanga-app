@@ -10,6 +10,16 @@ let buildContentMetadata: typeof import("@/lib/seo-metadata").buildContentMetada
 let sitemap: typeof import("@/app/sitemap").default
 let robots: typeof import("@/app/robots").default
 
+const readTypeScriptFiles = (directory: string): string =>
+  fs
+    .readdirSync(directory, { withFileTypes: true })
+    .map((entry) => {
+      const fullPath = path.join(directory, entry.name)
+      if (entry.isDirectory()) return readTypeScriptFiles(fullPath)
+      return /\.(ts|tsx)$/.test(entry.name) ? fs.readFileSync(fullPath, "utf8") : ""
+    })
+    .join("\n")
+
 beforeAll(async () => {
   const content = await import("@/lib/public-content")
   const seo = await import("@/lib/seo-metadata")
@@ -21,11 +31,11 @@ beforeAll(async () => {
 })
 
 describe("public SEO content", () => {
-  it("首批 12 篇三类内容可读取且 slug 唯一", () => {
+  it("公开工具与入门科普内容可读取且 slug 唯一", () => {
     const entries = getAllPublicContentMeta()
     const urls = entries.map((entry) => `/${entry.section}/${entry.slug}`)
 
-    expect(entries).toHaveLength(12)
+    expect(entries).toHaveLength(7)
     expect(new Set(urls).size).toBe(urls.length)
     expect(urls).toEqual(
       expect.arrayContaining([
@@ -36,11 +46,6 @@ describe("public SEO content", () => {
         "/ashtanga/opening-chant",
         "/ashtanga/practice-record",
         "/ashtanga/primary-series",
-        "/poses/matsyasana",
-        "/poses/padangusthasana-padahastasana",
-        "/poses/supta-konasana",
-        "/poses/upavishta-konasana",
-        "/poses/uttana-padasana",
       ]),
     )
   })
@@ -54,18 +59,28 @@ describe("public SEO content", () => {
     expect(document?.meta.keywords.length).toBeGreaterThan(0)
   })
 
-  it("公开体式页只做名称科普，不包含分步教学", () => {
-    const poseEntries = getAllPublicContentMeta().filter((entry) => entry.section === "poses")
+  it("不发布有版权争议的体式科普页面", () => {
+    const poseIndexRoute = path.join(process.cwd(), "app", "poses", "page.tsx")
+    const poseDetailRoute = path.join(process.cwd(), "app", "poses", "[slug]", "page.tsx")
+    const poseContent = path.join(process.cwd(), "content", "knowledge", "poses")
 
-    expect(poseEntries).toHaveLength(5)
-    for (const entry of poseEntries) {
-      const document = getPublicContent("poses", entry.slug)
-      expect(document?.meta.title).not.toMatch(/怎么做|怎样练|练习提示/)
-      expect(document?.meta.description).not.toMatch(/动作顺序|呼吸提示|安全提示/)
-      expect(document?.body).not.toMatch(/^## (动作顺序|练习步骤|呼吸提示)/m)
-      expect(document?.body).not.toMatch(/^\d+\.\s/m)
-      expect(document?.body).toMatch(/不提供体式教学|不教你|不提供进入|不讲解动作方法|不提供动作教学/)
-    }
+    expect(fs.existsSync(poseIndexRoute)).toBe(false)
+    expect(fs.existsSync(poseDetailRoute)).toBe(false)
+    expect(
+      fs.existsSync(poseContent)
+        ? fs.readdirSync(poseContent).filter((file) => file.endsWith(".md"))
+        : [],
+    ).toHaveLength(0)
+    expect(getAllPublicContentMeta().some((entry) => String(entry.section) === "poses")).toBe(false)
+  })
+
+  it("练习 App 不增加跳转到公开科普页面的入口", () => {
+    const practiceCode = [
+      fs.readFileSync(path.join(process.cwd(), "app", "practice", "page.tsx"), "utf8"),
+      readTypeScriptFiles(path.join(process.cwd(), "components", "practice")),
+    ].join("\n")
+
+    expect(practiceCode).not.toMatch(/href=["']\/(ashtanga|tools)\b/)
   })
 
   it("内容 metadata 输出 canonical 和社交卡片", () => {
@@ -83,11 +98,10 @@ describe("public SEO content", () => {
 
     expect(urls).toContain("https://ash.ashtangalife.online/tools/ashtanga-practice-tracker")
     expect(urls).toContain("https://ash.ashtangalife.online/ashtanga/practice-record")
-    expect(urls).toContain("https://ash.ashtangalife.online/poses/padangusthasana-padahastasana")
     expect(urls).toContain("https://ash.ashtangalife.online/authors/shao-bingbing")
     expect(urls).toContain("https://ash.ashtangalife.online/ashtanga")
-    expect(urls).toContain("https://ash.ashtangalife.online/poses")
-    expect(urls).toHaveLength(17)
+    expect(urls).toHaveLength(11)
+    expect(urls.some((url) => url.includes("/poses"))).toBe(false)
     expect(urls).not.toContain("https://ash.ashtangalife.online/practice")
     expect(urls).not.toContain("https://ash.ashtangalife.online/seo")
   })

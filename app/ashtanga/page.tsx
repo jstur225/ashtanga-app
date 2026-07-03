@@ -33,7 +33,7 @@ export default function AshtangaIndexPage() {
       <section>
         <h2 className="text-2xl font-semibold text-[#203d31]">这个知识库提供什么</h2>
         <p className="mt-3">
-          这里整理 Mysore、一序列、月相日、开篇唱诵、练习记录与觉察笔记等常见问题。想认体式名称时，可以查看体式科普；想留下自己的练习时，可以直接使用熬汤日记。
+          这里整理 Mysore、一序列、月相日、开篇唱诵、练习记录与觉察笔记等常见问题。内容帮你读懂练习者常说的概念；想留下自己的练习时，可以直接使用熬汤日记。
         </p>
       </section>
     </PublicContentIndex>

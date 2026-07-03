@@ -332,8 +332,8 @@ export default function MobileLandingPage() {
                         <Link href="/ashtanga/practice-record" className="rounded-xl bg-[#F9F7F2] p-4 text-[#2A4B3C]">
                             怎样记录一次练习
                         </Link>
-                        <Link href="/poses" className="rounded-xl bg-[#F9F7F2] p-4 text-[#2A4B3C]">
-                            认识阿斯汤加体式
+                        <Link href="/ashtanga" className="rounded-xl bg-[#F9F7F2] p-4 text-[#2A4B3C]">
+                            阿斯汤加入门科普
                         </Link>
                         <Link href="/authors/shao-bingbing" className="rounded-xl bg-[#F9F7F2] p-4 text-[#2A4B3C]">
                             关于烧冰冰

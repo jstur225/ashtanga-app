@@ -70,4 +70,4 @@ image: "/icon1204.png"
 
 它更适合已经开始规律练习、想长期观察身体变化的人。无论你在教室练 Mysore、跟 Led class，还是在家练习，都可以把它当作一本安静的数字练习本。
 
-继续阅读：[怎样记录一次练习](/ashtanga/practice-record) · [觉察笔记可以写什么](/ashtanga/awareness-journal) · [浏览体式名称科普](/poses)
+继续阅读：[怎样记录一次练习](/ashtanga/practice-record) · [觉察笔记可以写什么](/ashtanga/awareness-journal) · [认识阿斯汤加一序列](/ashtanga/primary-series)

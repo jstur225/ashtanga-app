@@ -4,7 +4,7 @@ import fs from "node:fs"
 import path from "node:path"
 import matter from "gray-matter"
 
-export type PublicContentSection = "ashtanga" | "tools" | "poses"
+export type PublicContentSection = "ashtanga" | "tools"
 export type PublicContentSchema = "Article" | "SoftwareApplication"
 
 export interface PublicContentMeta {
@@ -29,7 +29,7 @@ export interface PublicContentDocument {
 }
 
 const CONTENT_ROOT = path.join(process.cwd(), "content", "knowledge")
-const SECTIONS: PublicContentSection[] = ["ashtanga", "tools", "poses"]
+const SECTIONS: PublicContentSection[] = ["ashtanga", "tools"]
 
 const isSection = (value: unknown): value is PublicContentSection =>
   typeof value === "string" && SECTIONS.includes(value as PublicContentSection)

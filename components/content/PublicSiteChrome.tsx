@@ -15,7 +15,6 @@ export function PublicSiteHeader() {
         >
           <Link href="/tools/ashtanga-practice-tracker">工具</Link>
           <Link href="/ashtanga">入门科普</Link>
-          <Link href="/poses">体式科普</Link>
           <Link href="/authors/shao-bingbing">关于作者</Link>
         </nav>
       </div>

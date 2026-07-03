@@ -30,12 +30,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.8,
     },
     {
-      url: `${baseUrl}/poses`,
-      lastModified: '2026-07-03',
-      changeFrequency: 'monthly',
-      priority: 0.8,
-    },
-    {
       url: `${baseUrl}/authors/shao-bingbing`,
       lastModified: '2026-07-03',
       changeFrequency: 'yearly',
