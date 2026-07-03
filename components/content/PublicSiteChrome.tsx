@@ -29,40 +29,34 @@ export function PublicSiteHeader() {
 export function PublicSiteFooter() {
   return (
     <footer className="border-t border-[#2A4B3C]/15 bg-[#EDE5D6] bg-paper-dark">
-      <div className="mx-auto max-w-5xl px-5 py-12">
-        <div className="mb-9 flex items-end justify-between pb-4">
-          <div className="h-px flex-1 bg-gradient-to-r from-[#2A4B3C]/25 to-transparent" />
-          <p className="px-6 text-[10px] tracking-[0.25em] text-[#98783E]">ASHTANGA JOURNAL</p>
-          <div className="h-px flex-1 bg-gradient-to-l from-[#2A4B3C]/25 to-transparent" />
-        </div>
-        <div className="animate-enter grid gap-8 sm:grid-cols-[1fr_auto] sm:items-center">
-          <div>
-            <p className="max-w-lg text-base leading-7 text-[#2A4B3C]/70">
+      <div className="mx-auto max-w-5xl px-5 py-10">
+        <div className="animate-enter grid gap-6 pb-8 sm:grid-cols-[1fr_auto] sm:items-center">
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+            <p className="text-sm leading-6 text-[#2A4B3C]/65">
               给阿斯汤加练习者的安静记录工具，也分享入门科普与个人感悟。
             </p>
             <Link
               href="/practice"
-              className="mt-6 inline-flex min-h-11 items-center justify-center border border-[#2A4B3C] px-8 py-3 text-sm tracking-[0.08em] text-[#203D31] transition-all hover:bg-[#203D31] hover:text-[#F9F7F2]"
+              className="inline-flex min-h-9 items-center justify-center border border-[#2A4B3C] px-5 py-1.5 text-xs tracking-[0.08em] text-[#203D31] transition-all hover:bg-[#203D31] hover:text-[#F9F7F2]"
             >
               开始练习
             </Link>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             <img
               src="/social/wechat-ashtanga-journal.jpg"
               alt="公众号 阿斯汤加-熬汤日记 二维码"
-              width={88}
-              height={88}
+              width={72}
+              height={72}
               className="img-warm-border"
             />
-            <p className="max-w-28 text-xs leading-5 text-[#2A4B3C]/60">
-              微信扫码或长按识别
-              <br />
-              阿斯汤加-熬汤日记
+            <p className="max-w-24 text-[10px] leading-4 text-[#2A4B3C]/55">
+              扫码关注公众号
             </p>
           </div>
         </div>
-        <div className="mt-10 pt-6 text-[10px] tracking-[0.18em] text-[#2A4B3C]/30">
+        <div className="h-px bg-gradient-to-r from-[#2A4B3C]/20 via-[#2A4B3C]/10 to-transparent" />
+        <div className="pt-6 text-[10px] tracking-[0.15em] text-[#2A4B3C]/28">
           <p>熬汤日记 · 阿斯汤加瑜伽练习记录工具 · {new Date().getFullYear()}</p>
         </div>
       </div>
