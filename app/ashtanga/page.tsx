@@ -4,7 +4,7 @@ import { getAllPublicContentMeta } from "@/lib/public-content"
 
 export const metadata: Metadata = {
   title: "阿斯汤加入门科普｜熬汤日记",
-  description: "面向普通练习者认识 Mysore、一序列、月相日、唱诵和练习记录；分享工具、常识与个人感受，不提供体式教学。",
+  description: "面向普通练习者的 Mysore、一序列、月相日和唱诵常识，以及练习记录工具与个人感悟。",
   alternates: { canonical: "/ashtanga" },
 }
 
@@ -14,7 +14,7 @@ export default function AshtangaIndexPage() {
     <PublicContentIndex
       eyebrow="阿斯汤加入门"
       title="普通练习者的阿斯汤加科普"
-      description="用小白能读懂的话认识序列、Mysore、月相、唱诵和练习记录。这里分享工具、常识与个人感受，不提供体式教学。"
+      description="用小白能读懂的话认识序列、Mysore、月相、唱诵和练习记录。"
       section="ashtanga"
       entries={entries}
     >

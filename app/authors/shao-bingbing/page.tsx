@@ -42,7 +42,7 @@ export default function AuthorPage() {
     <PublicSiteFrame>
       <JsonLd data={personJsonLd} />
       <main className="mx-auto max-w-5xl px-5 py-12 sm:py-20">
-        <header className="grid gap-8 border-b border-[#2A4B3C]/20 pb-12 sm:grid-cols-[1fr_2.3fr] sm:gap-12 sm:pb-16">
+        <header className="grid gap-8 pb-12 sm:grid-cols-[1fr_2.3fr] sm:gap-12 sm:pb-16">
           <div>
             <p className="text-xs tracking-[0.22em] text-[#98783E]">MASTHEAD · 主理人</p>
             <p className="mt-4 text-sm tracking-[0.14em] text-[#2A4B3C]/55">作者档案 001</p>
@@ -54,6 +54,7 @@ export default function AuthorPage() {
             </p>
           </div>
         </header>
+        <div className="h-px bg-gradient-to-r from-[#2A4B3C]/20 to-transparent" />
 
         <div className="mx-auto mt-14 grid max-w-4xl gap-10 sm:grid-cols-[1fr_2.4fr] sm:gap-14">
           <aside className="text-xs leading-6 tracking-[0.12em] text-[#2A4B3C]/50">
@@ -79,38 +80,31 @@ export default function AuthorPage() {
           </div>
         </div>
 
-        <section className="mx-auto mt-16 grid max-w-4xl gap-7 border-y border-[#2A4B3C]/20 py-8 sm:grid-cols-[1fr_auto] sm:items-center">
+        <section className="mx-auto mt-16 grid max-w-4xl gap-7 border-y border-[#2A4B3C]/15 py-8 sm:grid-cols-[1fr_auto] sm:items-center">
           <div>
-            <p className="text-xs tracking-[0.2em] text-[#98783E]">FOLLOW THE JOURNAL</p>
-            <h2 className="mt-3 text-2xl text-[#203D31]">找到烧冰冰</h2>
-            <a
-              href={XIAOHONGSHU_PROFILE}
-              target="_blank"
-              rel="me noopener noreferrer"
-              className="mt-5 inline-block text-[#315F4A] underline decoration-[#C1A268] underline-offset-4"
-            >
-              小红书主页：烧冰冰
-            </a>
+            <p className="text-xs tracking-[0.2em] text-[#98783E]">FROM READING TO PRACTICE</p>
+            <h2 className="mt-3 text-2xl text-[#203D31]">把今天的练习留下来</h2>
             <p className="mt-3 text-sm leading-6 text-[#2A4B3C]/65">
-              微信公众号：阿斯汤加-熬汤日记
+              无需下载，打开网页即可计时、打卡并记录身体觉察。
             </p>
           </div>
           <img
             src="/social/wechat-ashtanga-journal.jpg"
-            alt="微信公众号“阿斯汤加-熬汤日记”二维码"
-            width={150}
-            height={150}
+            alt="公众号 阿斯汤加-熬汤日记 二维码"
+            width={120}
+            height={120}
             className="border border-[#2A4B3C]/15 bg-[#F9F7F2] p-1"
           />
         </section>
 
         <section className="mx-auto mt-16 max-w-4xl">
-          <div className="flex items-end justify-between border-b border-[#2A4B3C]/20 pb-3">
+          <div className="flex items-end justify-between pb-3">
             <h2 className="text-2xl text-[#203D31]">从这里开始</h2>
             <span className="text-xs tracking-[0.18em] text-[#98783E]">SELECTED</span>
           </div>
+          <div className="h-px bg-gradient-to-r from-[#2A4B3C]/20 to-transparent" />
           <div>
-            <Link href="/tools/ashtanga-practice-tracker" className="group grid gap-2 border-b border-[#2A4B3C]/12 py-7 sm:grid-cols-[4rem_1fr_auto] sm:items-center">
+            <Link href="/tools/ashtanga-practice-tracker" className="group grid gap-2 py-7 sm:grid-cols-[4rem_1fr_auto] sm:items-center">
               <span className="text-sm text-[#98783E]">01</span>
               <span>
                 <span className="block text-xl text-[#203D31]">了解熬汤日记</span>
@@ -118,7 +112,7 @@ export default function AuthorPage() {
               </span>
               <span aria-hidden="true" className="hidden text-xl text-[#98783E] sm:block">↗</span>
             </Link>
-            <Link href="/ashtanga/practice-record" className="group grid gap-2 border-b border-[#2A4B3C]/12 py-7 sm:grid-cols-[4rem_1fr_auto] sm:items-center">
+            <Link href="/ashtanga/practice-record" className="group grid gap-2 py-7 sm:grid-cols-[4rem_1fr_auto] sm:items-center">
               <span className="text-sm text-[#98783E]">02</span>
               <span>
                 <span className="block text-xl text-[#203D31]">怎样记录一次练习</span>

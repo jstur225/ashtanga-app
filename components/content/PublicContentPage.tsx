@@ -18,7 +18,7 @@ export function PublicContentPage({ document }: { document: PublicContentDocumen
       <JsonLd data={buildBreadcrumbJsonLd(meta)} />
       <main className="mx-auto max-w-5xl px-5 py-12 sm:py-20">
         <article>
-          <header className="grid gap-8 border-b border-[#2A4B3C]/20 pb-12 sm:grid-cols-[1fr_2.6fr] sm:gap-12 sm:pb-16">
+          <header className="grid gap-8 pb-12 sm:grid-cols-[1fr_2.6fr] sm:gap-12 sm:pb-16">
             <div className="text-sm text-[#2A4B3C]/55">
               <p className="text-xs tracking-[0.22em] text-[#98783E]">JOURNAL · 2026</p>
               <p className="mt-4 tracking-[0.15em]">{meta.eyebrow}</p>
@@ -43,6 +43,7 @@ export function PublicContentPage({ document }: { document: PublicContentDocumen
               </div>
             </div>
           </header>
+          <div className="h-px bg-gradient-to-r from-[#2A4B3C]/20 to-transparent" />
 
           <div className="mx-auto mt-12 grid max-w-4xl gap-10 sm:mt-16 sm:grid-cols-[7rem_minmax(0,1fr)] sm:gap-12">
             <aside className="hidden sm:block">
@@ -87,7 +88,7 @@ export function PublicContentPage({ document }: { document: PublicContentDocumen
           </div>
         </article>
 
-        <section className="mx-auto mt-20 grid max-w-4xl gap-7 border-y border-[#2A4B3C]/20 py-9 sm:grid-cols-[1fr_auto] sm:items-center">
+        <section className="mx-auto mt-20 grid max-w-4xl gap-7 border-y border-[#2A4B3C]/15 py-9 sm:grid-cols-[1fr_auto] sm:items-center">
           <div>
             <p className="text-xs tracking-[0.2em] text-[#98783E]">FROM READING TO PRACTICE</p>
             <h2 className="mt-3 text-3xl text-[#203D31]">把今天的练习留下来</h2>
