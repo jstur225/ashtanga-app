@@ -42,9 +42,10 @@ export default function AuthorPage() {
     <PublicSiteFrame>
       <JsonLd data={personJsonLd} />
       <main className="mx-auto max-w-5xl px-5 py-12 sm:py-20">
-        <header className="grid gap-8 pb-12 sm:grid-cols-[1fr_2.3fr] sm:gap-12 sm:pb-16">
+        <header className="animate-enter grid gap-8 pb-12 sm:grid-cols-[1fr_2.3fr] sm:gap-12 sm:pb-16">
           <div>
-            <p className="text-xs tracking-[0.22em] text-[#98783E]">MASTHEAD · 主理人</p>
+            <p className="text-[10px] tracking-[0.28em] text-[#98783E]">MASTHEAD · 主理人</p>
+            <div className="mt-3 h-px w-6 bg-[#C1A268]/40" />
             <p className="mt-4 text-sm tracking-[0.14em] text-[#2A4B3C]/55">作者档案 001</p>
           </div>
           <div>
@@ -56,9 +57,9 @@ export default function AuthorPage() {
         </header>
         <div className="h-px bg-gradient-to-r from-[#2A4B3C]/20 to-transparent" />
 
-        <div className="mx-auto mt-14 grid max-w-4xl gap-10 sm:grid-cols-[1fr_2.4fr] sm:gap-14">
+        <div className="animate-enter animate-enter-delay-1 mx-auto mt-14 grid max-w-4xl gap-10 sm:grid-cols-[1fr_2.4fr] sm:gap-14">
           <aside className="text-xs leading-6 tracking-[0.12em] text-[#2A4B3C]/50">
-            <div className="border-t border-[#98783E] pt-4">
+            <div className="border-t-2 border-[#98783E]/30 pt-5">
               <p>ABOUT</p>
               <p className="mt-2 tracking-normal">练习四年</p>
               <p className="tracking-normal">独立开发</p>
@@ -80,9 +81,9 @@ export default function AuthorPage() {
           </div>
         </div>
 
-        <section className="mx-auto mt-16 grid max-w-4xl gap-7 border-y border-[#2A4B3C]/15 py-8 sm:grid-cols-[1fr_auto] sm:items-center">
+        <section className="animate-enter animate-enter-delay-2 mx-auto mt-16 grid max-w-4xl gap-7 border-y border-[#2A4B3C]/12 py-8 sm:grid-cols-[1fr_auto] sm:items-center">
           <div>
-            <p className="text-xs tracking-[0.2em] text-[#98783E]">FROM READING TO PRACTICE</p>
+            <p className="text-[10px] tracking-[0.25em] text-[#98783E]">FROM READING TO PRACTICE</p>
             <h2 className="mt-3 text-2xl text-[#203D31]">把今天的练习留下来</h2>
             <p className="mt-3 text-sm leading-6 text-[#2A4B3C]/65">
               无需下载，打开网页即可计时、打卡并记录身体觉察。
@@ -93,32 +94,32 @@ export default function AuthorPage() {
             alt="公众号 阿斯汤加-熬汤日记 二维码"
             width={120}
             height={120}
-            className="border border-[#2A4B3C]/15 bg-[#F9F7F2] p-1"
+            className="img-warm-border"
           />
         </section>
 
-        <section className="mx-auto mt-16 max-w-4xl">
+        <section className="animate-enter animate-enter-delay-3 mx-auto mt-16 max-w-4xl">
           <div className="flex items-end justify-between pb-3">
             <h2 className="text-2xl text-[#203D31]">从这里开始</h2>
-            <span className="text-xs tracking-[0.18em] text-[#98783E]">SELECTED</span>
+            <span className="text-[10px] tracking-[0.25em] text-[#98783E]">SELECTED</span>
           </div>
           <div className="h-px bg-gradient-to-r from-[#2A4B3C]/20 to-transparent" />
           <div>
-            <Link href="/tools/ashtanga-practice-tracker" className="group grid gap-2 py-7 sm:grid-cols-[4rem_1fr_auto] sm:items-center">
+            <Link href="/tools/ashtanga-practice-tracker" className="group grid gap-2 border-b border-[#2A4B3C]/8 py-7 transition-colors hover:bg-[#EDE5D6]/40 sm:grid-cols-[4rem_1fr_auto] sm:items-center">
               <span className="text-sm text-[#98783E]">01</span>
               <span>
-                <span className="block text-xl text-[#203D31]">了解熬汤日记</span>
+                <span className="block text-xl text-[#203D31] transition-all duration-300 group-hover:text-[#98783E]">了解熬汤日记</span>
                 <span className="mt-2 block text-sm text-[#2A4B3C]/60">功能、使用方式与会员权益</span>
               </span>
-              <span aria-hidden="true" className="hidden text-xl text-[#98783E] sm:block">↗</span>
+              <span aria-hidden="true" className="hidden text-xl text-[#98783E] transition-transform duration-300 group-hover:translate-x-1 group-hover:-translate-y-1 sm:block">↗</span>
             </Link>
-            <Link href="/ashtanga/practice-record" className="group grid gap-2 py-7 sm:grid-cols-[4rem_1fr_auto] sm:items-center">
+            <Link href="/ashtanga/practice-record" className="group grid gap-2 border-b border-[#2A4B3C]/8 py-7 transition-colors hover:bg-[#EDE5D6]/40 sm:grid-cols-[4rem_1fr_auto] sm:items-center">
               <span className="text-sm text-[#98783E]">02</span>
               <span>
-                <span className="block text-xl text-[#203D31]">怎样记录一次练习</span>
+                <span className="block text-xl text-[#203D31] transition-all duration-300 group-hover:text-[#98783E]">怎样记录一次练习</span>
                 <span className="mt-2 block text-sm text-[#2A4B3C]/60">从打卡到身体觉察</span>
               </span>
-              <span aria-hidden="true" className="hidden text-xl text-[#98783E] sm:block">↗</span>
+              <span aria-hidden="true" className="hidden text-xl text-[#98783E] transition-transform duration-300 group-hover:translate-x-1 group-hover:-translate-y-1 sm:block">↗</span>
             </Link>
           </div>
         </section>

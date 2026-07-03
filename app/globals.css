@@ -136,7 +136,12 @@ select {
 
 @utility bg-paper-pattern {
   background-color: var(--color-cream);
-  background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stickiness='5'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.08'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg width='200' height='200' viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.06'/%3E%3C/svg%3E");
+}
+
+@utility bg-paper-dark {
+  background-color: #EDE5D6;
+  background-image: url("data:image/svg+xml,%3Csvg width='200' height='200' viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise-dark'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise-dark)' opacity='0.05'/%3E%3C/svg%3E");
 }
 
 @utility text-gold-gradient {
@@ -148,6 +153,52 @@ select {
 
 .border-gold-shimmer {
   border-image: linear-gradient(135deg, #C1A268, #E5C585, #C1A268) 1;
+}
+
+/* ====== Entrance animations ====== */
+
+@utility animate-enter {
+  animation: enter-fade 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@utility animate-enter-delay-1 {
+  animation-delay: 0.1s;
+}
+
+@utility animate-enter-delay-2 {
+  animation-delay: 0.2s;
+}
+
+@utility animate-enter-delay-3 {
+  animation-delay: 0.35s;
+}
+
+@utility animate-enter-delay-4 {
+  animation-delay: 0.5s;
+}
+
+@utility animate-enter-delay-5 {
+  animation-delay: 0.65s;
+}
+
+@keyframes enter-fade {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ====== Magazine decorative ornament (regular CSS, not @utility) ====== */
+
+/* ====== Image border with warm tone ====== */
+.img-warm-border {
+  border: 1px solid rgba(193, 162, 104, 0.25);
+  background-color: #F9F7F2;
+  padding: 2px;
 }
 
 /* Safari兼容的绿色渐变 - 透明毛玻璃效果 */
