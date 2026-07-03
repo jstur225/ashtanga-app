@@ -30,33 +30,23 @@ export function PublicSiteFooter() {
   return (
     <footer className="border-t border-[#2A4B3C]/15 bg-[#EDE5D6] bg-paper-dark">
       <div className="mx-auto max-w-5xl px-5 py-10">
-        <div className="animate-enter grid gap-6 pb-8 sm:grid-cols-[1fr_auto] sm:items-center">
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
-            <p className="text-sm leading-6 text-[#2A4B3C]/65">
-              给阿斯汤加练习者的安静记录工具，也分享入门科普与个人感悟。
-            </p>
-            <Link
-              href="/practice"
-              className="inline-flex min-h-9 items-center justify-center border border-[#2A4B3C] px-5 py-1.5 text-xs tracking-[0.08em] text-[#203D31] transition-all hover:bg-[#203D31] hover:text-[#F9F7F2]"
-            >
-              开始练习
-            </Link>
-          </div>
-          <div className="flex items-center gap-2.5">
-            <img
-              src="/social/wechat-ashtanga-journal.jpg"
-              alt="公众号 阿斯汤加-熬汤日记 二维码"
-              width={72}
-              height={72}
-              className="img-warm-border"
-            />
-            <p className="max-w-24 text-[10px] leading-4 text-[#2A4B3C]/55">
-              扫码关注公众号
-            </p>
-          </div>
+        <p className="animate-enter text-sm leading-6 text-[#2A4B3C]/65">
+          给阿斯汤加练习者的安静记录工具，也分享入门科普与个人感悟。
+        </p>
+        <div className="animate-enter animate-enter-delay-1 mt-6 flex items-center gap-3">
+          <img
+            src="/social/wechat-ashtanga-journal.jpg"
+            alt="公众号 阿斯汤加-熬汤日记 二维码"
+            width={64}
+            height={64}
+            className="img-warm-border"
+          />
+          <p className="text-[10px] leading-4 text-[#2A4B3C]/55">
+            扫码关注公众号
+          </p>
         </div>
-        <div className="h-px bg-gradient-to-r from-[#2A4B3C]/20 via-[#2A4B3C]/10 to-transparent" />
-        <div className="pt-6 text-[10px] tracking-[0.15em] text-[#2A4B3C]/28">
+        <div className="mt-8 h-px bg-gradient-to-r from-[#2A4B3C]/20 via-[#2A4B3C]/10 to-transparent" />
+        <div className="pt-5 text-[10px] tracking-[0.15em] text-[#2A4B3C]/28">
           <p>熬汤日记 · 阿斯汤加瑜伽练习记录工具 · {new Date().getFullYear()}</p>
         </div>
       </div>
