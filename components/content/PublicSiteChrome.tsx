@@ -8,14 +8,14 @@ export function PublicSiteHeader() {
         <div className="animate-enter flex items-center gap-3 sm:gap-4">
           <Link href="/" className="flex shrink-0 items-center gap-2 whitespace-nowrap text-[#203D31]">
             <img src="/icon.png" alt="" width={24} height={24} className="rounded-full ring-1 ring-[#C1A268]/20" />
-            <span className="text-lg tracking-[0.06em]">熬汤日记</span>
+            <span className="text-sm tracking-[0.06em]">熬汤日记</span>
           </Link>
-          <span className="hidden text-[10px] tracking-[0.2em] text-[#2A4B3C]/50 sm:inline">呼吸 · 觉察</span>
-          <span className="hidden italic tracking-[0.08em] text-[10px] text-[#2A4B3C]/40 md:inline">Practice, practice, and all is coming.</span>
+          <span className="hidden text-sm tracking-[0.2em] text-[#2A4B3C]/45 sm:inline">呼吸 · 觉察</span>
+          <span className="hidden text-sm italic tracking-[0.08em] text-[#2A4B3C]/35 md:inline">Practice, practice, and all is coming.</span>
         </div>
         <nav
           aria-label="公开内容导航"
-          className="animate-enter animate-enter-delay-1 flex items-center gap-4 whitespace-nowrap text-xs text-[#2A4B3C]/60 sm:gap-5 sm:text-sm"
+          className="animate-enter animate-enter-delay-1 flex items-center gap-4 whitespace-nowrap text-sm text-[#2A4B3C]/60 sm:gap-5"
         >
           <Link href="/tools/ashtanga-practice-tracker" className="transition-colors hover:text-[#98783E]">记录工具</Link>
           <Link href="/ashtanga" className="transition-colors hover:text-[#98783E]">阿斯汤加</Link>
