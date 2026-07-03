@@ -6,10 +6,10 @@ export function PublicSiteHeader() {
     <header className="border-b border-[#2A4B3C]/15 bg-[#F6F1E7]/95">
       <div className="mx-auto flex max-w-5xl items-center justify-between px-5 py-3">
         <div className="animate-enter flex items-center gap-3 sm:gap-4">
-          <Link href="/" className="flex shrink-0 items-center gap-2 whitespace-nowrap text-[#203D31]">
+          <div className="flex shrink-0 items-center gap-2 whitespace-nowrap text-[#203D31]">
             <img src="/icon.png" alt="" width={24} height={24} className="rounded-full ring-1 ring-[#C1A268]/20" />
             <span className="text-sm tracking-[0.06em]">熬汤日记</span>
-          </Link>
+          </div>
           <span className="hidden text-sm tracking-[0.2em] text-[#2A4B3C]/45 sm:inline">呼吸 · 觉察</span>
           <span className="hidden text-sm italic tracking-[0.08em] text-[#2A4B3C]/35 md:inline">Practice, practice, and all is coming.</span>
         </div>
