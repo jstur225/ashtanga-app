@@ -11,21 +11,21 @@
     </view>
     <button class="navbar-btn" bindtap="onStartPractice" disabled="{{isNavigating}}">
       <text>开始练习</text>
-      <text class="arrow-icon {{isNavigating ? 'spinning' : ''}}">→</text>
+      <image class="navbar-btn-icon {{isNavigating ? 'spinning' : ''}}" src="{{isNavigating ? icons.loader : icons.arrowRight}}" mode="aspectFit" />
     </button>
   </view>
 
   <view class="hero-section">
     <view class="hero-content animate-enter">
       <view class="hero-badge">
-        <text class="hero-badge-leaf">✦</text>
+        <image class="hero-badge-leaf" src="{{icons.leaf}}" mode="aspectFit" />
         <text class="hero-badge-text">始于 2026</text>
-        <text class="hero-badge-leaf mirror">✦</text>
+        <image class="hero-badge-leaf mirror" src="{{icons.leaf}}" mode="aspectFit" />
       </view>
 
       <view class="hero-title-block">
         <text class="hero-title">呼吸</text>
-        <text class="hero-title-gold">&amp;</text>
+        <text class="hero-title-gold">{{ampersand}}</text>
         <text class="hero-title">觉察</text>
         <text class="hero-om">ॐ</text>
       </view>
@@ -43,7 +43,7 @@
 
     <view class="hero-scroll-hint">
       <text class="scroll-text">向下</text>
-      <text class="scroll-arrow">⌄</text>
+      <image class="scroll-arrow" src="{{icons.chevronDown}}" mode="aspectFit" />
     </view>
   </view>
 
@@ -61,7 +61,7 @@
       <view class="features-grid">
         <view class="feature-card">
           <view class="feature-icon-wrap">
-            <text class="feature-icon-text">◷</text>
+            <image class="feature-icon" src="{{icons.timer}}" mode="aspectFit" />
           </view>
           <view class="feature-text">
             <text class="feature-card-title">练习计时</text>
@@ -71,7 +71,7 @@
 
         <view class="feature-card">
           <view class="feature-icon-wrap">
-            <text class="feature-icon-text">□</text>
+            <image class="feature-icon" src="{{icons.bookOpen}}" mode="aspectFit" />
           </view>
           <view class="feature-text">
             <text class="feature-card-title">觉察日记</text>
@@ -81,7 +81,7 @@
 
         <view class="feature-card">
           <view class="feature-icon-wrap">
-            <text class="feature-icon-text">▦</text>
+            <image class="feature-icon" src="{{icons.barChart3}}" mode="aspectFit" />
           </view>
           <view class="feature-text">
             <text class="feature-card-title">练习日历</text>
@@ -94,7 +94,7 @@
 
   <view class="story-section animate-enter delay-2">
     <view class="story-moon-wrap">
-      <text class="story-moon-text">☾</text>
+      <image class="story-moon-icon" src="{{icons.moon}}" mode="aspectFit" />
     </view>
 
     <text class="story-heading">初 心</text>
@@ -107,7 +107,7 @@
 
     <text class="story-paragraph">“熬汤日记因此而生。它的诞生不是一个商业产品，而是一份给 Ashtanga 的礼物。”</text>
 
-    <text class="story-wind">≈</text>
+    <image class="story-wind" src="{{icons.wind}}" mode="aspectFit" />
   </view>
 
   <view class="guruji-section animate-enter delay-2">
@@ -127,18 +127,18 @@
   <view class="promise-section animate-enter delay-3">
     <view class="promise-card">
       <view class="promise-header">
-        <text class="promise-title">3 大特点</text>
+        <text class="promise-title">三大特点</text>
         <view class="promise-divider"></view>
       </view>
 
       <view class="promise-rows">
         <view class="promise-row">
           <view class="promise-row-icon-wrap">
-            <text class="promise-row-icon-text">◇</text>
+            <image class="promise-row-icon" src="{{icons.shield}}" mode="aspectFit" />
           </view>
           <view class="promise-row-text">
-            <text class="promise-row-title">数据私有</text>
-            <text class="promise-row-desc">采用本地存储，你的数据只属于你。</text>
+            <text class="promise-row-title">本地储存，可选云端同步</text>
+            <text class="promise-row-desc">你的数据既保存在本地，也可备份到云端。</text>
           </view>
         </view>
 
@@ -146,11 +146,11 @@
 
         <view class="promise-row">
           <view class="promise-row-icon-wrap">
-            <text class="promise-row-icon-text">☕</text>
+            <image class="promise-row-icon" src="{{icons.coffee}}" mode="aspectFit" />
           </view>
           <view class="promise-row-text">
-            <text class="promise-row-title">免费使用</text>
-            <text class="promise-row-desc">无任何广告，全平台能用。</text>
+            <text class="promise-row-title">全平台能用</text>
+            <text class="promise-row-desc">网页端、小程序端，数据互通，随时随地。</text>
           </view>
         </view>
 
@@ -158,7 +158,7 @@
 
         <view class="promise-row">
           <view class="promise-row-icon-wrap">
-            <text class="promise-row-icon-text">⌁</text>
+            <image class="promise-row-icon" src="{{icons.github}}" mode="aspectFit" />
           </view>
           <view class="promise-row-text">
             <text class="promise-row-title">无需注册</text>
@@ -173,7 +173,7 @@
         <view class="cta-shine"></view>
         <view class="cta-content">
           <text class="cta-text">开始练习</text>
-          <text class="cta-arrow {{isNavigating ? 'spinning' : ''}}">→</text>
+          <image class="cta-arrow {{isNavigating ? 'spinning' : ''}}" src="{{isNavigating ? icons.loader : icons.arrowRight}}" mode="aspectFit" />
         </view>
       </button>
     </view>
