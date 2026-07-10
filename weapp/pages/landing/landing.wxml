@@ -1,18 +1,18 @@
 <view class="landing-page">
   <view class="landing-navbar">
-    <view class="navbar-main">
-      <view class="navbar-left">
-        <image class="navbar-icon" src="/images/icon.png" mode="aspectFill" />
+    <view class="navbar-brand">
+      <image class="navbar-icon" src="/images/icon.png" mode="aspectFill" />
+      <view class="navbar-text">
         <text class="navbar-title">
           熬汤日记<text class="navbar-title-light">·呼吸</text><text class="navbar-title-mid">·觉察</text>
         </text>
-      </view>
-      <view class="navbar-btn {{isNavigating ? 'disabled' : ''}}" bindtap="onStartPractice" hover-class="navbar-btn-hover">
-        <text class="navbar-btn-text">开始练习</text>
-        <image class="navbar-btn-icon {{isNavigating ? 'spinning' : ''}}" src="{{isNavigating ? icons.loader : icons.arrowRight}}" mode="aspectFit" />
+        <text class="navbar-slogan">Practice, practice, and all is coming.</text>
       </view>
     </view>
-    <text class="navbar-slogan">Practice, practice, and all is coming.</text>
+    <view class="navbar-btn {{isNavigating ? 'disabled' : ''}}" bindtap="onStartPractice" hover-class="navbar-btn-hover">
+      <text class="navbar-btn-text">开始练习</text>
+      <image class="navbar-btn-icon {{isNavigating ? 'spinning' : ''}}" src="{{isNavigating ? icons.loader : icons.arrowRight}}" mode="aspectFit" />
+    </view>
   </view>
 
   <view class="hero-section">
