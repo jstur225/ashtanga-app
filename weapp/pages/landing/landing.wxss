@@ -16,17 +16,21 @@
   right: 0;
   z-index: 50;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 30rpx 30rpx 28rpx;
+  flex-direction: column;
+  padding: 0 30rpx 18rpx;
   background: rgba(249, 247, 242, 0.9);
   border-bottom: 1rpx solid rgba(42, 75, 60, 0.05);
   box-sizing: border-box;
-  min-height: calc(260rpx + env(safe-area-inset-top));
   padding-top: calc(180rpx + env(safe-area-inset-top));
 }
 
-.navbar-brand {
+.navbar-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.navbar-left {
   display: flex;
   align-items: center;
   gap: 12rpx;
@@ -40,13 +44,6 @@
   box-shadow: 0 4rpx 12rpx rgba(42, 75, 60, 0.12);
   overflow: hidden;
   flex-shrink: 0;
-}
-
-.navbar-text {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  max-width: 360rpx;
 }
 
 .navbar-title {
@@ -74,7 +71,8 @@
   color: rgba(42, 75, 60, 0.5);
   letter-spacing: 0.2rpx;
   line-height: 1.15;
-  margin-top: 5rpx;
+  margin-top: 6rpx;
+  margin-left: 70rpx;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -84,18 +82,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 4rpx;
-  padding: 10rpx 16rpx;
+  gap: 6rpx;
+  padding: 14rpx 24rpx;
   background: linear-gradient(135deg, #2A4B3C, #1a2f26);
-  color: #C1A268;
-  font-size: 20rpx;
-  font-family: serif;
-  letter-spacing: 2rpx;
   border-radius: 100rpx;
   border: 1rpx solid rgba(193, 162, 104, 0.2);
   box-shadow: 0 6rpx 18rpx rgba(42, 75, 60, 0.18);
-  height: auto;
-  line-height: 1;
   flex-shrink: 0;
 }
 
@@ -109,17 +101,17 @@
 }
 
 .navbar-btn-text {
-  font-size: 20rpx;
+  font-size: 22rpx;
   font-family: serif;
-  letter-spacing: 2rpx;
+  letter-spacing: 3rpx;
   color: #C1A268;
   line-height: 1;
   white-space: nowrap;
 }
 
 .navbar-btn-icon {
-  width: 20rpx;
-  height: 20rpx;
+  width: 22rpx;
+  height: 22rpx;
   display: block;
   flex-shrink: 0;
 }
