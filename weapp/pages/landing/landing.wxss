@@ -56,7 +56,7 @@
   flex-direction: column;
   min-width: 0;
   overflow: hidden;
-  margin-top: -8rpx;
+  margin-top: 2rpx;
 }
 
 .navbar-title {
