@@ -1,0 +1,607 @@
+.journal-page {
+  box-sizing: border-box;
+  min-height: 100vh;
+  padding: 96rpx 24rpx calc(180rpx + env(safe-area-inset-bottom));
+}
+
+.guest-notice {
+  align-items: center;
+  color: #868C88;
+  display: flex;
+  font-family: 'Songti SC', STSong, serif;
+  font-size: 20rpx;
+  justify-content: space-between;
+  margin: -34rpx 28rpx 18rpx;
+}
+
+.guest-notice-link {
+  color: #C1A268;
+}
+
+.calendar-card,
+.monthly-stats-card {
+  background: #FFFFFF;
+  border: 1rpx solid #E7E5E4;
+  border-radius: 40rpx;
+  box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+.calendar-card {
+  margin: 0 24rpx 24rpx;
+}
+
+.calendar-toolbar {
+  align-items: center;
+  background: #F7FEE7;
+  border-bottom: 1rpx solid #F5F5F4;
+  display: flex;
+  justify-content: space-between;
+  padding: 24rpx;
+}
+
+.toolbar-side {
+  display: flex;
+  gap: 12rpx;
+  width: 192rpx;
+}
+
+.toolbar-side-right {
+  justify-content: flex-end;
+}
+
+.calendar-title {
+  color: #2A4B3C;
+  flex: 1;
+  font-family: 'Songti SC', STSong, serif;
+  font-size: 30rpx;
+  font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.calendar-control {
+  align-items: center;
+  border: 1rpx solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  box-shadow: 0 4rpx 12rpx rgba(45, 90, 39, 0.2);
+  box-sizing: border-box;
+  display: flex;
+  flex: 0 0 48rpx;
+  height: 48rpx;
+  justify-content: center;
+  position: relative;
+  width: 48rpx;
+}
+
+.calendar-control:active {
+  opacity: 0.82;
+  transform: scale(0.96);
+}
+
+.toolbar-icon {
+  height: 27rpx;
+  width: 27rpx;
+}
+
+.toolbar-icon.small {
+  height: 23rpx;
+  width: 23rpx;
+}
+
+.status-dot {
+  border-radius: 50%;
+  bottom: 6rpx;
+  height: 7rpx;
+  left: 50%;
+  position: absolute;
+  transform: translateX(-50%);
+  width: 7rpx;
+}
+
+.status-online {
+  background: #4ADE80;
+}
+
+.status-message {
+  background: #F87171;
+}
+
+.chevron {
+  border-color: #FFFFFF;
+  border-style: solid;
+  border-width: 0 3rpx 3rpx 0;
+  height: 10rpx;
+  width: 10rpx;
+}
+
+.chevron-left {
+  margin-left: 4rpx;
+  transform: rotate(135deg);
+}
+
+.chevron-right {
+  margin-right: 4rpx;
+  transform: rotate(-45deg);
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+}
+
+.calendar-weekdays {
+  column-gap: 4rpx;
+  padding: 28rpx 32rpx 4rpx;
+}
+
+.calendar-weekday {
+  color: #868C88;
+  font-family: 'Songti SC', STSong, serif;
+  font-size: 18rpx;
+  padding: 4rpx 0;
+  text-align: center;
+}
+
+.calendar-days {
+  column-gap: 4rpx;
+  padding: 0 32rpx 32rpx;
+  row-gap: 4rpx;
+}
+
+.calendar-cell {
+  align-items: center;
+  display: flex;
+  height: 72rpx;
+  justify-content: center;
+}
+
+.calendar-day {
+  align-items: center;
+  background: #F9F8F6;
+  border: 1rpx solid transparent;
+  border-radius: 50%;
+  box-sizing: border-box;
+  color: #2A4B3C;
+  display: flex;
+  font-family: 'Songti SC', STSong, serif;
+  font-size: 18rpx;
+  height: 64rpx;
+  justify-content: center;
+  position: relative;
+  width: 64rpx;
+}
+
+.calendar-day.practiced {
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4rpx 16rpx rgba(45, 90, 39, 0.3);
+  color: #FFFFFF;
+}
+
+.calendar-day.future {
+  color: rgba(42, 75, 60, 0.5);
+}
+
+.calendar-day.practiced.future {
+  color: #FFFFFF;
+}
+
+.calendar-day.moon-only {
+  background: transparent;
+  overflow: hidden;
+}
+
+.moon-image {
+  height: 67rpx;
+  left: -1rpx;
+  position: absolute;
+  top: -1rpx;
+  width: 67rpx;
+}
+
+.day-number {
+  position: relative;
+  z-index: 2;
+}
+
+.calendar-marker {
+  border-radius: 50%;
+  bottom: 8rpx;
+  height: 7rpx;
+  left: 50%;
+  position: absolute;
+  transform: translateX(-50%);
+  width: 7rpx;
+  z-index: 3;
+}
+
+.moon-marker {
+  background: #FFE066;
+  box-shadow: 0 0 12rpx rgba(255, 224, 102, 0.8);
+}
+
+.breakthrough-marker {
+  background: #E67E22;
+  box-shadow: 0 0 12rpx rgba(230, 126, 34, 0.8);
+}
+
+.calendar-state,
+.calendar-error,
+.timeline-state {
+  color: #868C88;
+  display: block;
+  font-size: 21rpx;
+  padding: 80rpx 0;
+  text-align: center;
+}
+
+.calendar-error {
+  color: #A34837;
+  padding: 0 20rpx 24rpx;
+}
+
+.monthly-stats-card {
+  display: flex;
+  margin: 0 24rpx 24rpx;
+  padding: 24rpx 12rpx;
+}
+
+.stat-item {
+  align-items: center;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+}
+
+.stat-value {
+  color: #2D5A27;
+  font-family: 'Songti SC', STSong, serif;
+  font-size: 42rpx;
+}
+
+.stat-value.orange {
+  color: #F97316;
+}
+
+.stat-label {
+  color: #868C88;
+  font-family: 'Songti SC', STSong, serif;
+  font-size: 17rpx;
+  margin-top: 8rpx;
+  white-space: nowrap;
+}
+
+.timeline {
+  padding: 0 4rpx 0 0;
+}
+
+.timeline-record {
+  align-items: stretch;
+  border-radius: 16rpx;
+  display: flex;
+  transition: background-color 200ms ease, box-shadow 200ms ease;
+}
+
+.timeline-record.highlighted {
+  background: rgba(230, 126, 34, 0.08);
+  box-shadow: 0 0 36rpx rgba(230, 126, 34, 0.35);
+}
+
+.timeline-meta {
+  box-sizing: border-box;
+  flex: 0 0 136rpx;
+  padding: 9rpx 20rpx 10rpx 0;
+  text-align: right;
+}
+
+.timeline-date,
+.timeline-duration,
+.timeline-type {
+  display: block;
+  font-family: 'Songti SC', STSong, serif;
+  font-style: italic;
+}
+
+.timeline-date {
+  color: #2A4B3C;
+  font-size: 25rpx;
+  line-height: 1;
+}
+
+.timeline-duration {
+  color: #868C88;
+  font-size: 21rpx;
+  line-height: 1;
+  margin-top: 9rpx;
+}
+
+.timeline-duration-unit {
+  margin-left: 4rpx;
+}
+
+.timeline-type {
+  color: #868C88;
+  font-size: 17rpx;
+  margin-top: 6rpx;
+}
+
+.timeline-line {
+  background: #E5E5E5;
+  flex: 0 0 1rpx;
+  min-height: 94rpx;
+  position: relative;
+}
+
+.timeline-dot {
+  background: linear-gradient(to top left, rgba(74, 122, 68, 0.85), rgba(45, 90, 39, 0.95));
+  border-radius: 50%;
+  height: 12rpx;
+  left: 50%;
+  position: absolute;
+  top: 20rpx;
+  transform: translateX(-50%);
+  width: 12rpx;
+}
+
+.timeline-dot.moon {
+  background: #FFE066;
+  box-shadow: 0 0 12rpx rgba(255, 224, 102, 0.8);
+}
+
+.timeline-dot.breakthrough {
+  background: linear-gradient(to bottom right, #E67E22, #F39C12);
+}
+
+.timeline-content {
+  box-sizing: border-box;
+  flex: 1;
+  min-width: 0;
+  padding: 8rpx 56rpx 22rpx 24rpx;
+}
+
+.timeline-notes {
+  color: #2A4B3C;
+  display: block;
+  font-family: 'Songti SC', STSong, serif;
+  font-size: 25rpx;
+  line-height: 1.45;
+  text-align: justify;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.breakthrough {
+  align-items: flex-start;
+  color: #E67E22;
+  display: flex;
+  font-family: 'Songti SC', STSong, serif;
+  font-size: 25rpx;
+  font-weight: 700;
+  gap: 6rpx;
+  line-height: 1.35;
+  margin: 2rpx 0 8rpx;
+}
+
+.sparkle {
+  flex: 0 0 auto;
+}
+
+.timeline-end {
+  color: #868C88;
+  display: block;
+  font-family: 'Songti SC', STSong, serif;
+  font-size: 23rpx;
+  padding: 32rpx 0;
+  text-align: center;
+}
+
+.timeline-state.error {
+  color: #A34837;
+}
+
+.sheet-mask {
+  align-items: flex-end;
+  background: rgba(0, 0, 0, 0.3);
+  bottom: 0;
+  display: flex;
+  left: 0;
+  position: fixed;
+  right: 0;
+  top: 0;
+  z-index: 70;
+}
+
+.record-sheet {
+  background: #FFFFFF;
+  border-radius: 48rpx 48rpx 0 0;
+  box-shadow: 0 -8rpx 40rpx rgba(0, 0, 0, 0.08);
+  box-sizing: border-box;
+  max-height: calc(100vh - 32rpx);
+  padding: 16rpx 40rpx calc(40rpx + env(safe-area-inset-bottom));
+  width: 100%;
+}
+
+.sheet-handle {
+  background: #D9DDD9;
+  border-radius: 999rpx;
+  height: 7rpx;
+  margin: 0 auto 18rpx;
+  width: 70rpx;
+}
+
+.sheet-header {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 26rpx;
+}
+
+.sheet-title {
+  color: #2A4B3C;
+  font-family: 'Songti SC', STSong, serif;
+  font-size: 34rpx;
+  font-weight: 600;
+}
+
+.sheet-close {
+  height: 64rpx;
+  position: relative;
+  width: 64rpx;
+}
+
+.close-line {
+  background: #868C88;
+  height: 2rpx;
+  left: 17rpx;
+  position: absolute;
+  top: 31rpx;
+  width: 30rpx;
+}
+
+.close-line-a {
+  transform: rotate(45deg);
+}
+
+.close-line-b {
+  transform: rotate(-45deg);
+}
+
+.record-form-scroll {
+  max-height: calc(100vh - 190rpx - env(safe-area-inset-bottom));
+}
+
+.form-field {
+  margin-bottom: 28rpx;
+}
+
+.form-label {
+  color: #536D60;
+  display: block;
+  font-family: 'Songti SC', STSong, serif;
+  font-size: 23rpx;
+  margin-bottom: 12rpx;
+}
+
+.form-control {
+  background: #F9F8F6;
+  border: 1rpx solid #E5E5E5;
+  border-radius: 24rpx;
+  box-sizing: border-box;
+  color: #2A4B3C;
+  font-family: 'Songti SC', STSong, serif;
+  font-size: 26rpx;
+  min-height: 84rpx;
+  padding: 22rpx 24rpx;
+  width: 100%;
+}
+
+.picker-control {
+  line-height: 40rpx;
+}
+
+.notes-control {
+  line-height: 1.65;
+  min-height: 170rpx;
+}
+
+.color-levels {
+  align-items: center;
+  display: flex;
+  gap: 26rpx;
+  padding: 8rpx 2rpx;
+}
+
+.color-level {
+  border: 5rpx solid transparent;
+  border-radius: 50%;
+  box-sizing: border-box;
+  height: 52rpx;
+  position: relative;
+  width: 52rpx;
+}
+
+.color-level.active {
+  border-color: #FFFFFF;
+  box-shadow: 0 0 0 3rpx #C1A268, 0 4rpx 12rpx rgba(45, 90, 39, 0.22);
+}
+
+.form-actions {
+  align-items: center;
+  display: flex;
+  gap: 20rpx;
+  padding: 10rpx 0 20rpx;
+}
+
+.delete-record-button {
+  color: #A34837;
+  flex: 0 0 auto;
+  font-family: 'Songti SC', STSong, serif;
+  font-size: 24rpx;
+  padding: 24rpx 8rpx;
+}
+
+.save-record-button {
+  border: 1rpx solid rgba(255, 255, 255, 0.2);
+  border-radius: 999rpx;
+  box-shadow: 0 8rpx 28rpx rgba(45, 90, 39, 0.25);
+  color: #FFFFFF;
+  flex: 1;
+  font-family: 'Songti SC', STSong, serif;
+  font-size: 27rpx;
+  height: 88rpx;
+  line-height: 88rpx;
+  margin: 0;
+}
+
+.dialog-mask {
+  align-items: center;
+  background: rgba(0, 0, 0, 0.3);
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  left: 0;
+  position: fixed;
+  right: 0;
+  top: 0;
+  z-index: 100;
+}
+
+.moon-dialog {
+  align-items: center;
+  background: #FFFFFF;
+  border-radius: 40rpx;
+  box-shadow: 0 8rpx 60rpx rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  min-width: 520rpx;
+  padding: 48rpx;
+}
+
+.moon-dialog-title {
+  color: #2A4B3C;
+  font-family: 'Songti SC', STSong, serif;
+  font-size: 32rpx;
+}
+
+.moon-dialog-copy {
+  color: #868C88;
+  font-family: 'Songti SC', STSong, serif;
+  font-size: 24rpx;
+  line-height: 1.7;
+  margin: 20rpx 0 30rpx;
+  text-align: center;
+  white-space: pre-line;
+}
+
+.moon-dialog-button {
+  border: 1rpx solid rgba(255, 255, 255, 0.2);
+  border-radius: 999rpx;
+  box-shadow: 0 8rpx 32rpx rgba(45, 90, 39, 0.25);
+  box-sizing: border-box;
+  color: #FFFFFF;
+  font-family: 'Songti SC', STSong, serif;
+  font-size: 26rpx;
+  padding: 22rpx 80rpx;
+  text-align: center;
+  width: 100%;
+}

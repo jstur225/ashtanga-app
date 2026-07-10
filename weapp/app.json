@@ -1,0 +1,43 @@
+{
+  "pages": [
+    "pages/landing/landing",
+    "pages/practice/practice",
+    "pages/journal/journal",
+    "pages/profile/profile",
+    "pages/index/index",
+    "pages/privacy/privacy"
+  ],
+  "window": {
+    "navigationBarBackgroundColor": "#2A4B3C",
+    "navigationBarTitleText": "熬汤日记",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#F9F7F2",
+    "backgroundTextStyle": "light"
+  },
+  "sitemapLocation": "sitemap.json",
+  "style": "v2",
+  "requiredBackgroundModes": ["audio"],
+  "tabBar": {
+    "custom": true,
+    "color": "#8A918D",
+    "selectedColor": "#2A4B3C",
+    "backgroundColor": "#FCFBF7",
+    "borderStyle": "white",
+    "position": "bottom",
+    "list": [
+      {
+        "pagePath": "pages/practice/practice",
+        "text": "今日练习"
+      },
+      {
+        "pagePath": "pages/journal/journal",
+        "text": "觉察日记"
+      },
+      {
+        "pagePath": "pages/profile/profile",
+        "text": "我的"
+      }
+    ]
+  },
+  "usingComponents": {}
+}

@@ -1,0 +1,182 @@
+<view class="landing-page">
+  <view class="landing-navbar">
+    <view class="navbar-brand">
+      <image class="navbar-icon" src="/images/icon.png" mode="aspectFill" />
+      <view class="navbar-text">
+        <text class="navbar-title">
+          熬汤日记<text class="navbar-title-light">·呼吸</text><text class="navbar-title-mid">·觉察</text>
+        </text>
+        <text class="navbar-slogan">Practice, practice, and all is coming.</text>
+      </view>
+    </view>
+    <view class="navbar-btn {{isNavigating ? 'disabled' : ''}}" bindtap="onStartPractice" hover-class="navbar-btn-hover">
+      <text class="navbar-btn-text">开始练习</text>
+      <image class="navbar-btn-icon {{isNavigating ? 'spinning' : ''}}" src="{{isNavigating ? icons.loader : icons.arrowRight}}" mode="aspectFit" />
+    </view>
+  </view>
+
+  <view class="hero-section">
+    <view class="hero-content animate-enter">
+      <view class="hero-badge">
+        <image class="hero-badge-leaf" src="{{icons.leaf}}" mode="aspectFit" />
+        <text class="hero-badge-text">始于 2026</text>
+        <image class="hero-badge-leaf mirror" src="{{icons.leaf}}" mode="aspectFit" />
+      </view>
+
+      <view class="hero-title-block">
+        <text class="hero-title">呼吸</text>
+        <text class="hero-title-gold">{{ampersand}}</text>
+        <text class="hero-title">觉察</text>
+        <text class="hero-om">ॐ</text>
+      </view>
+
+      <view class="hero-quote">
+        <text>“致敬重复的力量</text>
+        <text>在节制中获得自由”</text>
+      </view>
+
+      <view class="hero-pills">
+        <text class="hero-pill">Mysore</text>
+        <text class="hero-pill">日记</text>
+      </view>
+    </view>
+
+    <view class="hero-scroll-hint">
+      <text class="scroll-text">向下</text>
+      <image class="scroll-arrow" src="{{icons.chevronDown}}" mode="aspectFit" />
+    </view>
+  </view>
+
+  <view class="features-section animate-enter delay-1">
+    <view class="features-texture"></view>
+    <view class="features-glow-1"></view>
+    <view class="features-glow-2"></view>
+
+    <view class="features-inner">
+      <view class="features-header">
+        <text class="features-title">练汤人的专属 App</text>
+        <view class="features-divider"></view>
+      </view>
+
+      <view class="features-grid">
+        <view class="feature-card">
+          <view class="feature-icon-wrap">
+            <image class="feature-icon" src="{{icons.timer}}" mode="aspectFit" />
+          </view>
+          <view class="feature-text">
+            <text class="feature-card-title">练习计时</text>
+            <text class="feature-card-desc">开始练习放下手机，专注呼吸的流动。</text>
+          </view>
+        </view>
+
+        <view class="feature-card">
+          <view class="feature-icon-wrap">
+            <image class="feature-icon" src="{{icons.bookOpen}}" mode="aspectFit" />
+          </view>
+          <view class="feature-text">
+            <text class="feature-card-title">觉察日记</text>
+            <text class="feature-card-desc">记录每一次练习，不仅仅是打卡，更是对身体的内观。</text>
+          </view>
+        </view>
+
+        <view class="feature-card">
+          <view class="feature-icon-wrap">
+            <image class="feature-icon" src="{{icons.barChart3}}" mode="aspectFit" />
+          </view>
+          <view class="feature-text">
+            <text class="feature-card-title">练习日历</text>
+            <text class="feature-card-desc">见证你每一次的练习，记录你的坚持与汗水。</text>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="story-section animate-enter delay-2">
+    <view class="story-moon-wrap">
+      <image class="story-moon-icon" src="{{icons.moon}}" mode="aspectFit" />
+    </view>
+
+    <text class="story-heading">初 心</text>
+
+    <view class="story-divider"></view>
+
+    <text class="story-paragraph">“作为一名 4 年的阿斯汤加习练者，我一直在寻找一个适合记录 App，一个安静的角落。不需要繁杂的社交，不需要课程，只有记录我的练习和我的呼吸。”</text>
+
+    <view class="story-divider-sm"></view>
+
+    <text class="story-paragraph">“熬汤日记因此而生。它的诞生不是一个商业产品，而是一份给 Ashtanga 的礼物。”</text>
+
+    <image class="story-wind" src="{{icons.wind}}" mode="aspectFit" />
+  </view>
+
+  <view class="guruji-section animate-enter delay-2">
+    <view class="guruji-frame">
+      <image class="guruji-image" src="/images/guruji.png" mode="widthFix" />
+    </view>
+
+    <view class="guruji-text">
+      <text class="guruji-rip">谨以纪念</text>
+      <text class="guruji-name">Sri K. Pattabhi Jois (Guruji)</text>
+    </view>
+
+    <view class="guruji-divider"></view>
+    <text class="guruji-years">1915 – 2009</text>
+  </view>
+
+  <view class="promise-section animate-enter delay-3">
+    <view class="promise-card">
+      <view class="promise-header">
+        <text class="promise-title">三大特点</text>
+        <view class="promise-divider"></view>
+      </view>
+
+      <view class="promise-rows">
+        <view class="promise-row">
+          <view class="promise-row-icon-wrap">
+            <image class="promise-row-icon" src="{{icons.shield}}" mode="aspectFit" />
+          </view>
+          <view class="promise-row-text">
+            <text class="promise-row-title">本地储存，可选云端同步</text>
+            <text class="promise-row-desc">你的数据既保存在本地，也可备份到云端。</text>
+          </view>
+        </view>
+
+        <view class="promise-separator"></view>
+
+        <view class="promise-row">
+          <view class="promise-row-icon-wrap">
+            <image class="promise-row-icon" src="{{icons.coffee}}" mode="aspectFit" />
+          </view>
+          <view class="promise-row-text">
+            <text class="promise-row-title">全平台能用</text>
+            <text class="promise-row-desc">网页端、小程序端，数据互通，随时随地。</text>
+          </view>
+        </view>
+
+        <view class="promise-separator"></view>
+
+        <view class="promise-row">
+          <view class="promise-row-icon-wrap">
+            <image class="promise-row-icon" src="{{icons.github}}" mode="aspectFit" />
+          </view>
+          <view class="promise-row-text">
+            <text class="promise-row-title">无需注册</text>
+            <text class="promise-row-desc">点开即用，像铺开垫子一样简单。</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view class="bottom-cta">
+      <button class="cta-button" bindtap="onStartPractice" disabled="{{isNavigating}}">
+        <view class="cta-content">
+          <text class="cta-text">开始练习</text>
+          <image class="cta-arrow {{isNavigating ? 'spinning' : ''}}" src="{{isNavigating ? icons.loader : icons.arrowRight}}" mode="aspectFit" />
+        </view>
+      </button>
+    </view>
+
+    <text class="footer-copy">© 2026 熬汤日记</text>
+  </view>
+</view>

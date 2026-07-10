@@ -506,5 +506,5 @@ focus:ring-2 focus:ring-primary/20 focus:outline-none
 
 ---
 
-**Last Updated:** 2026-04-01
+**Last Updated:** 2026-07-03
 **Maintained by:** Claude Code /design-consultation

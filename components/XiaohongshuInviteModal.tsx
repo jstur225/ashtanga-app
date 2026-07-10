@@ -7,7 +7,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 
 // 版本号 - 每次更新文案时修改此版本号
-const XIAOHONGSHU_GROUP_TEXT = '1【全文复制→开启🍠】 7月1日前进入，"🆓熬汤日记App交流群"一起来聊 HU7496 :/#v😁😝🐮🍐🌮🐻🐼🐷🤣😛😝🍒'
+const XIAOHONGSHU_GROUP_TEXT = '8【复制全文→返回薯队APP】 仅限8月7日内，"🆓熬汤日记App交流群"等你很久了 MU525 :/#z🍊😍🍙🍅🐡🍉🍋😘🍉🍕😚😛'
 const WECHAT_ID = 'xiao519216978'
 
 interface XiaohongshuInviteModalProps {

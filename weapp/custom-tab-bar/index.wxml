@@ -1,0 +1,15 @@
+<view wx:if="{{!hidden}}" class="tab-shell">
+  <view class="tab-pill">
+    <view
+      wx:for="{{items}}"
+      wx:key="pagePath"
+      class="tab-item {{selected === index ? 'selected' : ''}}"
+      data-index="{{index}}"
+      data-path="{{item.pagePath}}"
+      bindtap="switchTab"
+    >
+      <image class="tab-icon" src="{{selected === index ? item.iconSelected : item.icon}}" mode="aspectFit" />
+      <text class="tab-text">{{item.text}}</text>
+    </view>
+  </view>
+</view>
