@@ -170,7 +170,6 @@
 
     <view class="bottom-cta">
       <button class="cta-button" bindtap="onStartPractice" disabled="{{isNavigating}}">
-        <view class="cta-shine"></view>
         <view class="cta-content">
           <text class="cta-text">开始练习</text>
           <image class="cta-arrow {{isNavigating ? 'spinning' : ''}}" src="{{isNavigating ? icons.loader : icons.arrowRight}}" mode="aspectFit" />
