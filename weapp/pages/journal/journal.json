@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "觉察日记",
+  "usingComponents": {
+    "practice-record-form": "../../components/practice-record-form/index"
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "今日练习",
+  "usingComponents": {
+    "practice-record-form": "../../components/practice-record-form/index"
+  }
+}

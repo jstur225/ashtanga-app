@@ -1,0 +1,126 @@
+<view class="web-form">
+  <view class="form-grid">
+    <view class="field-block">
+      <text class="field-label">日期</text>
+      <view class="field-button" bindtap="openDatePicker">{{dateDisplay}}</view>
+    </view>
+    <view class="field-block">
+      <text class="field-label">练习类型</text>
+      <view class="field-button type-button {{value.type ? 'selected' : ''}}" bindtap="openTypePicker">
+        {{typeDisplay}}
+      </view>
+    </view>
+  </view>
+
+  <view class="form-grid">
+    <view class="field-block">
+      <text class="field-label">练习时长 (分钟)</text>
+      <input class="field-input centered" type="number" value="{{value.durationMinutes}}" data-field="durationMinutes" bindinput="onFieldInput" />
+    </view>
+    <view class="field-block breakthrough-block">
+      <text class="field-label invisible">突破时刻</text>
+      <view class="breakthrough-toggle {{breakthroughEnabled ? 'active' : ''}}" bindtap="toggleBreakthrough">
+        <text class="sparkle">✦</text><text>解锁/突破</text>
+      </view>
+    </view>
+  </view>
+
+  <view wx:if="{{breakthroughEnabled}}" class="field-block">
+    <text class="field-label">突破内容</text>
+    <input class="field-input breakthrough-input" value="{{value.breakthrough}}" maxlength="20" placeholder="记录今天的里程碑..." data-field="breakthrough" bindinput="onFieldInput" />
+  </view>
+
+  <view class="color-row">
+    <text class="field-label color-label">日历颜色</text>
+    <view class="color-options">
+      <view wx:for="{{colorLevels}}" wx:key="*this" class="color-dot green-gradient-{{item}} {{value.color_level === item ? 'active' : ''}}" data-level="{{item}}" bindtap="selectColor"></view>
+    </view>
+  </view>
+
+  <view class="field-block">
+    <view class="notes-label-row">
+      <text class="field-label notes-label">觉察/笔记</text>
+      <text class="notes-count-inline">{{value.notes.length || 0}}/2000</text>
+    </view>
+    <view class="notes-box">
+      <textarea class="notes-input" value="{{value.notes}}" maxlength="2000" placeholder="今天练习感受如何？有什么觉察？" data-field="notes" bindinput="onFieldInput" auto-height />
+      <view class="notes-actions">
+        <view class="notes-action-button green-gradient" bindtap="choosePhoto">
+          <image class="notes-action-icon" src="{{cameraIcon}}" mode="aspectFit" />
+        </view>
+        <view class="notes-action-button green-gradient" bindtap="openFullscreenNotes">
+          <image class="notes-action-icon" src="{{expandIcon}}" mode="aspectFit" />
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view wx:if="{{value.photos.length}}" class="photo-section">
+    <view wx:if="{{value.photos.length}}" class="photo-grid">
+      <view wx:for="{{value.photos}}" wx:key="*this" class="photo-thumb">
+        <image class="photo-image" src="{{item}}" mode="aspectFill" />
+        <view class="photo-remove" data-index="{{index}}" catchtap="removePhoto">×</view>
+      </view>
+      <view wx:if="{{value.photos.length < 9}}" class="photo-add-tile" bindtap="choosePhoto">
+        <text class="photo-add-plus">＋</text>
+        <text class="photo-add-copy">添加</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="save-button green-gradient" bindtap="submit">{{saveText}}</view>
+  <view wx:if="{{showDelete}}" class="delete-button" bindtap="requestDelete">删除记录</view>
+</view>
+
+<view wx:if="{{showFullscreenNotes}}" class="fullscreen-notes">
+  <view class="fullscreen-header">
+    <view class="fullscreen-collapse" bindtap="closeFullscreenNotes">
+      <view class="fullscreen-chevron"></view>
+      <text>收起</text>
+    </view>
+    <text class="fullscreen-title">觉察/笔记</text>
+    <text class="fullscreen-count">{{value.notes.length || 0}}/2000</text>
+  </view>
+  <textarea
+    class="fullscreen-textarea"
+    value="{{value.notes}}"
+    maxlength="2000"
+    placeholder="今天练习感受如何？有什么觉察？"
+    bindinput="onFullscreenNotesInput"
+    focus
+  />
+</view>
+
+<view wx:if="{{showDatePicker}}" class="picker-mask" bindtap="closeDatePicker">
+  <view class="picker-sheet" catchtap="stopPropagation">
+    <view class="picker-header"><text class="picker-title">选择日期</text><text class="picker-close" bindtap="closeDatePicker">×</text></view>
+    <view class="month-switcher">
+      <text class="month-arrow" data-offset="-1" bindtap="changeCalendarMonth">‹</text>
+      <text class="month-title">{{calendarTitle}}</text>
+      <text class="month-arrow" data-offset="1" bindtap="changeCalendarMonth">›</text>
+    </view>
+    <view class="date-grid weekdays"><text wx:for="{{weekDays}}" wx:key="*this" class="weekday">{{item}}</text></view>
+    <view class="date-grid">
+      <view wx:for="{{calendarDays}}" wx:key="key" class="date-cell">
+        <view wx:if="{{!item.empty}}" class="date-day {{item.colorClass}} {{item.practiced ? 'practiced' : ''}} {{item.selected ? 'selected-date' : ''}} {{item.disabled ? 'disabled' : ''}}" data-day="{{item}}" bindtap="selectDate">
+          <image wx:if="{{item.moonType && !item.practiced}}" class="date-moon" src="{{item.moonIcon}}" mode="aspectFill" />
+          <text class="date-number">{{item.day}}</text>
+          <view wx:if="{{item.breakthrough}}" class="date-marker"></view>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>
+
+<view wx:if="{{showTypePicker}}" class="picker-mask" bindtap="closeTypePicker">
+  <view class="picker-sheet type-sheet" catchtap="stopPropagation">
+    <view class="picker-header"><text class="picker-title">选择练习类型</text><text class="picker-close" bindtap="closeTypePicker">×</text></view>
+    <view class="type-grid">
+      <view wx:for="{{typeOptions}}" wx:key="id" class="type-card {{item.selected ? 'selected' : ''}}" data-option="{{item}}" bindtap="selectType">
+        <text class="type-name">{{item.label}}</text>
+        <text wx:if="{{item.notes}}" class="type-notes">{{item.notes}}</text>
+      </view>
+    </view>
+    <text class="type-tip">点击选择练习类型</text>
+  </view>
+</view>

@@ -1,0 +1,150 @@
+<view class="journal-page">
+  <view wx:if="{{dataMode === 'guest'}}" class="guest-notice">
+    <text>游客模式 · 记录仅保存在本机</text>
+    <text class="guest-notice-link" bindtap="goToAccount">登录后可云端备份</text>
+  </view>
+  <view class="calendar-card">
+    <view class="calendar-toolbar">
+      <view class="toolbar-side">
+        <view class="calendar-control green-gradient-deep" data-action="sync" bindtap="onToolbarTap" aria-label="同步">
+          <image class="toolbar-icon" src="{{icons.cloud}}" mode="aspectFit" />
+          <view class="status-dot status-online"></view>
+        </view>
+        <view class="calendar-control green-gradient-deep" data-action="message" bindtap="onToolbarTap" aria-label="社群消息">
+          <image class="toolbar-icon small" src="{{icons.message}}" mode="aspectFit" />
+          <view class="status-dot status-message"></view>
+        </view>
+        <view class="calendar-control green-gradient-deep" bindtap="onPreviousMonth" aria-label="上一个月">
+          <view class="chevron chevron-left"></view>
+        </view>
+      </view>
+
+      <text class="calendar-title">{{calendarTitle}}</text>
+
+      <view class="toolbar-side toolbar-side-right">
+        <view class="calendar-control green-gradient-deep" bindtap="onNextMonth" aria-label="下一个月">
+          <view class="chevron chevron-right"></view>
+        </view>
+        <view class="calendar-control green-gradient-deep" data-action="annotation" bindtap="onToolbarTap" aria-label="日历标注">
+          <image class="toolbar-icon small" src="{{icons.pencil}}" mode="aspectFit" />
+        </view>
+        <view class="calendar-control green-gradient-deep" data-action="add" bindtap="onToolbarTap" aria-label="补录练习">
+          <image class="toolbar-icon" src="{{icons.plus}}" mode="aspectFit" />
+        </view>
+      </view>
+    </view>
+
+    <view class="calendar-grid calendar-weekdays">
+      <text wx:for="{{weekDays}}" wx:key="*this" class="calendar-weekday">{{item}}</text>
+    </view>
+
+    <view wx:if="{{calendarLoading}}" class="calendar-state">正在读取月历…</view>
+    <view wx:else class="calendar-grid calendar-days">
+      <view wx:for="{{calendarDays}}" wx:key="key" class="calendar-cell">
+        <view
+          wx:if="{{!item.empty}}"
+          class="calendar-day {{item.colorClass}} {{item.practiced ? 'practiced' : ''}} {{item.moonType && !item.practiced ? 'moon-only' : ''}} {{item.isFuture ? 'future' : ''}}"
+          data-day="{{item}}"
+          bindtap="onCalendarDayTap"
+        >
+          <image
+            wx:if="{{item.moonType && !item.practiced}}"
+            class="moon-image"
+            src="{{item.moonIcon}}"
+            mode="aspectFill"
+          />
+          <text class="day-number">{{item.day}}</text>
+          <view wx:if="{{item.moonType && item.practiced}}" class="calendar-marker moon-marker"></view>
+          <view wx:elif="{{item.hasBreakthrough}}" class="calendar-marker breakthrough-marker"></view>
+        </view>
+      </view>
+    </view>
+    <text wx:if="{{calendarError}}" class="calendar-error">{{calendarError}}</text>
+  </view>
+
+  <view class="monthly-stats-card">
+    <view class="stat-item">
+      <text class="stat-value">{{monthlyStats.practiceDays}}</text>
+      <text class="stat-label">熬汤天数</text>
+    </view>
+    <view class="stat-item">
+      <text class="stat-value">{{monthlyStats.totalMinutes}}</text>
+      <text class="stat-label">累计分钟</text>
+    </view>
+    <view class="stat-item">
+      <text class="stat-value">{{monthlyStats.avgMinutes}}</text>
+      <text class="stat-label">平均时长</text>
+    </view>
+    <view class="stat-item">
+      <text class="stat-value orange">{{monthlyStats.consecutiveWeeks}}</text>
+      <text class="stat-label">连续熬汤(周)</text>
+    </view>
+  </view>
+
+  <view wx:if="{{calendarLoading}}" class="timeline-state">正在读取练习记录…</view>
+  <view wx:elif="{{calendarError}}" class="timeline-state error">{{calendarError}}</view>
+  <view wx:elif="{{monthRecords.length === 0}}" class="timeline-state">这个月还没有练习记录</view>
+  <view wx:else class="timeline">
+    <view
+      wx:for="{{monthRecords}}"
+      wx:key="id"
+      id="record-{{item.id}}"
+      class="timeline-record {{highlightedDate === item.date ? 'highlighted' : ''}}"
+      data-record="{{item}}"
+      bindtap="onRecordTap"
+    >
+      <view class="timeline-meta">
+        <text class="timeline-date">{{item.timelineDate}}</text>
+        <view wx:if="{{item.durationMinutes > 0}}" class="timeline-duration">
+          <text>{{item.durationMinutes}}</text><text class="timeline-duration-unit">分钟</text>
+        </view>
+        <text class="timeline-type">{{item.displayType}}</text>
+      </view>
+      <view class="timeline-line">
+        <view class="timeline-dot {{item.dotClass}}"></view>
+      </view>
+      <view class="timeline-content">
+        <view wx:if="{{item.breakthrough}}" class="breakthrough">
+          <text class="sparkle">✦</text>
+          <text>{{item.breakthrough}}</text>
+        </view>
+        <text class="timeline-notes">{{item.notes || '今日练习完成'}}</text>
+      </view>
+    </view>
+  </view>
+  <text class="timeline-end">{{monthRecords.length ? '已经到底啦~' : ''}}</text>
+</view>
+
+<view wx:if="{{showRecordSheet}}" class="sheet-mask" bindtap="closeRecordSheet">
+  <view class="record-sheet" catchtap="stopPropagation">
+    <view class="sheet-handle"></view>
+    <view class="sheet-header">
+      <text class="sheet-title">{{recordSheetMode === 'edit' ? '编辑记录' : '🧘‍♀️添加练习'}}</text>
+      <view class="sheet-close" bindtap="closeRecordSheet">
+        <view class="close-line close-line-a"></view>
+        <view class="close-line close-line-b"></view>
+      </view>
+    </view>
+
+    <scroll-view class="record-form-scroll" scroll-y>
+      <practice-record-form
+        form="{{recordForm}}"
+        options="{{practiceOptions}}"
+        records="{{monthRecords}}"
+        show-delete="{{recordSheetMode === 'edit'}}"
+        save-text="{{recordSheetMode === 'edit' ? '保存修改' : '保存练习'}}"
+        bind:change="onSharedFormChange"
+        bind:save="saveRecord"
+        bind:delete="deleteRecord"
+      />
+    </scroll-view>
+  </view>
+</view>
+
+<view wx:if="{{moonDialog.open}}" class="dialog-mask" bindtap="closeMoonDialog">
+  <view class="moon-dialog" catchtap="stopPropagation">
+    <text class="moon-dialog-title">{{moonDialog.type === 'new' ? '新月 Moon Day 🌑' : '满月 Moon Day 🌕'}}</text>
+    <text class="moon-dialog-copy">建议暂停练习\n提前安排练习时间</text>
+    <view class="moon-dialog-button green-gradient" bindtap="closeMoonDialog">知道了</view>
+  </view>
+</view>

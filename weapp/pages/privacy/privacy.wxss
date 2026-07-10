@@ -1,0 +1,105 @@
+.container {
+  padding: 48rpx 36rpx 80rpx;
+  background-color: #F9F7F2;
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 48rpx;
+  padding-bottom: 40rpx;
+  border-bottom: 1rpx solid rgba(42, 75, 60, 0.10);
+}
+
+.eyebrow {
+  display: block;
+  color: #C1A268;
+  font-size: 20rpx;
+  letter-spacing: 5rpx;
+  margin-bottom: 18rpx;
+}
+
+.title {
+  display: block;
+  color: #2A4B3C;
+  font-size: 42rpx;
+  font-weight: 600;
+  margin-bottom: 12rpx;
+}
+
+.subtitle {
+  display: block;
+  color: #868C88;
+  font-size: 24rpx;
+}
+
+.section {
+  margin-bottom: 40rpx;
+}
+
+.section.important {
+  background: #F1EBDD;
+  border-left: 5rpx solid #C1A268;
+  padding: 24rpx 22rpx 12rpx;
+}
+
+.important-label {
+  color: #9A762F;
+  display: block;
+  font-size: 20rpx;
+  font-weight: 600;
+  letter-spacing: 2rpx;
+  margin-bottom: 8rpx;
+}
+
+.last {
+  margin-bottom: 0;
+}
+
+.section-title {
+  display: block;
+  color: #2A4B3C;
+  font-size: 30rpx;
+  font-weight: 600;
+  margin-bottom: 16rpx;
+}
+
+.body {
+  display: block;
+  color: #68716C;
+  font-size: 26rpx;
+  line-height: 1.8;
+  margin-bottom: 12rpx;
+}
+
+.body.contact {
+  color: #2A4B3C;
+  font-weight: 500;
+}
+
+.list {
+  margin: 8rpx 0;
+}
+
+.list-item {
+  display: flex;
+  margin-bottom: 8rpx;
+  padding-left: 8rpx;
+}
+
+.list-marker {
+  color: #C1A268;
+  font-size: 26rpx;
+  line-height: 1.8;
+  margin-right: 12rpx;
+  width: 28rpx;
+  flex-shrink: 0;
+}
+
+.list-text {
+  color: #68716C;
+  font-size: 26rpx;
+  line-height: 1.8;
+  flex: 1;
+}

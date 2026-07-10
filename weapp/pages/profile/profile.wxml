@@ -1,0 +1,58 @@
+<view class="app-page">
+  <view class="app-header">
+    <text class="app-eyebrow">YOUR PRACTICE</text>
+    <text class="app-title">我的</text>
+    <text class="app-subtitle">统计、会员和账号设置统一放在这里。</text>
+  </view>
+
+  <view wx:if="{{loading}}" class="app-card app-state">正在读取账号信息…</view>
+
+  <block wx:else>
+    <view wx:if="{{isLoggedIn}}" class="app-card profile-card">
+      <text class="profile-avatar">汤</text>
+      <view class="profile-copy">
+        <text class="app-card-label">SIGNED IN</text>
+        <text class="profile-email">{{userEmail}}</text>
+      </view>
+    </view>
+
+    <view wx:else class="app-card guest-profile-card">
+      <text class="profile-avatar guest-avatar">客</text>
+      <view class="profile-copy">
+        <text class="app-card-label">LOCAL MODE</text>
+        <text class="profile-email">游客模式</text>
+        <text class="guest-profile-copy">当前 {{guestRecordCount}} 条记录仅保存在这台设备</text>
+      </view>
+    </view>
+
+    <view class="stats-grid">
+      <view class="app-card stats-card">
+        <text class="stats-value">{{isLoggedIn ? '—' : guestRecordCount}}</text>
+        <text class="stats-label">练习天数</text>
+      </view>
+      <view class="app-card stats-card">
+        <text class="stats-value">—</text>
+        <text class="stats-label">累计时长</text>
+      </view>
+    </view>
+
+    <view wx:if="{{isLoggedIn}}" class="app-card">
+      <text class="app-card-label">MEMBERSHIP</text>
+      <text class="app-card-title">会员状态</text>
+      <text class="app-card-copy">下一步读取现有 Pro 状态和有效期。</text>
+    </view>
+
+    <button
+      wx:if="{{isLoggedIn}}"
+      class="app-secondary-button logout-button"
+      bindtap="logout"
+      loading="{{submitLoading}}"
+    >退出登录</button>
+
+    <button
+      wx:else
+      class="app-primary-button login-button"
+      bindtap="openLogin"
+    >登录或注册，开启云端备份</button>
+  </block>
+</view>

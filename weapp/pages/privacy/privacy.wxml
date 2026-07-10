@@ -1,0 +1,23 @@
+<view class="container">
+  <view class="header">
+    <text class="eyebrow">{{agreement.englishTitle}}</text>
+    <text class="title">{{agreement.title}}</text>
+    <text class="subtitle">更新日期：{{agreement.updatedAt}}</text>
+  </view>
+
+  <view class="section">
+    <block wx:for="{{agreement.intro}}" wx:key="*this">
+      <text class="body">{{item}}</text>
+    </block>
+  </view>
+
+  <block wx:for="{{agreement.sections}}" wx:key="title">
+    <view class="section {{item.important ? 'important' : ''}}">
+      <text wx:if="{{item.important}}" class="important-label">重要提示</text>
+      <text class="section-title">{{item.title}}</text>
+      <block wx:for="{{item.paragraphs}}" wx:for-item="paragraph" wx:key="*this">
+        <text class="body">{{paragraph}}</text>
+      </block>
+    </view>
+  </block>
+</view>

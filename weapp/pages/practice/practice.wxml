@@ -1,0 +1,177 @@
+<view wx:if="{{!isPracticing && !showCompletion}}" class="practice-page">
+  <view class="brand-header">
+    <image
+      class="brand-logo"
+      src="https://ash.ashtangalife.online/icon.png"
+      mode="aspectFill"
+    />
+    <view class="brand-copy">
+      <view class="brand-line">
+        <text class="brand-name">熬汤日记</text>
+        <text class="brand-soft">·呼吸</text>
+        <text class="brand-mid">·觉察</text>
+      </view>
+      <text class="brand-quote">Practice, practice, and all is coming.</text>
+    </view>
+  </view>
+
+  <text class="today-label">{{todayLabel}}</text>
+
+  <view wx:if="{{loading}}" class="practice-state">正在准备练习空间…</view>
+  <view wx:elif="{{error}}" class="practice-state error">
+    <text>{{error}}</text>
+    <button class="retry-button" bindtap="loadPage">重新加载</button>
+  </view>
+
+  <block wx:else>
+    <view class="options-grid">
+      <view
+        wx:for="{{practiceOptions}}"
+        wx:key="id"
+        class="option-card
+          {{selectedOptionId === item.id || (item.id === 'chant_switch' && chantEnabled) ? 'selected' : ''}}
+          {{item.isCustomButton ? 'custom' : ''}}"
+        data-option="{{item}}"
+        bindtap="onOptionTap"
+      >
+        <view class="option-label-row">
+          <text class="option-label {{item.isCount ? 'count' : ''}}">{{item.label}}</text>
+          <image
+            wx:if="{{item.hasAudio}}"
+            class="audio-icon"
+            src="{{selectedOptionId === item.id ? item.audioIconSelected : item.audioIcon}}"
+            mode="aspectFit"
+          />
+        </view>
+        <text wx:if="{{item.notes}}" class="option-notes">{{item.notes}}</text>
+      </view>
+    </view>
+
+    <text class="option-tip">单击选择 · 双击编辑</text>
+
+    <view class="start-area">
+      <view
+        class="start-button {{selectedOptionId ? 'ready' : ''}}"
+        bindtap="onStartPractice"
+      >
+        <image
+          class="start-icon"
+          src="{{selectedOptionId
+            ? 'https://ash.ashtangalife.online/icon-light.png'
+            : 'https://ash.ashtangalife.online/icon-green.png'}}"
+          mode="aspectFit"
+        />
+      </view>
+      <text class="start-label {{selectedOptionId ? 'ready' : ''}}">
+        {{selectedOptionId ? '开始练习' : '请选择练习类型'}}
+      </text>
+    </view>
+  </block>
+</view>
+
+<view wx:if="{{showCustomOption}}" class="practice-mask completion-mask" bindtap="closeCustomOption">
+  <view class="custom-option-sheet" catchtap="preventBubble">
+    <view class="sheet-handle"></view>
+    <text class="custom-option-title">添加练习类型</text>
+    <view class="completion-field">
+      <text class="completion-label">练习名称</text>
+      <input
+        class="completion-input"
+        value="{{customOptionLabel}}"
+        placeholder="例如：二序列"
+        maxlength="12"
+        data-field="customOptionLabel"
+        bindinput="onCustomOptionInput"
+      />
+    </view>
+    <view class="completion-field">
+      <text class="completion-label">简短说明</text>
+      <input
+        class="completion-input"
+        value="{{customOptionNotes}}"
+        placeholder="例如：Mysore"
+        maxlength="20"
+        data-field="customOptionNotes"
+        bindinput="onCustomOptionInput"
+      />
+    </view>
+    <view class="completion-field">
+      <text class="completion-label">日历颜色</text>
+      <view class="completion-colors">
+        <view
+          wx:for="{{colorLevels}}"
+          wx:key="*this"
+          class="completion-color green-gradient-{{item}} {{customOptionColorLevel === item ? 'active' : ''}}"
+          data-level="{{item}}"
+          bindtap="selectCustomOptionColor"
+        ></view>
+      </view>
+    </view>
+    <button
+      class="completion-save green-gradient"
+      bindtap="saveCustomOption"
+      loading="{{savingCustomOption}}"
+      disabled="{{savingCustomOption}}"
+    >保存练习类型</button>
+  </view>
+</view>
+
+<view wx:if="{{isPracticing}}" class="session-page">
+  <view class="session-main">
+    <view class="breath-ripple ripple-one {{isPaused ? 'paused' : ''}}"></view>
+    <view class="breath-ripple ripple-two {{isPaused ? 'paused' : ''}}"></view>
+    <view class="timer-ring {{isPaused ? 'paused' : ''}}">
+      <view class="timer-face">
+        <text class="timer-minutes">{{elapsedMinutesText}}</text>
+        <view class="timer-unit-row">
+          <text class="timer-unit">分</text>
+          <text wx:if="{{elapsedRemainderText !== '00'}}" class="timer-seconds">{{elapsedRemainderText}}秒</text>
+        </view>
+        <text class="session-label">{{activePractice.label}}</text>
+        <text wx:if="{{activePractice.notes}}" class="session-notes">{{activePractice.notes}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="session-controls">
+    <view class="session-secondary-button" bindtap="togglePause">
+      <view class="{{isPaused ? 'play-icon' : 'pause-icon'}}">
+        <view wx:if="{{!isPaused}}" class="pause-bar"></view>
+        <view wx:if="{{!isPaused}}" class="pause-bar"></view>
+      </view>
+      <text>{{isPaused ? '继续' : '暂停'}}</text>
+    </view>
+    <view class="session-end-button green-gradient" bindtap="requestEndPractice">结束</view>
+  </view>
+</view>
+
+<view wx:if="{{showEndConfirm}}" class="practice-mask" bindtap="cancelEndPractice">
+  <view class="end-dialog" catchtap="preventBubble">
+    <text class="end-dialog-title">结束这次练习？</text>
+    <text class="end-dialog-copy">你可以保存这次练习，或直接放弃本次记录。</text>
+    <view class="end-dialog-actions">
+      <view class="dialog-plain-button" bindtap="cancelEndPractice">继续练习</view>
+      <view class="dialog-save-button green-gradient" bindtap="confirmEndPractice">结束并保存</view>
+    </view>
+    <view class="discard-button" bindtap="discardPractice">放弃本次练习</view>
+  </view>
+</view>
+
+<view wx:if="{{showCompletion}}" class="practice-mask completion-mask">
+  <view class="completion-sheet">
+    <view class="sheet-handle"></view>
+    <text class="completion-title">练习完成</text>
+
+    <scroll-view class="completion-form-scroll" scroll-y>
+      <practice-record-form
+        form="{{completionForm}}"
+        options="{{practiceOptions}}"
+        records="{{formRecords}}"
+        show-delete="{{false}}"
+        save-text="保存练习"
+        bind:change="onCompletionFormChange"
+        bind:save="saveCompletion"
+      />
+    </scroll-view>
+  </view>
+</view>

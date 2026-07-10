@@ -1,0 +1,79 @@
+.profile-card {
+  align-items: center;
+  display: flex;
+}
+
+.guest-profile-card {
+  align-items: center;
+  display: flex;
+}
+
+.guest-avatar {
+  background: #C1A268;
+}
+
+.guest-profile-copy {
+  color: #868C88;
+  display: block;
+  font-size: 21rpx;
+  margin-top: 8rpx;
+}
+
+.profile-avatar {
+  align-items: center;
+  background: #2A4B3C;
+  color: #F9F7F2;
+  display: flex;
+  font-size: 30rpx;
+  height: 82rpx;
+  justify-content: center;
+  margin-right: 22rpx;
+  width: 82rpx;
+}
+
+.profile-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.profile-email {
+  color: #2A4B3C;
+  display: block;
+  font-size: 25rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stats-grid {
+  display: flex;
+  gap: 18rpx;
+}
+
+.stats-card {
+  flex: 1;
+  text-align: center;
+}
+
+.stats-value {
+  color: #2A4B3C;
+  display: block;
+  font-size: 38rpx;
+  font-weight: 600;
+}
+
+.stats-label {
+  color: #868C88;
+  display: block;
+  font-size: 21rpx;
+  margin-top: 8rpx;
+}
+
+.logout-button {
+  margin-top: 34rpx;
+}
+
+.login-button {
+  border-radius: 999rpx;
+  margin-top: 34rpx;
+}
