@@ -9,10 +9,10 @@
         <text class="navbar-slogan">Practice, practice, and all is coming.</text>
       </view>
     </view>
-    <button class="navbar-btn" bindtap="onStartPractice" disabled="{{isNavigating}}">
-      <text>开始练习</text>
+    <view class="navbar-btn {{isNavigating ? 'disabled' : ''}}" bindtap="onStartPractice" hover-class="navbar-btn-hover">
+      <text class="navbar-btn-text">开始练习</text>
       <image class="navbar-btn-icon {{isNavigating ? 'spinning' : ''}}" src="{{isNavigating ? icons.loader : icons.arrowRight}}" mode="aspectFit" />
-    </button>
+    </view>
   </view>
 
   <view class="hero-section">

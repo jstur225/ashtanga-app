@@ -85,7 +85,7 @@
   align-items: center;
   justify-content: center;
   gap: 4rpx;
-  padding: 10rpx 14rpx;
+  padding: 10rpx 16rpx;
   background: linear-gradient(135deg, #2A4B3C, #1a2f26);
   color: #C1A268;
   font-size: 20rpx;
@@ -96,21 +96,32 @@
   box-shadow: 0 6rpx 18rpx rgba(42, 75, 60, 0.18);
   height: auto;
   line-height: 1;
-  margin: 0;
   flex-shrink: 0;
-  min-width: 0;
-  width: auto;
-  box-sizing: border-box;
 }
 
-.navbar-btn[disabled] {
+.navbar-btn.disabled {
   opacity: 0.5;
+  pointer-events: none;
+}
+
+.navbar-btn-hover {
+  opacity: 0.8;
+}
+
+.navbar-btn-text {
+  font-size: 20rpx;
+  font-family: serif;
+  letter-spacing: 2rpx;
+  color: #C1A268;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .navbar-btn-icon {
-  width: 24rpx;
-  height: 24rpx;
+  width: 20rpx;
+  height: 20rpx;
   display: block;
+  flex-shrink: 0;
 }
 
 /* ========== 2. Hero ========== */

@@ -29,6 +29,7 @@ Page({
   },
 
   onStartPractice() {
+    if (this.data.isNavigating) return;
     wx.setStorageSync(STORAGE_KEY, true);
     this.setData({ isNavigating: true });
     wx.switchTab({
