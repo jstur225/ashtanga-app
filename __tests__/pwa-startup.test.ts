@@ -17,13 +17,29 @@ describe('PWA startup reliability', () => {
     ])
   })
 
-  it('service worker does not cache navigation HTML', () => {
+  it('falls back to a coherent cached app shell when navigation stalls', () => {
     const sw = fs.readFileSync(path.join(ROOT, 'public/sw.js'), 'utf-8')
 
-    expect(sw).not.toContain('Date.now()')
-    expect(sw).not.toMatch(/cache\.put\(event\.request/)
+    expect(sw).not.toMatch(/CACHE_NAME\s*=.*Date\.now\(\)/)
     expect(sw).toContain("request.mode === 'navigate'")
-    expect(sw).toContain('event.respondWith(fetch(request))')
+    expect(sw).toContain('networkFirstNavigation(request, event.clientId)')
+    expect(sw).toContain('NAVIGATION_TIMEOUT_MS = 4000')
+    expect(sw).toContain("url.pathname.startsWith('/_next/static/')")
+    expect(sw).toContain("cache.match(request, { ignoreSearch: true })")
+    expect(sw).toContain("'navigation_cache_fallback'")
+    expect(sw).toContain("'navigation_network_success'")
+    expect(sw).toContain("'next_static_cache_hit'")
+    expect(sw).toContain("'next_static_network_failed'")
+  })
+
+  it('uses document navigation from the landing page so the PWA fallback can recover', () => {
+    const landing = fs.readFileSync(path.join(ROOT, 'app/page.tsx'), 'utf-8')
+
+    expect(landing).toContain("window.location.replace('/practice')")
+    expect(landing).not.toContain("router.prefetch('/practice')")
+    expect(landing).not.toContain('useRouter')
+    expect(landing).toContain("'landing_auto_navigation'")
+    expect(landing).toContain("'landing_manual_navigation'")
   })
 
   it('service worker registration bypasses HTTP cache when checking sw.js', () => {
@@ -55,6 +71,7 @@ describe('PWA startup reliability', () => {
     expect(diagnostics).toContain("'runtime_error'")
     expect(diagnostics).toContain("'unhandled_rejection'")
     expect(diagnostics).toContain("'previous_session_incomplete'")
+    expect(diagnostics).toContain("message.source !== 'ashtanga-service-worker'")
     expect(ready).toContain('__ashtangaRuntimeReady')
   })
 })
