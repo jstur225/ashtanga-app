@@ -23,6 +23,14 @@ const runtimeDiagnosticsSource = `
   };
   window.__ashtangaRuntimeDiagnostic = append;
 
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', (event) => {
+      const message = event.data;
+      if (!message || message.source !== 'ashtanga-service-worker' || !message.type) return;
+      append(message.type, message.details || {});
+    });
+  }
+
   try {
     const previous = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null');
     if (previous && !previous.ready) {

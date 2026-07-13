@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 import { motion, Variants } from "framer-motion"
 import { ArrowRight, Timer, BookOpen, BarChart3, ChevronDown, Moon, Shield, Coffee, Leaf, Wind, Github, Loader2 } from "lucide-react"
 
@@ -21,21 +20,25 @@ const stagger: Variants = {
 }
 
 export default function MobileLandingPage() {
-    const router = useRouter()
     const [isNavigating, setIsNavigating] = useState(false)
 
     // 检查是否已经看过落地页
     useEffect(() => {
         const hasSeenLanding = localStorage.getItem('has_seen_landing')
         if (hasSeenLanding === 'true') {
-            router.replace('/practice')
+            window.__ashtangaRuntimeDiagnostic?.('landing_auto_navigation', {
+                destination: '/practice',
+            })
+            // 使用整页导航，让 Service Worker 可以在 Wi-Fi/CDN 卡顿时回退到最近成功页面。
+            window.location.replace('/practice')
         }
-        // 提前预加载练习页 JS chunk
-        router.prefetch('/practice')
-    }, [router])
+    }, [])
 
     const handleStartPractice = () => {
         localStorage.setItem('has_seen_landing', 'true')
+        window.__ashtangaRuntimeDiagnostic?.('landing_manual_navigation', {
+            destination: '/practice',
+        })
         setIsNavigating(true)
     }
 
@@ -71,7 +74,7 @@ export default function MobileLandingPage() {
                 </div>
 
                 {/* Top Right: Start Practice Button with Glassmorphism */}
-                <Link
+                <a
                     href="/practice"
                     onClick={handleStartPractice}
                     className={`flex items-center gap-2 px-3 py-1 bg-gradient-to-br from-[#2A4B3C] to-[#1a2f26] text-[#C1A268] rounded-full shadow-lg hover:shadow-[#C1A268]/20 border border-[#C1A268]/20 active:scale-95 transition-all duration-300 relative overflow-hidden group backdrop-blur-md ${isNavigating ? 'opacity-50 pointer-events-none' : ''}`}
@@ -83,7 +86,7 @@ export default function MobileLandingPage() {
                     ) : (
                         <ArrowRight className="w-3 h-3 relative z-10 group-hover:translate-x-0.5 transition-transform" />
                     )}
-                </Link>
+                </a>
             </nav>
 
             {/* 2. Hero Section */}
@@ -343,7 +346,7 @@ export default function MobileLandingPage() {
 
                 {/* 底部CTA按钮 */}
                 <div className="flex justify-center mt-8 mb-4">
-                    <Link
+                    <a
                         href="/practice"
                         onClick={handleStartPractice}
                         className={`group relative px-8 py-4 bg-gradient-to-br from-[#2A4B3C] to-[#1a2f26] text-[#C1A268] rounded-full shadow-xl hover:shadow-[#C1A268]/40 border-2 border-[#C1A268] active:scale-95 transition-all duration-300 overflow-hidden inline-block ${isNavigating ? 'opacity-50 pointer-events-none' : ''}`}
@@ -360,7 +363,7 @@ export default function MobileLandingPage() {
                                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
                             )}
                         </div>
-                    </Link>
+                    </a>
                 </div>
 
                 <motion.div
