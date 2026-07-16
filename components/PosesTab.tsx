@@ -50,8 +50,8 @@ export function PosesTab({ onDetailOpen, onDetailClose }: PosesTabProps) {
   }
 
   return (
-    <div className="flex h-full flex-col bg-[#F9F7F2]">
-      <div className="sticky top-0 z-10 border-b border-stone-100 bg-[#F9F7F2]/95 backdrop-blur-sm">
+    <div className="flex h-full flex-col bg-gradient-to-b from-[#faf8f5] to-white">
+      <div className="sticky top-0 z-10 border-b border-stone-100 bg-[#faf8f5]/95 backdrop-blur-sm">
         <div className="overflow-x-auto px-3 pt-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <div className="flex min-w-max gap-1.5 pb-2">
             {POSE_SECTIONS.map(section => (
@@ -98,7 +98,7 @@ export function PosesTab({ onDetailOpen, onDetailClose }: PosesTabProps) {
                 onClick={() => openPose(pose)}
                 className="group min-w-0 text-left active:scale-[0.98]"
               >
-                <div className="aspect-square w-full bg-[#F9F7F2]">
+                <div className="aspect-square w-full overflow-hidden rounded-xl bg-[#F9F7F2]">
                   <img
                     src={pose.thumbnail}
                     alt={pose.name}
