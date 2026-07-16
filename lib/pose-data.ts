@@ -25,7 +25,7 @@ export const POSE_SECTIONS: PoseSection[] = [
   { id: 'surya-b', name: '拜日 B' },
   { id: 'standing', name: '站立体式' },
   { id: 'seated', name: '坐立体式' },
-  { id: 'finishing', name: '收尾体式' },
+  { id: 'finishing', name: '结束体式' },
 ]
 
 const NAMES: Record<string, { zh: string; sanskrit: string; aliases: string[] }> = {

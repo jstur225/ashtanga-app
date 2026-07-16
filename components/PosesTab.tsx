@@ -50,8 +50,8 @@ export function PosesTab({ onDetailOpen, onDetailClose }: PosesTabProps) {
   }
 
   return (
-    <div className="flex h-full flex-col bg-gradient-to-b from-[#faf8f5] to-white">
-      <div className="sticky top-0 z-10 border-b border-stone-100 bg-[#faf8f5]/95 backdrop-blur-sm">
+    <div className="flex h-full flex-col bg-[#F9F7F2]">
+      <div className="sticky top-0 z-10 border-b border-stone-100 bg-[#F9F7F2]/95 backdrop-blur-sm">
         <div className="overflow-x-auto px-3 pt-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <div className="flex min-w-max gap-1.5 pb-2">
             {POSE_SECTIONS.map(section => (
@@ -98,7 +98,7 @@ export function PosesTab({ onDetailOpen, onDetailClose }: PosesTabProps) {
                 onClick={() => openPose(pose)}
                 className="group min-w-0 text-left active:scale-[0.98]"
               >
-                <div className="aspect-square w-full overflow-hidden rounded-xl border border-stone-100 bg-[#F9F7F2]">
+                <div className="aspect-square w-full bg-[#F9F7F2]">
                   <img
                     src={pose.thumbnail}
                     alt={pose.name}
@@ -157,14 +157,14 @@ export function PosesTab({ onDetailOpen, onDetailClose }: PosesTabProps) {
                 <p className="mt-6 text-xs font-serif text-stone-400">动作提示整理中</p>
               </div>
 
-              <div className="flex items-center justify-between border-t border-stone-100 bg-white px-6 py-5">
+              <div className="flex items-center justify-center gap-6 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] pt-2">
                 <button
                   type="button"
                   onClick={() => navigatePose('prev')}
-                  className="flex items-center gap-1.5 text-stone-500 active:scale-95"
+                  aria-label="上一个体式"
+                  className="flex h-11 w-11 items-center justify-center rounded-full bg-stone-100 text-stone-500 active:scale-95"
                 >
                   <ChevronLeft className="h-5 w-5" />
-                  <span className="text-sm font-serif">上一个</span>
                 </button>
                 <span className="text-xs font-serif text-stone-300">
                   {poseIndex + 1} / {visiblePoses.length}
@@ -172,9 +172,9 @@ export function PosesTab({ onDetailOpen, onDetailClose }: PosesTabProps) {
                 <button
                   type="button"
                   onClick={() => navigatePose('next')}
-                  className="flex items-center gap-1.5 text-stone-500 active:scale-95"
+                  aria-label="下一个体式"
+                  className="flex h-11 w-11 items-center justify-center rounded-full bg-stone-100 text-stone-500 active:scale-95"
                 >
-                  <span className="text-sm font-serif">下一个</span>
                   <ChevronRight className="h-5 w-5" />
                 </button>
               </div>
