@@ -98,7 +98,7 @@ export function PosesTab({ onDetailOpen, onDetailClose }: PosesTabProps) {
                 onClick={() => openPose(pose)}
                 className="group min-w-0 text-left active:scale-[0.98]"
               >
-                <div className="aspect-square w-full overflow-hidden rounded-xl border border-stone-100 bg-[#F9F7F2] shadow-sm transition-shadow group-hover:shadow-md">
+                <div className="aspect-square w-full overflow-hidden rounded-xl border border-stone-100 bg-[#F9F7F2]">
                   <img
                     src={pose.thumbnail}
                     alt={pose.name}
@@ -125,42 +125,36 @@ export function PosesTab({ onDetailOpen, onDetailClose }: PosesTabProps) {
             transition={{ duration: 0.2 }}
             className="fixed inset-0 z-50 flex flex-col bg-white"
           >
-            <div className="z-10 flex flex-shrink-0 items-center justify-between border-b border-stone-100 bg-white px-4 py-3">
-              <button
-                type="button"
-                onClick={closePose}
-                className="flex items-center gap-1.5 text-stone-500"
-              >
-                <ChevronLeft className="h-5 w-5" />
-                <span className="text-sm font-serif">返回</span>
-              </button>
-              <div className="min-w-0 flex-1 px-2 text-center">
-                <div className="truncate text-sm font-medium font-serif text-stone-800">
-                  {selectedPose.name}
-                </div>
-                <div className="truncate text-[10px] font-serif text-stone-400">
-                  {selectedPose.sanskrit}
-                </div>
-              </div>
-              <div className="w-[60px]" />
-            </div>
-
             <div className="flex-1 overflow-y-auto bg-gradient-to-b from-[#faf8f5] to-white">
-              <div className="mx-auto flex min-h-[60vh] w-full max-w-xl items-center justify-center p-3">
+              <div className="relative aspect-square w-full bg-[#F9F7F2]">
                 {!imagesLoaded[selectedPose.id] && (
-                  <div className="aspect-square w-full animate-pulse rounded-2xl bg-stone-100" />
+                  <div className="absolute inset-0 animate-pulse bg-stone-100" />
                 )}
                 <img
                   src={selectedPose.image}
                   alt={selectedPose.name}
-                  className={`aspect-square w-full rounded-2xl object-contain ${imagesLoaded[selectedPose.id] ? '' : 'hidden'}`}
+                  className={`block h-full w-full object-cover ${imagesLoaded[selectedPose.id] ? '' : 'invisible'}`}
                   onLoad={() => setImagesLoaded(previous => ({ ...previous, [selectedPose.id]: true }))}
                   decoding="async"
                 />
+                <button
+                  type="button"
+                  onClick={closePose}
+                  aria-label="返回体式库"
+                  className="absolute left-3 top-[calc(env(safe-area-inset-top)+0.75rem)] z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/85 text-stone-600 shadow-sm backdrop-blur-md active:scale-95"
+                >
+                  <ChevronLeft className="h-6 w-6" />
+                </button>
               </div>
 
-              <div className="mx-auto max-w-xl px-6 pb-8 text-center">
-                <p className="text-xs font-serif text-stone-400">动作提示整理中</p>
+              <div className="px-6 pb-8 pt-5">
+                <h2 className="text-xl font-medium font-serif text-stone-800">
+                  {selectedPose.name}
+                </h2>
+                <p className="mt-1 text-sm font-serif text-stone-400">
+                  {selectedPose.sanskrit}
+                </p>
+                <p className="mt-6 text-xs font-serif text-stone-400">动作提示整理中</p>
               </div>
 
               <div className="flex items-center justify-between border-t border-stone-100 bg-white px-6 py-5">
