@@ -3,6 +3,7 @@
 import { motion } from "framer-motion"
 import { Lock, Volume } from "lucide-react"
 import type { PracticeOption } from "@/hooks/usePracticeData"
+import { MOON_DAYS_2026 } from "@/lib/moon-phase-data"
 
 interface PracticeDashboardProps {
   practiceOptions: PracticeOption[]
@@ -21,6 +22,13 @@ export function PracticeDashboard({
   onOptionTap,
   onStartPractice,
 }: PracticeDashboardProps) {
+  const weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六']
+  const now = new Date()
+  const dateKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  const moonDay = MOON_DAYS_2026.find(m => m.date === dateKey)
+  const moonLabel = moonDay ? ` · ${moonDay.type === 'new' ? '新月' : '满月'}` : ''
+  const dateStr = `${now.getMonth() + 1} 月 ${now.getDate()} 日 · ${weekdays[now.getDay()]}${moonLabel}`
+
   return (
     <main className="flex-1 px-6 flex flex-col pb-32 overflow-y-auto">
       <header className="pt-12 pb-4 flex items-center justify-center">
@@ -38,6 +46,10 @@ export function PracticeDashboard({
           </div>
         </div>
       </header>
+
+      <p className="text-center text-xs text-muted-foreground font-serif mb-2">
+        {dateStr}
+      </p>
 
       <div className="grid grid-cols-3 gap-2 p-4">
         {practiceOptions.map((option) => {
