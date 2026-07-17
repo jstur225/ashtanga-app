@@ -3,6 +3,7 @@ import fs from "node:fs"
 import path from "node:path"
 import type { PracticeOption, PracticeRecord, UserProfile } from "@/hooks/usePracticeData"
 import {
+  collectPhotoHealthDiagnostics,
   collectPracticeDebugLog,
   summarizePracticeData,
   summarizeSyncLogs,
@@ -153,13 +154,62 @@ describe("practice debug log summaries", () => {
       chantDelaySeconds: 60,
     })
 
-    expect(result._meta).toMatchObject({ version: "2.5", description: "熬汤日记调试日志 - 用于问题排查" })
+    expect(result._meta).toMatchObject({ version: "2.6", description: "熬汤日记调试日志 - 用于问题排查" })
     expect(result.supabaseConnection).toMatchObject({ testStatus: "success", error: null })
     expect(result.membershipLogs).toMatchObject({ hasSession: false, note: "用户未登录，无法查询后端会员状态" })
     expect(result.photoLogs).toMatchObject({ summary: { total: 1, errors: 0 } })
+    expect(result.photoHealth).toMatchObject({
+      summary: { primaryDiagnosis: "NO_RECENT_PHOTOS", checked: 0 },
+      objects: [],
+    })
     expect(result.syncLogs.summary).toMatchObject({ total: 1, uploadCount: 1 })
     expect(result.currentAppState).toMatchObject({ isPracticing: true })
     expect(() => JSON.stringify(result)).not.toThrow()
+  })
+
+  it("照片健康检查直接识别 0 字节、丢失对象和加载失败", async () => {
+    const zeroByteUrl = "https://photos.example.com/zero.jpg"
+    const missingUrl = "https://photos.example.com/missing.jpg"
+    const loadFailedUrl = "https://photos.example.com/load-failed.jpg"
+    localStorage.setItem("ashtanga_runtime_diagnostics", JSON.stringify([
+      { type: "resource_error", details: { tagName: "IMG", url: loadFailedUrl } },
+    ]))
+
+    const fetcher = vi.fn(async (input: RequestInfo | URL, _init?: RequestInit) => {
+      const url = String(input)
+      if (url === zeroByteUrl) {
+        return new Response(null, {
+          status: 200,
+          headers: { "content-length": "0", "content-type": "image/jpeg" },
+        })
+      }
+      if (url === missingUrl) {
+        return new Response(null, { status: 404 })
+      }
+      return new Response(null, {
+        status: 200,
+        headers: { "content-length": "2048", "content-type": "image/jpeg" },
+      })
+    })
+
+    const result = await collectPhotoHealthDiagnostics([
+      record({ photos: [zeroByteUrl, missingUrl, loadFailedUrl] }),
+    ], fetcher)
+
+    expect(result.summary).toMatchObject({
+      primaryDiagnosis: "OSS_ZERO_BYTE_OBJECT",
+      checked: 3,
+      zeroByte: 1,
+      missing: 1,
+      loadFailedWithHealthyObject: 1,
+    })
+    expect(result.objects.map((item) => item.diagnosis)).toEqual([
+      "OSS_ZERO_BYTE_OBJECT",
+      "OSS_OBJECT_MISSING",
+      "IMAGE_LOAD_FAILED_WITH_HEALTHY_OBJECT",
+    ])
+    expect(fetcher).toHaveBeenCalledTimes(3)
+    expect(fetcher.mock.calls[0][1]).toMatchObject({ method: "HEAD", cache: "no-store" })
   })
 
   it("单项诊断超时后返回降级结果，不阻塞日志导出", async () => {

@@ -99,9 +99,11 @@ describe('validatePhotoFile', () => {
     expect(result.error).toContain('照片超过 5MB')
   })
 
-  it('0-byte image file passes (no size check issue)', () => {
+  it('0-byte image file is rejected before upload', () => {
     const file = makeFile('empty.jpg', 'image/jpeg', 0)
-    expect(validatePhotoFile(file).valid).toBe(true)
+    const result = validatePhotoFile(file)
+    expect(result.valid).toBe(false)
+    expect(result.error).toContain('照片文件为空')
   })
 })
 
@@ -114,6 +116,9 @@ describe('ERROR_MESSAGES', () => {
       'EMAIL_REQUIRED',
       'UPLOAD_FAILED_403',
       'UPLOAD_FAILED_400',
+      'UPLOAD_SOURCE_READ_FAILED',
+      'UPLOAD_INTEGRITY_FAILED',
+      'OSS_OBJECT_SIZE_MISMATCH',
       'NETWORK_ERROR',
       'UNKNOWN_ERROR',
     ]

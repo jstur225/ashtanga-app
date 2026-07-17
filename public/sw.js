@@ -55,8 +55,12 @@ self.addEventListener('fetch', (event) => {
   const { request } = event
   const url = new URL(request.url)
 
+  // 跨域 OSS 资源直接交给浏览器，避免 Service Worker 参与图片 PUT 请求体转发。
+  if (url.origin !== self.location.origin) {
+    return
+  }
+
   if (request.method !== 'GET') {
-    event.respondWith(fetch(request))
     return
   }
 
