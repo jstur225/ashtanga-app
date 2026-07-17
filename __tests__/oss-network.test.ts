@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   savePhotoMetadata,
   getPresignedUrl,
+  materializePhotoFile,
   uploadToOSS,
 } from '@/lib/oss'
 
@@ -97,6 +98,7 @@ describe('savePhotoMetadata', () => {
 
   it('returns photo on success', async () => {
     mockFetch.mockResolvedValueOnce({
+      status: 201,
       json: async () => ({
         success: true,
         data: { id: 'photo-1', oss_url: validData.oss_url },
@@ -107,10 +109,12 @@ describe('savePhotoMetadata', () => {
 
     expect(result.success).toBe(true)
     expect(result.photo?.id).toBe('photo-1')
+    expect(result.diagnostics.httpStatus).toBe(201)
   })
 
   it('returns error on API failure', async () => {
     mockFetch.mockResolvedValueOnce({
+      status: 429,
       json: async () => ({ success: false, error: 'RECORD_PHOTO_LIMIT_EXCEEDED' }),
     })
 
@@ -118,6 +122,10 @@ describe('savePhotoMetadata', () => {
 
     expect(result.success).toBe(false)
     expect(result.error).toBe('RECORD_PHOTO_LIMIT_EXCEEDED')
+    expect(result.diagnostics).toMatchObject({
+      httpStatus: 429,
+      serverError: 'RECORD_PHOTO_LIMIT_EXCEEDED',
+    })
   })
 
   it('returns NETWORK_ERROR on fetch exception', async () => {
@@ -148,15 +156,79 @@ describe('uploadToOSS', () => {
   })
 
   it('returns success on 200 response', async () => {
-    mockFetch.mockResolvedValueOnce(mockResponse({ ok: true }))
+    mockFetch
+      .mockResolvedValueOnce(mockResponse({
+        ok: true,
+        headers: new Headers({ 'x-oss-request-id': 'req-1' }),
+      }))
+      .mockResolvedValueOnce(mockResponse({
+        ok: true,
+        headers: new Headers({ 'content-length': '4' }),
+      }))
 
     const result = await uploadToOSS(
       new File(['test'], 'test.jpg', { type: 'image/jpeg' }),
       'https://oss.example.com/upload/test.jpg',
       'image/jpeg',
+      'https://oss.example.com/test.jpg',
     )
 
     expect(result.success).toBe(true)
+    expect(result.diagnostics).toMatchObject({
+      putStatus: 200,
+      requestId: 'req-1',
+      expectedSize: 4,
+      actualSize: 4,
+      verificationStatus: 200,
+    })
+    expect(mockFetch).toHaveBeenCalledTimes(2)
+    expect(mockFetch.mock.calls[1][0]).toBe('https://oss.example.com/test.jpg')
+    expect(mockFetch.mock.calls[1][1]).toMatchObject({ method: 'HEAD', cache: 'no-store' })
+  })
+
+  it('rejects a zero-byte OSS object even when PUT returned 200', async () => {
+    mockFetch
+      .mockResolvedValueOnce(mockResponse({ ok: true }))
+      .mockResolvedValueOnce(mockResponse({
+        ok: true,
+        headers: new Headers({ 'content-length': '0' }),
+      }))
+
+    const result = await uploadToOSS(
+      new File(['test'], 'test.jpg', { type: 'image/jpeg' }),
+      'https://oss.example.com/upload/test.jpg',
+      'image/jpeg',
+      'https://oss.example.com/test.jpg',
+    )
+
+    expect(result.success).toBe(false)
+    expect(result.error).toBe('UPLOAD_INTEGRITY_FAILED')
+    expect(result.diagnostics).toMatchObject({
+      putStatus: 200,
+      expectedSize: 4,
+      actualSize: 0,
+      verificationReason: 'SIZE_MISMATCH',
+      verificationStatus: 200,
+    })
+  })
+
+  it('rejects an OSS object whose size differs from the selected file', async () => {
+    mockFetch
+      .mockResolvedValueOnce(mockResponse({ ok: true }))
+      .mockResolvedValueOnce(mockResponse({
+        ok: true,
+        headers: new Headers({ 'content-length': '3' }),
+      }))
+
+    const result = await uploadToOSS(
+      new File(['test'], 'test.jpg', { type: 'image/jpeg' }),
+      'https://oss.example.com/upload/test.jpg',
+      'image/jpeg',
+      'https://oss.example.com/test.jpg',
+    )
+
+    expect(result.success).toBe(false)
+    expect(result.error).toBe('UPLOAD_INTEGRITY_FAILED')
   })
 
   it('returns UPLOAD_FAILED_403 on 403 response', async () => {
@@ -171,6 +243,7 @@ describe('uploadToOSS', () => {
       new File(['test'], 'test.jpg', { type: 'image/jpeg' }),
       'https://oss.example.com/upload/test.jpg',
       'image/jpeg',
+      'https://oss.example.com/test.jpg',
     )
 
     expect(result.success).toBe(false)
@@ -189,6 +262,7 @@ describe('uploadToOSS', () => {
       new File(['test'], 'test.jpg', { type: 'image/jpeg' }),
       'https://oss.example.com/upload/test.jpg',
       'image/jpeg',
+      'https://oss.example.com/test.jpg',
     )
 
     expect(result.success).toBe(false)
@@ -202,9 +276,28 @@ describe('uploadToOSS', () => {
       new File(['test'], 'test.jpg', { type: 'image/jpeg' }),
       'https://oss.example.com/upload/test.jpg',
       'image/jpeg',
+      'https://oss.example.com/test.jpg',
     )
 
     expect(result.success).toBe(false)
     expect(result.error).toBe('NETWORK_ERROR')
+  })
+})
+
+describe('materializePhotoFile', () => {
+  it('copies the selected file bytes into a stable File', async () => {
+    const source = new File(['photo-bytes'], 'photo.jpg', {
+      type: 'image/jpeg',
+      lastModified: 123,
+    })
+
+    const stable = await materializePhotoFile(source)
+
+    expect(stable).not.toBe(source)
+    expect(stable.name).toBe(source.name)
+    expect(stable.type).toBe(source.type)
+    expect(stable.size).toBe(source.size)
+    expect(stable.lastModified).toBe(source.lastModified)
+    expect(await stable.text()).toBe('photo-bytes')
   })
 })

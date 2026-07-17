@@ -5,6 +5,7 @@
 
 import { supabase, type Photo } from './supabase'
 import { addPhotoLog } from './photo-logger'
+import { verifyOssObjectSize } from './oss-integrity'
 
 const OSS_BUCKET = process.env.NEXT_PUBLIC_OSS_BUCKET || ''
 const OSS_ENDPOINT = process.env.NEXT_PUBLIC_OSS_ENDPOINT || ''
@@ -24,12 +25,27 @@ export function formatFileSizeMB(bytes: number) {
   return (bytes / (1024 * 1024)).toFixed(2)
 }
 
+export async function materializePhotoFile(file: File): Promise<File> {
+  const bytes = await file.arrayBuffer()
+  if (bytes.byteLength <= 0 || bytes.byteLength !== file.size) {
+    throw new Error(`FILE_SIZE_MISMATCH:${file.size}:${bytes.byteLength}`)
+  }
+
+  return new File([bytes], file.name, {
+    type: file.type,
+    lastModified: file.lastModified,
+  })
+}
+
 export const ERROR_MESSAGES: Record<string, string> = {
   'RECORD_PHOTO_LIMIT_EXCEEDED': '当前版本只能上传1张照片',
   'NOT_AUTHENTICATED': '请先登录后上传照片',
   'EMAIL_REQUIRED': '绑定邮箱后可使用照片功能',
   'UPLOAD_FAILED_403': '上传失败，请重试',
   'UPLOAD_FAILED_400': '上传失败，请检查文件',
+  'UPLOAD_SOURCE_READ_FAILED': '照片读取失败，请重新选择后上传',
+  'UPLOAD_INTEGRITY_FAILED': '照片上传不完整，请重新上传',
+  'OSS_OBJECT_SIZE_MISMATCH': '照片上传不完整，请重新上传',
   'NETWORK_ERROR': '网络错误，请重试',
   'UNKNOWN_ERROR': '上传失败，请重试',
 }
@@ -44,6 +60,21 @@ export interface PresignedUrlResponse {
     expiresAt: number
   }
   error?: string
+}
+
+export interface OssUploadDiagnostics {
+  putStatus: number | null
+  putDurationMs: number
+  requestId: string | null
+  expectedSize: number
+  actualSize: number | null
+  verificationReason?: string
+  verificationStatus?: number
+}
+
+export interface PhotoMetadataDiagnostics {
+  httpStatus: number | null
+  serverError?: string
 }
 
 // 使用 supabase.ts 中定义的 Photo 类型
@@ -91,8 +122,23 @@ export async function getPresignedUrl(fileName: string, mimeType: string): Promi
 export async function uploadToOSS(
   file: File,
   presignedUrl: string,
-  mimeType: string
-): Promise<{ success: boolean; error?: string; details?: string }> {
+  mimeType: string,
+  ossUrl: string
+): Promise<{
+  success: boolean
+  error?: string
+  details?: string
+  diagnostics: OssUploadDiagnostics
+}> {
+  const putStartedAt = Date.now()
+  const diagnostics: OssUploadDiagnostics = {
+    putStatus: null,
+    putDurationMs: 0,
+    requestId: null,
+    expectedSize: file.size,
+    actualSize: null,
+  }
+
   try {
     console.log('[OSS Upload] 开始上传:', { fileName: file.name, mimeType, size: file.size })
     console.log('[OSS Upload] Presigned URL:', presignedUrl.slice(0, 80) + '...')
@@ -105,6 +151,10 @@ export async function uploadToOSS(
       },
     })
 
+    diagnostics.putStatus = response.status
+    diagnostics.putDurationMs = Date.now() - putStartedAt
+    diagnostics.requestId = response.headers.get('x-oss-request-id')
+
     console.log('[OSS Upload] 响应状态:', response.status, response.statusText)
     console.log('[OSS Upload] 响应头:', Object.fromEntries(response.headers.entries()))
 
@@ -116,16 +166,45 @@ export async function uploadToOSS(
         success: false,
         error: `UPLOAD_FAILED_${response.status}`,
         details: errorText,
+        diagnostics,
       }
     }
 
-    return { success: true }
+    const verification = await verifyOssObjectSize(ossUrl, file.size)
+    diagnostics.actualSize = verification.actualSize
+    diagnostics.verificationReason = verification.reason
+    diagnostics.verificationStatus = verification.status
+      ?? (verification.reason === 'HEAD_REQUEST_FAILED' ? undefined : 200)
+    if (!verification.valid) {
+      console.error('[OSS Upload] 对象完整性校验失败:', {
+        fileName: file.name,
+        expectedSize: file.size,
+        actualSize: verification.actualSize,
+        reason: verification.reason,
+        status: verification.status,
+      })
+      return {
+        success: false,
+        error: 'UPLOAD_INTEGRITY_FAILED',
+        details: JSON.stringify({
+          expectedSize: file.size,
+          actualSize: verification.actualSize,
+          reason: verification.reason,
+          status: verification.status,
+        }),
+        diagnostics,
+      }
+    }
+
+    return { success: true, diagnostics }
   } catch (error) {
+    diagnostics.putDurationMs = Date.now() - putStartedAt
     console.error('[OSS Upload] 请求异常:', error)
     return {
       success: false,
       error: 'NETWORK_ERROR',
       details: String(error),
+      diagnostics,
     }
   }
 }
@@ -139,12 +218,24 @@ export async function uploadPhoto(
   options: { isPro?: boolean } = {}
 ): Promise<{ success: boolean; photo?: Photo; error?: string }> {
   const startTime = Date.now()
+  const attemptId = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).substring(2, 10)}`
   const logDetails = {
+    attemptId,
     recordId,
     fileName: file.name,
     fileSize: file.size,
     mimeType: file.type,
   }
+
+  addPhotoLog({
+    action: 'upload_start',
+    stage: 'selected',
+    outcome: 'started',
+    ...logDetails,
+    expectedSize: file.size,
+  })
 
   try {
     // 1. 验证文件
@@ -152,6 +243,8 @@ export async function uploadPhoto(
     if (!validation.valid) {
       addPhotoLog({
         action: 'upload_error',
+        stage: 'selected',
+        outcome: 'error',
         ...logDetails,
         error: validation.error,
         errorCode: 'VALIDATION_FAILED',
@@ -160,16 +253,48 @@ export async function uploadPhoto(
       return { success: false, error: validation.error }
     }
 
+    // iOS WebKit 偶尔会在多步异步之后丢失 input File 的底层句柄。
+    // 上传前先把字节读入一个新的 File，避免 PUT 实际发送 0 字节。
+    let stableFile: File
+    try {
+      stableFile = await materializePhotoFile(file)
+    } catch (error) {
+      addPhotoLog({
+        action: 'upload_error',
+        stage: 'materialized',
+        outcome: 'error',
+        ...logDetails,
+        expectedSize: file.size,
+        actualSize: null,
+        error: String(error),
+        errorCode: 'UPLOAD_SOURCE_READ_FAILED',
+        duration: Date.now() - startTime,
+      })
+      return { success: false, error: 'UPLOAD_SOURCE_READ_FAILED' }
+    }
+
+    addPhotoLog({
+      action: 'upload_stage',
+      stage: 'materialized',
+      outcome: 'success',
+      ...logDetails,
+      expectedSize: file.size,
+      actualSize: stableFile.size,
+      duration: Date.now() - startTime,
+    })
+
     // 2. 获取预签名 URL
-    const fileExt = file.name.split('.').pop() || 'jpg'
+    const fileExt = stableFile.name.split('.').pop() || 'jpg'
     const timestamp = Date.now()
     const random = Math.random().toString(36).substring(2, 8)
     const fileName = `${timestamp}-${random}.${fileExt}`
 
-    const presignedResult = await getPresignedUrl(fileName, file.type)
+    const presignedResult = await getPresignedUrl(fileName, stableFile.type)
     if (!presignedResult.success) {
       addPhotoLog({
         action: 'upload_error',
+        stage: 'presigned',
+        outcome: 'error',
         ...logDetails,
         error: presignedResult.error,
         errorCode: 'PRESIGNED_URL_FAILED',
@@ -179,19 +304,77 @@ export async function uploadPhoto(
     }
 
     const { presignedUrl, ossKey, ossUrl, mimeType } = presignedResult.data!
+    const objectKeySuffix = ossKey.split('/').slice(-2).join('/')
+    addPhotoLog({
+      action: 'upload_stage',
+      stage: 'presigned',
+      outcome: 'success',
+      ...logDetails,
+      expectedSize: stableFile.size,
+      details: { objectKeySuffix, signedMimeType: mimeType },
+      duration: Date.now() - startTime,
+    })
     console.log('[uploadPhoto] 后端返回的 MIME 类型:', mimeType)
-    console.log('[uploadPhoto] 前端文件的 MIME 类型:', file.type)
+    console.log('[uploadPhoto] 前端文件的 MIME 类型:', stableFile.type)
 
     // 3. 上传到 OSS（使用后端返回的 MIME 类型确保签名匹配）
-    const uploadResult = await uploadToOSS(file, presignedUrl, mimeType)
+    const uploadResult = await uploadToOSS(stableFile, presignedUrl, mimeType, ossUrl)
+    const putSucceeded = uploadResult.diagnostics.putStatus !== null
+      && uploadResult.diagnostics.putStatus >= 200
+      && uploadResult.diagnostics.putStatus < 300
+
+    addPhotoLog({
+      action: 'upload_stage',
+      stage: 'oss_put',
+      outcome: putSucceeded ? 'success' : 'error',
+      ...logDetails,
+      expectedSize: stableFile.size,
+      httpStatus: uploadResult.diagnostics.putStatus,
+      requestId: uploadResult.diagnostics.requestId,
+      errorCode: putSucceeded ? undefined : uploadResult.error,
+      duration: uploadResult.diagnostics.putDurationMs,
+    })
+
+    if (putSucceeded) {
+      addPhotoLog({
+        action: 'upload_stage',
+        stage: 'oss_verify',
+        outcome: uploadResult.success ? 'success' : 'error',
+        ...logDetails,
+        expectedSize: uploadResult.diagnostics.expectedSize,
+        actualSize: uploadResult.diagnostics.actualSize,
+        httpStatus: uploadResult.diagnostics.verificationStatus ?? null,
+        diagnosisCode: uploadResult.success ? 'OSS_OBJECT_SIZE_VERIFIED' : 'OSS_OBJECT_SIZE_MISMATCH',
+        errorCode: uploadResult.success ? undefined : uploadResult.error,
+        details: {
+          verificationReason: uploadResult.diagnostics.verificationReason,
+          objectKeySuffix,
+        },
+        duration: Date.now() - startTime,
+      })
+    }
+
     if (!uploadResult.success) {
       console.error('[uploadPhoto] 上传失败:', uploadResult.error, uploadResult.details)
       addPhotoLog({
         action: 'upload_error',
+        stage: putSucceeded ? 'oss_verify' : 'oss_put',
+        outcome: 'error',
         ...logDetails,
+        expectedSize: uploadResult.diagnostics.expectedSize,
+        actualSize: uploadResult.diagnostics.actualSize,
+        httpStatus: putSucceeded
+          ? uploadResult.diagnostics.verificationStatus ?? null
+          : uploadResult.diagnostics.putStatus,
+        requestId: uploadResult.diagnostics.requestId,
+        diagnosisCode: putSucceeded ? 'OSS_OBJECT_SIZE_MISMATCH' : 'OSS_PUT_FAILED',
         error: uploadResult.error,
         errorCode: uploadResult.error,
-        details: { ossErrorDetails: uploadResult.details },
+        details: {
+          ossErrorDetails: uploadResult.details,
+          verificationReason: uploadResult.diagnostics.verificationReason,
+          objectKeySuffix,
+        },
         duration: Date.now() - startTime,
       })
       return { success: false, error: uploadResult.error }
@@ -202,26 +385,57 @@ export async function uploadPhoto(
       practice_record_id: recordId,
       oss_url: ossUrl,
       oss_key: ossKey,
-      file_size: file.size,
-      mime_type: file.type,
+      file_size: stableFile.size,
+      mime_type: stableFile.type,
     })
 
     if (!metadataResult.success) {
       addPhotoLog({
         action: 'upload_error',
+        stage: 'metadata',
+        outcome: 'error',
         ...logDetails,
+        expectedSize: stableFile.size,
+        actualSize: uploadResult.diagnostics.actualSize,
+        httpStatus: metadataResult.diagnostics.httpStatus,
+        diagnosisCode: metadataResult.error === 'OSS_OBJECT_SIZE_MISMATCH'
+          ? 'SERVER_OSS_OBJECT_SIZE_MISMATCH'
+          : 'METADATA_SAVE_FAILED',
         error: metadataResult.error,
         errorCode: 'METADATA_SAVE_FAILED',
+        details: {
+          serverError: metadataResult.diagnostics.serverError,
+          objectKeySuffix,
+        },
         duration: Date.now() - startTime,
       })
       return { success: false, error: metadataResult.error }
     }
 
+    addPhotoLog({
+      action: 'upload_stage',
+      stage: 'metadata',
+      outcome: 'success',
+      ...logDetails,
+      expectedSize: stableFile.size,
+      actualSize: uploadResult.diagnostics.actualSize,
+      httpStatus: metadataResult.diagnostics.httpStatus,
+      details: { objectKeySuffix },
+      duration: Date.now() - startTime,
+    })
+
     // 记录成功日志
     addPhotoLog({
       action: 'upload_success',
+      stage: 'metadata',
+      outcome: 'success',
       ...logDetails,
       photoId: metadataResult.photo?.id,
+      expectedSize: stableFile.size,
+      actualSize: uploadResult.diagnostics.actualSize,
+      httpStatus: metadataResult.diagnostics.httpStatus,
+      diagnosisCode: 'UPLOAD_VERIFIED',
+      details: { objectKeySuffix },
       duration: Date.now() - startTime,
     })
 
@@ -233,6 +447,7 @@ export async function uploadPhoto(
     console.error('[OSS] 上传流程失败:', error)
     addPhotoLog({
       action: 'upload_error',
+      outcome: 'error',
       ...logDetails,
       error: String(error),
       errorCode: 'UNKNOWN_ERROR',
@@ -254,7 +469,12 @@ export async function savePhotoMetadata(data: {
   oss_key: string
   file_size: number
   mime_type: string
-}): Promise<{ success: boolean; photo?: Photo; error?: string }> {
+}): Promise<{
+  success: boolean
+  photo?: Photo
+  error?: string
+  diagnostics: PhotoMetadataDiagnostics
+}> {
   try {
     const headers = await getAuthHeaders()
     const response = await fetch('/api/photos', {
@@ -264,16 +484,28 @@ export async function savePhotoMetadata(data: {
     })
 
     const result = await response.json()
+    const diagnostics: PhotoMetadataDiagnostics = {
+      httpStatus: response.status ?? null,
+      serverError: result.error,
+    }
     // API 返回 { success: true, data: photo }
     if (result.success && result.data) {
-      return { success: true, photo: result.data }
+      return { success: true, photo: result.data, diagnostics }
     }
-    return result
+    return {
+      success: false,
+      error: result.error || `HTTP_${response.status}`,
+      diagnostics,
+    }
   } catch (error) {
     console.error('[OSS] 保存元数据失败:', error)
     return {
       success: false,
       error: 'NETWORK_ERROR',
+      diagnostics: {
+        httpStatus: null,
+        serverError: String(error),
+      },
     }
   }
 }
@@ -480,6 +712,11 @@ export function validatePhotoFile(
   if (!file.type.startsWith('image/')) {
     console.error('[validatePhotoFile] ❌ 不是图片')
     return { valid: false, error: '只能上传图片文件（jpg, png, webp等）' }
+  }
+
+  if (file.size <= 0) {
+    console.error('[validatePhotoFile] ❌ 文件为空')
+    return { valid: false, error: '照片文件为空，请重新选择' }
   }
 
   // 检查文件大小

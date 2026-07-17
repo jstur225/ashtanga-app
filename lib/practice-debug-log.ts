@@ -55,6 +55,7 @@ export async function collectPracticeDebugLog(input: PracticeDebugLogInput) {
     connection,
     serviceWorkerStatus,
     photoLogs,
+    photoHealth,
     membershipLogs,
     colorSyncDiag,
   ] = await Promise.all([
@@ -71,6 +72,19 @@ export async function collectPracticeDebugLog(input: PracticeDebugLogInput) {
       error: '照片日志收集超过 5 秒',
       details: 'timeout',
     }),
+    withDiagnosticTimeout('照片健康检查', collectPhotoHealthDiagnostics(input.practiceHistory), {
+      summary: {
+        primaryDiagnosis: 'PHOTO_HEALTH_CHECK_TIMEOUT',
+        checked: 0,
+        healthy: 0,
+        zeroByte: 0,
+        missing: 0,
+        accessDenied: 0,
+        loadFailedWithHealthyObject: 0,
+        otherErrors: 0,
+      },
+      objects: [],
+    }, 10000),
     withDiagnosticTimeout('会员日志', collectMembershipLogs(input), {
       error: '会员日志收集超过 5 秒',
     }),
@@ -81,7 +95,7 @@ export async function collectPracticeDebugLog(input: PracticeDebugLogInput) {
 
   return {
     _meta: {
-      version: '2.5',
+      version: '2.6',
       exportTime: new Date().toISOString(),
       description: '熬汤日记调试日志 - 用于问题排查',
       gitVersion: getVersionInfo(),
@@ -131,6 +145,7 @@ export async function collectPracticeDebugLog(input: PracticeDebugLogInput) {
     currentAppState: collectCurrentAppState(input),
     syncLogs: collectSyncLogs(),
     photoLogs,
+    photoHealth,
     membershipLogs,
     colorSyncDiag,
   }
@@ -423,10 +438,233 @@ async function collectPhotoLogs() {
     const { getPhotoLogs, getPhotoErrorLogs } = await import('@/lib/photo-logger')
     const all = getPhotoLogs()
     const errors = getPhotoErrorLogs()
-    return { all: all.slice(0, 50), errors: errors.slice(0, 20), summary: { total: all.length, errors: errors.length } }
+    const uploadErrors = all.filter((log) => log.action === 'upload_error')
+    const uploadSuccesses = all.filter((log) => log.action === 'upload_success')
+    const uploadAttempts = new Set(all.map((log) => log.attemptId).filter(Boolean))
+    const errorsByCode = uploadErrors.reduce<Record<string, number>>((summary, log) => {
+      const code = log.diagnosisCode || log.errorCode || 'UNKNOWN_UPLOAD_ERROR'
+      summary[code] = (summary[code] || 0) + 1
+      return summary
+    }, {})
+    const stageErrors = all
+      .filter((log) => log.action === 'upload_stage' && log.outcome === 'error')
+      .reduce<Record<string, number>>((summary, log) => {
+        const stage = log.stage || 'unknown'
+        summary[stage] = (summary[stage] || 0) + 1
+        return summary
+      }, {})
+    const latestUploadError = uploadErrors[0]
+
+    return {
+      all: all.slice(0, 50),
+      errors: errors.slice(0, 20),
+      summary: {
+        total: all.length,
+        errors: errors.length,
+        uploadAttempts: uploadAttempts.size,
+        uploadSuccesses: uploadSuccesses.length,
+        uploadFailures: uploadErrors.length,
+        errorsByCode,
+        stageErrors,
+        primaryUploadDiagnosis: latestUploadError?.diagnosisCode
+          || latestUploadError?.errorCode
+          || (uploadSuccesses.length > 0 ? 'RECENT_UPLOADS_VERIFIED' : 'NO_RECENT_UPLOAD_ATTEMPT'),
+      },
+    }
   } catch (error) {
     return { error: '读取照片日志失败', details: String(error) }
   }
+}
+
+type PhotoHeadFetcher = (
+  input: RequestInfo | URL,
+  init?: RequestInit,
+) => Promise<Pick<Response, 'ok' | 'status' | 'headers'>>
+
+type PhotoObjectCandidate = {
+  recordId: string
+  recordDate: string
+  url: string
+}
+
+const PHOTO_HEALTH_LIMIT = 12
+const PHOTO_HEALTH_CONCURRENCY = 4
+const PHOTO_HEAD_TIMEOUT_MS = 3000
+
+export async function collectPhotoHealthDiagnostics(
+  practiceHistory: PracticeRecord[],
+  fetcher: PhotoHeadFetcher = fetch,
+) {
+  const runtimeDiagnostics = readJsonStorage('ashtanga_runtime_diagnostics', [], '读取启动诊断失败')
+  const resourceErrorCounts = Array.isArray(runtimeDiagnostics)
+    ? runtimeDiagnostics.reduce<Record<string, number>>((counts, entry) => {
+        const url = entry?.type === 'resource_error' && typeof entry?.details?.url === 'string'
+          ? entry.details.url
+          : null
+        if (url) counts[url] = (counts[url] || 0) + 1
+        return counts
+      }, {})
+    : {}
+
+  const seen = new Set<string>()
+  const candidates: PhotoObjectCandidate[] = []
+  const recordsByRecency = [...practiceHistory].sort((left, right) =>
+    String(right.date || '').localeCompare(String(left.date || ''))
+  )
+
+  for (const record of recordsByRecency) {
+    for (const url of Array.isArray(record.photos) ? record.photos : []) {
+      if (typeof url !== 'string' || !url.startsWith('https://') || seen.has(url)) continue
+      seen.add(url)
+      candidates.push({ recordId: record.id, recordDate: record.date, url })
+      if (candidates.length >= PHOTO_HEALTH_LIMIT) break
+    }
+    if (candidates.length >= PHOTO_HEALTH_LIMIT) break
+  }
+
+  if (candidates.length === 0) {
+    return {
+      summary: {
+        primaryDiagnosis: 'NO_RECENT_PHOTOS',
+        checked: 0,
+        healthy: 0,
+        zeroByte: 0,
+        missing: 0,
+        accessDenied: 0,
+        loadFailedWithHealthyObject: 0,
+        otherErrors: 0,
+      },
+      objects: [],
+    }
+  }
+
+  const objects = await mapWithConcurrency(
+    candidates,
+    PHOTO_HEALTH_CONCURRENCY,
+    async (candidate) => checkPhotoObject(candidate, resourceErrorCounts[candidate.url] || 0, fetcher),
+  )
+
+  const count = (diagnosis: string) => objects.filter((item) => item.diagnosis === diagnosis).length
+  const zeroByte = count('OSS_ZERO_BYTE_OBJECT')
+  const missing = count('OSS_OBJECT_MISSING')
+  const accessDenied = count('OSS_ACCESS_DENIED')
+  const loadFailedWithHealthyObject = count('IMAGE_LOAD_FAILED_WITH_HEALTHY_OBJECT')
+  const healthy = count('OSS_OBJECT_HEALTHY')
+  const otherErrors = objects.length - zeroByte - missing - accessDenied - loadFailedWithHealthyObject - healthy
+
+  const primaryDiagnosis = zeroByte > 0
+    ? 'OSS_ZERO_BYTE_OBJECT'
+    : missing > 0
+      ? 'OSS_OBJECT_MISSING'
+      : accessDenied > 0
+        ? 'OSS_ACCESS_DENIED'
+        : loadFailedWithHealthyObject > 0
+          ? 'IMAGE_LOAD_FAILED_WITH_HEALTHY_OBJECT'
+          : otherErrors > 0
+            ? 'OSS_HEALTH_CHECK_FAILED'
+            : 'ALL_CHECKED_PHOTOS_HEALTHY'
+
+  return {
+    summary: {
+      primaryDiagnosis,
+      checked: objects.length,
+      healthy,
+      zeroByte,
+      missing,
+      accessDenied,
+      loadFailedWithHealthyObject,
+      otherErrors,
+    },
+    objects,
+  }
+}
+
+async function checkPhotoObject(
+  candidate: PhotoObjectCandidate,
+  resourceErrorCount: number,
+  fetcher: PhotoHeadFetcher,
+) {
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), PHOTO_HEAD_TIMEOUT_MS)
+  const startedAt = Date.now()
+
+  try {
+    const response = await fetcher(candidate.url, {
+      method: 'HEAD',
+      cache: 'no-store',
+      signal: controller.signal,
+    })
+    const rawContentLength = response.headers.get('content-length')
+    const parsedContentLength = rawContentLength === null ? NaN : Number(rawContentLength)
+    const contentLength = Number.isSafeInteger(parsedContentLength) && parsedContentLength >= 0
+      ? parsedContentLength
+      : null
+    const contentType = response.headers.get('content-type')
+
+    let diagnosis = 'OSS_OBJECT_HEALTHY'
+    if (!response.ok) {
+      diagnosis = response.status === 403
+        ? 'OSS_ACCESS_DENIED'
+        : response.status === 404
+          ? 'OSS_OBJECT_MISSING'
+          : `OSS_HTTP_${response.status}`
+    } else if (contentLength === 0) {
+      diagnosis = 'OSS_ZERO_BYTE_OBJECT'
+    } else if (contentLength === null) {
+      diagnosis = 'OSS_INVALID_CONTENT_LENGTH'
+    } else if (contentType && !contentType.toLowerCase().startsWith('image/')) {
+      diagnosis = 'OSS_INVALID_CONTENT_TYPE'
+    } else if (resourceErrorCount > 0) {
+      diagnosis = 'IMAGE_LOAD_FAILED_WITH_HEALTHY_OBJECT'
+    }
+
+    return {
+      ...candidate,
+      diagnosis,
+      httpStatus: response.status,
+      contentLength,
+      contentType,
+      etag: response.headers.get('etag'),
+      resourceErrorCount,
+      durationMs: Date.now() - startedAt,
+    }
+  } catch (error) {
+    return {
+      ...candidate,
+      diagnosis: error instanceof Error && error.name === 'AbortError'
+        ? 'OSS_HEAD_TIMEOUT'
+        : 'OSS_HEAD_NETWORK_OR_CORS_ERROR',
+      httpStatus: null,
+      contentLength: null,
+      contentType: null,
+      etag: null,
+      resourceErrorCount,
+      durationMs: Date.now() - startedAt,
+      error: toErrorMessage(error),
+    }
+  } finally {
+    clearTimeout(timeoutId)
+  }
+}
+
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  concurrency: number,
+  mapper: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const results = new Array<R>(items.length)
+  let nextIndex = 0
+  const workerCount = Math.min(concurrency, items.length)
+
+  await Promise.all(Array.from({ length: workerCount }, async () => {
+    while (nextIndex < items.length) {
+      const index = nextIndex
+      nextIndex += 1
+      results[index] = await mapper(items[index])
+    }
+  }))
+
+  return results
 }
 
 async function collectMembershipLogs(input: PracticeDebugLogInput) {

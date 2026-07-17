@@ -97,6 +97,8 @@ function formatDateDisplay(dateStr: string): string {
   return `${date.getMonth() + 1}月${date.getDate()}日`
 }
 
+const PHOTO_UPLOAD_CONCURRENCY = 2
+
 // ==================== 照片上传 Hook ====================
 
 function useRecordPhotos(recordId: string | undefined, initialPhotoUrls?: string[]) {
@@ -198,6 +200,9 @@ function useRecordPhotos(recordId: string | undefined, initialPhotoUrls?: string
           'RECORD_PHOTO_LIMIT_EXCEEDED': '当前版本只能上传1张照片',
           'UPLOAD_FAILED_403': '上传失败，请重试',
           'UPLOAD_FAILED_400': '上传失败，请检查文件',
+          'UPLOAD_SOURCE_READ_FAILED': '照片读取失败，请重新选择后上传',
+          'UPLOAD_INTEGRITY_FAILED': '照片上传不完整，请重新上传',
+          'OSS_OBJECT_SIZE_MISMATCH': '照片上传不完整，请重新上传',
           'NETWORK_ERROR': '网络错误，请重试',
           'NOT_AUTHENTICATED': '请先登录',
           'EMAIL_REQUIRED': '绑定邮箱后可使用照片功能',
@@ -325,9 +330,10 @@ export function PracticeForm({
     const files = event.target.files
     console.log('[照片上传] 选择文件:', files?.length || 0, '个')
     if (!files || files.length === 0) return
+    const selectedFiles = Array.from(files)
 
     // 显示文件详情（调试用）
-    Array.from(files).forEach((file, i) => {
+    selectedFiles.forEach((file, i) => {
       console.log(`[照片上传] 文件 ${i + 1}:`, file.name, file.type, `${(file.size / 1024 / 1024).toFixed(2)}MB`)
     })
 
@@ -368,13 +374,16 @@ export function PracticeForm({
     }
 
     // 只取剩余槽位的文件数
-    const filesToUpload = Array.from(files).slice(0, remainingSlots)
-    if (files.length > remainingSlots) {
-      toast.info(`已选择 ${files.length} 张，仅上传前 ${remainingSlots} 张`)
+    const filesToUpload = selectedFiles.slice(0, remainingSlots)
+    if (selectedFiles.length > remainingSlots) {
+      toast.info(`已选择 ${selectedFiles.length} 张，仅上传前 ${remainingSlots} 张`)
     }
 
-    // 并发上传所有选中的文件
-    await Promise.all(filesToUpload.map(file => uploadPhoto(file, currentIsPro)))
+    // 每批最多物化并上传两张，避免 iPhone 同时把 9 张大图读入内存。
+    for (let index = 0; index < filesToUpload.length; index += PHOTO_UPLOAD_CONCURRENCY) {
+      const batch = filesToUpload.slice(index, index + PHOTO_UPLOAD_CONCURRENCY)
+      await Promise.all(batch.map(file => uploadPhoto(file, currentIsPro)))
+    }
 
     // 上传完成后清除占位符
     setTestPlaceholders([])

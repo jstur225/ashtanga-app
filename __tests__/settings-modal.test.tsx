@@ -1,6 +1,6 @@
 import React from "react"
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import fs from "fs"
 import path from "path"
 import { AccountSyncModal } from "@/components/AccountSyncModal"
@@ -191,6 +191,35 @@ describe("SettingsModal", () => {
     expect(onOpenImport).toHaveBeenCalled()
     await waitFor(() => expect(onExportLog).toHaveBeenCalled())
     expect(onShowClearDataConfirm).toHaveBeenCalled()
+  })
+
+  it("生成运行日志期间显示旋转提示，完成后恢复按钮", async () => {
+    let finishExport: (() => void) | undefined
+    const onExportLog = vi.fn(() => new Promise<void>((resolve) => {
+      finishExport = resolve
+    }))
+
+    renderSettings({ onExportLog })
+    fireEvent.click(screen.getByText("数据管理"))
+
+    const button = screen.getByTestId("settings-export-log")
+    fireEvent.click(button)
+
+    expect(screen.getByText("正在生成日志...")).toBeTruthy()
+    expect(screen.getByText("请稍候，正在测试连接...")).toBeTruthy()
+    expect(button.getAttribute("aria-busy")).toBe("true")
+    expect(button.querySelector(".animate-spin")).toBeTruthy()
+    expect((button as HTMLButtonElement).disabled).toBe(true)
+
+    await act(async () => {
+      finishExport?.()
+    })
+
+    await waitFor(() => {
+      expect(screen.getByText("运行日志")).toBeTruthy()
+      expect(button.getAttribute("aria-busy")).toBeNull()
+      expect((button as HTMLButtonElement).disabled).toBe(false)
+    })
   })
 })
 

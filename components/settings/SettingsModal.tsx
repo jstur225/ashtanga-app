@@ -146,7 +146,12 @@ export function ProfileSettingsSection({
       }
 
       const { uploadToOSS } = await import("@/lib/oss")
-      const uploadResult = await uploadToOSS(avatarFile, presignedResult.data!.presignedUrl, avatarFile.type)
+      const uploadResult = await uploadToOSS(
+        avatarFile,
+        presignedResult.data!.presignedUrl,
+        avatarFile.type,
+        presignedResult.data!.ossUrl,
+      )
 
       if (!uploadResult.success) {
         toast.error("头像上传失败，请重试")
@@ -371,7 +376,8 @@ export function DataManagementSection({
           title={isExportingLog ? "正在生成日志..." : "运行日志"}
           description={isExportingLog ? "请稍候，正在测试连接..." : "如遇问题，请复制本日志发给开发者"}
           disabled={isExportingLog}
-          trailing={isExportingLog ? <div className="w-4 h-4 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" /> : undefined}
+          trailing={isExportingLog ? <Loader2 aria-hidden="true" className="w-4 h-4 text-orange-500 animate-spin" /> : undefined}
+          testId="settings-export-log"
           onClick={async () => {
             setIsExportingLog(true)
             try {
@@ -429,12 +435,13 @@ function SettingsActionButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
+      aria-busy={disabled || undefined}
       data-testid={testId}
       className="w-full flex items-center justify-between p-4 rounded-2xl bg-secondary hover:bg-secondary/80 transition-all group disabled:opacity-50"
     >
       <div className="flex items-center gap-3">
         <div className={`p-2 rounded-xl ${iconClassName}`}>{icon}</div>
-        <div className="text-left">
+        <div className="text-left" aria-live={disabled ? "polite" : undefined}>
           <div className="text-sm font-serif text-foreground">{title}</div>
           <div className="text-[10px] text-muted-foreground font-serif">{description}</div>
         </div>
