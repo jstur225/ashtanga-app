@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { isOwnedOssObjectUrl, verifyOssObjectSize } from '@/lib/oss-integrity'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+const OSS_BUCKET = process.env.OSS_BUCKET || ''
+const OSS_ENDPOINT = process.env.OSS_ENDPOINT || ''
 
 /**
  * 照片元数据 CRUD API
@@ -79,9 +82,35 @@ export async function POST(request: NextRequest) {
     } = body
 
     // 3. 验证必填字段
-    if (!practice_record_id || !oss_url || !oss_key || !file_size) {
+    if (!practice_record_id || !oss_url || !oss_key || file_size === undefined || file_size === null) {
       return NextResponse.json(
         { success: false, error: 'MISSING_REQUIRED_FIELDS' },
+        { status: 400 }
+      )
+    }
+
+    if (!Number.isSafeInteger(file_size) || file_size <= 0) {
+      return NextResponse.json(
+        { success: false, error: 'INVALID_FILE_SIZE' },
+        { status: 400 }
+      )
+    }
+
+    if (!isOwnedOssObjectUrl({
+      ossUrl: oss_url,
+      ossKey: oss_key,
+      userId: user.id,
+      bucket: OSS_BUCKET,
+      endpoint: OSS_ENDPOINT,
+    })) {
+      console.error('[Photos API] 拒绝非当前用户 OSS 地址:', {
+        practice_record_id,
+        oss_url,
+        oss_key,
+        user_id: user.id,
+      })
+      return NextResponse.json(
+        { success: false, error: 'INVALID_OSS_URL' },
         { status: 400 }
       )
     }
@@ -129,6 +158,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { success: false, error: 'RECORD_NOT_FOUND' },
         { status: 404 }
+      )
+    }
+
+    // OSS 会对合法的 0 字节 PUT 返回 200。写元数据前必须以远端对象大小为准。
+    const objectVerification = await verifyOssObjectSize(oss_url, file_size)
+    if (!objectVerification.valid) {
+      console.error('[Photos API] OSS 对象完整性校验失败:', {
+        practice_record_id,
+        oss_key,
+        expectedSize: file_size,
+        actualSize: objectVerification.actualSize,
+        reason: objectVerification.reason,
+        status: objectVerification.status,
+      })
+      return NextResponse.json(
+        { success: false, error: 'OSS_OBJECT_SIZE_MISMATCH' },
+        { status: 422 }
       )
     }
 

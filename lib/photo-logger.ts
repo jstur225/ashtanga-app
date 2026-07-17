@@ -6,16 +6,24 @@
 export interface PhotoLogEntry {
   id: string
   timestamp: string
-  action: 'upload_start' | 'upload_success' | 'upload_error' | 'delete_start' | 'delete_success' | 'delete_error' | 'query_start' | 'query_success' | 'query_error' | 'preview_open'
+  action: 'upload_start' | 'upload_stage' | 'upload_success' | 'upload_error' | 'delete_start' | 'delete_success' | 'delete_error' | 'query_start' | 'query_success' | 'query_error' | 'preview_open'
+  attemptId?: string
+  stage?: 'selected' | 'materialized' | 'presigned' | 'oss_put' | 'oss_verify' | 'metadata'
+  outcome?: 'started' | 'success' | 'error'
   recordId?: string
   photoId?: string
   fileName?: string
   fileSize?: number
   mimeType?: string
+  expectedSize?: number
+  actualSize?: number | null
+  httpStatus?: number | null
+  requestId?: string | null
+  diagnosisCode?: string
   error?: string
   errorCode?: string
   duration?: number // 操作耗时(ms)
-  details?: Record<string, any> // 额外详情
+  details?: Record<string, unknown> // 额外详情
 }
 
 const MAX_LOG_ENTRIES = 100 // 最多保留100条日志

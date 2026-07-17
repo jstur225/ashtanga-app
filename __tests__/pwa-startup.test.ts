@@ -30,6 +30,14 @@ describe('PWA startup reliability', () => {
     expect(sw).toContain("'navigation_network_success'")
     expect(sw).toContain("'next_static_cache_hit'")
     expect(sw).toContain("'next_static_network_failed'")
+    expect(sw).toContain('url.origin !== self.location.origin')
+    expect(sw).toContain("request.method !== 'GET'")
+    expect(sw.indexOf('url.origin !== self.location.origin')).toBeLessThan(
+      sw.indexOf('event.respondWith(networkFirstNavigation')
+    )
+    expect(sw.indexOf("request.method !== 'GET'")).toBeLessThan(
+      sw.indexOf('event.respondWith(networkFirstNavigation')
+    )
   })
 
   it('uses document navigation from the landing page so the PWA fallback can recover', () => {
