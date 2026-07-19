@@ -6,7 +6,9 @@ const root = process.cwd()
 const sourceDir = path.join(root, 'output', 'primary-series-ip-v2', 'masters', 'surya-a')
 const cutoutDir = path.join(root, 'output', 'primary-series-ip-v2', 'cutouts', 'surya-a')
 const alignedDir = path.join(root, 'output', 'primary-series-ip-v2', 'aligned', 'surya-a')
+const foldSource = path.join(cutoutDir, 'fold-source.png')
 const halfLiftSource = path.join(cutoutDir, 'half-lift-source.png')
+const updogSource = path.join(cutoutDir, 'updog-source.png')
 
 const poses = [
   'samasthitih',
@@ -20,7 +22,8 @@ const poses = [
   'astau',
 ]
 
-const mirroredPoses = new Set(['samasthitih', 'dve', 'sat', 'astau'])
+const mirroredPoses = new Set(['samasthitih', 'sat'])
+const horizontalOffsets = new Map([['ekam', -40]])
 const groundLine = 960
 const transparentThreshold = 10
 const opaqueThreshold = 24
@@ -97,7 +100,7 @@ async function alphaBounds(input) {
 
   for (let y = 0; y < info.height; y += 1) {
     for (let x = 0; x < info.width; x += 1) {
-      if (data[(y * info.width + x) * 4 + 3] <= 8) continue
+      if (data[(y * info.width + x) * 4 + 3] <= 48) continue
       left = Math.min(left, x)
       top = Math.min(top, y)
       right = Math.max(right, x)
@@ -112,9 +115,28 @@ async function alphaBounds(input) {
 for (const pose of poses) {
   let transparent
 
-  if (pose === 'trini' || pose === 'sapta') {
+  if (pose === 'dve' || pose === 'astau') {
+    transparent = await sharp(foldSource)
+      .resize(1024, 1024, {
+        fit: 'contain',
+        background: { r: 0, g: 0, b: 0, alpha: 0 },
+      })
+      .png()
+      .toBuffer()
+  } else if (pose === 'trini' || pose === 'sapta') {
     transparent = await sharp(halfLiftSource)
-      .resize(1024, 1024, { fit: 'contain' })
+      .resize(1024, 1024, {
+        fit: 'contain',
+        background: { r: 0, g: 0, b: 0, alpha: 0 },
+      })
+      .png()
+      .toBuffer()
+  } else if (pose === 'panca') {
+    transparent = await sharp(updogSource)
+      .resize(1024, 1024, {
+        fit: 'contain',
+        background: { r: 0, g: 0, b: 0, alpha: 0 },
+      })
       .png()
       .toBuffer()
   } else {
@@ -139,7 +161,7 @@ for (const pose of poses) {
     .png()
     .toFile(path.join(cutoutDir, `surya-a-${pose}.png`))
 
-  const left = Math.round((1024 - bounds.width) / 2)
+  const left = Math.round((1024 - bounds.width) / 2) + (horizontalOffsets.get(pose) ?? 0)
   const top = groundLine - bounds.height
   if (left < 0 || top < 0) throw new Error(`${pose} does not fit the aligned canvas`)
 
