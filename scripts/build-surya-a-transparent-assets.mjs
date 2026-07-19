@@ -6,6 +6,7 @@ const root = process.cwd()
 const sourceDir = path.join(root, 'output', 'primary-series-ip-v2', 'masters', 'surya-a')
 const cutoutDir = path.join(root, 'output', 'primary-series-ip-v2', 'cutouts', 'surya-a')
 const alignedDir = path.join(root, 'output', 'primary-series-ip-v2', 'aligned', 'surya-a')
+const downDogSource = path.join(cutoutDir, 'down-dog-source.png')
 const foldSource = path.join(cutoutDir, 'fold-source.png')
 const halfLiftSource = path.join(cutoutDir, 'half-lift-source.png')
 const updogSource = path.join(cutoutDir, 'updog-source.png')
@@ -22,7 +23,7 @@ const poses = [
   'astau',
 ]
 
-const mirroredPoses = new Set(['samasthitih', 'sat'])
+const mirroredPoses = new Set(['samasthitih'])
 const horizontalOffsets = new Map([['ekam', -40]])
 const groundLine = 960
 const transparentThreshold = 10
@@ -133,6 +134,14 @@ for (const pose of poses) {
       .toBuffer()
   } else if (pose === 'panca') {
     transparent = await sharp(updogSource)
+      .resize(1024, 1024, {
+        fit: 'contain',
+        background: { r: 0, g: 0, b: 0, alpha: 0 },
+      })
+      .png()
+      .toBuffer()
+  } else if (pose === 'sat') {
+    transparent = await sharp(downDogSource)
       .resize(1024, 1024, {
         fit: 'contain',
         background: { r: 0, g: 0, b: 0, alpha: 0 },
