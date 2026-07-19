@@ -11,6 +11,10 @@ export interface Pose {
   sourceFilename: string
   image: string
   thumbnail: string
+  cueName?: string
+  breath?: string
+  drishti?: string
+  drishtiSanskrit?: string
   assetStatus: 'generated' | 'needs-regeneration' | 'approved'
   instructionStatus: 'pending' | 'approved'
 }
@@ -29,8 +33,8 @@ export const POSE_SECTIONS: PoseSection[] = [
 ]
 
 const NAMES: Record<string, { zh: string; sanskrit: string; aliases: string[] }> = {
-  'SURYA NAMASKARA A': { zh: '拜日 A', sanskrit: 'Surya Namaskara A', aliases: ["拜日式 A"] },
-  'SURYA NAMASKARA B': { zh: '拜日 B', sanskrit: 'Surya Namaskara B', aliases: ["拜日式 B"] },
+  'SURYA NAMASKARA A': { zh: '拜日 A', sanskrit: 'Sūrya Namaskāra A', aliases: ["拜日式 A"] },
+  'SURYA NAMASKARA B': { zh: '拜日 B', sanskrit: 'Sūrya Namaskāra B', aliases: ["拜日式 B"] },
   'PADANGUSTHASANA': { zh: '手抓大脚趾式', sanskrit: 'Padangusthasana', aliases: [] },
   'PADAHASTASANA': { zh: '手压脚掌式', sanskrit: 'Padahastasana', aliases: ["手在脚下式"] },
   'TRIKONASANA': { zh: '三角伸展式', sanskrit: 'Trikonasana', aliases: ["三角式"] },
@@ -75,6 +79,39 @@ const NAMES: Record<string, { zh: string; sanskrit: string; aliases: string[] }>
   'PADMASANA': { zh: '莲花式', sanskrit: 'Padmasana', aliases: [] },
   'UTPLUTHIH': { zh: '上提式', sanskrit: 'Utpluthih', aliases: ["上提莲花式"] },
   'SAVASANA': { zh: '休息术', sanskrit: 'Savasana', aliases: ["挺尸式","大休息"] },
+}
+
+const SURYA_STEPS: Record<string, { count: string; cueName: string; breath: string; drishti: string; drishtiSanskrit: string }> = {
+  'surya-a/surya-a-01.png': { count: 'Samasthitiḥ', cueName: '山式（准备）', breath: '准备', drishti: '鼻尖', drishtiSanskrit: 'nāsāgre' },
+  'surya-a/surya-a-02.png': { count: 'Ekam', cueName: '双臂上举', breath: '吸气', drishti: '拇指', drishtiSanskrit: 'aṅguṣṭhamadhye' },
+  'surya-a/surya-a-03.png': { count: 'Dve', cueName: '站立前屈', breath: '呼气', drishti: '鼻尖', drishtiSanskrit: 'nāsāgre' },
+  'surya-a/surya-a-04.png': { count: 'Trīṇi', cueName: '半前屈', breath: '吸气', drishti: '眉心', drishtiSanskrit: 'bhrūmadhye' },
+  'surya-a/surya-a-05.png': { count: 'Catvāri', cueName: '四柱支撑', breath: '呼气', drishti: '鼻尖', drishtiSanskrit: 'nāsāgre' },
+  'surya-a/surya-a-06.png': { count: 'Pañca', cueName: '上犬式', breath: '吸气', drishti: '眉心', drishtiSanskrit: 'bhrūmadhye' },
+  'surya-a/surya-a-07.png': { count: 'Ṣaṭ', cueName: '下犬式', breath: '呼气，停留 5 次呼吸', drishti: '肚脐', drishtiSanskrit: 'nābhicakre' },
+  'surya-a/surya-a-08.png': { count: 'Sapta', cueName: '半前屈', breath: '吸气', drishti: '眉心', drishtiSanskrit: 'bhrūmadhye' },
+  'surya-a/surya-a-09.png': { count: 'Aṣṭau', cueName: '站立前屈', breath: '呼气', drishti: '鼻尖', drishtiSanskrit: 'nāsāgre' },
+  'surya-a/surya-a-10.png': { count: 'Nava', cueName: '双臂上举', breath: '吸气', drishti: '拇指', drishtiSanskrit: 'aṅguṣṭhamadhye' },
+  'surya-a/surya-a-11.png': { count: 'Samasthitiḥ', cueName: '山式', breath: '呼气', drishti: '鼻尖', drishtiSanskrit: 'nāsāgre' },
+  'surya-b/surya-b-01.png': { count: 'Samasthitiḥ', cueName: '山式（准备）', breath: '准备', drishti: '鼻尖', drishtiSanskrit: 'nāsāgre' },
+  'surya-b/surya-b-02.png': { count: 'Ekam', cueName: '幻椅式', breath: '吸气', drishti: '拇指', drishtiSanskrit: 'aṅguṣṭhamadhye' },
+  'surya-b/surya-b-03.png': { count: 'Dve', cueName: '站立前屈', breath: '呼气', drishti: '鼻尖', drishtiSanskrit: 'nāsāgre' },
+  'surya-b/surya-b-04.png': { count: 'Trīṇi', cueName: '半前屈', breath: '吸气', drishti: '眉心', drishtiSanskrit: 'bhrūmadhye' },
+  'surya-b/surya-b-05.png': { count: 'Catvāri', cueName: '四柱支撑', breath: '呼气', drishti: '鼻尖', drishtiSanskrit: 'nāsāgre' },
+  'surya-b/surya-b-06.png': { count: 'Pañca', cueName: '上犬式', breath: '吸气', drishti: '眉心', drishtiSanskrit: 'bhrūmadhye' },
+  'surya-b/surya-b-07.png': { count: 'Ṣaṭ', cueName: '下犬式', breath: '呼气', drishti: '肚脐', drishtiSanskrit: 'nābhicakre' },
+  'surya-b/surya-b-08.png': { count: 'Sapta', cueName: '战士一式（右侧）', breath: '吸气', drishti: '拇指', drishtiSanskrit: 'aṅguṣṭhamadhye' },
+  'surya-b/surya-b-09.png': { count: 'Aṣṭau', cueName: '四柱支撑', breath: '呼气', drishti: '鼻尖', drishtiSanskrit: 'nāsāgre' },
+  'surya-b/surya-b-10.png': { count: 'Nava', cueName: '上犬式', breath: '吸气', drishti: '眉心', drishtiSanskrit: 'bhrūmadhye' },
+  'surya-b/surya-b-11.png': { count: 'Daśa', cueName: '下犬式', breath: '呼气', drishti: '肚脐', drishtiSanskrit: 'nābhicakre' },
+  'surya-b/surya-b-12.png': { count: 'Ekādaśa', cueName: '战士一式（左侧）', breath: '吸气', drishti: '拇指', drishtiSanskrit: 'aṅguṣṭhamadhye' },
+  'surya-b/surya-b-13.png': { count: 'Dvādaśa', cueName: '四柱支撑', breath: '呼气', drishti: '鼻尖', drishtiSanskrit: 'nāsāgre' },
+  'surya-b/surya-b-14.png': { count: 'Trayodaśa', cueName: '上犬式', breath: '吸气', drishti: '眉心', drishtiSanskrit: 'bhrūmadhye' },
+  'surya-b/surya-b-15.png': { count: 'Caturdaśa', cueName: '下犬式', breath: '呼气，停留 5 次呼吸', drishti: '肚脐', drishtiSanskrit: 'nābhicakre' },
+  'surya-b/surya-b-16.png': { count: 'Pañcadaśa', cueName: '半前屈', breath: '吸气', drishti: '眉心', drishtiSanskrit: 'bhrūmadhye' },
+  'surya-b/surya-b-17.png': { count: 'Ṣoḍaśa', cueName: '站立前屈', breath: '呼气', drishti: '鼻尖', drishtiSanskrit: 'nāsāgre' },
+  'surya-b/surya-b-18.png': { count: 'Saptadaśa', cueName: '幻椅式', breath: '吸气', drishti: '拇指', drishtiSanskrit: 'aṅguṣṭhamadhye' },
+  'surya-b/surya-b-19.png': { count: 'Samasthitiḥ', cueName: '山式', breath: '呼气', drishti: '鼻尖', drishtiSanskrit: 'nāsāgre' },
 }
 
 const RAW_POSES: Array<[string, string, PoseSectionId, number, string]> = [
@@ -181,22 +218,26 @@ const RAW_POSES: Array<[string, string, PoseSectionId, number, string]> = [
 export const POSES: Pose[] = RAW_POSES.map(([sourceFilename, sourceName, section, order, marker]) => {
   const names = NAMES[sourceName]
   const basename = sourceFilename.split('/').pop()?.replace(/\.png$/, '') ?? sourceFilename
-  const isSurya = section === 'surya-a' || section === 'surya-b'
-  const name = marker ? `${names.zh} · ${marker}` : names.zh
+  const suryaStep = SURYA_STEPS[sourceFilename]
+  const name = suryaStep?.count ?? (marker ? `${names.zh} · ${marker}` : names.zh)
   const publicBase = `/poses/primary-series-ip-v1/${sourceFilename.replace(/\.png$/, '')}`
 
   return {
     id: `${section}-${basename}`,
-    name: isSurya ? name : name,
-    sanskrit: marker ? `${names.sanskrit} · ${marker}` : names.sanskrit,
-    aliases: names.aliases,
+    name,
+    sanskrit: suryaStep ? names.sanskrit : (marker ? `${names.sanskrit} · ${marker}` : names.sanskrit),
+    aliases: suryaStep ? [...names.aliases, suryaStep.cueName] : names.aliases,
     section,
     order,
     marker,
     sourceFilename,
     image: `${publicBase}.webp`,
     thumbnail: `${publicBase}-thumb.webp`,
+    cueName: suryaStep?.cueName,
+    breath: suryaStep?.breath,
+    drishti: suryaStep?.drishti,
+    drishtiSanskrit: suryaStep?.drishtiSanskrit,
     assetStatus: 'generated',
-    instructionStatus: 'pending',
+    instructionStatus: suryaStep ? 'approved' : 'pending',
   }
 })

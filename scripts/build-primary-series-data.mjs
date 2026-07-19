@@ -10,12 +10,12 @@ const SECTION_NAMES = {
   'surya-b': '拜日 B',
   standing: '站立体式',
   seated: '坐立体式',
-  finishing: '收尾体式',
+  finishing: '结束体式',
 }
 
 const NAME_MAP = {
-  'SURYA NAMASKARA A': ['拜日 A', 'Surya Namaskara A', ['拜日式 A']],
-  'SURYA NAMASKARA B': ['拜日 B', 'Surya Namaskara B', ['拜日式 B']],
+  'SURYA NAMASKARA A': ['拜日 A', 'Sūrya Namaskāra A', ['拜日式 A']],
+  'SURYA NAMASKARA B': ['拜日 B', 'Sūrya Namaskāra B', ['拜日式 B']],
   PADANGUSTHASANA: ['手抓大脚趾式', 'Padangusthasana', []],
   PADAHASTASANA: ['手压脚掌式', 'Padahastasana', ['手在脚下式']],
   TRIKONASANA: ['三角伸展式', 'Trikonasana', ['三角式']],
@@ -62,6 +62,39 @@ const NAME_MAP = {
   SAVASANA: ['休息术', 'Savasana', ['挺尸式', '大休息']],
 }
 
+const SURYA_STEPS = {
+  'surya-a/surya-a-01.png': ['Samasthitiḥ', '山式（准备）', '准备', '鼻尖', 'nāsāgre'],
+  'surya-a/surya-a-02.png': ['Ekam', '双臂上举', '吸气', '拇指', 'aṅguṣṭhamadhye'],
+  'surya-a/surya-a-03.png': ['Dve', '站立前屈', '呼气', '鼻尖', 'nāsāgre'],
+  'surya-a/surya-a-04.png': ['Trīṇi', '半前屈', '吸气', '眉心', 'bhrūmadhye'],
+  'surya-a/surya-a-05.png': ['Catvāri', '四柱支撑', '呼气', '鼻尖', 'nāsāgre'],
+  'surya-a/surya-a-06.png': ['Pañca', '上犬式', '吸气', '眉心', 'bhrūmadhye'],
+  'surya-a/surya-a-07.png': ['Ṣaṭ', '下犬式', '呼气，停留 5 次呼吸', '肚脐', 'nābhicakre'],
+  'surya-a/surya-a-08.png': ['Sapta', '半前屈', '吸气', '眉心', 'bhrūmadhye'],
+  'surya-a/surya-a-09.png': ['Aṣṭau', '站立前屈', '呼气', '鼻尖', 'nāsāgre'],
+  'surya-a/surya-a-10.png': ['Nava', '双臂上举', '吸气', '拇指', 'aṅguṣṭhamadhye'],
+  'surya-a/surya-a-11.png': ['Samasthitiḥ', '山式', '呼气', '鼻尖', 'nāsāgre'],
+  'surya-b/surya-b-01.png': ['Samasthitiḥ', '山式（准备）', '准备', '鼻尖', 'nāsāgre'],
+  'surya-b/surya-b-02.png': ['Ekam', '幻椅式', '吸气', '拇指', 'aṅguṣṭhamadhye'],
+  'surya-b/surya-b-03.png': ['Dve', '站立前屈', '呼气', '鼻尖', 'nāsāgre'],
+  'surya-b/surya-b-04.png': ['Trīṇi', '半前屈', '吸气', '眉心', 'bhrūmadhye'],
+  'surya-b/surya-b-05.png': ['Catvāri', '四柱支撑', '呼气', '鼻尖', 'nāsāgre'],
+  'surya-b/surya-b-06.png': ['Pañca', '上犬式', '吸气', '眉心', 'bhrūmadhye'],
+  'surya-b/surya-b-07.png': ['Ṣaṭ', '下犬式', '呼气', '肚脐', 'nābhicakre'],
+  'surya-b/surya-b-08.png': ['Sapta', '战士一式（右侧）', '吸气', '拇指', 'aṅguṣṭhamadhye'],
+  'surya-b/surya-b-09.png': ['Aṣṭau', '四柱支撑', '呼气', '鼻尖', 'nāsāgre'],
+  'surya-b/surya-b-10.png': ['Nava', '上犬式', '吸气', '眉心', 'bhrūmadhye'],
+  'surya-b/surya-b-11.png': ['Daśa', '下犬式', '呼气', '肚脐', 'nābhicakre'],
+  'surya-b/surya-b-12.png': ['Ekādaśa', '战士一式（左侧）', '吸气', '拇指', 'aṅguṣṭhamadhye'],
+  'surya-b/surya-b-13.png': ['Dvādaśa', '四柱支撑', '呼气', '鼻尖', 'nāsāgre'],
+  'surya-b/surya-b-14.png': ['Trayodaśa', '上犬式', '吸气', '眉心', 'bhrūmadhye'],
+  'surya-b/surya-b-15.png': ['Caturdaśa', '下犬式', '呼气，停留 5 次呼吸', '肚脐', 'nābhicakre'],
+  'surya-b/surya-b-16.png': ['Pañcadaśa', '半前屈', '吸气', '眉心', 'bhrūmadhye'],
+  'surya-b/surya-b-17.png': ['Ṣoḍaśa', '站立前屈', '呼气', '鼻尖', 'nāsāgre'],
+  'surya-b/surya-b-18.png': ['Saptadaśa', '幻椅式', '吸气', '拇指', 'aṅguṣṭhamadhye'],
+  'surya-b/surya-b-19.png': ['Samasthitiḥ', '山式', '呼气', '鼻尖', 'nāsāgre'],
+}
+
 const csv = await fs.readFile(sourcePath, 'utf8')
 const rows = csv.trim().split(/\r?\n/).slice(1).map(line => {
   const [filename, displayName, section, order, marker = ''] = line.split(',')
@@ -77,6 +110,10 @@ const rawRows = rows.map(row =>
 
 const names = Object.entries(NAME_MAP).map(([source, [zh, sanskrit, aliases]]) =>
   `  '${source}': { zh: '${zh}', sanskrit: '${sanskrit}', aliases: ${JSON.stringify(aliases)} },`
+).join('\n')
+
+const suryaSteps = Object.entries(SURYA_STEPS).map(([source, [count, cueName, breath, drishti, drishtiSanskrit]]) =>
+  `  '${source}': { count: '${count}', cueName: '${cueName}', breath: '${breath}', drishti: '${drishti}', drishtiSanskrit: '${drishtiSanskrit}' },`
 ).join('\n')
 
 const sections = Object.entries(SECTION_NAMES).map(([id, name]) =>
@@ -96,6 +133,10 @@ export interface Pose {
   sourceFilename: string
   image: string
   thumbnail: string
+  cueName?: string
+  breath?: string
+  drishti?: string
+  drishtiSanskrit?: string
   assetStatus: 'generated' | 'needs-regeneration' | 'approved'
   instructionStatus: 'pending' | 'approved'
 }
@@ -113,6 +154,10 @@ const NAMES: Record<string, { zh: string; sanskrit: string; aliases: string[] }>
 ${names}
 }
 
+const SURYA_STEPS: Record<string, { count: string; cueName: string; breath: string; drishti: string; drishtiSanskrit: string }> = {
+${suryaSteps}
+}
+
 const RAW_POSES: Array<[string, string, PoseSectionId, number, string]> = [
 ${rawRows}
 ]
@@ -120,23 +165,27 @@ ${rawRows}
 export const POSES: Pose[] = RAW_POSES.map(([sourceFilename, sourceName, section, order, marker]) => {
   const names = NAMES[sourceName]
   const basename = sourceFilename.split('/').pop()?.replace(/\\.png$/, '') ?? sourceFilename
-  const isSurya = section === 'surya-a' || section === 'surya-b'
-  const name = marker ? \`\${names.zh} · \${marker}\` : names.zh
+  const suryaStep = SURYA_STEPS[sourceFilename]
+  const name = suryaStep?.count ?? (marker ? \`\${names.zh} · \${marker}\` : names.zh)
   const publicBase = \`/poses/primary-series-ip-v1/\${sourceFilename.replace(/\\.png$/, '')}\`
 
   return {
     id: \`\${section}-\${basename}\`,
-    name: isSurya ? name : name,
-    sanskrit: marker ? \`\${names.sanskrit} · \${marker}\` : names.sanskrit,
-    aliases: names.aliases,
+    name,
+    sanskrit: suryaStep ? names.sanskrit : (marker ? \`\${names.sanskrit} · \${marker}\` : names.sanskrit),
+    aliases: suryaStep ? [...names.aliases, suryaStep.cueName] : names.aliases,
     section,
     order,
     marker,
     sourceFilename,
     image: \`\${publicBase}.webp\`,
     thumbnail: \`\${publicBase}-thumb.webp\`,
+    cueName: suryaStep?.cueName,
+    breath: suryaStep?.breath,
+    drishti: suryaStep?.drishti,
+    drishtiSanskrit: suryaStep?.drishtiSanskrit,
     assetStatus: 'generated',
-    instructionStatus: 'pending',
+    instructionStatus: suryaStep ? 'approved' : 'pending',
   }
 })
 `

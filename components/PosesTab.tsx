@@ -10,6 +10,9 @@ interface PosesTabProps {
   onDetailClose?: () => void
 }
 
+const normalizeSearch = (value: string) =>
+  value.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()
+
 export function PosesTab({ onDetailOpen, onDetailClose }: PosesTabProps) {
   const [activeSection, setActiveSection] = useState<PoseSectionId>('surya-a')
   const [selectedPose, setSelectedPose] = useState<Pose | null>(null)
@@ -18,15 +21,16 @@ export function PosesTab({ onDetailOpen, onDetailClose }: PosesTabProps) {
   const [imagesLoaded, setImagesLoaded] = useState<Record<string, boolean>>({})
 
   const visiblePoses = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase()
+    const query = normalizeSearch(searchQuery.trim())
     const candidates = query ? POSES : POSES.filter(pose => pose.section === activeSection)
     if (!query) return candidates
 
-    return candidates.filter(pose =>
-      pose.name.toLowerCase().includes(query) ||
-      pose.sanskrit.toLowerCase().includes(query) ||
-      pose.aliases.some(alias => alias.toLowerCase().includes(query))
-    )
+    return candidates.filter(pose => [
+      pose.name,
+      pose.sanskrit,
+      pose.cueName ?? '',
+      ...pose.aliases,
+    ].some(value => normalizeSearch(value).includes(query)))
   }, [activeSection, searchQuery])
 
   const openPose = (pose: Pose) => {
@@ -151,10 +155,37 @@ export function PosesTab({ onDetailOpen, onDetailClose }: PosesTabProps) {
                 <h2 className="text-xl font-medium font-serif text-stone-800">
                   {selectedPose.name}
                 </h2>
-                <p className="mt-1 text-sm font-serif text-stone-400">
-                  {selectedPose.sanskrit}
-                </p>
-                <p className="mt-6 text-xs font-serif text-stone-400">动作提示整理中</p>
+                {selectedPose.cueName ? (
+                  <>
+                    <p className="mt-1 text-sm font-serif text-stone-500">
+                      {selectedPose.cueName}
+                    </p>
+                    <div className="mt-7 space-y-5">
+                      <div>
+                        <p className="text-[11px] tracking-[0.18em] text-stone-400">呼吸</p>
+                        <p className="mt-1.5 text-base font-serif text-stone-700">
+                          {selectedPose.breath}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[11px] tracking-[0.18em] text-stone-400">凝视点</p>
+                        <p className="mt-1.5 text-base font-serif text-stone-700">
+                          {selectedPose.drishti}
+                        </p>
+                        <p className="mt-0.5 text-xs font-serif text-stone-400">
+                          {selectedPose.drishtiSanskrit}
+                        </p>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <p className="mt-1 text-sm font-serif text-stone-400">
+                      {selectedPose.sanskrit}
+                    </p>
+                    <p className="mt-6 text-xs font-serif text-stone-400">动作提示整理中</p>
+                  </>
+                )}
               </div>
 
               <div className="flex items-center justify-center gap-6 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] pt-2">
