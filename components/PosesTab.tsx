@@ -102,7 +102,7 @@ export function PosesTab({ onDetailOpen, onDetailClose }: PosesTabProps) {
                 onClick={() => openPose(pose)}
                 className="group min-w-0 text-left active:scale-[0.98]"
               >
-                <div className="aspect-square w-full overflow-hidden rounded-xl bg-[#F9F7F2]">
+                <div className="aspect-square w-full overflow-hidden rounded-xl">
                   <img
                     src={pose.thumbnail}
                     alt={pose.name}
@@ -130,14 +130,14 @@ export function PosesTab({ onDetailOpen, onDetailClose }: PosesTabProps) {
             className="fixed inset-0 z-50 flex flex-col bg-white"
           >
             <div className="flex-1 overflow-y-auto bg-gradient-to-b from-[#faf8f5] to-white">
-              <div className="relative aspect-square w-full bg-[#F9F7F2]">
+              <div className="relative aspect-square w-full">
                 {!imagesLoaded[selectedPose.id] && (
                   <div className="absolute inset-0 animate-pulse bg-stone-100" />
                 )}
                 <img
                   src={selectedPose.image}
                   alt={selectedPose.name}
-                  className={`block h-full w-full object-cover ${imagesLoaded[selectedPose.id] ? '' : 'invisible'}`}
+                  className={`block h-full w-full object-contain ${imagesLoaded[selectedPose.id] ? '' : 'invisible'}`}
                   onLoad={() => setImagesLoaded(previous => ({ ...previous, [selectedPose.id]: true }))}
                   decoding="async"
                 />
