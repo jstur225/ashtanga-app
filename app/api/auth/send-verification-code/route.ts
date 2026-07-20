@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
 import { createClient } from '@supabase/supabase-js'
+import { randomUUID } from 'node:crypto'
 
 // Service Role 客户端延迟初始化
-let supabaseServiceRole: ReturnType<typeof createClient> | null = null
+// 当前项目尚未为 verification_codes 生成 Database 类型，服务端管理客户端
+// 在 Supabase 2.90+ 会把该表的 insert 推断成 never；这里把边界收敛在本文件。
+let supabaseServiceRole: any = null
 
 function getServiceRoleClient() {
   if (!supabaseServiceRole) {
@@ -164,18 +166,35 @@ async function sendVerificationEmail(email: string, code: string, type: string) 
     }),
   })
 
-  if (!response.ok) {
-    await response.text()
-    throw new Error('邮件发送失败')
+  const responseText = await response.text()
+  let responseBody: { id?: string } = {}
+  try {
+    responseBody = responseText ? JSON.parse(responseText) : {}
+  } catch {
+    responseBody = {}
   }
 
-  return response.json()
+  if (!response.ok) {
+    console.error('[VerificationEmail] Resend rejected request', {
+      status: response.status,
+      recipientDomain: email.split('@')[1] || 'unknown',
+      response: responseText.slice(0, 500),
+    })
+    throw new Error(`邮件服务拒绝发送（Resend ${response.status}）`)
+  }
+
+  console.info('[VerificationEmail] Resend accepted request', {
+    deliveryId: responseBody.id || null,
+    recipientDomain: email.split('@')[1] || 'unknown',
+  })
+  return responseBody
 }
 
 // 发送验证码
 export async function POST(request: NextRequest) {
   try {
-    const { email, type = 'reset_password' } = await request.json()
+    const { email: rawEmail, type = 'reset_password' } = await request.json()
+    const email = typeof rawEmail === 'string' ? rawEmail.trim().toLowerCase() : ''
 
     if (!email) {
       return NextResponse.json(
@@ -194,7 +213,10 @@ export async function POST(request: NextRequest) {
 
     // ⭐ 60s 限频：查询该邮箱最近一条验证码，未过 60s 则拒绝
     const sixtySecondsAgo = new Date(Date.now() - 60 * 1000).toISOString()
-    const { data: recentCode, error: recentError } = await supabase
+    // 验证码是服务端认证数据，统一使用 Service Role 访问。
+    // 不能依赖匿名客户端的 RLS 策略，否则线上策略变化时会在发信前直接 500。
+    const database = getServiceRoleClient()
+    const { data: recentCode, error: recentError } = await database
       .from('verification_codes')
       .select('id, created_at')
       .eq('email', email)
@@ -214,13 +236,14 @@ export async function POST(request: NextRequest) {
 
     // 生成6位验证码
     const code = generateVerificationCode()
+    const verificationId = randomUUID()
     // 使用 UTC 时间，避免时区问题
     const now = new Date()
     const expiresAt = new Date(now.getTime() + 5 * 60 * 1000).toISOString()
 
     // 检查邮箱是否已注册（仅在 email_verification 类型时检查）
     if (type === 'email_verification') {
-      const { data: existingUser, error: userCheckError } = await getServiceRoleClient()
+      const { data: existingUser, error: userCheckError } = await database
         .auth
         .admin
         .listUsers()
@@ -245,9 +268,10 @@ export async function POST(request: NextRequest) {
     }
 
     // 保存到数据库
-    const { error: dbError } = await supabase
+    const { error: dbError } = await database
       .from('verification_codes')
       .insert({
+        id: verificationId,
         email,
         code,
         type, // 'reset_password' 或 'email_verification'
@@ -263,20 +287,33 @@ export async function POST(request: NextRequest) {
 
     // 发送邮件（使用 Resend）
     try {
-      await sendVerificationEmail(email, code, type)
-    } catch {
-      // 邮件发送失败，但验证码已保存，可以重试
+      const delivery = await sendVerificationEmail(email, code, type)
+      return NextResponse.json({
+        success: true,
+        message: '验证码邮件已提交，请检查收件箱和垃圾邮件',
+        delivery_id: delivery.id || null,
+      })
+    } catch (error) {
+      // 发送失败时删除本次验证码，避免失败请求触发 60 秒限频。
+      try {
+        await database
+          .from('verification_codes')
+          .delete()
+          .eq('id', verificationId)
+      } catch (cleanupError) {
+        console.error('[VerificationEmail] Failed to remove unsent code', cleanupError)
+      }
+
+      const message = error instanceof Error ? error.message : '邮件发送失败，请重试'
       return NextResponse.json(
-        { error: '邮件发送失败，请重试' },
-        { status: 500 }
+        { error: message },
+        { status: 502 }
       )
     }
-
-    return NextResponse.json({
-      success: true,
-      message: '验证码已发送',
+  } catch (error) {
+    console.error('[VerificationEmail] Unexpected send-code failure', {
+      message: error instanceof Error ? error.message : String(error),
     })
-  } catch {
     return NextResponse.json(
       { error: '发送失败，请重试' },
       { status: 500 }
