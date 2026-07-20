@@ -24,6 +24,10 @@ const poses = [
 
 const mirroredPoses = new Set(['samasthitih'])
 const horizontalOffsets = new Map([['ekam', -40]])
+const subjectScales = new Map([
+  ['trini', 0.75],
+  ['sapta', 0.75],
+])
 const groundLine = 960
 const transparentThreshold = 10
 const opaqueThreshold = 24
@@ -148,7 +152,21 @@ for (const pose of poses) {
   }
 
   const bounds = await alphaBounds(transparent)
-  const subject = await sharp(transparent).extract(bounds).png().toBuffer()
+  const extractedSubject = await sharp(transparent).extract(bounds).png().toBuffer()
+  const scale = subjectScales.get(pose) ?? 1
+  const subject = scale === 1
+    ? extractedSubject
+    : await sharp(extractedSubject)
+      .resize({
+        width: Math.round(bounds.width * scale),
+        height: Math.round(bounds.height * scale),
+        fit: 'fill',
+      })
+      .png()
+      .toBuffer()
+  const subjectMetadata = await sharp(subject).metadata()
+  const subjectWidth = subjectMetadata.width
+  const subjectHeight = subjectMetadata.height
 
   await sharp(subject)
     .extend({
@@ -161,8 +179,8 @@ for (const pose of poses) {
     .png()
     .toFile(path.join(cutoutDir, `surya-a-${pose}.png`))
 
-  const left = Math.round((1024 - bounds.width) / 2) + (horizontalOffsets.get(pose) ?? 0)
-  const top = groundLine - bounds.height
+  const left = Math.round((1024 - subjectWidth) / 2) + (horizontalOffsets.get(pose) ?? 0)
+  const top = groundLine - subjectHeight
   if (left < 0 || top < 0) throw new Error(`${pose} does not fit the aligned canvas`)
 
   await sharp({
