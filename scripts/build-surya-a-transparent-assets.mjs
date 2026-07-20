@@ -9,7 +9,6 @@ const alignedDir = path.join(root, 'output', 'primary-series-ip-v2', 'aligned', 
 const downDogSource = path.join(cutoutDir, 'down-dog-source.png')
 const foldSource = path.join(cutoutDir, 'fold-source.png')
 const halfLiftSource = path.join(cutoutDir, 'half-lift-source.png')
-const updogSource = path.join(cutoutDir, 'updog-source.png')
 
 const poses = [
   'samasthitih',
@@ -126,14 +125,6 @@ for (const pose of poses) {
       .toBuffer()
   } else if (pose === 'trini' || pose === 'sapta') {
     transparent = await sharp(halfLiftSource)
-      .resize(1024, 1024, {
-        fit: 'contain',
-        background: { r: 0, g: 0, b: 0, alpha: 0 },
-      })
-      .png()
-      .toBuffer()
-  } else if (pose === 'panca') {
-    transparent = await sharp(updogSource)
       .resize(1024, 1024, {
         fit: 'contain',
         background: { r: 0, g: 0, b: 0, alpha: 0 },
