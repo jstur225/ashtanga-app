@@ -23,6 +23,7 @@ export interface Pose {
   drishtiSanskrit?: string
   action?: string
   vinyasaCount?: number
+  vinyasaStep?: string
   vinyasaSteps?: VinyasaStep[]
   holdBreaths?: number
   assetStatus: 'generated' | 'needs-regeneration' | 'approved'
@@ -221,6 +222,9 @@ export const POSES: Pose[] = RAW_POSES.map(([sourceFilename, sourceName, section
     drishtiSanskrit: suryaStep?.drishtiSanskrit ?? standingDetails?.drishtiSanskrit,
     action: suryaStep?.action,
     vinyasaCount: suryaStep?.vinyasaCount ?? standingDetails?.vinyasaCount,
+    vinyasaStep: suryaStep && order > 1 && order <= suryaStep.vinyasaCount + 1
+      ? String(order - 1)
+      : undefined,
     vinyasaSteps: standingDetails?.steps,
     holdBreaths: suryaStep?.holdBreaths,
     assetStatus: 'generated',

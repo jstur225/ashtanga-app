@@ -53,6 +53,15 @@ export function PosesTab({ onDetailOpen, onDetailClose }: PosesTabProps) {
     setSelectedPose(visiblePoses[nextIndex])
   }
 
+  const detailSteps = selectedPose?.vinyasaSteps ?? (selectedPose?.action ? [{
+    count: selectedPose.vinyasaStep ?? '—',
+    breath: selectedPose.breath ?? '—',
+    action: selectedPose.action,
+    drishti: selectedPose.drishti,
+    isAsana: false,
+    holdBreaths: selectedPose.holdBreaths,
+  }] : undefined)
+
   return (
     <div className="relative flex h-full flex-col bg-gradient-to-b from-[#faf8f5] to-white">
       <div className="absolute inset-x-0 top-2 z-10 mx-3 rounded-[24px] border border-white/30 bg-white/30 shadow-[0_4px_20px_rgba(0,0,0,0.08)] backdrop-blur-[8px]">
@@ -180,31 +189,16 @@ export function PosesTab({ onDetailOpen, onDetailClose }: PosesTabProps) {
                         </p>
                       </div>
                     </div>
-                    {(selectedPose.breath || selectedPose.holdBreaths) && (
-                      <div className="mt-5">
-                        <p className="text-[11px] tracking-[0.18em] text-stone-400">呼吸</p>
-                        <p className="mt-1.5 text-base font-serif text-stone-700">
-                          {selectedPose.breath}
-                          {selectedPose.holdBreaths ? `，停留 ${selectedPose.holdBreaths} 次呼吸` : ''}
-                        </p>
-                      </div>
-                    )}
-                    {selectedPose.action && (
-                      <div className="mt-7">
-                        <p className="text-[11px] tracking-[0.18em] text-stone-400">动作解析</p>
-                        <p className="mt-2 text-[15px] leading-7 font-serif text-stone-700">
-                          {selectedPose.action}
-                        </p>
-                      </div>
-                    )}
-                    {selectedPose.vinyasaSteps && (
+                    {detailSteps && (
                       <div className="mt-8">
                         <div className="mb-3 flex items-center justify-between">
                           <p className="text-[11px] tracking-[0.18em] text-stone-400">VINYASA 分解</p>
-                          <p className="text-[10px] font-serif text-stone-300">绿色为体位法位置</p>
+                          {detailSteps.some(item => item.isAsana) && (
+                            <p className="text-[10px] font-serif text-stone-300">绿色为体位法位置</p>
+                          )}
                         </div>
                         <div className="space-y-2.5">
-                          {selectedPose.vinyasaSteps.map((vinyasaStep, index) => (
+                          {detailSteps.map((vinyasaStep, index) => (
                             <div
                               key={`${vinyasaStep.count}-${index}`}
                               data-vinyasa-step={vinyasaStep.count}

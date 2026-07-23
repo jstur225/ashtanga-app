@@ -81,12 +81,26 @@ describe("PosesTab", () => {
       breath: "吸气",
       drishti: "眉心",
       vinyasaCount: 9,
+      vinyasaStep: "1",
     })
     expect(suryaBWarrior).toMatchObject({
       cueName: "英雄式 A（右侧）",
       drishti: "指尖",
       vinyasaCount: 17,
     })
+  })
+
+  it("拜日详情使用与站立体式一致的 Vinyasa 步骤卡", () => {
+    render(<PosesTab />)
+
+    fireEvent.click(screen.getByRole("img", { name: "Ekam" }).closest("button")!)
+
+    expect(screen.getByText("VINYASA 分解")).toBeTruthy()
+    expect(screen.getByText("V1")).toBeTruthy()
+    expect(screen.getByText("吸气")).toBeTruthy()
+    expect(screen.getByText("看眉心")).toBeTruthy()
+    expect(screen.getByText("双手举过头合十，微微抬头。")).toBeTruthy()
+    expect(screen.queryByText("动作解析")).toBeNull()
   })
 
   it("尚未整理动作的详情页也显示统一说明", () => {
