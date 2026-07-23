@@ -111,9 +111,14 @@ export function PosesTab({ onDetailOpen, onDetailClose }: PosesTabProps) {
                     decoding="async"
                   />
                 </div>
-                <span className="mt-1.5 line-clamp-2 min-h-[2.5em] text-center text-[11px] leading-[1.25] font-serif text-stone-600">
+                <span className="mt-1.5 block line-clamp-2 min-h-[2.5em] text-center text-[11px] leading-[1.25] font-serif text-stone-600">
                   {pose.name}
                 </span>
+                {pose.section === 'standing' && pose.cueName && (
+                  <span className="mt-0.5 block line-clamp-2 min-h-[2.4em] text-center text-[10px] leading-[1.2] font-serif text-stone-400">
+                    {pose.cueName}
+                  </span>
+                )}
               </button>
             ))}
           </div>
@@ -160,13 +165,27 @@ export function PosesTab({ onDetailOpen, onDetailClose }: PosesTabProps) {
                     <p className="mt-1 text-sm font-serif text-stone-500">
                       {selectedPose.cueName}
                     </p>
-                    <div className="mt-7 space-y-5">
-                      <div>
-                        <p className="text-[11px] tracking-[0.18em] text-stone-400">呼吸</p>
-                        <p className="mt-1.5 text-base font-serif text-stone-700">
-                          {selectedPose.breath}
-                        </p>
-                      </div>
+                    <div className="mt-5 flex flex-wrap gap-2">
+                      {selectedPose.vinyasaCount && (
+                        <span className="rounded-full bg-[#5B7553]/10 px-3 py-1.5 text-xs font-serif text-[#4D6647]">
+                          Vinyasa {selectedPose.vinyasaCount}
+                        </span>
+                      )}
+                      {selectedPose.holdBreaths && (
+                        <span className="rounded-full bg-stone-100 px-3 py-1.5 text-xs font-serif text-stone-500">
+                          停留 {selectedPose.holdBreaths} 次呼吸
+                        </span>
+                      )}
+                    </div>
+                    <div className="mt-7 grid grid-cols-2 gap-5">
+                      {selectedPose.breath && (
+                        <div>
+                          <p className="text-[11px] tracking-[0.18em] text-stone-400">呼吸</p>
+                          <p className="mt-1.5 text-base font-serif text-stone-700">
+                            {selectedPose.breath}
+                          </p>
+                        </div>
+                      )}
                       <div>
                         <p className="text-[11px] tracking-[0.18em] text-stone-400">凝视点</p>
                         <p className="mt-1.5 text-base font-serif text-stone-700">
@@ -177,6 +196,60 @@ export function PosesTab({ onDetailOpen, onDetailClose }: PosesTabProps) {
                         </p>
                       </div>
                     </div>
+                    {selectedPose.action && (
+                      <div className="mt-7">
+                        <p className="text-[11px] tracking-[0.18em] text-stone-400">动作解析</p>
+                        <p className="mt-2 text-[15px] leading-7 font-serif text-stone-700">
+                          {selectedPose.action}
+                        </p>
+                      </div>
+                    )}
+                    {selectedPose.vinyasaSteps && (
+                      <div className="mt-8">
+                        <div className="mb-3 flex items-center justify-between">
+                          <p className="text-[11px] tracking-[0.18em] text-stone-400">VINYASA 分解</p>
+                          <p className="text-[10px] font-serif text-stone-300">绿色为体位法位置</p>
+                        </div>
+                        <div className="space-y-2.5">
+                          {selectedPose.vinyasaSteps.map((vinyasaStep, index) => (
+                            <div
+                              key={`${vinyasaStep.count}-${index}`}
+                              data-vinyasa-step={vinyasaStep.count}
+                              data-asana={vinyasaStep.isAsana ? 'true' : 'false'}
+                              className={`rounded-2xl px-4 py-3 ${
+                                vinyasaStep.isAsana
+                                  ? 'bg-[#5B7553]/10 ring-1 ring-[#5B7553]/10'
+                                  : 'bg-white/70 ring-1 ring-stone-100'
+                              }`}
+                            >
+                              <div className="flex items-baseline gap-3">
+                                <span className={`min-w-8 text-sm font-medium font-serif ${
+                                  vinyasaStep.isAsana ? 'text-[#4D6647]' : 'text-stone-500'
+                                }`}>
+                                  {vinyasaStep.count === '—' ? '回' : `V${vinyasaStep.count}`}
+                                </span>
+                                <span className="text-xs font-serif text-stone-400">
+                                  {vinyasaStep.breath}
+                                </span>
+                                {vinyasaStep.drishti && (
+                                  <span className="ml-auto text-xs font-serif text-stone-400">
+                                    看{vinyasaStep.drishti}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="mt-1.5 text-sm leading-6 font-serif text-stone-700">
+                                {vinyasaStep.action}
+                              </p>
+                              {vinyasaStep.holdBreaths && (
+                                <p className="mt-1.5 text-xs font-serif text-[#5B7553]">
+                                  停留 {vinyasaStep.holdBreaths} 次呼吸
+                                </p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </>
                 ) : (
                   <>
@@ -187,6 +260,10 @@ export function PosesTab({ onDetailOpen, onDetailClose }: PosesTabProps) {
                   </>
                 )}
               </div>
+
+              <p className="mx-6 border-t border-stone-100 px-1 pb-7 pt-5 text-xs leading-5 font-serif text-stone-400">
+                体式库以体式动作解析为主，与实际练习中的串联方式会有差别。
+              </p>
 
               <div className="flex items-center justify-center gap-6 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] pt-2">
                 <button
