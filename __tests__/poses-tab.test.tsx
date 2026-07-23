@@ -1,5 +1,5 @@
 import React from "react"
-import { cleanup, render, screen } from "@testing-library/react"
+import { cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { PosesTab } from "@/components/PosesTab"
 
@@ -26,23 +26,27 @@ afterEach(() => {
 })
 
 describe("PosesTab", () => {
-  it("云端投票状态仍在加载时立即显示投票入口", () => {
-    localStorage.setItem("ashtanga_uuid", "6cf9a14d-fac4-4a11-a363-cc8f3317ecf8")
-    vi.stubGlobal("fetch", vi.fn(() => new Promise(() => {})))
-
+  it("站立体式详情显示梵文、中文名、呼吸和凝视点", () => {
     render(<PosesTab />)
 
-    expect(screen.getByText("要不要继续完善体式库？")).toBeTruthy()
-    expect(screen.getByRole("button", { name: "要" })).toBeTruthy()
-    expect(screen.getByRole("button", { name: "不需要" })).toBeTruthy()
+    fireEvent.click(screen.getByRole("button", { name: "站立体式" }))
+    const poseImage = screen.getByRole("img", { name: "Pādāṅguṣṭhāsana" })
+    fireEvent.click(poseImage.closest("button")!)
+
+    expect(screen.getByRole("heading", { name: "Pādāṅguṣṭhāsana" })).toBeTruthy()
+    expect(screen.getByText("手抓大脚趾式")).toBeTruthy()
+    expect(screen.getByText("呼气进入，停留 5 次呼吸")).toBeTruthy()
+    expect(screen.getByText("鼻尖")).toBeTruthy()
+    expect(screen.getByText("nāsāgre")).toBeTruthy()
   })
 
-  it("本地已有投票时立即显示感谢状态", () => {
-    localStorage.setItem("pose_library_improvement_vote", JSON.stringify("yes"))
-    vi.stubGlobal("fetch", vi.fn(() => new Promise(() => {})))
-
+  it("搜索可通过站立体式中文名定位梵文卡片", () => {
     render(<PosesTab />)
 
-    expect(screen.getByText("您已投票，感谢参与。")).toBeTruthy()
+    fireEvent.change(screen.getByPlaceholderText("搜索中文名或梵文名"), {
+      target: { value: "扭转三角式" },
+    })
+
+    expect(screen.getByRole("img", { name: "Parivṛtta Trikoṇāsana" })).toBeTruthy()
   })
 })

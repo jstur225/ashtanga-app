@@ -55,7 +55,7 @@ export function PosesTab({ onDetailOpen, onDetailClose }: PosesTabProps) {
 
   return (
     <div className="flex h-full flex-col bg-gradient-to-b from-[#faf8f5] to-white">
-      <div className="sticky top-0 z-10 border-b border-stone-100 bg-[#faf8f5]/95 backdrop-blur-sm">
+      <div className="sticky top-0 z-10 border-b border-white/30 bg-white/30 shadow-[0_4px_20px_rgba(0,0,0,0.08)] backdrop-blur-[8px]">
         <div className="overflow-x-auto px-3 pt-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <div className="flex min-w-max gap-1.5 pb-2">
             {POSE_SECTIONS.map(section => (
@@ -88,7 +88,7 @@ export function PosesTab({ onDetailOpen, onDetailClose }: PosesTabProps) {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-3 py-3">
+      <div className="flex-1 overflow-y-auto px-3 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-3">
         {visiblePoses.length === 0 ? (
           <div className="flex h-40 items-center justify-center text-sm font-serif text-stone-300">
             未找到匹配体式
