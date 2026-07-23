@@ -32,17 +32,18 @@ describe("PosesTab", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "站立体式" }))
     expect(screen.getByText("手抓脚趾前弯式")).toBeTruthy()
+    expect(screen.queryByText("Pādāṅguṣṭhāsana")).toBeNull()
 
     const poseImage = screen.getByRole("img", { name: "Pādāṅguṣṭhāsana" })
     fireEvent.click(poseImage.closest("button")!)
 
     expect(screen.getByRole("heading", { name: "Pādāṅguṣṭhāsana" })).toBeTruthy()
     expect(screen.getAllByText("手抓脚趾前弯式")).toHaveLength(2)
-    expect(screen.getByText("Vinyasa 3")).toBeTruthy()
+    expect(screen.getByText("VINYASA 总数")).toBeTruthy()
     expect(screen.getByText("鼻尖")).toBeTruthy()
     expect(screen.getByText("nāsāgre")).toBeTruthy()
     expect(screen.getByText("前弯，头靠近两膝之间，腿打直。")).toBeTruthy()
-    expect(screen.getByText("体式库以体式动作解析为主，与实际练习中的串联方式会有差别。")).toBeTruthy()
+    expect(screen.getByText("体式库以动作解析为主，与实际练习中的串联有所差别。内容来源为网络资料人工整理，如果有错漏，可联系开发者修正，Namaste🙏")).toBeTruthy()
   })
 
   it("搜索可通过旧中文名定位更新后的梵文和中文卡片", () => {
@@ -93,6 +94,6 @@ describe("PosesTab", () => {
     fireEvent.click(screen.getByRole("img", { name: "手杖式" }).closest("button")!)
 
     expect(screen.getByText("动作提示整理中")).toBeTruthy()
-    expect(screen.getByText("体式库以体式动作解析为主，与实际练习中的串联方式会有差别。")).toBeTruthy()
+    expect(screen.getByText("体式库以动作解析为主，与实际练习中的串联有所差别。内容来源为网络资料人工整理，如果有错漏，可联系开发者修正，Namaste🙏")).toBeTruthy()
   })
 })

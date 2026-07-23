@@ -55,7 +55,7 @@ export function PosesTab({ onDetailOpen, onDetailClose }: PosesTabProps) {
 
   return (
     <div className="flex h-full flex-col bg-gradient-to-b from-[#faf8f5] to-white">
-      <div className="sticky top-0 z-10 border-b border-white/30 bg-white/30 shadow-[0_4px_20px_rgba(0,0,0,0.08)] backdrop-blur-[8px]">
+      <div className="sticky top-2 z-10 mx-3 mt-3 rounded-[24px] border border-white/30 bg-white/30 shadow-[0_4px_20px_rgba(0,0,0,0.08)] backdrop-blur-[8px]">
         <div className="overflow-x-auto px-3 pt-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <div className="flex min-w-max gap-1.5 pb-2">
             {POSE_SECTIONS.map(section => (
@@ -112,13 +112,8 @@ export function PosesTab({ onDetailOpen, onDetailClose }: PosesTabProps) {
                   />
                 </div>
                 <span className="mt-1.5 block line-clamp-2 min-h-[2.5em] text-center text-[11px] leading-[1.25] font-serif text-stone-600">
-                  {pose.name}
+                  {pose.section === 'standing' ? pose.cueName : pose.name}
                 </span>
-                {pose.section === 'standing' && pose.cueName && (
-                  <span className="mt-0.5 block line-clamp-2 min-h-[2.4em] text-center text-[10px] leading-[1.2] font-serif text-stone-400">
-                    {pose.cueName}
-                  </span>
-                )}
               </button>
             ))}
           </div>
@@ -134,7 +129,16 @@ export function PosesTab({ onDetailOpen, onDetailClose }: PosesTabProps) {
             transition={{ duration: 0.2 }}
             className="fixed inset-0 z-50 flex flex-col bg-white"
           >
-            <div className="flex-1 overflow-y-auto bg-gradient-to-b from-[#faf8f5] to-white">
+            <button
+              type="button"
+              onClick={closePose}
+              aria-label="返回体式库"
+              className="absolute left-3 top-[calc(env(safe-area-inset-top)+0.75rem)] z-20 flex h-10 w-10 items-center justify-center rounded-full bg-white/85 text-stone-600 shadow-sm backdrop-blur-md active:scale-95"
+            >
+              <ChevronLeft className="h-6 w-6" />
+            </button>
+
+            <div className="flex-1 overflow-y-auto bg-gradient-to-b from-[#faf8f5] to-white pb-[calc(env(safe-area-inset-bottom)+5.5rem)]">
               <div className="relative aspect-square w-full">
                 {!imagesLoaded[selectedPose.id] && (
                   <div className="absolute inset-0 animate-pulse bg-stone-100" />
@@ -146,14 +150,6 @@ export function PosesTab({ onDetailOpen, onDetailClose }: PosesTabProps) {
                   onLoad={() => setImagesLoaded(previous => ({ ...previous, [selectedPose.id]: true }))}
                   decoding="async"
                 />
-                <button
-                  type="button"
-                  onClick={closePose}
-                  aria-label="返回体式库"
-                  className="absolute left-3 top-[calc(env(safe-area-inset-top)+0.75rem)] z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/85 text-stone-600 shadow-sm backdrop-blur-md active:scale-95"
-                >
-                  <ChevronLeft className="h-6 w-6" />
-                </button>
               </div>
 
               <div className="px-6 pb-8 pt-5">
@@ -165,24 +161,12 @@ export function PosesTab({ onDetailOpen, onDetailClose }: PosesTabProps) {
                     <p className="mt-1 text-sm font-serif text-stone-500">
                       {selectedPose.cueName}
                     </p>
-                    <div className="mt-5 flex flex-wrap gap-2">
-                      {selectedPose.vinyasaCount && (
-                        <span className="rounded-full bg-[#5B7553]/10 px-3 py-1.5 text-xs font-serif text-[#4D6647]">
-                          Vinyasa {selectedPose.vinyasaCount}
-                        </span>
-                      )}
-                      {selectedPose.holdBreaths && (
-                        <span className="rounded-full bg-stone-100 px-3 py-1.5 text-xs font-serif text-stone-500">
-                          停留 {selectedPose.holdBreaths} 次呼吸
-                        </span>
-                      )}
-                    </div>
                     <div className="mt-7 grid grid-cols-2 gap-5">
-                      {selectedPose.breath && (
+                      {selectedPose.vinyasaCount && (
                         <div>
-                          <p className="text-[11px] tracking-[0.18em] text-stone-400">呼吸</p>
+                          <p className="text-[11px] tracking-[0.18em] text-stone-400">VINYASA 总数</p>
                           <p className="mt-1.5 text-base font-serif text-stone-700">
-                            {selectedPose.breath}
+                            {selectedPose.vinyasaCount}
                           </p>
                         </div>
                       )}
@@ -196,6 +180,15 @@ export function PosesTab({ onDetailOpen, onDetailClose }: PosesTabProps) {
                         </p>
                       </div>
                     </div>
+                    {(selectedPose.breath || selectedPose.holdBreaths) && (
+                      <div className="mt-5">
+                        <p className="text-[11px] tracking-[0.18em] text-stone-400">呼吸</p>
+                        <p className="mt-1.5 text-base font-serif text-stone-700">
+                          {selectedPose.breath}
+                          {selectedPose.holdBreaths ? `，停留 ${selectedPose.holdBreaths} 次呼吸` : ''}
+                        </p>
+                      </div>
+                    )}
                     {selectedPose.action && (
                       <div className="mt-7">
                         <p className="text-[11px] tracking-[0.18em] text-stone-400">动作解析</p>
@@ -262,10 +255,11 @@ export function PosesTab({ onDetailOpen, onDetailClose }: PosesTabProps) {
               </div>
 
               <p className="mx-6 border-t border-stone-100 px-1 pb-7 pt-5 text-xs leading-5 font-serif text-stone-400">
-                体式库以体式动作解析为主，与实际练习中的串联方式会有差别。
+                体式库以动作解析为主，与实际练习中的串联有所差别。内容来源为网络资料人工整理，如果有错漏，可联系开发者修正，Namaste🙏
               </p>
+            </div>
 
-              <div className="flex items-center justify-center gap-6 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] pt-2">
+              <div className="absolute bottom-[calc(env(safe-area-inset-bottom)+1rem)] left-1/2 z-20 flex -translate-x-1/2 items-center justify-center gap-5 rounded-full bg-white/85 px-3 py-2 shadow-[0_8px_30px_rgba(0,0,0,0.12)] backdrop-blur-md">
                 <button
                   type="button"
                   onClick={() => navigatePose('prev')}
@@ -286,7 +280,6 @@ export function PosesTab({ onDetailOpen, onDetailClose }: PosesTabProps) {
                   <ChevronRight className="h-5 w-5" />
                 </button>
               </div>
-            </div>
           </motion.div>
         )}
       </AnimatePresence>
