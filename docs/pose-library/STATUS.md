@@ -34,8 +34,8 @@
 ### 站立体式
 
 - 共保留 18 个正式顺序位置。
-- 17 个位置使用女性 IP 透明素材；第 15 个 `Ardha Baddha Padmottanasana` 暂时使用“待补充”占位图。
-- 第 15 张此前多次生成仍无法稳定表达半莲花腿、背后抓脚和遮挡关系，因此不再使用错误成图，等待外部制作后按原文件名替换。
+- 18 个位置均使用女性 IP 透明素材；第 15 个 `Ardha Baddha Padmottanasana` 已于 2026-07-23 使用用户提供的新图替换占位图。
+- 第 15 张新图保留半莲花腿、背后抓脚和遮挡关系，只进行背景移除、等比例缩放与基线对齐，不再修改人物动态。
 - 人物尺度已经按前屈、宽站、单腿站立、举手弓步四类重新校准，不按图片外接框强行等高。
 - 全部素材使用 1024×1024 透明母版，主要落地点统一到 `y=959`。
 - APP 已输出 1024 详情 WebP 和 320×320 缩略 WebP。
@@ -60,11 +60,10 @@
 
 ## 下一步
 
-1. 用户将第 15 张交给其他图片工具制作；收到透明 PNG 后按原路径替换占位图。
-2. 推送 `master2` 并在手机端检查新版站立体式的人物尺度和占位状态。
-3. 按同一流程处理坐立体式：先完整联系表核对，再分批返修，最后统一人物尺度。
-4. 处理结束体式。
-5. 用户提供认可的标准中文名、梵文名及文案后，再统一审核名称、呼吸、凝视点和教学提示。
+1. 推送 `master2` 并在手机端检查新版站立体式的人物尺度及第 15 张显示效果。
+2. 按同一流程处理坐立体式：先完整联系表核对，再分批返修，最后统一人物尺度。
+3. 处理结束体式。
+4. 用户提供认可的标准中文名、梵文名及文案后，再统一审核名称、呼吸、凝视点和教学提示。
 
 ## 关键文件
 
@@ -73,6 +72,8 @@
 - 页面测试：`__tests__/poses-tab.test.tsx`
 - APP 素材：`public/poses/primary-series-ip-v1/`
 - 站立体式构建：`scripts/build-standing-v3-full.mjs`
+- 第 15 张源图：`assets/pose-library/standing/ardha-baddha-padmottanasana-source.png`
+- 第 15 张导入：`scripts/import-standing-pose-15.mjs`
 - 站立体式发布：`scripts/publish-standing-v3-full.mjs`
 - 站立体式验证：`scripts/validate-standing-v3-full.mjs`
 - 站立联系表：`output/primary-series-ip-v3/standing/contact-sheets/standing-v3-review-numbered.png`

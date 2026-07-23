@@ -7,7 +7,6 @@ const root = process.cwd()
 const dir = path.join(root, 'output', 'primary-series-ip-v3', 'standing', 'aligned-full')
 const files = (await fs.readdir(dir)).filter(file => file.endsWith('.png')).sort()
 if (files.length !== 18) throw new Error(`Expected 18 PNG files, found ${files.length}`)
-const placeholders = new Set(['ardha-baddha-padmottanasana.png'])
 
 const hashes = new Set()
 for (const file of files) {
@@ -31,8 +30,7 @@ for (const file of files) {
     }
   }
   if (bottom !== 959) throw new Error(`${file}: baseline ${bottom}, expected 959`)
-  const minimumVisiblePixels = placeholders.has(file) ? 2_000 : 10_000
-  if (visible < minimumVisiblePixels) throw new Error(`${file}: implausibly small subject`)
+  if (visible < 10_000) throw new Error(`${file}: implausibly small subject`)
   console.log(`${file}: baseline=${bottom}, sha256=${hash.slice(0, 12)}`)
 }
 console.log('Validated 18 unique 1024x1024 RGBA standing images.')

@@ -25,7 +25,7 @@ const poses = [
   { file: 'utthita-hasta-padangusthasana-01.png', source: '12-utthita-hasta-padangusthasana-01.png', label: '12 · Utthita Hasta 1', targetHeight: 860 },
   { file: 'utthita-hasta-padangusthasana-02.png', source: '13-utthita-hasta-padangusthasana-02.png', label: '13 · Utthita Hasta 2', targetHeight: 860 },
   { file: 'utthita-hasta-padangusthasana-03.png', source: 'retained', label: '14 · Utthita Hasta 3', targetHeight: 860 },
-  { file: 'ardha-baddha-padmottanasana.png', source: 'placeholder', label: '15 · Ardha Baddha' },
+  { file: 'ardha-baddha-padmottanasana.png', source: '15-ardha-baddha-padmottanasana-final-v2.png', label: '15 · Ardha Baddha', targetHeight: 800, baselineOffset: 8 },
   { file: 'utkatasana.png', source: 'retained', label: '16 · Utkatasana', targetHeight: 880 },
   { file: 'virabhadrasana-1.png', source: 'retained', label: '17 · Virabhadrasana 1', maxWidth: 900, maxHeight: 900 },
   { file: 'virabhadrasana-2.png', source: 'retained', label: '18 · Virabhadrasana 2', targetWidth: 900 },
@@ -66,21 +66,6 @@ async function alphaBounds(input) {
 }
 
 for (const pose of poses) {
-  if (pose.source === 'placeholder') {
-    const placeholder = Buffer.from(`
-      <svg width="${canvasSize}" height="${canvasSize}" xmlns="http://www.w3.org/2000/svg">
-        <rect x="352" y="439" width="320" height="518" rx="34" fill="none"
-          stroke="#2A4B3C" stroke-opacity="0.22" stroke-width="6" stroke-dasharray="16 14"/>
-        <path d="M464 699 H560 M512 651 V747" stroke="#2A4B3C" stroke-opacity="0.34"
-          stroke-width="10" stroke-linecap="round"/>
-        <text x="512" y="805" text-anchor="middle" font-family="Arial, sans-serif"
-          font-size="34" fill="#2A4B3C" fill-opacity="0.46">待补充</text>
-      </svg>
-    `)
-    await sharp(placeholder).png().toFile(path.join(alignedDir, pose.file))
-    console.log(`${pose.label}: placeholder, baseline=${baseline}`)
-    continue
-  }
   const input = pose.source === 'retained'
     ? path.join(retainedDir, pose.file)
     : path.join(newDir, pose.source)
@@ -101,7 +86,7 @@ for (const pose of poses) {
     .png()
     .toBuffer()
   const left = Math.round((canvasSize - width) / 2)
-  const top = baseline - height + 1
+  const top = baseline - height + 1 + (pose.baselineOffset ?? 0)
   if (left < 24 || top < 24 || left + width > 1000) throw new Error(`${pose.file} violates safety margin`)
 
   await sharp({ create: { width: canvasSize, height: canvasSize, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
