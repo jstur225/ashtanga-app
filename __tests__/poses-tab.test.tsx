@@ -43,6 +43,8 @@ describe("PosesTab", () => {
     expect(screen.getByText("鼻尖")).toBeTruthy()
     expect(screen.getByText("nāsāgre")).toBeTruthy()
     expect(screen.getByText("前弯，头靠近两膝之间，腿打直。")).toBeTruthy()
+    expect(screen.getByText("-")).toBeTruthy()
+    expect(screen.queryByText("回")).toBeNull()
     expect(screen.getByText("体式库以动作解析为主，与实际练习中的串联有所差别。内容来源为网络资料人工整理，如果有错漏，可联系开发者修正，Namaste🙏")).toBeTruthy()
   })
 

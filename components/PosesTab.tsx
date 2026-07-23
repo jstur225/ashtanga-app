@@ -54,8 +54,8 @@ export function PosesTab({ onDetailOpen, onDetailClose }: PosesTabProps) {
   }
 
   return (
-    <div className="flex h-full flex-col bg-gradient-to-b from-[#faf8f5] to-white">
-      <div className="sticky top-2 z-10 mx-3 mt-3 rounded-[24px] border border-white/30 bg-white/30 shadow-[0_4px_20px_rgba(0,0,0,0.08)] backdrop-blur-[8px]">
+    <div className="relative flex h-full flex-col bg-gradient-to-b from-[#faf8f5] to-white">
+      <div className="absolute inset-x-0 top-2 z-10 mx-3 rounded-[24px] border border-white/30 bg-white/30 shadow-[0_4px_20px_rgba(0,0,0,0.08)] backdrop-blur-[8px]">
         <div className="overflow-x-auto px-3 pt-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <div className="flex min-w-max gap-1.5 pb-2">
             {POSE_SECTIONS.map(section => (
@@ -66,7 +66,7 @@ export function PosesTab({ onDetailOpen, onDetailClose }: PosesTabProps) {
                 className={`rounded-full px-3.5 py-1.5 text-xs font-serif transition-colors ${
                   activeSection === section.id && !searchQuery.trim()
                     ? 'bg-[#5B7553] text-white shadow-sm'
-                    : 'bg-stone-100 text-stone-500'
+                    : 'text-stone-500 hover:bg-white/20'
                 }`}
               >
                 {section.name}
@@ -82,13 +82,13 @@ export function PosesTab({ onDetailOpen, onDetailClose }: PosesTabProps) {
               value={searchQuery}
               onChange={event => setSearchQuery(event.target.value)}
               placeholder="搜索中文名或梵文名"
-              className="w-full rounded-full bg-white py-2 pl-9 pr-3 text-xs font-serif text-stone-600 outline-none ring-1 ring-stone-100 placeholder:text-stone-300 focus:ring-[#5B7553]/25"
+              className="w-full rounded-full border border-white/30 bg-white/20 py-2 pl-9 pr-3 text-xs font-serif text-stone-600 outline-none backdrop-blur-[8px] placeholder:text-stone-400 focus:border-[#5B7553]/20 focus:bg-white/30"
             />
           </label>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-3 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-3">
+      <div className="flex-1 overflow-y-auto px-3 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-[7.5rem]">
         {visiblePoses.length === 0 ? (
           <div className="flex h-40 items-center justify-center text-sm font-serif text-stone-300">
             未找到匹配体式
@@ -219,7 +219,7 @@ export function PosesTab({ onDetailOpen, onDetailClose }: PosesTabProps) {
                                 <span className={`min-w-8 text-sm font-medium font-serif ${
                                   vinyasaStep.isAsana ? 'text-[#4D6647]' : 'text-stone-500'
                                 }`}>
-                                  {vinyasaStep.count === '—' ? '回' : `V${vinyasaStep.count}`}
+                                  {vinyasaStep.count === '—' ? '-' : `V${vinyasaStep.count}`}
                                 </span>
                                 <span className="text-xs font-serif text-stone-400">
                                   {vinyasaStep.breath}
@@ -268,7 +268,7 @@ export function PosesTab({ onDetailOpen, onDetailClose }: PosesTabProps) {
                 >
                   <ChevronLeft className="h-5 w-5" />
                 </button>
-                <span className="text-xs font-serif text-stone-300">
+                <span className="min-w-[3.75rem] whitespace-nowrap text-center text-sm font-serif text-stone-400">
                   {poseIndex + 1} / {visiblePoses.length}
                 </span>
                 <button
