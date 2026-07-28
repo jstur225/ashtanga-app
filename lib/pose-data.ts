@@ -3,6 +3,7 @@ import {
   SURYA_STEPS,
   type VinyasaStep,
 } from './pose-instructions'
+import { FINISHING_INSTRUCTIONS } from './finishing-instructions'
 import { SEATED_INSTRUCTIONS } from './seated-instructions'
 
 export type PoseSectionId = 'surya-a' | 'surya-b' | 'standing' | 'seated' | 'finishing'
@@ -182,9 +183,9 @@ const RAW_POSES: Array<[string, string, PoseSectionId, number, string]> = [
   ['finishing/pindasana.png', 'PINDASANA', 'finishing', 5, ''],
   ['finishing/matsyasana.png', 'MATSYASANA', 'finishing', 6, ''],
   ['finishing/uttana-padasana.png', 'UTTANA PADASANA', 'finishing', 7, ''],
-  ['finishing/sirsasana.png', 'SIRSASANA', 'finishing', 8, ''],
-  ['finishing/baddha-padmasana.png', 'BADDHA PADMASANA', 'finishing', 9, ''],
-  ['finishing/yoga-mudra.png', 'YOGA MUDRA', 'finishing', 10, ''],
+  ['finishing/sirsasana-01.png', 'SIRSASANA', 'finishing', 8, '01'],
+  ['finishing/sirsasana-02.png', 'SIRSASANA', 'finishing', 9, '02'],
+  ['finishing/baddha-padmasana.png', 'BADDHA PADMASANA', 'finishing', 10, ''],
   ['finishing/padmasana.png', 'PADMASANA', 'finishing', 11, ''],
   ['finishing/utpluthih.png', 'UTPLUTHIH', 'finishing', 12, ''],
   ['finishing/savasana.png', 'SAVASANA', 'finishing', 13, ''],
@@ -196,7 +197,8 @@ export const POSES: Pose[] = RAW_POSES.map(([sourceFilename, sourceName, section
   const suryaStep = SURYA_STEPS[sourceFilename]
   const standingDetails = STANDING_INSTRUCTIONS[sourceFilename]
   const seatedDetails = SEATED_INSTRUCTIONS[sourceFilename]
-  const instructionDetails = standingDetails ?? seatedDetails
+  const finishingDetails = FINISHING_INSTRUCTIONS[sourceFilename]
+  const instructionDetails = standingDetails ?? seatedDetails ?? finishingDetails
   const name = suryaStep?.count ?? instructionDetails?.sanskrit ?? (marker ? `${names.zh} · ${marker}` : names.zh)
   const publicBase = `/poses/primary-series-ip-v1/${sourceFilename.replace(/\.png$/, '')}`
 

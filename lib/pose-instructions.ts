@@ -22,7 +22,7 @@ export interface StandingInstruction {
   sanskrit: string
   cueName: string
   aliases: string[]
-  vinyasaCount: number
+  vinyasaCount?: number
   drishti: string
   drishtiSanskrit: string
   steps: VinyasaStep[]
