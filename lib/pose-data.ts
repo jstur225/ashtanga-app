@@ -3,6 +3,7 @@ import {
   SURYA_STEPS,
   type VinyasaStep,
 } from './pose-instructions'
+import { SEATED_INSTRUCTIONS } from './seated-instructions'
 
 export type PoseSectionId = 'surya-a' | 'surya-b' | 'standing' | 'seated' | 'finishing'
 
@@ -156,41 +157,37 @@ const RAW_POSES: Array<[string, string, PoseSectionId, number, string]> = [
   ['seated/marichyasana-c.png', 'MARICHYASANA', 'seated', 13, 'C'],
   ['seated/marichyasana-d.png', 'MARICHYASANA', 'seated', 14, 'D'],
   ['seated/navasana.png', 'NAVASANA', 'seated', 15, ''],
-  ['seated/bhujapidasana-01.png', 'BUJAPIDASANA', 'seated', 16, '01'],
-  ['seated/bhujapidasana-02.png', 'BUJAPIDASANA', 'seated', 17, '02'],
-  ['seated/kurmasana.png', 'KURMASANA', 'seated', 18, ''],
-  ['seated/supta-kurmasana.png', 'SUPTA KURMASANA', 'seated', 19, ''],
-  ['seated/garbha-pindasana.png', 'GARBHA PINDASANA', 'seated', 20, ''],
-  ['seated/kukkutasana.png', 'KUKKUTASANA', 'seated', 21, ''],
-  ['seated/baddha-konasana-a.png', 'BADDHAKONASANA', 'seated', 22, 'A'],
-  ['seated/baddha-konasana-b.png', 'BADDHAKONASANA', 'seated', 23, 'B'],
-  ['seated/baddha-konasana-c.png', 'BADDHAKONASANA', 'seated', 24, 'C'],
-  ['seated/upavishta-konasana-01.png', 'UPAVISTHA KONASANA', 'seated', 25, '01'],
-  ['seated/upavishta-konasana-02.png', 'UPAVISTHA KONASANA', 'seated', 26, '02'],
-  ['seated/supta-konasana-01.png', 'SUPTA KONASANA', 'seated', 27, '01'],
-  ['seated/supta-konasana-02.png', 'SUPTA KONASANA', 'seated', 28, '02'],
-  ['seated/supta-padangusthasana-01.png', 'SUPTA PADANGUSTHASANA', 'seated', 29, '01'],
-  ['seated/supta-padangusthasana-02.png', 'SUPTA PADANGUSTHASANA', 'seated', 30, '02'],
-  ['seated/ubhaya-padangusthasana-01.png', 'UBHAYA PADANGUSTHASANA', 'seated', 31, '01'],
-  ['seated/ubhaya-padangusthasana-02.png', 'UBHAYA PADANGUSTHASANA', 'seated', 32, '02'],
-  ['seated/urdhva-mukha-paschimottanasana-01.png', 'URDVA MUKHA PASCHIMOTTANASANA', 'seated', 33, '01'],
-  ['seated/urdhva-mukha-paschimottanasana-02.png', 'URDVA MUKHA PASCHIMOTTANASANA', 'seated', 34, '02'],
-  ['seated/setu-bandhasana.png', 'SETU BANDHASANA', 'seated', 35, ''],
-  ['finishing/urdhva-dhanurasana.png', 'URDVA DANURASANA', 'finishing', 1, ''],
-  ['finishing/paschimottanasana.png', 'PASCHIMOTTANASANA', 'finishing', 2, ''],
-  ['finishing/sarvangasana.png', 'SARVANGASANA', 'finishing', 3, ''],
-  ['finishing/halasana.png', 'HALASANA', 'finishing', 4, ''],
-  ['finishing/karnapidasana.png', 'KARNAPIDASANA', 'finishing', 5, ''],
-  ['finishing/urdhva-padmasana.png', 'URDVA PADMASANA', 'finishing', 6, ''],
-  ['finishing/pindasana.png', 'PINDASANA', 'finishing', 7, ''],
-  ['finishing/matsyasana.png', 'MATSYASANA', 'finishing', 8, ''],
-  ['finishing/uttana-padasana.png', 'UTTANA PADASANA', 'finishing', 9, ''],
-  ['finishing/sirsasana.png', 'SIRSASANA', 'finishing', 10, ''],
-  ['finishing/baddha-padmasana.png', 'BADDHA PADMASANA', 'finishing', 11, ''],
-  ['finishing/yoga-mudra.png', 'YOGA MUDRA', 'finishing', 12, ''],
-  ['finishing/padmasana.png', 'PADMASANA', 'finishing', 13, ''],
-  ['finishing/utpluthih.png', 'UTPLUTHIH', 'finishing', 14, ''],
-  ['finishing/savasana.png', 'SAVASANA', 'finishing', 15, ''],
+  ['seated/bhujapidasana-02.png', 'BUJAPIDASANA', 'seated', 16, '02'],
+  ['seated/kurmasana.png', 'KURMASANA', 'seated', 17, ''],
+  ['seated/supta-kurmasana.png', 'SUPTA KURMASANA', 'seated', 18, ''],
+  ['seated/garbha-pindasana.png', 'GARBHA PINDASANA', 'seated', 19, ''],
+  ['seated/kukkutasana.png', 'KUKKUTASANA', 'seated', 20, ''],
+  ['seated/baddha-konasana-a.png', 'BADDHAKONASANA', 'seated', 21, 'A'],
+  ['seated/baddha-konasana-b.png', 'BADDHAKONASANA', 'seated', 22, 'B'],
+  ['seated/upavishta-konasana-01.png', 'UPAVISTHA KONASANA', 'seated', 23, '01'],
+  ['seated/upavishta-konasana-02.png', 'UPAVISTHA KONASANA', 'seated', 24, '02'],
+  ['seated/supta-konasana-01.png', 'SUPTA KONASANA', 'seated', 25, '01'],
+  ['seated/supta-konasana-02.png', 'SUPTA KONASANA', 'seated', 26, '02'],
+  ['seated/supta-padangusthasana-01.png', 'SUPTA PADANGUSTHASANA', 'seated', 27, '01'],
+  ['seated/supta-padangusthasana-02.png', 'SUPTA PADANGUSTHASANA', 'seated', 28, '02'],
+  ['seated/ubhaya-padangusthasana-02.png', 'UBHAYA PADANGUSTHASANA', 'seated', 29, '02'],
+  ['seated/urdhva-mukha-paschimottanasana-02.png', 'URDVA MUKHA PASCHIMOTTANASANA', 'seated', 30, '02'],
+  ['seated/setu-bandhasana.png', 'SETU BANDHASANA', 'seated', 31, ''],
+  ['seated/urdhva-dhanurasana.png', 'URDVA DANURASANA', 'seated', 32, ''],
+  ['seated/paschimottanasana.png', 'PASCHIMOTTANASANA', 'seated', 33, ''],
+  ['finishing/sarvangasana.png', 'SARVANGASANA', 'finishing', 1, ''],
+  ['finishing/halasana.png', 'HALASANA', 'finishing', 2, ''],
+  ['finishing/karnapidasana.png', 'KARNAPIDASANA', 'finishing', 3, ''],
+  ['finishing/urdhva-padmasana.png', 'URDVA PADMASANA', 'finishing', 4, ''],
+  ['finishing/pindasana.png', 'PINDASANA', 'finishing', 5, ''],
+  ['finishing/matsyasana.png', 'MATSYASANA', 'finishing', 6, ''],
+  ['finishing/uttana-padasana.png', 'UTTANA PADASANA', 'finishing', 7, ''],
+  ['finishing/sirsasana.png', 'SIRSASANA', 'finishing', 8, ''],
+  ['finishing/baddha-padmasana.png', 'BADDHA PADMASANA', 'finishing', 9, ''],
+  ['finishing/yoga-mudra.png', 'YOGA MUDRA', 'finishing', 10, ''],
+  ['finishing/padmasana.png', 'PADMASANA', 'finishing', 11, ''],
+  ['finishing/utpluthih.png', 'UTPLUTHIH', 'finishing', 12, ''],
+  ['finishing/savasana.png', 'SAVASANA', 'finishing', 13, ''],
 ]
 
 export const POSES: Pose[] = RAW_POSES.map(([sourceFilename, sourceName, section, order, marker]) => {
@@ -198,17 +195,19 @@ export const POSES: Pose[] = RAW_POSES.map(([sourceFilename, sourceName, section
   const basename = sourceFilename.split('/').pop()?.replace(/\.png$/, '') ?? sourceFilename
   const suryaStep = SURYA_STEPS[sourceFilename]
   const standingDetails = STANDING_INSTRUCTIONS[sourceFilename]
-  const name = suryaStep?.count ?? standingDetails?.sanskrit ?? (marker ? `${names.zh} · ${marker}` : names.zh)
+  const seatedDetails = SEATED_INSTRUCTIONS[sourceFilename]
+  const instructionDetails = standingDetails ?? seatedDetails
+  const name = suryaStep?.count ?? instructionDetails?.sanskrit ?? (marker ? `${names.zh} · ${marker}` : names.zh)
   const publicBase = `/poses/primary-series-ip-v1/${sourceFilename.replace(/\.png$/, '')}`
 
   return {
     id: `${section}-${basename}`,
     name,
-    sanskrit: standingDetails?.sanskrit ?? (suryaStep ? names.sanskrit : (marker ? `${names.sanskrit} · ${marker}` : names.sanskrit)),
+    sanskrit: instructionDetails?.sanskrit ?? (suryaStep ? names.sanskrit : (marker ? `${names.sanskrit} · ${marker}` : names.sanskrit)),
     aliases: suryaStep
       ? [...names.aliases, suryaStep.cueName]
-      : standingDetails
-        ? [...names.aliases, standingDetails.cueName, ...standingDetails.aliases]
+      : instructionDetails
+        ? [...names.aliases, instructionDetails.cueName, ...instructionDetails.aliases]
         : names.aliases,
     section,
     order,
@@ -216,18 +215,18 @@ export const POSES: Pose[] = RAW_POSES.map(([sourceFilename, sourceName, section
     sourceFilename,
     image: `${publicBase}.webp`,
     thumbnail: `${publicBase}-thumb.webp`,
-    cueName: suryaStep?.cueName ?? standingDetails?.cueName,
+    cueName: suryaStep?.cueName ?? instructionDetails?.cueName,
     breath: suryaStep?.breath,
-    drishti: suryaStep?.drishti ?? standingDetails?.drishti,
-    drishtiSanskrit: suryaStep?.drishtiSanskrit ?? standingDetails?.drishtiSanskrit,
+    drishti: suryaStep?.drishti ?? instructionDetails?.drishti,
+    drishtiSanskrit: suryaStep?.drishtiSanskrit ?? instructionDetails?.drishtiSanskrit,
     action: suryaStep?.action,
-    vinyasaCount: suryaStep?.vinyasaCount ?? standingDetails?.vinyasaCount,
+    vinyasaCount: suryaStep?.vinyasaCount ?? instructionDetails?.vinyasaCount,
     vinyasaStep: suryaStep && order > 1 && order <= suryaStep.vinyasaCount + 1
       ? String(order - 1)
       : undefined,
-    vinyasaSteps: standingDetails?.steps,
+    vinyasaSteps: instructionDetails?.steps,
     holdBreaths: suryaStep?.holdBreaths,
     assetStatus: 'generated',
-    instructionStatus: suryaStep || standingDetails ? 'approved' : 'pending',
+    instructionStatus: suryaStep || instructionDetails ? 'approved' : 'pending',
   }
 })

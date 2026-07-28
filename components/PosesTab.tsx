@@ -121,7 +121,7 @@ export function PosesTab({ onDetailOpen, onDetailClose }: PosesTabProps) {
                   />
                 </div>
                 <span className="mt-1.5 block line-clamp-2 min-h-[2.5em] text-center text-[11px] leading-[1.25] font-serif text-stone-600">
-                  {pose.section === 'standing' ? pose.cueName : pose.name}
+                  {pose.section === 'standing' || pose.section === 'seated' ? pose.cueName : pose.name}
                 </span>
               </button>
             ))}

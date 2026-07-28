@@ -102,7 +102,7 @@ const rows = csv.trim().split(/\r?\n/).slice(1).map(line => {
   return { filename, displayName, section, order: Number(order), marker }
 })
 
-if (rows.length !== 98) throw new Error(`Expected 98 poses, found ${rows.length}`)
+if (rows.length !== 94) throw new Error(`Expected 94 poses, found ${rows.length}`)
 
 const rawRows = rows.map(row =>
   `  ['${row.filename}', '${row.displayName}', '${row.section}', ${row.order}, '${row.marker}'],`

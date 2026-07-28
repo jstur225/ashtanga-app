@@ -103,13 +103,18 @@ describe("PosesTab", () => {
     expect(screen.queryByText("动作解析")).toBeNull()
   })
 
-  it("尚未整理动作的详情页也显示统一说明", () => {
+  it("坐立体式详情页显示手册动作说明和统一说明", () => {
     render(<PosesTab />)
 
     fireEvent.click(screen.getByRole("button", { name: "坐立体式" }))
-    fireEvent.click(screen.getByRole("img", { name: "手杖式" }).closest("button")!)
+    fireEvent.click(screen.getByRole("img", { name: "Dandasana" }).closest("button")!)
 
-    expect(screen.getByText("动作提示整理中")).toBeTruthy()
+    expect(screen.getByRole("heading", { name: "Dandasana" })).toBeTruthy()
+    expect(screen.getAllByText("山式坐立")).toHaveLength(2)
+    expect(screen.getByText("VINYASA 总数")).toBeTruthy()
+    expect(screen.getByText("VINYASA 分解")).toBeTruthy()
+    expect(screen.getByText("跳到正中间，腿打直，手放臀部两边地板（看鼻尖）")).toBeTruthy()
+    expect(screen.queryByText("动作提示整理中")).toBeNull()
     expect(screen.getByText("体式库以动作解析为主，与实际练习中的串联有所差别。内容来源为网络资料人工整理，如果有错漏，可联系开发者修正，Namaste🙏")).toBeTruthy()
   })
 })
