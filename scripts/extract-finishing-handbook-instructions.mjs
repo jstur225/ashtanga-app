@@ -28,21 +28,21 @@ const poseFiles = [
 ]
 
 const drishtiSanskritByChinese = new Map([
-  ['\u9f3b\u5c16', 'nāsāgre'],
-  ['\u811a\u8dbe', 'pādayoragre'],
-  ['\u624b\u6307', 'hastāgre'],
-  ['\u62c7\u6307', 'aṅguṣṭhamadhye'],
-  ['\u4fa7\u8fb9', 'pārśva'],
-  ['\u7709\u5fc3', 'bhrūmadhye'],
-  ['\u809a\u8110', 'nābhicakre'],
-  ['\u2014', ''],
+  ['鼻尖', 'nāsāgre'],
+  ['脚趾', 'pādayoragre'],
+  ['手指', 'hastāgre'],
+  ['拇指', 'aṅguṣṭhamadhye'],
+  ['侧边', 'pārśva'],
+  ['眉心', 'bhrūmadhye'],
+  ['肚脐', 'nābhicakre'],
+  ['—', ''],
 ])
 
 function stripMarkdown(value) {
   return value
     .replaceAll('**', '')
     .replaceAll('`', '')
-    .replace(/<br\s*\/?\s*>/gi, '\uff1b')
+    .replace(/<br\s*\/?\s*>/gi, '；')
     .replace(/\s+/g, ' ')
     .trim()
 }
@@ -85,22 +85,32 @@ function getSections(markdown) {
   }))
 }
 
+function parseMetadata(body, sectionNumber) {
+  const metaLine = body.split('\n').find(line => /^V\s*=/.test(line) && line.includes('|'))
+  if (!metaLine) throw new Error(`Missing V/drishti metadata in section ${sectionNumber}`)
+
+  const vinyasaCountMatch = metaLine.match(/V\s*=\s*(\d+)/)
+  const vinyasaCount = vinyasaCountMatch ? Number(vinyasaCountMatch[1]) : undefined
+  const drishti = metaLine
+    .split('|')
+    .slice(1)
+    .join('|')
+    .replace(/^[^:：]*[:：]\s*/, '')
+    .trim()
+
+  return { vinyasaCount, drishti }
+}
+
 function parseSection(number, sections) {
   const section = sections.get(number)
   if (!section) throw new Error(`Missing handbook section ${number}`)
 
   const { cueName, sanskrit } = parseHeadingTitle(section.title)
-  const body = section.body
-  const metaLine = body.split('\n').find(line => /^V\s*=/.test(line) && line.includes('|'))
-  if (!metaLine) throw new Error(`Missing V/drishti metadata in section ${number}`)
-
-  const vinyasaCountMatch = metaLine.match(/V\s*=\s*(\d+)/)
-  const vinyasaCount = vinyasaCountMatch ? Number(vinyasaCountMatch[1]) : undefined
-  const drishti = metaLine.split('|').slice(1).join('|').replace(/^[^:：]*[:：]\s*/, '').trim()
-  const holdRegex = new RegExp('^\\u2192\\s*\\u505c\\u7559\\s*(\\d+)\\s*\\u4e2a\\u547c\\u5438')
+  const { vinyasaCount, drishti } = parseMetadata(section.body, number)
+  const holdRegex = /^→\s*停留\s*(\d+)\s*个呼吸/
   const steps = []
 
-  for (const line of body.split('\n')) {
+  for (const line of section.body.split('\n')) {
     const row = parseTableRow(line)
     if (!row) continue
 
@@ -115,8 +125,8 @@ function parseSection(number, sections) {
     }
 
     const isAsana = row.rawCount.includes('**') || row.rawAction.includes('**')
-    const count = stripMarkdown(row.rawCount) || '\u2014'
-    const breath = stripMarkdown(row.rawBreath) || '\u2014'
+    const count = stripMarkdown(row.rawCount) || '—'
+    const breath = stripMarkdown(row.rawBreath) || '—'
     steps.push({
       count,
       breath,
