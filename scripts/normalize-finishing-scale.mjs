@@ -8,7 +8,7 @@ const publicDir = path.join(root, 'public', 'poses', 'primary-series-ip-v1', 'fi
 
 const canvasSize = 1024
 const edits = [
-  { file: 'pindasana.png', targetHeight: 800 },
+  { file: 'pindasana.png', targetHeight: 640 },
   { file: 'sirsasana-02.png', scale: 0.91 },
   { file: 'baddha-padmasana.png', targetHeight: 800 },
   { file: 'utpluthih.png', targetHeight: 800 },
