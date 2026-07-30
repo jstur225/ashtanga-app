@@ -1,4 +1,4 @@
-import React from "react"
+﻿import React from "react"
 import { cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { PosesTab } from "@/components/PosesTab"
@@ -48,15 +48,12 @@ describe("PosesTab", () => {
     expect(screen.getByText("体式库以动作解析为主，与实际练习中的串联有所差别。内容来源为网络资料人工整理，如果有错漏，可联系开发者修正，Namaste🙏")).toBeTruthy()
   })
 
-  it("搜索可通过旧中文名定位更新后的梵文和中文卡片", () => {
+  it("不显示搜索框，分类切换仍可用", () => {
     render(<PosesTab />)
 
-    fireEvent.change(screen.getByPlaceholderText("搜索中文名或梵文名"), {
-      target: { value: "扭转三角式" },
-    })
-
-    expect(screen.getByRole("img", { name: "Parivṛtta Trikoṇāsana" })).toBeTruthy()
-    expect(screen.getByText("反三角式")).toBeTruthy()
+    expect(screen.queryByPlaceholderText("搜索中文名或梵文名")).toBeNull()
+    fireEvent.click(screen.getByRole("button", { name: "坐立体式" }))
+    expect(screen.getByRole("img", { name: "Dandasana" })).toBeTruthy()
   })
 
   it("第 14、15、16 章分别突出各自的体位法位置", () => {

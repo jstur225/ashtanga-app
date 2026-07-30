@@ -1,8 +1,8 @@
-"use client"
+﻿"use client"
 
 import React, { useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { ChevronLeft, ChevronRight, Search } from 'lucide-react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { POSE_SECTIONS, POSES, type Pose, type PoseSectionId } from '@/lib/pose-data'
 
 interface PosesTabProps {
@@ -10,28 +10,15 @@ interface PosesTabProps {
   onDetailClose?: () => void
 }
 
-const normalizeSearch = (value: string) =>
-  value.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()
-
 export function PosesTab({ onDetailOpen, onDetailClose }: PosesTabProps) {
   const [activeSection, setActiveSection] = useState<PoseSectionId>('surya-a')
   const [selectedPose, setSelectedPose] = useState<Pose | null>(null)
   const [poseIndex, setPoseIndex] = useState(0)
-  const [searchQuery, setSearchQuery] = useState('')
   const [imagesLoaded, setImagesLoaded] = useState<Record<string, boolean>>({})
 
   const visiblePoses = useMemo(() => {
-    const query = normalizeSearch(searchQuery.trim())
-    const candidates = query ? POSES : POSES.filter(pose => pose.section === activeSection)
-    if (!query) return candidates
-
-    return candidates.filter(pose => [
-      pose.name,
-      pose.sanskrit,
-      pose.cueName ?? '',
-      ...pose.aliases,
-    ].some(value => normalizeSearch(value).includes(query)))
-  }, [activeSection, searchQuery])
+    return POSES.filter(pose => pose.section === activeSection)
+  }, [activeSection])
 
   const openPose = (pose: Pose) => {
     setPoseIndex(visiblePoses.findIndex(item => item.id === pose.id))
@@ -65,15 +52,15 @@ export function PosesTab({ onDetailOpen, onDetailClose }: PosesTabProps) {
   return (
     <div className="relative flex h-full flex-col bg-gradient-to-b from-[#faf8f5] to-white">
       <div className="absolute inset-x-0 top-0 z-10 border-b border-white/30 bg-white/30 shadow-[0_4px_20px_rgba(0,0,0,0.06)] backdrop-blur-[8px]">
-        <div className="overflow-x-auto px-4 pt-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <div className="flex min-w-max gap-1.5 pb-2">
+        <div className="overflow-x-auto px-4 py-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="flex min-w-max gap-1.5">
             {POSE_SECTIONS.map(section => (
               <button
                 key={section.id}
                 type="button"
                 onClick={() => setActiveSection(section.id)}
                 className={`rounded-full px-3.5 py-1.5 text-xs font-serif transition-colors ${
-                  activeSection === section.id && !searchQuery.trim()
+                  activeSection === section.id
                     ? 'bg-[#5B7553] text-white shadow-sm'
                     : 'text-stone-500 hover:bg-white/20'
                 }`}
@@ -84,20 +71,9 @@ export function PosesTab({ onDetailOpen, onDetailClose }: PosesTabProps) {
           </div>
         </div>
 
-        <div className="px-4 pb-3">
-          <label className="relative block">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400" />
-            <input
-              value={searchQuery}
-              onChange={event => setSearchQuery(event.target.value)}
-              placeholder="搜索中文名或梵文名"
-              className="w-full rounded-full border border-white/30 bg-white/20 py-2 pl-9 pr-3 text-xs font-serif text-stone-600 outline-none backdrop-blur-[8px] placeholder:text-stone-400 focus:border-[#5B7553]/20 focus:bg-white/30"
-            />
-          </label>
-        </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-3 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-[7.5rem]">
+      <div className="flex-1 overflow-y-auto px-3 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-[4.75rem]">
         {visiblePoses.length === 0 ? (
           <div className="flex h-40 items-center justify-center text-sm font-serif text-stone-300">
             未找到匹配体式
