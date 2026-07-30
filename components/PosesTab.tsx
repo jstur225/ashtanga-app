@@ -64,8 +64,8 @@ export function PosesTab({ onDetailOpen, onDetailClose }: PosesTabProps) {
 
   return (
     <div className="relative flex h-full flex-col bg-gradient-to-b from-[#faf8f5] to-white">
-      <div className="absolute inset-x-0 top-2 z-10 mx-3 rounded-[24px] border border-white/30 bg-white/30 shadow-[0_4px_20px_rgba(0,0,0,0.08)] backdrop-blur-[8px]">
-        <div className="overflow-x-auto px-3 pt-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="absolute inset-x-0 top-0 z-10 border-b border-white/30 bg-white/30 shadow-[0_4px_20px_rgba(0,0,0,0.06)] backdrop-blur-[8px]">
+        <div className="overflow-x-auto px-4 pt-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <div className="flex min-w-max gap-1.5 pb-2">
             {POSE_SECTIONS.map(section => (
               <button
@@ -84,7 +84,7 @@ export function PosesTab({ onDetailOpen, onDetailClose }: PosesTabProps) {
           </div>
         </div>
 
-        <div className="px-3 pb-3">
+        <div className="px-4 pb-3">
           <label className="relative block">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400" />
             <input
