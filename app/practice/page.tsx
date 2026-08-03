@@ -755,10 +755,14 @@ export default function AshtangaTracker() {
       // 记录练习行为到设备活动统计（匿名用户也记录）
       const uuid = localStorage.getItem('ashtanga_uuid')
       if (uuid) {
-        fetch('/api/stats/record-practice', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ uuid }),
+        void supabase.auth.getSession().then(({ data: { session } }) => {
+          const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+          if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`
+          return fetch('/api/stats/record-practice', {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ uuid }),
+          })
         }).catch(() => {})
       }
 

@@ -3,6 +3,18 @@
 import { useEffect } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 import { initAnalytics, identifyUser, trackEvent, setUserProfile } from '@/lib/analytics'
+import { supabase } from '@/lib/supabase'
+
+async function recordHeartbeat(uuid: string, accessToken?: string) {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (accessToken) headers.Authorization = `Bearer ${accessToken}`
+
+  await fetch('/api/stats/heartbeat', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ uuid }),
+  })
+}
 
 export function AnalyticsInitializer() {
   useEffect(() => {
@@ -16,12 +28,16 @@ export function AnalyticsInitializer() {
       localStorage.setItem('ashtanga_uuid', uuid)
     }
 
-    // 3. Record daily active user (Supabase)
-    fetch('/api/stats/heartbeat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ uuid }),
-    }).catch(() => {})
+    // 3. Record daily active user (Supabase). When signed in, attach the
+    // verified account so internal reporting can merge device + account.
+    void supabase.auth.getSession().then(({ data: { session } }) =>
+      recordHeartbeat(uuid, session?.access_token)
+    ).catch(() => {})
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session?.access_token) return
+      void recordHeartbeat(uuid, session.access_token).catch(() => {})
+    })
 
     // 4. 收集来源参数
     const params = new URLSearchParams(window.location.search)
@@ -87,6 +103,8 @@ export function AnalyticsInitializer() {
       notes_rate: stats.notes_rate,
       last_active: new Date().toISOString()
     })
+
+    return () => subscription.unsubscribe()
   }, [])
 
   return null
