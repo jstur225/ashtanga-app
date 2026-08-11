@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import {
-  getWechatPayConfig,
-  requestWechatPay,
-} from '@/lib/wechat-pay'
+  getWechatVirtualPayConfig,
+  normalizeVirtualOrderState,
+  notifyVirtualGoodsProvided,
+  queryVirtualPaymentOrder,
+} from '@/lib/wechat-virtual-pay'
 import {
   authenticatePaymentRequest,
   createPaymentSupabaseClient,
   fulfillPaymentOrder,
   getPaymentOrderForUser,
-  normalizeWechatOrderState,
   updatePaymentOrder,
 } from '@/lib/payment-server'
 
@@ -19,6 +20,14 @@ export const revalidate = 0
 function jsonError(error: string, status: number) {
   return NextResponse.json({ success: false, error }, { status })
 }
+
+function paidAtIso(value: unknown) {
+  const seconds = Number(value)
+  return Number.isFinite(seconds) && seconds > 0
+    ? new Date(seconds * 1000).toISOString()
+    : new Date().toISOString()
+}
+
 export async function GET(request: NextRequest) {
   try {
     const supabase = createPaymentSupabaseClient()
@@ -28,8 +37,22 @@ export async function GET(request: NextRequest) {
     if (!orderId) return jsonError('INVALID_REQUEST', 400)
     const order = await getPaymentOrderForUser(supabase, orderId, user.id)
     if (!order) return jsonError('ORDER_NOT_FOUND', 404)
+    if (order.payment_provider !== 'wechat_virtual_pay' || !order.wechat_openid) {
+      return jsonError('VIRTUAL_PAYMENT_ORDER_MIGRATION_REQUIRED', 409)
+    }
+
+    const config = getWechatVirtualPayConfig()
+    if (order.virtual_env !== config.env) {
+      return jsonError('VIRTUAL_PAYMENT_ENV_MISMATCH', 409)
+    }
 
     if (order.status === 'paid') {
+      if (!order.virtual_provided_at) {
+        await notifyVirtualGoodsProvided(order.out_trade_no, config)
+        await updatePaymentOrder(supabase, order.id, {
+          virtual_provided_at: new Date().toISOString(),
+        })
+      }
       return NextResponse.json({
         success: true,
         data: { status: 'paid', order_id: order.id, membership_id: order.membership_id },
@@ -42,30 +65,42 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    const config = getWechatPayConfig()
-    const canonicalUrl = `/v3/pay/transactions/out-trade-no/${encodeURIComponent(order.out_trade_no)}?mchid=${encodeURIComponent(config.mchId)}`
-    const { data } = await requestWechatPay('GET', canonicalUrl, config)
-    const state = normalizeWechatOrderState(data.trade_state)
+    const virtualOrder = await queryVirtualPaymentOrder(
+      order.wechat_openid,
+      order.out_trade_no,
+      config,
+    )
+    const state = normalizeVirtualOrderState(virtualOrder.status)
     if (state === 'paid') {
-      if (
-        data.appid !== config.appId ||
-        data.mchid !== config.mchId ||
-        typeof data.transaction_id !== 'string' ||
-        !data.amount ||
-        typeof data.amount !== 'object'
-      ) {
+      const amount = Number(virtualOrder.order_fee)
+      const transactionId = String(
+        virtualOrder.wx_order_id ||
+        virtualOrder.wxpay_order_id ||
+        virtualOrder.channel_order_id ||
+        '',
+      )
+      if (!transactionId || amount !== order.amount_total) {
         return jsonError('PAYMENT_RESULT_INVALID', 502)
       }
-      const amount = data.amount as { total?: unknown; currency?: unknown }
       const fulfilled = await fulfillPaymentOrder(supabase, {
         out_trade_no: order.out_trade_no,
-        transaction_id: data.transaction_id,
-        success_time: typeof data.success_time === 'string' ? data.success_time : undefined,
-        amount: {
-          total: Number(amount.total),
-          currency: String(amount.currency || ''),
-        },
+        transaction_id: transactionId,
+        success_time: paidAtIso(virtualOrder.paid_time),
+        amount: { total: amount, currency: 'CNY' },
       })
+      let deliveryPending = false
+      try {
+        await notifyVirtualGoodsProvided(order.out_trade_no, config)
+        await updatePaymentOrder(supabase, order.id, {
+          virtual_provided_at: new Date().toISOString(),
+        })
+      } catch (error) {
+        deliveryPending = true
+        console.error('wechat virtual goods delivery acknowledgement failed', {
+          orderId: order.id,
+          message: error instanceof Error ? error.message : 'UNKNOWN',
+        })
+      }
       return NextResponse.json({
         success: true,
         data: {
@@ -73,22 +108,23 @@ export async function GET(request: NextRequest) {
           order_id: order.id,
           membership_id: fulfilled.membership_id,
           expires_at: fulfilled.expires_at,
+          delivery_pending: deliveryPending,
         },
       })
     }
     if (state !== 'pending') {
       await updatePaymentOrder(supabase, order.id, {
         status: state,
-        fail_reason: typeof data.trade_state_desc === 'string' ? data.trade_state_desc : null,
+        fail_reason: `virtual_order_status:${String(virtualOrder.status ?? '')}`,
       })
     }
     return NextResponse.json({ success: true, data: { status: state, order_id: order.id } })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'PAYMENT_STATUS_FAILED'
-    const requestId = typeof error === 'object' && error && 'requestId' in error
-      ? String(error.requestId || '')
+    const code = typeof error === 'object' && error && 'code' in error
+      ? String(error.code || '')
       : ''
-    console.error('wechat payment status failed', { message, requestId })
+    console.error('wechat virtual payment status failed', { message, code })
     return jsonError('PAYMENT_STATUS_FAILED', 502)
   }
 }
