@@ -19,6 +19,11 @@ export interface PaymentOrderRow {
   paid_at: string | null
   membership_id: string | null
   fail_reason: string | null
+  payment_provider: string | null
+  product_id: string | null
+  wechat_openid: string | null
+  virtual_env: number | null
+  virtual_provided_at: string | null
 }
 export function createPaymentSupabaseClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
@@ -42,6 +47,11 @@ export async function createPaymentOrder(
   user: User,
   plan: PaymentPlan,
   outTradeNo: string,
+  virtualPayment?: {
+    productId: string
+    openid: string
+    env: 0 | 1
+  },
 ) {
   const profileId = await ensureProfileAndGetId(supabase, user)
   const { data, error } = await supabase
@@ -57,6 +67,12 @@ export async function createPaymentOrder(
       currency: 'CNY',
       duration_days: plan.duration_days,
       status: 'created',
+      ...(virtualPayment ? {
+        payment_provider: 'wechat_virtual_pay',
+        product_id: virtualPayment.productId,
+        wechat_openid: virtualPayment.openid,
+        virtual_env: virtualPayment.env,
+      } : {}),
     })
     .select('*')
     .single()
@@ -131,10 +147,10 @@ export async function exchangeLoginCode(code: string, appId: string, appSecret: 
     errcode?: number
     errmsg?: string
   }
-  if (!response.ok || data.errcode || !data.openid) {
+  if (!response.ok || data.errcode || !data.openid || !data.session_key) {
     throw new Error(data.errmsg || 'WECHAT_LOGIN_CODE_INVALID')
   }
-  return data.openid
+  return { openid: data.openid, sessionKey: data.session_key }
 }
 
 export function normalizeWechatOrderState(value: unknown) {

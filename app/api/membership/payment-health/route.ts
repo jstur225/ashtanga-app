@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getWechatPayConfig } from '@/lib/wechat-pay'
+import { getWechatVirtualPayConfig } from '@/lib/wechat-virtual-pay'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -10,13 +10,10 @@ const CONFIG_ERROR_CODES: Array<[RegExp, string]> = [
   [/SUPABASE_(?:SERVICE_KEY|SERVICE_ROLE_KEY)/, 'SUPABASE_SERVICE_KEY_MISSING'],
   [/WECHAT_MINI_APP_ID/, 'WECHAT_MINI_APP_ID_INVALID'],
   [/WECHAT_MINI_APP_SECRET/, 'WECHAT_MINI_APP_SECRET_MISSING'],
-  [/WECHAT_PAY_MCH_ID/, 'WECHAT_PAY_MCH_ID_INVALID'],
-  [/WECHAT_PAY_MERCHANT_SERIAL_NO/, 'WECHAT_PAY_MERCHANT_SERIAL_NO_MISSING'],
-  [/WECHAT_PAY_PRIVATE_KEY_BASE64/, 'WECHAT_PAY_PRIVATE_KEY_BASE64_INVALID'],
-  [/WECHAT_PAY_API_V3_KEY/, 'WECHAT_PAY_API_V3_KEY_INVALID'],
-  [/WECHAT_PAY_PUBLIC_KEY_ID/, 'WECHAT_PAY_PUBLIC_KEY_ID_INVALID'],
-  [/WECHAT_PAY_PUBLIC_KEY_BASE64/, 'WECHAT_PAY_PUBLIC_KEY_BASE64_INVALID'],
-  [/WECHAT_PAY_NOTIFY_URL/, 'WECHAT_PAY_NOTIFY_URL_INVALID'],
+  [/WECHAT_VIRTUAL_PAY_OFFER_ID/, 'WECHAT_VIRTUAL_PAY_OFFER_ID_INVALID'],
+  [/WECHAT_VIRTUAL_PAY_ENV/, 'WECHAT_VIRTUAL_PAY_ENV_INVALID'],
+  [/WECHAT_VIRTUAL_PAY_SANDBOX_APP_KEY/, 'WECHAT_VIRTUAL_PAY_SANDBOX_APP_KEY_MISSING'],
+  [/WECHAT_VIRTUAL_PAY_PRODUCTION_APP_KEY/, 'WECHAT_VIRTUAL_PAY_PRODUCTION_APP_KEY_MISSING'],
 ]
 
 function safeConfigErrorCode(error: unknown) {
@@ -39,8 +36,17 @@ export async function GET() {
     })
   }
   try {
-    getWechatPayConfig()
-    return NextResponse.json({ success: true, data: { ready: true, error_code: null } })
+    const config = getWechatVirtualPayConfig()
+    return NextResponse.json({
+      success: true,
+      data: {
+        ready: true,
+        error_code: null,
+        provider: 'wechat_virtual_pay',
+        env: config.env,
+        offer_id: config.offerId,
+      },
+    })
   } catch (error) {
     return NextResponse.json({
       success: true,
