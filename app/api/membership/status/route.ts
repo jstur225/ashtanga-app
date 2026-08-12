@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { formatServerTiming, timed, type TimingMetric } from '@/lib/server-timing'
 
 export const dynamic = 'force-dynamic'
 export const fetchCache = 'force-no-store'
@@ -70,9 +71,14 @@ export async function GET(request: NextRequest) {
         persistSession: false,
       },
     })
+    const metrics: TimingMetric[] = []
 
     const token = authHeader.replace('Bearer ', '')
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+    const { result: authResult, durationMs: authMs } = await timed(() =>
+      supabase.auth.getUser(token)
+    )
+    metrics.push({ name: 'auth', durationMs: authMs })
+    const { data: { user }, error: authError } = authResult
     if (authError || !user) {
       return NextResponse.json(
         { success: false, error: 'NOT_AUTHENTICATED' },
@@ -82,18 +88,26 @@ export async function GET(request: NextRequest) {
 
     let membershipData: MembershipData | null = null
 
-    const { data: userProfile } = await supabase
-      .from('user_profiles')
-      .select('id')
-      .eq('user_id', user.id)
-      .maybeSingle()
+    const { result: profileResult, durationMs: profileMs } = await timed(() =>
+      supabase
+        .from('user_profiles')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle()
+    )
+    metrics.push({ name: 'profile', durationMs: profileMs })
+    const userProfile = profileResult.data
 
     if (userProfile?.id) {
-      const { data: byView } = await supabase
-        .from('user_membership_status')
-        .select('is_active, expires_at, days_remaining, membership_type')
-        .eq('user_id', userProfile.id)
-        .maybeSingle()
+      const { result: viewResult, durationMs: viewMs } = await timed(() =>
+        supabase
+          .from('user_membership_status')
+          .select('is_active, expires_at, days_remaining, membership_type')
+          .eq('user_id', userProfile.id)
+          .maybeSingle()
+      )
+      metrics.push({ name: 'membership_view', durationMs: viewMs })
+      const byView = viewResult.data
 
       if (byView) {
         membershipData = {
@@ -106,30 +120,38 @@ export async function GET(request: NextRequest) {
     }
 
     if (!membershipData && user.email) {
-      const { data: byEmail } = await supabase
-        .from('user_memberships')
-        .select('expires_at, type')
-        .eq('email', user.email)
-        .order('expires_at', { ascending: false })
-        .limit(1)
-        .maybeSingle()
+      const { result: emailResult, durationMs: emailMs } = await timed(() =>
+        supabase
+          .from('user_memberships')
+          .select('expires_at, type')
+          .eq('email', user.email)
+          .order('expires_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+      )
+      metrics.push({ name: 'membership_by_email', durationMs: emailMs })
 
-      membershipData = calculateMembership(byEmail?.expires_at ?? null, byEmail?.type ?? null)
+      membershipData = calculateMembership(emailResult.data?.expires_at ?? null, emailResult.data?.type ?? null)
     }
 
     if (!membershipData && userProfile?.id) {
-      const { data: byProfileId } = await supabase
-        .from('user_memberships')
-        .select('expires_at, type')
-        .eq('user_id', userProfile.id)
-        .order('expires_at', { ascending: false })
-        .limit(1)
-        .maybeSingle()
+      const { result: pidResult, durationMs: pidMs } = await timed(() =>
+        supabase
+          .from('user_memberships')
+          .select('expires_at, type')
+          .eq('user_id', userProfile.id)
+          .order('expires_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+      )
+      metrics.push({ name: 'membership_by_profile', durationMs: pidMs })
 
-      membershipData = calculateMembership(byProfileId?.expires_at ?? null, byProfileId?.type ?? null)
+      membershipData = calculateMembership(pidResult.data?.expires_at ?? null, pidResult.data?.type ?? null)
     }
 
-    return NextResponse.json(formatResponse(membershipData))
+    const response = NextResponse.json(formatResponse(membershipData))
+    response.headers.set('Server-Timing', formatServerTiming(metrics))
+    return response
   } catch {
     return NextResponse.json(
       { success: false, error: 'INTERNAL_ERROR' },
