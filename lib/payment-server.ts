@@ -117,7 +117,7 @@ export async function listPaymentOrdersForUser(
   const safeLimit = Math.max(1, Math.min(50, Math.floor(limit)))
   const { data, error } = await supabase
     .from('payment_orders')
-    .select('id,out_trade_no,plan,description,amount_total,currency,duration_days,status,paid_at,created_at')
+    .select('id,out_trade_no,plan,description,amount_total,currency,duration_days,status,paid_at,virtual_env,created_at')
     .eq('auth_user_id', authUserId)
     .order('created_at', { ascending: false })
     .limit(safeLimit)
@@ -132,6 +132,7 @@ export async function listPaymentOrdersForUser(
     | 'duration_days'
     | 'status'
     | 'paid_at'
+    | 'virtual_env'
     | 'created_at'
   >>
 }
