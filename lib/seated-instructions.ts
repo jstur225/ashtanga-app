@@ -1,7 +1,7 @@
 import type { StandingInstruction } from './pose-instructions'
 
 // Generated from the handbook: chapters 21-53.
-// Run: node scripts/extract-handbook-instructions.mjs
+// Frozen production copy. Maintain individual entries here; the historical extraction script was retired.
 export const SEATED_INSTRUCTIONS: Record<string, StandingInstruction> = {
   "seated/dandasana.png": {
     "sanskrit": "Dandasana",

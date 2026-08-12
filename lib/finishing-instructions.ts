@@ -1,7 +1,7 @@
 import type { StandingInstruction } from './pose-instructions'
 
 // Generated from the handbook: chapters 54-66.
-// Run: node scripts/extract-finishing-handbook-instructions.mjs
+// Frozen production copy. Maintain individual entries here; the historical extraction script was retired.
 export const FINISHING_INSTRUCTIONS: Record<string, StandingInstruction> = {
   "finishing/sarvangasana.png": {
     "sanskrit": "Sarvangasana",

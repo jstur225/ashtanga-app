@@ -1,0 +1,118 @@
+<view class="pose-page">
+  <scroll-view class="section-scroll" scroll-x enhanced show-scrollbar="{{false}}">
+    <view class="section-tabs">
+      <view
+        wx:for="{{sections}}"
+        wx:key="id"
+        class="section-pill {{activeSection === item.id ? 'active' : ''}}"
+        data-section="{{item.id}}"
+        bindtap="switchSection"
+      >{{item.name}}</view>
+    </view>
+  </scroll-view>
+
+  <scroll-view class="pose-list-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <view class="pose-grid">
+      <view
+        wx:for="{{visiblePoses}}"
+        wx:key="id"
+        class="pose-card"
+        data-id="{{item.id}}"
+        bindtap="openPose"
+        hover-class="pose-card-pressed"
+      >
+        <view class="pose-image-shell">
+          <image class="pose-image" src="{{item.image}}" mode="aspectFit" lazy-load />
+        </view>
+        <text class="pose-list-name">{{item.listName}}</text>
+      </view>
+    </view>
+    <view class="list-safe-space"></view>
+  </scroll-view>
+
+  <view wx:if="{{selectedPose}}" class="detail-page">
+    <view class="detail-back" bindtap="closePose" aria-label="返回体式库">
+      <image src="/images/icons/pose-chevron-left.png" mode="aspectFit" />
+    </view>
+
+    <scroll-view class="detail-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+      <view class="detail-image-shell">
+        <view wx:if="{{!detailImageLoaded}}" class="detail-image-placeholder"></view>
+        <image
+          class="detail-image {{detailImageLoaded ? 'loaded' : ''}}"
+          src="{{selectedPose.image}}"
+          mode="aspectFit"
+          bindload="onDetailImageLoad"
+        />
+      </view>
+
+      <view class="detail-copy">
+        <text class="detail-title">{{selectedPose.name}}</text>
+        <block wx:if="{{selectedPose.cueName}}">
+          <text class="detail-subtitle">{{selectedPose.cueName}}</text>
+
+          <view class="detail-meta">
+            <view wx:if="{{selectedPose.vinyasaCount}}" class="meta-item">
+              <text class="meta-label">VINYASA 总数</text>
+              <text class="meta-value">{{selectedPose.vinyasaCount}}</text>
+            </view>
+            <view class="meta-item">
+              <text class="meta-label">凝视点</text>
+              <text class="meta-value">{{selectedPose.drishti}}</text>
+              <text class="meta-sanskrit">{{selectedPose.drishtiSanskrit}}</text>
+            </view>
+          </view>
+
+          <view wx:if="{{detailSteps.length}}" class="vinyasa-section">
+            <view class="vinyasa-heading">
+              <text class="meta-label">VINYASA 分解</text>
+              <text wx:if="{{detailHasAsana}}" class="asana-hint">绿色为体位法位置</text>
+            </view>
+            <view
+              wx:for="{{detailSteps}}"
+              wx:key="key"
+              class="vinyasa-card {{item.cardClass}}"
+            >
+              <view class="vinyasa-meta">
+                <text class="vinyasa-count">{{item.displayCount}}</text>
+                <text class="vinyasa-breath">{{item.breath}}</text>
+                <text wx:if="{{item.drishti}}" class="vinyasa-drishti">看{{item.drishti}}</text>
+              </view>
+              <text class="vinyasa-action">{{item.action}}</text>
+              <text wx:if="{{item.holdBreaths}}" class="hold-breaths">停留 {{item.holdBreaths}} 次呼吸</text>
+            </view>
+          </view>
+        </block>
+        <block wx:else>
+          <text class="detail-subtitle muted">{{selectedPose.sanskrit}}</text>
+          <text class="pending-copy">动作提示整理中</text>
+        </block>
+      </view>
+
+      <text class="detail-disclaimer">体式库以动作解析为主，与实际练习中的串联有所差别。内容来源为网络资料人工整理，如果有错漏，可联系开发者修正，Namaste🙏</text>
+      <view class="detail-safe-space"></view>
+    </scroll-view>
+
+    <view class="detail-controls">
+      <view class="detail-nav-button" data-direction="prev" bindtap="navigatePose" aria-label="上一个体式"><image src="/images/icons/pose-chevron-left.png" mode="aspectFit" /></view>
+      <text class="detail-index">{{poseIndex + 1}} / {{visiblePoses.length}}</text>
+      <view class="detail-nav-button" data-direction="next" bindtap="navigatePose" aria-label="下一个体式"><image src="/images/icons/pose-chevron-right.png" mode="aspectFit" /></view>
+    </view>
+  </view>
+
+  <view wx:if="{{!selectedPose}}" class="pose-tab-shell">
+    <view class="pose-tab-pill">
+      <view
+        wx:for="{{navItems}}"
+        wx:key="pagePath"
+        class="pose-tab-item {{item.index === 2 ? 'selected' : ''}}"
+        data-index="{{item.index}}"
+        data-path="{{item.pagePath}}"
+        bindtap="switchAppTab"
+      >
+        <image class="pose-tab-icon" src="{{item.icon}}" mode="aspectFit" />
+        <text class="pose-tab-text">{{item.text}}</text>
+      </view>
+    </view>
+  </view>
+</view>

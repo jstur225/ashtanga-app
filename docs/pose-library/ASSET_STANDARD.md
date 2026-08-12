@@ -10,7 +10,7 @@
 - 服装使用完整纯色色块，不表现胸部、胯部、臀部或裆部轮廓，不添加勒痕、接缝、透明效果和复杂阴影。
 - 画风为平面纸感编辑插画：流畅轮廓、少量大色块、轻微纸纹、克制的肌肉线条。
 
-角色四视图：`output/primary-series-ip-v1/reference/ip-character-turnaround.png`
+角色四视图保存在外部素材工作区的 `正式母版/reference/ip-character-turnaround.png`。
 
 ## 正式素材格式
 
@@ -49,18 +49,26 @@
 - 正式路径和文件名一旦进入数据索引，返修时只替换内容，不改变路径、分类或顺序。
 - 暂时无法正确生成的动作使用明确占位素材，不让错误人体结构进入正式页面。
 
-## 自动验收
+## 唯一真源与发布
 
-站立体式运行：
+- 可编辑图片真源：外部素材工作区 `体式库素材维护/正式母版/`，共 92 张唯一动作 PNG。
+- 数据与文案真源：`lib/pose-data.ts`、`lib/pose-instructions.ts`、`lib/seated-instructions.ts`、`lib/finishing-instructions.ts`。
+- App 发布素材：`public/poses/primary-series-ip-v1/`，由 94 张详情 WebP 和 94 张缩略 WebP 组成。
+- 微信小程序素材：`weapp/pose-package/`，由同步脚本生成，不是可编辑真源。
+- 小红书小工具素材：`xhs-tool/dist/`，构建时生成且不提交。
+- “身体来信”是独立、自包含的内容生产包，保留自己的内联素材快照，不参与 App 真源发布链。
+
+返修正式母版后运行：
 
 ```powershell
-node scripts/build-standing-v3-full.mjs
-node scripts/build-standing-v3-review-sheet.mjs
-node scripts/validate-standing-v3-full.mjs
-node scripts/publish-standing-v3-full.mjs
+$env:POSE_LIBRARY_MASTER_ROOT='D:\path\to\体式库素材维护\正式母版'
+npm.cmd run publish:poses
+npm.cmd run validate:poses
+npm.cmd run sync:weapp-poses
+npm.cmd run test:weapp
 ```
 
-验收至少包括：
+发布脚本会把 92 张唯一动作母版映射成 94 张正式卡片；拜日 A 的重复动作复用同一母版。验收至少包括：
 
 - 数量与索引一致。
 - 1024×1024 RGBA。

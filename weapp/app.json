@@ -7,6 +7,14 @@
     "pages/index/index",
     "pages/privacy/privacy"
   ],
+  "subPackages": [
+    {
+      "root": "pose-package",
+      "pages": [
+        "pages/poses/poses"
+      ]
+    }
+  ],
   "window": {
     "navigationBarBackgroundColor": "#2A4B3C",
     "navigationBarTitleText": "熬汤日记",
@@ -16,6 +24,7 @@
   },
   "sitemapLocation": "sitemap.json",
   "style": "v2",
+  "lazyCodeLoading": "requiredComponents",
   "requiredBackgroundModes": ["audio"],
   "tabBar": {
     "custom": true,

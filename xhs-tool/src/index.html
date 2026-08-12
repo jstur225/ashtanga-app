@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#f9f8f6" />
+    <title>阿斯汤加体式库｜熬汤日记</title>
+    <link rel="icon" href="./assets/icon.png" />
+    <link rel="stylesheet" href="./fonts.css" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="brand-header" aria-label="熬汤日记品牌页眉">
+        <img class="brand-logo" src="./assets/icon.png" alt="熬汤日记" />
+        <div class="brand-copy">
+          <p class="brand-name">
+            熬汤日记<span class="brand-breath"> ·呼吸</span><span class="brand-awareness"> ·觉察</span>
+          </p>
+          <p class="brand-slogan">Practice, practice, and all is coming.</p>
+        </div>
+      </header>
+
+      <main>
+        <section class="tool-intro" aria-labelledby="page-title">
+          <h1 id="page-title">阿斯汤加体式库</h1>
+          <p class="intro-description">一序列体式 · 支持中文名与梵文名查询</p>
+        </section>
+
+        <div class="sticky-sentinel" aria-hidden="true"></div>
+        <section class="search-sticky" aria-label="搜索体式">
+          <label class="search-field" for="pose-search">
+            <svg aria-hidden="true" viewBox="0 0 24 24">
+              <circle cx="11" cy="11" r="7"></circle>
+              <path d="m20 20-4-4"></path>
+            </svg>
+            <input
+              id="pose-search"
+              type="search"
+              autocomplete="off"
+              enterkeyhint="search"
+              placeholder="搜索中文名、梵文名"
+            />
+            <button class="clear-search" type="button" aria-label="清空搜索" hidden>×</button>
+          </label>
+          <div class="result-summary" aria-live="polite"></div>
+        </section>
+
+        <section class="pose-content" aria-label="体式列表">
+          <div class="pose-grid"></div>
+          <div class="empty-state" hidden>
+            <p>没有找到匹配的体式</p>
+            <button type="button" class="reset-search">清空搜索</button>
+          </div>
+        </section>
+
+        <footer class="profile-note">欢迎前往作者主页，体验完整版熬汤日记 APP</footer>
+
+      </main>
+    </div>
+
+    <nav class="bottom-navigation" aria-label="体式栏目">
+      <div class="navigation-inner">
+        <button type="button" data-section="sun" aria-current="page">
+          <svg aria-hidden="true" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path>
+          </svg>
+          <span>拜日 A/B</span>
+        </button>
+        <button type="button" data-section="standing">
+          <svg aria-hidden="true" viewBox="0 0 24 24">
+            <path d="M2 20 9 7l3.3 5.2L16 5l6 15Z"></path>
+            <path d="M2 20h20"></path>
+          </svg>
+          <span>站立体式</span>
+        </button>
+        <button type="button" data-section="seated">
+          <svg aria-hidden="true" viewBox="0 0 24 24">
+            <path d="M12 14c-3-2.6-3-6.4 0-10 3 3.6 3 7.4 0 10Z"></path>
+            <path d="M12 20c-5 0-8.4-2.5-10-7 4-.5 7.4.9 10 4.3 2.6-3.4 6-4.8 10-4.3-1.6 4.5-5 7-10 7Z"></path>
+          </svg>
+          <span>坐立体式</span>
+        </button>
+        <button type="button" data-section="rest">
+          <svg aria-hidden="true" viewBox="0 0 24 24">
+            <path d="M20 15.5A8.5 8.5 0 0 1 8.5 4 8.5 8.5 0 1 0 20 15.5Z"></path>
+          </svg>
+          <span>休息体式</span>
+        </button>
+      </div>
+    </nav>
+
+    <section class="pose-detail" role="dialog" aria-modal="true" aria-labelledby="detail-name" hidden>
+      <div class="detail-scroll">
+        <div class="detail-image-wrap">
+          <div class="detail-image-placeholder"></div>
+          <img class="detail-image" alt="" />
+          <button type="button" class="detail-close" aria-label="返回体式库">
+            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"></path></svg>
+          </button>
+        </div>
+        <div class="detail-copy">
+          <h2 id="detail-name"></h2>
+          <p class="detail-cue-name"></p>
+
+          <div class="detail-metadata">
+            <div class="detail-metadata-item detail-vinyasa-item">
+              <p class="detail-label">VINYASA 总数</p>
+              <p class="detail-vinyasa-count"></p>
+            </div>
+            <div class="detail-metadata-item">
+              <p class="detail-label">凝视点</p>
+              <p class="detail-drishti"></p>
+              <p class="detail-drishti-sanskrit"></p>
+            </div>
+          </div>
+
+          <section class="detail-breakdown" aria-labelledby="detail-breakdown-title">
+            <div class="detail-breakdown-header">
+              <p id="detail-breakdown-title" class="detail-label">VINYASA 分解</p>
+              <p class="detail-steps-hint">绿色为体位法位置</p>
+            </div>
+            <div class="detail-steps"></div>
+            <p class="detail-pending" hidden>动作提示整理中</p>
+          </section>
+
+          <p class="detail-disclaimer">
+            体式库以动作解析为主，与实际练习中的串联有所差别。内容来源为网络资料人工整理，如果有错漏，可联系开发者修正，Namaste🙏
+          </p>
+        </div>
+        <div class="detail-navigation" aria-label="切换体式">
+          <button type="button" class="detail-prev" aria-label="上一个体式">
+            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"></path></svg>
+          </button>
+          <span class="detail-count"></span>
+          <button type="button" class="detail-next" aria-label="下一个体式">
+            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <script src="./data/poses.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>

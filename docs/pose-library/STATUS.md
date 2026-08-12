@@ -1,6 +1,6 @@
 # 一序列体式库进度
 
-更新时间：2026-07-30
+更新时间：2026-08-12
 工作分支：`master2`
 状态：已完成，后续仅按反馈进行单张图片或单条文案返修。
 
@@ -75,11 +75,17 @@
 - 列表底部保留安全空间，最后一个体式可以完整滚动到导航栏上方。
 - 搜索入口已移除，体式库只保留五个分类切换。
 
-## 下一步
+## 维护状态
 
-1. 观察手机端和用户反馈，记录需要单独返修的动作或图片。
-2. 如发现单张动作、比例、方向、遮挡或文案问题，只替换对应文件和对应数据，不改变章节、排序和文件名。
-3. 体式库整体结构、五个分类、已接入手册内容和当前 UI 作为已完成基线冻结。
+提示库已经开发完成并冻结，不再保留 V1/V2/V3 批量生成工程。后续只允许单张图片或单条文案返修：
+
+1. 在外部 `体式库素材维护/正式母版/` 修改对应 PNG。
+2. 运行 `npm.cmd run publish:poses` 重新发布 App WebP。
+3. 运行 `npm.cmd run validate:poses` 验证 94 张详情图和 94 张缩略图。
+4. 运行 `npm.cmd run sync:weapp-poses` 更新微信小程序派生素材。
+5. 小红书小工具运行自身构建命令生成 `dist/`，不提交生成目录。
+
+“身体来信”已成为独立、自包含的内容生产包；它的内联素材属于独立快照，不再通过 App 仓库的 `output/` 联接维护。
 
 ## 关键文件
 
@@ -88,6 +94,7 @@
 - 页面：`components/PosesTab.tsx`
 - 页面测试：`__tests__/poses-tab.test.tsx`
 - APP 素材：`public/poses/primary-series-ip-v1/`
-- 站立体式参考：`docs/pose-library/STANDING_NEXT.md`
-- 坐立体式记录：`docs/pose-library/SEATED_INTEGRATION_STATUS.md`
-- 结束体式记录：`docs/pose-library/FINISHING_INTEGRATION_STATUS.md`
+- 素材标准：`docs/pose-library/ASSET_STANDARD.md`
+- 发布：`scripts/publish-pose-library.mjs`
+- 验收：`scripts/validate-pose-library.mjs`
+- 微信同步：`scripts/sync-weapp-pose-library.mjs`
