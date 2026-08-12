@@ -24,6 +24,8 @@ export interface PaymentOrderRow {
   wechat_openid: string | null
   virtual_env: number | null
   virtual_provided_at: string | null
+  created_at: string
+  updated_at: string
 }
 export function createPaymentSupabaseClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
@@ -105,6 +107,33 @@ export async function getPaymentOrderForUser(
     .maybeSingle()
   if (error) throw new Error('PAYMENT_ORDER_QUERY_FAILED')
   return data as PaymentOrderRow | null
+}
+
+export async function listPaymentOrdersForUser(
+  supabase: SupabaseClient,
+  authUserId: string,
+  limit = 20,
+) {
+  const safeLimit = Math.max(1, Math.min(50, Math.floor(limit)))
+  const { data, error } = await supabase
+    .from('payment_orders')
+    .select('id,out_trade_no,plan,description,amount_total,currency,duration_days,status,paid_at,created_at')
+    .eq('auth_user_id', authUserId)
+    .order('created_at', { ascending: false })
+    .limit(safeLimit)
+  if (error) throw new Error('PAYMENT_ORDER_LIST_FAILED')
+  return (data || []) as Array<Pick<PaymentOrderRow,
+    | 'id'
+    | 'out_trade_no'
+    | 'plan'
+    | 'description'
+    | 'amount_total'
+    | 'currency'
+    | 'duration_days'
+    | 'status'
+    | 'paid_at'
+    | 'created_at'
+  >>
 }
 
 export async function fulfillPaymentOrder(
