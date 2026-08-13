@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 2.1 检查用户是否绑定邮箱
+    // 1.1 检查用户是否绑定邮箱
     if (!user.email) {
       return NextResponse.json(
         { success: false, error: 'EMAIL_REQUIRED' },
@@ -48,30 +48,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 2.2 获取用户会员状态（先查 profile id，再查会员状态）
-    const { data: userProfile } = await supabase
-      .from('user_profiles')
-      .select('id')
-      .eq('user_id', user.id)
-      .maybeSingle()
-
-    const queryId = userProfile?.id || user.id
-
-    const { data: membershipStatus, error: membershipError } = await supabase
-      .from('user_membership_status')
-      .select('is_active')
-      .eq('user_id', queryId)
-      .maybeSingle()
-
-    if (membershipError) {
-      console.error('[Photos API] 获取会员状态失败:', membershipError)
-    }
-
-    // 普通用户最多1张，会员最多9张
-    const isPro = membershipStatus?.is_active ?? false
-    const maxPhotos = isPro ? 9 : 1
-
-    // 2. 解析请求体
+    // 1.2 解析请求体并做本地校验（不依赖网络，先做）
     const body = await request.json()
     const {
       practice_record_id,
@@ -81,7 +58,6 @@ export async function POST(request: NextRequest) {
       mime_type,
     } = body
 
-    // 3. 验证必填字段
     if (!practice_record_id || !oss_url || !oss_key || file_size === undefined || file_size === null) {
       return NextResponse.json(
         { success: false, error: 'MISSING_REQUIRED_FIELDS' },
@@ -115,15 +91,52 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // 2. 获取用户 profile id（会员查询需要）
+    const { data: userProfile } = await supabase
+      .from('user_profiles')
+      .select('id')
+      .eq('user_id', user.id)
+      .maybeSingle()
+
+    const queryId = userProfile?.id || user.id
+
+    // 3. 并行执行互相独立的远程调用：
+    //    会员状态 / 已有照片数 / 记录归属校验 / OSS 对象大小校验，
+    //    从“串行 4 次往返”收敛为“1 批并行”，显著降低照片元数据接口耗时。
+    const [membershipResult, photosResult, recordResult, objectVerification] = await Promise.all([
+      supabase
+        .from('user_membership_status')
+        .select('is_active')
+        .eq('user_id', queryId)
+        .maybeSingle(),
+      supabase
+        .from('photos')
+        .select('id, user_id, practice_record_id, deleted_at')
+        .eq('practice_record_id', practice_record_id)
+        .is('deleted_at', null),
+      supabase
+        .from('practice_records')
+        .select('id')
+        .eq('id', practice_record_id)
+        .eq('user_id', user.id)
+        .single(),
+      verifyOssObjectSize(oss_url, file_size),
+    ])
+
+    const membershipStatus = membershipResult.data
+    const membershipError = membershipResult.error
+    if (membershipError) {
+      console.error('[Photos API] 获取会员状态失败:', membershipError)
+    }
+
+    // 普通用户最多1张，会员最多9张
+    const isPro = membershipStatus?.is_active ?? false
+    const maxPhotos = isPro ? 9 : 1
+
     // 4. 检查记录是否已有照片
     console.log('[Photos API] 检查现有照片:', { practice_record_id, user_id: user.id })
-
-    const { data: existingPhotos, error: countError } = await supabase
-      .from('photos')
-      .select('id, user_id, practice_record_id, deleted_at')
-      .eq('practice_record_id', practice_record_id)
-      .is('deleted_at', null)
-
+    const existingPhotos = photosResult.data
+    const countError = photosResult.error
     console.log('[Photos API] 现有照片查询结果:', {
       count: existingPhotos?.length || 0,
       photos: existingPhotos,
@@ -147,13 +160,8 @@ export async function POST(request: NextRequest) {
     }
 
     // 5. 验证记录存在且属于当前用户
-    const { data: record, error: recordError } = await supabase
-      .from('practice_records')
-      .select('id')
-      .eq('id', practice_record_id)
-      .eq('user_id', user.id)
-      .single()
-
+    const record = recordResult.data
+    const recordError = recordResult.error
     if (recordError || !record) {
       return NextResponse.json(
         { success: false, error: 'RECORD_NOT_FOUND' },
@@ -162,7 +170,6 @@ export async function POST(request: NextRequest) {
     }
 
     // OSS 会对合法的 0 字节 PUT 返回 200。写元数据前必须以远端对象大小为准。
-    const objectVerification = await verifyOssObjectSize(oss_url, file_size)
     if (!objectVerification.valid) {
       console.error('[Photos API] OSS 对象完整性校验失败:', {
         practice_record_id,
@@ -201,13 +208,26 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 7. 更新 practice_records 表的 photos 字段
-    console.log('[Photos API] 更新记录 photos 字段:', { practice_record_id, oss_url })
+    // 7. 按当前所有未删除照片重建 practice_records.photos，避免多图互相覆盖。
+    const { data: activePhotos, error: activePhotosError } = await supabase
+      .from('photos')
+      .select('oss_url, display_order, uploaded_at')
+      .eq('practice_record_id', practice_record_id)
+      .eq('user_id', user.id)
+      .is('deleted_at', null)
+      .order('display_order', { ascending: true })
+      .order('uploaded_at', { ascending: true })
+
+    if (activePhotosError) {
+      console.error('[Photos API] 重建照片列表失败:', activePhotosError)
+    }
+    const activeUrls = (activePhotos || []).map((item) => item.oss_url).filter(Boolean)
+    console.log('[Photos API] 更新记录 photos 字段:', { practice_record_id, count: activeUrls.length })
 
     const { error: updateError } = await supabase
       .from('practice_records')
       .update({
-        photos: JSON.stringify([oss_url]),
+        photos: JSON.stringify(activeUrls),
         updated_at: new Date().toISOString(),
       })
       .eq('id', practice_record_id)

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { deleteOssObjectByUrl } from '@/lib/oss-delete'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || ''
@@ -85,19 +86,43 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 5. 清空 practice_records.photos 字段
+    // 5. 只移除当前照片，按剩余未删除照片重建记录字段。
+    const { data: remainingPhotos, error: remainingError } = await supabase
+      .from('photos')
+      .select('oss_url, display_order, uploaded_at')
+      .eq('practice_record_id', practice_record_id)
+      .eq('user_id', user.id)
+      .is('deleted_at', null)
+      .order('display_order', { ascending: true })
+      .order('uploaded_at', { ascending: true })
+
+    if (remainingError) {
+      console.error('[Delete Photo] 查询剩余照片失败:', remainingError)
+    }
+    const remainingUrls = (remainingPhotos || []).map((item) => item.oss_url).filter(Boolean)
     const { error: recordError } = await supabase
       .from('practice_records')
       .update({
-        photos: null,
+        photos: JSON.stringify(remainingUrls),
         updated_at: new Date().toISOString(),
       })
       .eq('id', practice_record_id)
       .eq('user_id', user.id)
 
     if (recordError) {
-      console.error('[Delete Photo] 清空记录 photos 字段失败:', recordError)
+      console.error('[Delete Photo] 更新记录 photos 字段失败:', recordError)
       // 不影响删除结果
+    }
+
+    // 6. 元数据已软删后，尽力删除 OSS 对象，避免留下孤儿文件。
+    //    失败只记录、不影响删除结果（最坏情况与旧行为一致：文件残留待兜底清理）。
+    const ossResult = await deleteOssObjectByUrl(oss_url, user.id)
+    if (!ossResult.ok) {
+      console.error('[Delete Photo] OSS 对象删除失败（元数据已删，文件可能残留）:', {
+        oss_url,
+        reason: ossResult.error,
+        status: ossResult.status,
+      })
     }
 
     return NextResponse.json({ success: true })
