@@ -9,6 +9,7 @@ Component({
   },
 
   data: {
+    wechatId: WECHAT_ID,
     copiedWx: false
   },
 
