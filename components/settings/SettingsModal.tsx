@@ -2,9 +2,8 @@
 
 import React, { useEffect, useRef, useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
-import { Bug, Calendar, Camera, ChevronRight, Copy, Download, Loader2, Trash2, User, X } from "lucide-react"
+import { Bug, Calendar, Camera, ChevronRight, Copy, Download, Loader2, Sparkles, Trash2, User, X } from "lucide-react"
 import { toast } from "sonner"
-import { MembershipActions } from "@/components/Membership/MembershipActions"
 import { MembershipCard } from "@/components/Membership/MembershipCard"
 import { AccountSyncSection } from "@/components/settings/AccountSyncSection"
 import type { PracticeOption, PracticeRecord, UserProfile } from "@/hooks/usePracticeData"
@@ -324,11 +323,22 @@ export function MembershipSettingsSection({
 }: MembershipSettingsSectionProps) {
   return (
     <div className="space-y-4">
-      <MembershipCard showStatus membership={membership} loading={false} />
-      <MembershipActions
-        onActivate={onActivateMembership ?? (() => {})}
-        isActive={membership?.is_active ?? false}
-      />
+      <MembershipCard
+          showStatus
+          membership={membership}
+          loading={false}
+          headerAction={
+            <button
+              onClick={onActivateMembership ?? (() => {})}
+              className="flex flex-col items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-[#C1A268] to-[#D4AF37] text-white shadow-sm hover:opacity-90 transition-opacity shrink-0"
+            >
+              <Sparkles className="w-5 h-5" />
+              <span className="text-[10px] font-serif mt-0.5 leading-none">
+                {membership?.is_active ? '续费' : '开通'}
+              </span>
+            </button>
+          }
+        />
     </div>
   )
 }
