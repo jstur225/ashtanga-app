@@ -567,16 +567,7 @@ Page({
       wx.showToast({ title: '请先登录账号查看订单', icon: 'none' });
       return;
     }
-    this.setData({ showOrderShell: true, orderLoading: true, paymentOrders: [] });
-    this.setTabBarHidden(true);
-    try {
-      await paymentService.recoverPendingOrders({ maxOrders: 5 }).catch(() => null);
-      await this.loadPaymentOrders();
-    } catch (error) {
-      wx.showToast({ title: error && error.message ? error.message : '订单读取失败', icon: 'none' });
-    } finally {
-      this.setData({ orderLoading: false });
-    }
+    wx.navigateTo({ url: '/pages/orders/orders' });
   },
 
   closeOrderShell() {
