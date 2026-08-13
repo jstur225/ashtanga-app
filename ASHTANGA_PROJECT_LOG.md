@@ -1,6 +1,887 @@
 # 阿斯汤加打卡 app - 项目记录
 
+## 2026-07-17: 照片上传状态改为真实逐张反馈
+
+小程序此前把两个不同事件混成了同一个“成功”：用户选择照片后，`practice-record-form` 只是调用 `persistPhotos()` 将微信临时路径复制到小程序永久目录；真正的 OSS PUT 与照片元数据写入要等记录保存后，由账号 pending queue 后台执行。表单立即展示无遮罩缩略图，会让人误以为云端已经全部成功。
+
+网页 `components/PracticeForm.tsx` 的真源语义是：上传中的文件使用灰色虚线占位和旋转圈，`uploadPhoto()` 完成并进入 photos 列表后才显示正常 `PhotoPreview`。小程序保留“本地先写、页面不等待九张照片”的性能架构，但补齐等价状态：选图后提示“已加入，保存后上传”，本机路径在表单显示灰色“待上传”；保存进入觉察日记后，根据每个 photo upload operation 显示等待、上传中或失败。只有账号工作区把本机路径替换成 OSS HTTPS，图片才进入无遮罩成功态。
+
+`data-repository` 新增 `getPhotoSyncStatus(recordId, path)`，以云端 URL、pending operation 和 `last_error` 判断单张状态。觉察日记同步时每 600ms 重绘本地缓存，照片上传成功一张就恢复一张；完成、页面隐藏或卸载后清理定时器。失败照片保持本机文件和队列，可手动重试，不以假成功掩盖问题。
+
+文件进度：更新公共表单、照片状态仓库接口、觉察日记时光轴及三组回归测试。验证结果：小程序自动化 134/134。下一步真机测试九张照片逐张转为正常、断网失败态和恢复同步，再继续“我的”页真实资料。
+
+## 2026-07-17: 游客照片权限修正为 0 张
+
+再次核对网页 `components/PracticeForm.tsx` 后确认，照片能力不只是 FREE/PRO 数量限制，还存在更前置的账号条件：相机按钮点击和文件选择回调都会检查 `hasEmail`，没有绑定邮箱时只提示“绑定邮箱后可使用照片功能”，不会上传或保留照片。小程序技术上可以用 `wx.saveFile` 保存游客照片，但这是存储能力，不是当前产品权限；为保持网页、小程序和云端照片语义一致，最终规则修正为游客 0 张、已登录 FREE 每条 1 张、PRO 每条 9 张。
+
+公共练习表单新增 `photoEnabled`，今日练习和觉察日记均从统一数据模式传入。游客点击相机时在打开系统选择器前被拦截；历史游客照片不再显示“继续添加”入口。`data-repository` 同时增加不可绕过的限制：游客创建记录时携带照片、或给既有游客记录新增照片都会失败；以前版本留下的游客照片仍允许查看、删除和登录后合并，避免权限修复变成数据删除。
+
+账号 FREE 的数量规则保持为每条 1 张，但本轮确定采用整批拒绝：一次选 2 张或超过剩余名额，一张也不上传。PRO 保持每条 9 张。对应新增游客 UI、仓库拒绝与历史照片保留测试，验证结果为小程序自动化 132/132。
+
+下一步真机分别验证游客相机不打开、账号 FREE 选 2 张整批取消、PRO 9/10 张边界，再继续“我的”页头像与资料保存。
+
+## 2026-07-17: 照片超限整批拒绝、完成页直达与可见自动同步
+
+本轮再次核对网页 `components/PracticeForm.tsx`。网页当前会把超额选择截取为前 N 张并提示；小程序此前又把选择器 `count` 直接限制为剩余额度，用户既看不到实际选了多少，也无法获得超限提醒。按本次产品决定，小程序改用可返回更大选择集的媒体选择入口，在任何持久化前比较本次数量与剩余名额：PRO 超过每条 9 张、游客/FREE 超过每条 1 张，或已有照片后超过剩余名额，均弹窗说明并整批取消，不产生部分保存。
+
+完成练习的跳转闪屏来自 `saveCompletion()` 在保存后先关闭完成表单、显示 Tab Bar，再等待 350ms 切换页面。现改为保存后立即 `switchTab`，只有切换成功才清理完成页状态，因此用户直接看到觉察日记；切换失败时记录仍已保存并给出明确提示。
+
+Tab Two 此前虽然调用了照片后台同步，但先把任何 pending 状态显示为红色，且没有设置 `syncing`，视觉上像“未自动同步”。现在页面一识别到云端待同步队列就立即显示蓝色同步态并只旋转刷新图标，同时执行 `syncPendingRecords({ includePhotos: true })`；队列清空后自动变绿，确有剩余或错误才变红。账户弹层也与网页 `AccountBindingSection.tsx` 对齐为“立即同步 / 退出登录”并列、“修改密码”独占下一行，修改密码复用公共认证弹窗的忘记密码流程。
+
+文件进度：更新公共练习表单、今日练习保存流程、觉察日记账户同步页面及四个相关测试文件。验证结果：小程序自动化 130/130，轻量 lint、JavaScript 语法和 diff whitespace 检查通过。全项目 TypeScript 当前仍有两条来自既有照片调试日志开发中的类型错误，位置为 `__tests__/practice-debug-log.test.ts:212` 与 `lib/practice-debug-log.ts:76`，本轮未改动这些文件。
+
+下一步真机一次验收四条主路径：PRO 超过 9 张整批拒绝、游客超过 1 张整批拒绝、完成保存直接进入觉察日记、云同步自动从蓝色旋转变绿。通过后进入“我的”页头像/资料真实保存，再处理分享卡照片长图和音频首播。
+
+## 2026-07-17: 真机 WXML 动态属性换行修复
+
+真机调试报错 `pages/practice/practice.wxml 32:0 unexpected character \\n`。根因是选项卡 `class` 的引号内部包含三个源代码换行；桌面预览能够容忍，但真机 WXML 严格解析器拒绝属性值内的换行。现已把选中态、自定义态和会员锁定态三段表达式合并到同一行，并同步将“开始练习”图标的跨行动态 `src` 合并，避免下一处同类编译错误。新增静态回归测试阻止今日练习页 `class/src` 动态属性再次跨行。文件进度：`weapp/pages/practice/practice.wxml`、`weapp/tests/navigation.test.js`。验证结果：小程序 127/127，TypeScript、lint 和 diff whitespace 检查通过。下一步重新编译并再次进入真机调试，然后继续日历与带图保存验收。
+
+## 2026-07-17: 日历缓存即时渲染、标注 409 对账与读取链路收口
+
+开发者工具日志确认，保存后体感缓慢并非单纯由照片造成，而是两个链路叠加：`journal.onShow()` 无条件重新执行完整 `loadPage()` 并把已有日历切换为 loading；同时一个本地标注类型创建任务持续收到 `/api/annotations/types` 409，同步器保留失败任务，练习选项、记录和标注读取前都会再次尝试。服务端该路由的 409 明确表示 `DUPLICATE_LABEL`。
+
+`weapp/services/data-repository.js` 现把标注类型创建处理为幂等操作：409、`DUPLICATE_LABEL` 或达到上限但云端确有同名类型时，读取远端类型并按规范化名称匹配，随后通过 `remapAnnotationTypeId()` 替换本地临时 ID、更新待同步日期分配并移除创建任务。新增 `getCachedRecordsByDateRange()`，页面无需网络即可读取刚保存到账号工作区的记录。
+
+`weapp/pages/journal/journal.js` 改为 stale-while-revalidate：`onShow`、保存、删除、标注保存和切月都先从账号工作区/游客本地仓库同步绘制完整日历、统计与时光轴，再以 `preserveExisting` 在后台刷新云端。会员和用户并行读取，选项与日历并行刷新；日历只并行请求一次 records、annotation types 和 month assignments，并在响应落地前核对请求月份，避免快速切月时旧响应覆盖新月份。保存成功后不会再用 loading 状态遮住本地已有结果。
+
+`weapp/services/photo-storage.js` 的照片大小读取优先改用 `FileSystemManager.stat`，避免 9 张照片产生 9 条 `wx.getFileInfo` 废弃提醒。新增重复标注自动对账、缓存记录无网络读取、日历缓存优先和新文件 API 回归测试，并让照片 API 静态测试兼容当前统一 OSS 所有权/完整性校验工具。验证结果：小程序 126/126，TypeScript、轻量 lint、JavaScript 语法与 diff whitespace 检查全部通过。
+
+下一步测试：旧账号首次运行允许出现一次 409 以完成历史任务对账，之后反复进页/切月不得重复；结束练习带图保存后应立即显示日历、记录和本地照片，后台同步不得遮挡或阻塞页面。通过后继续“我的”页头像/资料与修改密码。
+
+## 2026-07-16: 唱诵真源复刻、时光轴多图与照片同步解阻塞
+
+唱诵设置重新以网页 `components/practice/PracticeModalHost.tsx` 的 `ChantSettingsSheet` 为真源：PRO 使用分、秒两列调节，关闭弹层时应用时长；FREE 固定显示 1 分钟并保留升级入口。自定义练习重新以 `components/practice/OptionModals.tsx` 为真源，统一字段字数、按钮文案、等宽绿色渐变和胶囊圆角。对应小程序文件为 `weapp/pages/practice/practice.js`、`.wxml`、`.wxss`。
+
+时光轴此前只渲染 `item.photos[0]`，与当前网页真源 `components/journal/JournalTab.tsx` 不一致。本轮在 `weapp/pages/journal/journal.wxml` 和 `.wxss` 改为遍历全部照片：单图按约 90% 宽和自然比例展示，两张以上按三列方形网格展示，预览时传入整组 URL。
+
+一次上传 9 张照片时长期停留在“正在读取日历/练习记录”的根因是同步边界错误：创建记录会把 9 个照片任务加入队列，随后记录读取又等待同一个逐张上传队列完成。`weapp/services/data-repository.js` 现将普通记录同步与照片同步分离，创建后先返回本地记录，页面加载完成后后台上传照片；普通读取不会等待正在运行的照片队列，手动“立即同步”仍会显式同步照片。失败任务继续保留以便重试和日志诊断，不会丢掉本地照片。`journal.js` 和 `profile.js` 已同步接入新调用语义。
+
+文件进度：更新 `weapp/pages/practice/*`、`weapp/pages/journal/*`、`weapp/pages/profile/profile.js`、`weapp/services/data-repository.js`，以及账户工作区、同步按钮、会员和导航回归测试。验证结果：小程序自动化 122/122，TypeScript 与 lint 通过。下一步先真机测试 9 图保存后立即返回、三列完整显示、切月不阻塞和全图预览；若仍有控制台错误，需记录第一条完整红色错误及请求状态码，再按具体接口定位。通过后继续“我的”页头像/资料保存与修改密码。
+
+## 2026-07-16: 小程序统一 FREE/PRO 能力策略完成
+
+本轮跳过激活码，先把已经能读取的真实会员状态变成全小程序唯一的能力策略。新增 `weapp/services/membership-policy.js`，统一规定：照片每条 1/9 张、单张 5/30 MB、练习选项 3/11 个、日历标注 1/9 种、日历颜色 FREE 只开放第 3 色阶而 PRO 开放 1–4、唱诵倒计时 FREE 固定 60 秒而 PRO 可设置 5 秒至 180 分钟。会员过期自动按 FREE 处理。
+
+今日练习页、觉察日记页、公共记录表单和标注管理器现在都从同一策略生成上限、锁定态和 Pro 提示；既有超额选项/标注/照片在会员到期后保留，禁止继续新增，避免降级时删除用户数据或阻塞纯笔记编辑。照片数量、大小和记录色阶同时在 `data-repository` / `photo-storage` 做第二层校验，不能通过其他入口绕过；FREE 保存色阶 1、2、4 时统一规范为第 3 色阶。网页端原有“FREE 可保留第 2 色阶”的旧规则也同步修正，避免两端再次分叉。会员服务缓存最近一次按账号隔离的真实状态，短暂离线时继续按实际到期时间判断，不会把有效 Pro 瞬间误降为 FREE。
+
+小程序“我的”会员入口已移除激活码表单与相关文案，改为说明后续小程序付款成功后自动开通或续费；本轮未实现支付。支付资格与服务端开通方案确认后再单独开发。
+
+文件进度：新增 `weapp/services/membership-policy.js`、`weapp/tests/membership-policy.test.js`、`weapp/tests/membership-ui.test.js`；更新 `weapp/services/membership.js`、`data-repository.js`、`local-data.js`、`photo-storage.js`，`weapp/pages/practice/*`、`pages/journal/*`、`pages/profile/*`，`components/practice-record-form/*`、`components/annotation-manager/*`；同步更新网页色阶逻辑与相关测试。
+
+验证结果：`npm.cmd run test:weapp` 119/119；网页相关 Vitest 43/43；`npm.cmd run typecheck` 与 `npm.cmd run lint` 通过。
+
+下一步测试：用当前有效试用账号验证 Pro 六项权益，再退出到游客/FREE 验证 3 个练习选项、1 种标注、仅第 3 色阶、1 张/5 MB 照片和固定 1 分钟倒计时；锁定项应有统一 Pro 提示，既有超额数据不能消失。通过后开发“我的”页头像/资料保存与修改密码，再处理分享卡照片和口令音频首播；小程序支付暂缓。
+
+## 2026-07-16: 账户认证渐变真源修正与验证码投递可诊断化
+
+绑定邮箱和认证按钮颜色偏深的根因不是渐变色值抄错，而是小程序在网页版半透明 `.green-gradient` 下面额外设置了 `background-color:#2D5A27`。两个 rgba 渐变停止点与深绿底再次混合后整体明显变暗。本轮从 `account-guest-panel` 和公共 `auth-modal` 同时移除该底色，六个登录、注册、验证码和修改密码主按钮继续共用同一显式渐变 token。
+
+验证码链路补齐失败语义：邮箱先规范化；Resend 非 2xx 时记录状态码、收件域名和有限长度响应，向客户端返回可识别的 `Resend <status>`；本次未发送验证码立即从数据库删除，不再污染 60 秒限频。Resend 接受后记录 delivery id，客户端提示检查收件箱、垃圾邮件和推广邮件。验证结果：小程序 104/104、认证 API 36/36、TypeScript 与轻量 lint 通过。该后端诊断需部署到小程序固定 API 域名后生效。
+
+注册验证码专项复查确认：注册和忘记密码共用同一 Resend 发送函数与发件地址，注册传 `email_verification`，忘记密码传 `reset_password`；数据库只影响已注册检查、验证码保存和 60 秒限频，不能解释“接口成功但只有注册邮件不可见”。若测试使用同一收件邮箱，必须以 Resend Emails 的最终投递事件区分接收端过滤、退信或 suppression；若使用不同邮箱，则先按收件地址维度排查。生产环境是否已经包含 delivery id 诊断仍需核对部署版本。
+
+最终投递根因已由 Gmail 只读搜索确认：`zaohezi2020@gmail.com` 在 2026-07-16 实际收到 7 封来自 `noreply@ash.ashtangalife.online` 的注册验证码邮件，全部带 `SPAM` 标签并折叠在同一会话中。Resend 的 `sent → delivered` 没有误报；问题发生在 Gmail 接收后的垃圾邮件分类，不是 SQL、验证码表、注册 API 或 Resend 发送失败。Resend Deliverability Insights 唯一需要处理的项目也是避免使用 `no-reply` 发件地址。
+
+全新账号注册后的首轮验收暴露两项既有缺口。教程记录在游客仓库仍然存在，但 `getGuestMergeSummary()` 与 `migrateGuestDataToAccount()` 都明确过滤 `is_tutorial`，因此切换到空白账号工作区后消失；现有测试也把“不迁移教程”作为契约。会员注册路由会调用 `ensureProfileAndGetId()` 并尝试插入 31 天 `trial`，但整个赠送块使用空 `catch`，无法从注册响应判断是否成功；小程序 `profile.js` 也尚未请求会员状态，`isPro` 保持静态 false。下一轮应同时补齐空账号教程连续性和真实会员状态读取，且不再静默吞掉赠送失败。
+
+## 2026-07-16: 账户同步登录态 UI 对齐与测试账号安全重置脚本
+
+再次以 `components/AccountBindingSection.tsx` 和 `components/DataStorageNotice.tsx` 为真源核对“我的 → 设置 → 账户同步”。登录态提示卡改为网页原有的琥珀到橙色半透明渐变与琥珀浅边框；“立即同步”移除微信原生 `button.loading`，避免按钮额外出现一个加载圈，改为只给刷新图标添加旋转动画。操作区明确保持“立即同步 / 退出登录”并列，“修改密码”独占下一行，并增加静态回归测试保护结构与颜色不再漂移。
+
+曾使用一次性测试账号重置 SQL，针对 `zaohezi2020@gmail.com` 先展示 Auth 用户、业务表数量和 OSS 对象 key，再在事务内按外键顺序清理日历标注、会员、照片元数据、练习记录、选项、验证码、资料和 Auth 用户。脚本要求邮箱恰好匹配一个 Auth 用户，默认以 `ROLLBACK` 结束；只有人工核对 UUID 和数量后才允许改为 `COMMIT`。SQL 无法删除阿里云 OSS 实际文件，因此预览会列出需要另行清理的 `oss_key`。删除结果已核对，三个一次性 SQL 文件已于 2026-07-16 清理。
+
+文件进度：更新 `weapp/pages/profile/profile.wxml`、`profile.wxss` 和 `weapp/tests/account-sync-ui.test.js`；测试账号重置 SQL 已执行并清理。验证结果：小程序自动化 104/104，TypeScript 与轻量 lint 通过。下一步以清空后的全新账号一次性验收注册、登录、记录、照片和跨端同步；失败时使用运行日志定位具体 pending operation。
+
+## 2026-07-16: 微信开发者工具照片虚拟路径误同步修复
+
+手机测试站裂图的根因由运行日志直接定位：记录 `913c2df2-1d95-42ea-be3f-54f64269a052` 的照片字段为 `http://store/...`，同时浏览器连续产生 `IMG resource_error`。`http://store` 是微信开发者工具 `saveFile` 的本机持久路径，不是 OSS 地址。旧 `isRemotePhoto` 只排除了 `http://tmp` 和 `http://usr`，因此 record 同步把该路径当作远程 URL，跳过了签名、PUT 和照片元数据三个上传步骤。
+
+本轮在 `photo-storage` 中统一拆分本机、远程和云端安全照片：`wxfile://` 以及开发者工具 `tmp/usr/store` 均为本机路径，只有非本机 HTTPS URL 可以进入 Supabase payload。`data-repository` 在每次同步前扫描账号工作区，把遗留本机照片补入 photo upload 队列；record create/update 发送前再次清洗旧 payload。`account-workspace` 的 record 同步合并也改为保留本机待上传照片，确保“记录先创建、照片后上传”的顺序不会丢路径。
+
+服务端增加第二道防线：`/api/photos` 校验 `oss_url` 必须是配置 bucket 与 endpoint 对应的 HTTPS 主机，拒绝 `http://store` 或任意外部地址；`/api/oss-signature` 缺少 endpoint 时不再生成伪 URL。新增开发者工具 store 路径分类、旧记录自动补传、payload 清洗和 API 校验测试。验证结果：照片专项 24/24，小程序全套 103/103，TypeScript 与轻量 lint 通过。
+
+现有照片的自动恢复依赖昨天那台开发者工具仍保留 `http://store` 文件；同账号重新编译并同步即可补传。若文件已被清理，云端只有无效路径而没有原图内容，只能重新选择原图。后端防线需随 Next.js API 部署后生效。
+
+## 2026-07-15: 游客教程记录与认证入口单一真源收口
+
+补回网页版游客初始化语义：本机游客记录为空时，在当月 1 日创建一条与 `hooks/usePracticeData.ts` 一致的教程觉察笔记；初始化幂等，退出账号、导入后切游客和“退出并清空”后可立即恢复。教程记录明确只承担引导，不进入数据胶囊，也在游客合并摘要和上传阶段双重过滤，避免它变成账号真实练习。
+
+账户 UI 漂移的根因不是认证组件本身，而是认证前的游客账户面板在 Tab Two 和“我的”各实现了一份。新增 `weapp/components/account-guest-panel/` 后，两处只负责调用同一组件；登录、注册、忘记密码继续统一使用 `weapp/components/auth-modal/`。认证组件的六个主按钮改为同一个显式品牌渐变样式源，不再依赖父页面或全局样式，因此登录按钮的颜色、白字、宽度和 48rpx 圆角在两个入口一致。
+
+文件进度：更新 `weapp/app.js`、`pages/index`、`pages/journal`、`pages/profile`、`services/local-data.js`、`services/data-repository.js`；新增 `components/account-guest-panel/`；收敛 `components/auth-modal/`；补充教程初始化、教程不同步及公共 UI 回归测试。验证结果：小程序自动化 100/100，通过 TypeScript、轻量 lint 和 diff whitespace 检查。
+
+下一步先在微信开发者工具检查教程只出现一次、两个账户入口视觉一致、六个认证主按钮同款；通过后不再拆认证表单，转入会员真实状态/支付激活方案或分享卡照片与长图自适应。
+
+## 2026-07-15: 小程序账号与照片主闭环一次收口
+
+在结构化 pending 队列基础上，本轮补齐三个此前明确保留的缺口。首次登录现在会检测游客 records、持久照片、自定义 options、profile 和 annotations，并明确询问是否合并；合并保留账号原数据、复用原 UUID、同一账号只决策一次，游客仓库不被自动清空。记录更新增加云端版本读取和更新时间冲突保护，解析结果写入 `conflict keep_remote/keep_local` 日志，避免旧设备静默覆盖更新设备。
+
+照片链路不再把微信 tempFilePath 写进 Supabase。公共表单选择图片后先复制到小程序 `USER_DATA_PATH`，兼容真机 `wxfile://tmp` 和开发者工具 `http://tmp`；账号同步先创建记录，再获取 `/api/oss-signature`，读取 ArrayBuffer 以 PUT 上传 OSS，随后写 `/api/photos` 元数据并把本机路径替换为 OSS URL。上传和删除都是统一队列实体，失败保留重试；编辑删除、整条记录删除和清空本地数据同步清理任务或文件。觉察日记时光轴新增第一张照片展示与系统预览。
+
+同时修复 Web 既有 photos API 的多图覆盖问题：创建元数据后按全部未删除照片重建记录 URL 列表；删除单张后按剩余照片重建，不再清空整条记录。运行日志新增远端/本地照片和待上传/待删除计数。
+
+文件进度：新增 `weapp/services/photo-storage.js`、`weapp/tests/photo-storage.test.js`、`weapp/tests/photo-api.test.js`；更新 `data-repository.js`、`account-workspace.js`、`practice-records.js`、公共表单、觉察日记、我的页、运行日志和三个 photos API。验证结果：小程序自动化 97/97，通过 TypeScript、轻量 lint 和 diff whitespace 检查。
+
+下一步只做一次真机验收：游客带图重启 → 登录合并 → 网页核对记录/照片 → 小程序替换或删除照片 → 断网新增后恢复补传。生产环境还需确认微信 request 合法域名包含 API 与 OSS 上传域名，并部署本轮 Next.js photos API；通过后转入会员真实状态、个人主体支付/激活方案和分享卡照片。
+
+## 2026-07-15: 账号结构化数据同步一次收口
+
+在 records pending 队列基础上，本轮继续一次接完账号的练习类型、个人资料与日历标注。`account-workspace` 现按用户隔离保存 records、options、profile、annotation types/assignments、统一 pending operations、最近同步状态和同步日志。`data-repository` 成为所有结构化数据的唯一入口；页面不再在账号模式下误读游客 profile 或游客标注。
+
+新增 `practice-options` 云端 CRUD、`user-profile` 适配器和 `cloud-annotations` 鉴权 API 适配器。标注离线创建使用本机临时 UUID，云端创建成功后会原子重映射标注类型及尚未上传的日期分配。同步增加进程内互斥锁，避免“我的”页并行读取 records/options/profile 时重复处理同一个 pending 操作。所有 pending 本机版本均优先于云端读取，包含资料上传失败后防止云端旧昵称覆盖本机新昵称。
+
+运行日志已扩展为账号诊断包：包含实体分组 pending 数量、操作、重试次数、原始错误、最近日志、记录缓存范围和标注月份缓存；账户 UI 显示所有账号数据的待同步项和最近同步时间，重置按钮接入真实状态。账号胶囊导出同步改用账号自己的 profile 与 annotations。自动化测试增至 88 项并全部通过。
+
+照片继续单列，因为微信 tempFilePath、持久化、压缩、OSS 上传和 photos 元数据不是同一类结构化同步。真实账号验收后，再处理游客数据主动合并、多设备冲突选择与照片链路。
+
+## 2026-07-15: 账号练习记录本机先写与待同步队列
+
+阶段二第二刀已完成。账号模式的练习新增、编辑和软删除不再以云端请求成功作为本地可见的前提：操作先进入按 `user.id` 隔离的本机工作区，再写入 `pending_operations` 顺序补传。连续离线编辑同一条记录会合并；删除会立即从本机界面隐藏；云端拉取不会覆盖仍在排队的本机版本。创建请求复用本机 UUID，并使用 PostgREST `on_conflict=id`，网络抖动重试不会生成重复记录。
+
+Tab Two 左上 Cloud 与“我的 → 设置 → 账户同步”的立即同步按钮已接真实队列、待同步条数和成功/失败状态。新增离线新增、编辑合并、删除、读取保护和幂等创建测试后，`npm.cmd run test:weapp` 84 项全部通过。
+
+本轮范围仅为 `records`；`options`、`profile`、日历标注和照片仍未进入账号同步。下一步先在微信开发者工具完成离线新增/编辑/删除与恢复网络补传验收，再同步 `options + profile`，最后处理照片持久化、上传和跨端 URL。
+
+## 2026-07-15: rounded-xl 真实圆角 token 修正
+
+按钮圆角偏小的原因是错误套用了 Tailwind 默认圆角：本项目 `app/globals.css` 定义 `--radius: 1.25rem`，所以 `rounded-xl` 实际为 24px，对应小程序约 48rpx。账户提示卡/按钮和 auth-modal 输入、按钮、提示块已统一改为 48rpx，全套 80 项测试通过。
+
+## 2026-07-15: 账户与认证按钮严格全宽修复
+
+针对开发者工具中仍出现半宽、文字变绿和忘记密码按钮异常，本轮不再依赖微信原生 button 的默认布局：账户入口和 auth-modal 全部主操作改为普通块级按钮容器，显式继承提示卡/表单的 100% 宽度。组件内固定绿色渐变、白色文字和居中规则，禁用态只降低透明度；认证方法增加加载状态防重复触发。全套 80 项测试通过。
+
+## 2026-07-14: 认证表单统一与按钮交互收口
+
+认证 UI 现以 `weapp/components/auth-modal/` 为唯一真源。Tab Two 账户入口的“绑定邮箱/继续本地”固定为上下等宽按钮；根据用户产品决定，登录和绑定邮箱首屏移除与右上角叉重复的底部取消按钮，只保留全宽主操作。忘记密码按钮发灰定位为组件样式隔离导致全局 `.green-gradient` 不生效，已在组件内部补同款渐变。设置页不再跳旧登录页，直接复用同一个 auth-modal 并原地刷新账户状态。全套 80 项测试通过。
+
+## 2026-07-13: 账户同步与认证弹窗视觉二次校准
+
+用户指出首版弹窗结构仍偏离网页版。重新逐段核验 `AccountBindingSection`、`AuthModal`、`AuthModalForms` 后，删除自创登录/注册 tab，将账户入口恢复为两个全宽纵向按钮；注册改成真源两步流程，首屏“取消/发送验证码”并排、验证码页单个全宽确认；登录保留真源并排操作，忘记密码只保留全宽主按钮。小程序强制协议勾选要求继续保留。样式同步校准居中、间距、圆角、内边距与卡片背景，全套 79 项测试通过。
+
+## 2026-07-13: Tab Two 账户同步与 AuthModal 链路
+
+继续核对网页版点击链后，确认 `SyncButton` 应先打开 `AccountSyncModal`，再由未登录态进入居中 `AuthModal`。小程序现已补齐两层弹窗：底部账户同步面板复刻本地风险提示和三个入口；新增通用 `weapp/components/auth-modal/`，真实接入邮箱密码登录、验证码注册、忘记密码、协议阅读与强制同意。登录成功留在觉察日记，切换 cloud 模式并重新拉取账号数据。语法、JSON 与全套 79 项测试通过。
+
+## 2026-07-13: Tab Two 同步按钮状态复刻
+
+按网页版 `MonthlyHeatmap.tsx` 的 `SyncButton` 核对后，修正觉察日记左上云同步入口：游客是灰底红点，账号模式是绿色渐变，并以灰/蓝/绿/红分别表示空闲、同步、成功、失败。Cloud 素材继续使用审核包内副本；新增回归测试后全套 78 项通过。当前点击账号按钮仍是刷新云端页面数据，待 pending 队列完成后再升级为真正的双向同步入口。
+
+## 2026-07-13: 账户同步 UI 按网页版重做
+
+用户暂停登录功能测试，指出小程序账户同步 UI 与网页版完全不同。本轮沿真源 `AccountSyncSection → AccountBindingSection → DataStorageNotice` 重新核对，确认旧实现只保留了自创简化卡，缺少网页版未登录/已登录两套完整结构。
+
+小程序现已恢复网页版信息层级：未登录态包含琥珀风险卡、缓存丢失说明、隐私说明、未同步状态灯和三个入口；已登录态包含脱敏邮箱、云同步标题、跨设备说明、同步状态、立即同步/退出登录、条件式重置和虚线修改密码。Mail、Smartphone、Lock、CheckCircle、Cloud、RefreshCw、LogOut、Key 均按 Lucide 真源复制到审核包。退出选项补齐“仅退出”和“退出并清空”，后者进入既有三阶段确认。
+
+新增 3 项账户同步 UI 回归测试，全套 77 项通过。下一步先在开发者工具验收两种状态的视觉，再测试登录；“立即同步、状态灯、最近同步时间”仍等待 pending 同步队列接入后变为真实动态数据。
+
+## 2026-07-11: 阶段二登录与注册入口收口
+
+在开始账号缓存人工验收前，用户指出登录入口尚未正式收口。本轮重新对照 Web `AuthModal`、`AuthModalForms` 和忘记密码 flow：小程序保留邮箱密码登录、邮箱验证码注册和双协议强制勾选；新增发送重置验证码、校验验证码、设置新密码三步，并接入现有三个后端 API。
+
+同时把密码规则从“仅检查长度”修正为 8 位、字母、数字和弱密码拦截；注册页实时展示要求。修复游客模式残留有效 session 时直接进入页面却没有切 account mode 的问题。UI 增加包内 Mail/Lock 图标、圆角卡片、品牌渐变按钮、验证码状态卡和重发倒计时。新增接口与静态闭环测试后，全套 74 项通过。
+
+下一步人工验收路径固定为“我的 → 设置 → 账户同步 → 去绑定邮箱”；登录持久化通过后再测账号缓存离线回退，之后进入 pending 写队列。
+
+## 2026-07-11: 阶段二第一刀，账号本机工作区
+
+真实 Web 胶囊导入验收通过后进入阶段二。本轮新增 `weapp/services/account-workspace.js`：以 Supabase `user.id` 为命名空间保存每个账号独立的 records/options 快照、已缓存日期范围和更新时间，游客 storage 保持完全独立。
+
+`data-repository.js` 的账号读取现为“优先请求云端并刷新缓存；请求失败且该范围已有缓存时回退缓存；从未缓存的范围继续抛错”。云端创建、编辑、软删除成功后也会更新账号本机快照。“我的”页移除直接调用 cloud service 的旁路，三个主页面统一经过 repository。新增账号隔离、在线缓存、离线回退和未缓存失败 4 项测试，全套 71 项通过。
+
+下一步不是照片，也不是会员，而是 records 本机先写与 pending 同步队列：操作先落本机立即可见，再上传 Supabase；失败保留并自动重试。完成核心 records 同步后再扩展 options/profile，最后才接照片二进制链路。
+
+## 2026-07-11: Web 真实胶囊兼容验证与导入弹窗复刻
+
+用户提供了 WebApp 真实导出的 JSON。该格式可被小程序解析，缺少 `annotations` 和 option `color_level` 均可兼容；样本唯一记录 `duration: 0`，所以会出现在日历/时光轴，但不会计入统计。真正的不可见问题是导入写入游客 storage 后，账号模式仍继续读取云端。
+
+本轮导入完成后显式切到 guest 本地模式，但保留 Supabase session 和云端数据；结果弹窗显示导入总数与可计入统计数。导入 UI 按 Web `ImportModal.tsx` 调整为红色提示、字段标签、文本框、带 ClipboardPaste/Check 图标的两枚全宽绿色按钮。新增真实样本测试后，小程序 67 项测试全部通过。
+
+开发路线确认：本地产品验收完成后，不再重复做登录 UI，而是建立“登录账号的本机工作区”，随后接 records/options/profile 双向同步、冲突和删除标记；核心同步稳定后接照片本地持久化、OSS 上传和 URL 同步；最后接会员权限与个人主体允许的支付承接。
+
+## 2026-07-11: 数据管理二轮修复
+
+用户在开发者工具中发现：真实账号导出后再导入虽然提示成功，但游客页面仍无记录。定位到 `profile.openExportShell()` 固定调用 `exportLocalData()`，而后者只读游客 storage，没有使用 profile 页已加载的云端 records/options。现已改为从当前页面数据生成胶囊，并统一按 `dataRepository.getMode()` 决定读取 guest/cloud；导入结果返回并展示记录条数。
+
+同时重新对照 `SettingsModal.tsx` 和 `PracticeModalHost.tsx`：4 个入口使用 Copy、Download、Bug、Trash2 及 ChevronRight 的 Lucide 原始路径，素材固化在小程序包；补回未登录时的橙色备份提示；按钮底色、间距和危险卡恢复网页版语义；清空流程改为危险说明、输入“确认删除”、最终执行确认三阶段。`npm.cmd run test:weapp` 共 66 项全部通过。
+
+下一步：开发者工具用真实账号重新导出，确认 `records` 非空；切游客模式导入并核对日历、时光轴、热力图。清空流程先走到第三阶段后取消，确认 UI；需要真清空时务必先保存数据胶囊。
+
+## 2026-07-11: 小程序“我的 → 设置 → 数据管理”本地功能接入
+
+用户确认先暂停分享卡进一步复杂化，转入页面 3 设置里的“数据管理”。本轮先核对网页版源码：数据管理真源在 `components/settings/SettingsModal.tsx`，导出/导入弹窗真源是 `components/ExportModal.tsx`、`components/ImportModal.tsx`，数据格式真源是 `lib/import-export.ts`。小程序不做文件下载，按微信能力改为“弹窗 + 剪贴板 + 可滚动文本框”。
+
+### 本轮修改
+
+- `weapp/services/data-capsule.js`：
+  - 新增本地数据胶囊服务。
+  - 导出字段包含 `records`、`options`、`profile`、`annotations`、`export_at`。
+  - 导出过滤草稿、教程和已软删除记录；profile 不导出头像。
+  - 导入兼容旧字段 `label_zh → label`、`isCustom → is_custom`。
+  - 导入合法胶囊会覆盖本地 records/options/profile/annotations；非法 JSON 不修改本地数据。
+  - 新增运行日志 JSON 和清空本地数据能力。
+- `weapp/services/local-data.js`：
+  - 新增 records/options 替换能力。
+  - 新增清空本地记录并恢复默认选项能力。
+- `weapp/services/annotations.js`：
+  - 新增替换和清空标注类型/标注分配。
+- `weapp/services/local-profile.js`：
+  - 新增重置默认 profile。
+- `weapp/pages/profile/profile.wxml`：
+  - 数据管理四个入口从占位 toast 改为真实功能：导出数据胶囊、导入数据胶囊、运行日志、清空本地数据。
+  - 新增导出、导入、运行日志三个居中弹窗。
+- `weapp/pages/profile/profile.js`：
+  - 接入剪贴板复制/粘贴。
+  - 导入前校验 JSON，并在覆盖本地数据前二次确认。
+  - 清空本地数据前二次确认，不退出登录，不删除云端。
+- `weapp/pages/profile/profile.wxss`：
+  - 新增数据文本框、数据弹窗和按钮布局样式。
+- `weapp/tests/data-capsule.test.js`：
+  - 新增 5 项测试覆盖导出、导入、非法 JSON、清空和运行日志。
+- `weapp/tests/navigation.test.js`：
+  - 更新“我的”页数据管理测试，保护四个入口不再走 `placeholderAction`。
+- `TODO.md`、`docs/weapp/DEVELOPMENT_PLAN.md`、`docs/weapp/UI_MIGRATION_MATRIX.md`：
+  - 更新日期、文件进度、当前测试重点和下一步。
+
+### 验证
+
+- `npm.cmd run test:weapp` → 65 项通过
+
+### 下一步测试
+
+微信开发者工具中打开“我的 → 设置 → 数据管理”：
+
+1. 点击“导出数据胶囊”，确认弹窗可滚动，复制后剪贴板是 JSON。
+2. 点击“导入数据胶囊”，粘贴刚导出的 JSON 并确认导入，数据应正常恢复；粘贴错误文本应提示错误且不覆盖现有数据。
+3. 点击“运行日志”，确认日志可复制。
+4. 点击“清空本地数据”，确认后只清本机记录、选项、profile 和标注，不退出登录、不删除云端。
+
+## 2026-07-11: 小程序分享卡白框、模糊和方形底板修复
+
+用户在微信开发者工具复验两张分享卡时反馈：月度统计分享卡右侧有白色框，导出图片偏模糊；单条练习记录分享卡有更多方形框，内部颜色不统一，统计数据区域像有一块没抠干净的背景板。
+
+### 根因判断
+
+- 两张卡都使用旧版 `canvas-id` 画布。CSS 展示尺寸和 canvas 内部位图尺寸不完全一致，容易在预览时出现右侧白框或边缘空隙。
+- 旧版 canvas 按 320px 逻辑尺寸直接导出，在高 DPR 屏幕上会显得模糊。
+- 单条记录卡首版为了快速搭结构，使用了多处 `fillRect` 方形底板，和 Web `ShareCardModal.tsx` 的白底、细分隔线、圆角胶囊视觉体系不一致。
+
+### 本轮修改
+
+- `weapp/components/monthly-stats-share-card/index.wxml`：
+  - 从旧版 `canvas-id` 改为新版 `type="2d"` canvas。
+- `weapp/components/monthly-stats-share-card/index.js`：
+  - 使用 `wx.createSelectorQuery()` 获取 canvas node。
+  - 按设备 DPR 设置 `canvas.width/height`。
+  - 保存时使用 `destWidth/destHeight` 导出高清图片。
+- `weapp/components/monthly-stats-share-card/index.wxss`：
+  - canvas 增加 `display: block`，避免 inline canvas 默认基线空隙造成边缘白框。
+- `weapp/components/record-share-card/index.wxml`：
+  - 从旧版 `canvas-id` 改为新版 `type="2d"` canvas。
+- `weapp/components/record-share-card/index.js`：
+  - 同样改为 DPR 高清绘制与导出。
+  - 移除统计区灰色硬方形底板。
+  - 突破提示改为圆角胶囊。
+  - 统计区改为白底 + 细分隔线 + 统一墨绿/灰色文字。
+- `weapp/components/record-share-card/index.wxss`：
+  - canvas 增加 `display: block`。
+- `weapp/tests/navigation.test.js`：
+  - 增加防回归断言：保护新版 2D canvas、DPR 高清导出、禁止回退旧 `canvas-id`，并禁止单条卡恢复统计灰色方形底板。
+- `TODO.md`、`docs/weapp/DEVELOPMENT_PLAN.md`、`docs/weapp/UI_MIGRATION_MATRIX.md`：
+  - 更新日期、文件进度、当前测试重点和下一步。
+
+### 验证
+
+- `npm.cmd run test:weapp` → 60 项通过
+
+### 下一步测试
+
+微信开发者工具中先复验两张分享卡：
+
+1. 点击月度统计卡，确认预览右侧不再有白框，保存出的图片更清晰。
+2. 点击时光轴右侧觉察笔记，确认单条记录分享卡不再出现突兀方形底板，统计区颜色统一，保存出的图片清晰。
+3. 若仍有视觉漂移，下一轮基于截图继续微调卡片内部排版；若通过，再补单条记录卡照片绘制。
+
+## 2026-07-11: 小程序分享卡组件化与觉察笔记分享卡接入
+
+用户确认日历标注闭环可用后，重新评估下一步：相比继续“我的”页，优先完善觉察日记下方月度统计卡片的点击、卡片生成、截图和保存功能。用户随后在微信开发者工具中看到月度截图卡片整体向左偏移，并要求继续核对网页版源码，同时把时光轴右侧“觉察笔记”的分享卡也一起做出来；两个功能相似，但需要分开组件。
+
+### 源码核对与根因
+
+- Web 月度统计分享卡真源：`components/MonthlyStatsShareModal.tsx`。
+  - 卡片是 320px 白色圆角卡片。
+  - 月历圆点是 7 列、32px 圆点、4px 间距。
+  - 没有小程序旧实现里额外内嵌的灰色卡片。
+- Web 单条记录分享卡真源：`components/ShareCardModal.tsx`；入口来自 `components/journal/JournalTab.tsx` 时光轴右侧觉察内容区域。
+- 小程序偏移根因：旧实现用 `640rpx` 展示 canvas，但绘制代码按 320px 固定坐标绘制。不同设备上 `640rpx` 不一定等于 320px，导致 320px 内容贴左，右侧留下空白，看起来整张卡往左移。
+
+### 本轮修改
+
+- `weapp/components/annotation-manager/index.js`：
+  - 标注颜色盘收回为网页版同款 9 色。
+- `weapp/components/annotation-manager/index.wxss`：
+  - `.ann-color-grid` 改为 9 个颜色一行居中，避免两行 10 个与网页版不一致。
+- `weapp/components/monthly-stats-share-card/`：
+  - 新增月度统计分享卡独立组件。
+  - 从页面内 canvas 逻辑迁出，按 Web 320px 坐标体系绘制。
+  - 圆点改为 32px、间距 4px，并去掉旧实现内嵌灰色卡片。
+  - 弹层 canvas 显示尺寸改为固定 320px × 500px，修复 rpx/px 不一致导致的左偏。
+  - 支持 `wx.canvasToTempFilePath` + `wx.saveImageToPhotosAlbum` 保存图片。
+- `weapp/components/record-share-card/`：
+  - 新增单条觉察笔记分享卡独立组件。
+  - 首版绘制日期、练习类型、时长、突破、觉察笔记、统计和用户信息。
+  - 支持保存图片到相册；照片绘制后续再按 Web `ShareCardModal.tsx` 继续补。
+- `weapp/pages/journal/journal.wxml`：
+  - 月度统计卡片挂载 `monthly-stats-share-card`。
+  - 时光轴右侧觉察内容增加 `catchtap="openRecordShare"`，点击打开 `record-share-card`。
+- `weapp/pages/journal/journal.js`：
+  - 保留 `buildMonthlyShareData()`，页面只生成月度分享数据，不再直接绘制 canvas。
+  - 新增 `buildRecordShareData()` / `openRecordShare()` / `closeRecordShare()`。
+  - 打开两类分享卡时隐藏底部 Tab，关闭后恢复。
+- `weapp/pages/journal/journal.wxss`：
+  - 新增时光轴右侧觉察内容点击区样式。
+- `weapp/tests/navigation.test.js`：
+  - 增加防回归断言，保护月度分享卡组件、单条记录分享卡组件、Web 对齐尺寸、相册保存入口，并确保页面不再直接创建月度 canvas。
+- `TODO.md`、`docs/weapp/DEVELOPMENT_PLAN.md`、`docs/weapp/UI_MIGRATION_MATRIX.md`：
+  - 更新日期、文件进度、当前测试重点和下一步。
+
+### 验证
+
+- `npm.cmd run test:weapp` → 60 项通过
+
+### 下一步测试
+
+微信开发者工具中先验收两张分享卡：
+
+1. 点击“觉察日记”月度统计卡，确认弹出月度分享卡预览，卡片不再整体左偏；点击“保存图片”后首次真机可能要求相册授权，授权后应保存成功；点击“返回”应关闭弹层并恢复底部 Tab。
+2. 点击时光轴右侧觉察笔记区域，确认弹出单条记录分享卡预览；点击保存图片应成功；关闭后底部 Tab 恢复。
+
+若单条卡视觉通过，下一步补照片绘制或更细 Web 视觉；若当前已够用，再继续“我的”页下一刀。
+
+## 2026-07-11: 小程序日历标注保存后主日历显示修复
+
+用户复验日历标注后反馈三点：颜色选择第二行缺一格；选择类型和日期后点击保存应直接回到 Tab Two 主页面；最重要的是保存后关闭弹层，Tab Two 主日历没有显示对应颜色标注。用户确认“我的”页过往历史校准可以使用，本轮继续聚焦日历标注。
+
+### 根因判断
+
+- 小程序主日历 `weapp/pages/journal/journal.wxml` 中仍有 `item.annotationColors.slice(0, 3)`。这和之前标注类型网格的 `types.slice(...)` 属于同类问题：JS 数据已存在，但微信 WXML 模板中调用数组方法不稳定，容易导致渲染异常。
+- 新建标注类型后立即标注日期时，组件内短时间使用的是临时 `opt-*` 类型 ID。如果保存时没有映射到真实类型 ID，标注分配会写入孤儿类型 ID，主日历按真实类型表构建颜色映射时自然找不到。
+- `onAnnotationSave` 保存成功后只 toast，没有关闭弹层，也没有立即刷新主日历。
+
+### 本轮修改
+
+- `weapp/components/annotation-manager/index.js`：
+  - 本轮当时曾补齐第 10 个颜色；随后按用户新决定收回为网页版同款 9 色，并改为一行居中。
+  - 标注弹层打开时使用 Tab Two 当前年月 `calendarYear/calendarMonth`，不再固定使用今天所在月份。
+- `weapp/pages/journal/journal.js`：
+  - `buildCalendarDays()` 为主日历日期预计算 `previewAnnotationColors` 和 `extraAnnotationCount`。
+  - `onAnnotationCreateType()` 记录 `optimisticId -> realId` 映射。
+  - `onAnnotationSave()` 保存前把临时 ID 转为真实 ID；保存成功后自动关闭标注弹层、恢复底部 Tab，并 `await this.loadCalendar()` 刷新主日历。
+- `weapp/pages/journal/journal.wxml`：
+  - 主日历标注圆点改为渲染 `item.previewAnnotationColors`，移除 `annotationColors.slice(...)`。
+- `weapp/tests/navigation.test.js`：
+  - 增加防回归断言，保护 Tab Two 主日历不再在 WXML 中调用 `annotationColors.slice`，并保护临时 ID 映射、保存后关闭弹层和刷新主日历逻辑。
+- `TODO.md`、`docs/weapp/DEVELOPMENT_PLAN.md`、`docs/weapp/UI_MIGRATION_MATRIX.md`：
+  - 更新日期、文件进度、当前测试重点和下一步。
+
+### 验证
+
+- `npm.cmd run test:weapp` → 60 项通过
+
+### 下一步测试
+
+微信开发者工具中进入“觉察日记 → 日历标注”：确认颜色选择区为 9 色一行居中；新建类型或选择已有类型，点击一个日期后保存；保存后应自动回到 Tab Two 主日历，所选日期底部应显示对应颜色圆点；关闭重开仍应显示。
+
+## 2026-07-11: 小程序“我的”页过往练习本地校准接入
+
+修完日历标注后，继续推进“我的”页。对照网页版 `components/settings/SettingsModal.tsx` 后确认：“过往练习”不是当前统计的 disabled 展示，而是两个可编辑校准字段：`historical_days` 和 `historical_avg_minutes`。保存后网页版会把这些字段写入 profile，并在总统计中作为基础练习量累加。
+
+### 本轮修改
+
+- `weapp/services/local-profile.js`：
+  - 新增本地 profile 存储 `weapp_guest_profile_v1`。
+  - 保存昵称、签名、头像、历史练习天数、历史平均分钟。
+  - 对历史数字做非负整数归一化。
+- `weapp/pages/profile/profile.js`：
+  - 读取本地 profile 并显示在“我的”页主屏和设置页。
+  - 总熬汤天数、总熬汤时长和平均分钟改为“真实记录 + 历史校准值”合并计算。
+  - 新增昵称、签名、历史练习天数、历史平均分钟输入处理。
+  - 新增 `saveProfileSettings()`，保存后即时刷新主屏统计并关闭设置弹层。
+- `weapp/pages/profile/profile.wxml`：
+  - 昵称、签名、历史练习天数、历史平均分钟改为可输入。
+  - “保存设置”按钮接入真实本地保存，不再是占位 toast。
+- `weapp/tests/navigation.test.js`：
+  - 更新“我的”页个人资料测试，保护本地 profile、可编辑历史校准字段和统计合并逻辑。
+- `TODO.md`、`docs/weapp/DEVELOPMENT_PLAN.md`、`docs/weapp/UI_MIGRATION_MATRIX.md`：
+  - 更新日期、文件进度、当前测试重点和下一步。
+
+### 验证
+
+- `npm.cmd run test:weapp` → 60 项通过
+
+### 下一步测试
+
+微信开发者工具中进入“我的 → 设置 → 个人资料”，填写历史练习天数和平均分钟，点击“保存设置”。弹层应关闭，主屏总天数/总小时/平均分钟应立即按历史校准值累加；关闭重开小程序后，填写值仍应保留。
+
+## 2026-07-11: 小程序日历标注视觉漂移修复
+
+用户在微信开发者工具中确认标注类型网格已可显示，但继续反馈四个视觉问题：选中类型样式和网页版不同；日历整体像右偏；创建类型时名称输入框超出界面；底部颜色圆点和保存按钮没有居中且有溢出。
+
+### 本轮修改
+
+- `weapp/components/annotation-manager/index.wxss`：
+  - 标注类型选中态保持白底，不再整块变浅绿，改为只放大/强化色点高亮，贴近网页版交互。
+  - 月历每个日期圆点改为固定 `76rpx × 76rpx`，并让 7 列 grid 的每个单元显式居中，避免整体右偏。
+  - 表单容器、输入框、按钮统一 `box-sizing: border-box` 和宽度约束，防止名称输入框和保存按钮被 padding 撑出弹层。
+  - 颜色选择区从 flex wrap 改为固定 5 列 grid，并居中每个颜色圆点。
+- `weapp/tests/navigation.test.js`：
+  - 增加标注管理器样式防漂移断言，覆盖选中态、日历居中、颜色网格居中、输入框和保存按钮不溢出。
+- `TODO.md`、`docs/weapp/DEVELOPMENT_PLAN.md`、`docs/weapp/UI_MIGRATION_MATRIX.md`：
+  - 更新日期、文件进度、当前测试重点和下一步。
+
+### 验证
+
+- `npm.cmd run test:weapp` → 60 项通过
+
+### 下一步测试
+
+微信开发者工具中打开“觉察日记 → 日历标注”：创建一个新类型，确认类型立即出现；选择后点击日期并保存；同时检查选中态、月历居中、名称输入框、颜色圆点和保存按钮是否不再漂移/溢出。通过后继续推进“我的”页，优先补“过往练习”的真实数据展示/入口。
+
+## 2026-07-11: 小程序日历标注类型网格不显示修复
+
+### 背景
+
+TODO 顶部记录了一个 2026-07-10 未修复问题：在小程序标注管理器中创建标注类型后，类型网格不显示新类型，导致无法选择类型并点击日期进行标注。此前尝试过属性观测器、`selectComponent` 回调、`saveVersion` 和乐观更新，但微信开发者工具中仍然不稳定。
+
+### 根因判断
+
+对照网页版 `components/CalendarAnnotation/AnnotationManagerModal.tsx` 和小程序 `weapp/components/annotation-manager/` 后，发现小程序 WXML 中仍有两类高风险写法：
+
+- `wx:for="{{types.slice(0, 9)}}"`：在 WXML 模板中调用数组方法，微信模板环境不可靠。
+- `getDateAnnotationColors(item.day)`：在 WXML 模板中调用组件方法并继续 `.length` / `.slice()`，同样不适合小程序模板。
+
+这会造成 JS 逻辑测试通过，但开发者工具中模板不渲染或刷新不稳定。
+
+### 修改内容
+
+- `weapp/components/annotation-manager/index.js`：
+  - 新增 `localTypes` 和 `displayTypes`，父级 `types` 只同步到组件内部数据，WXML 只渲染 `displayTypes`。
+  - 创建类型时继续乐观插入，但不再 `setData({ types })` 改写 property，而是更新 `localTypes/displayTypes`。
+  - 新增 `optimisticType`，父级真实类型返回后，将选中态从临时 `opt-*` ID 对齐到真实 ID。
+  - 将 `pendingAdds/pendingRemoves` 从 `Set` 改为普通数组对象，避免 `setData` 序列化和模板渲染坑。
+  - 每次状态变化后在 JS 中预计算 `calendarDays[].annotationColors / previewAnnotationColors / extraAnnotationCount`。
+- `weapp/components/annotation-manager/index.wxml`：
+  - 类型网格改为 `wx:for="{{displayTypes}}"`。
+  - 日期圆点改为渲染预计算的 `item.previewAnnotationColors`。
+  - 移除 WXML 中的 `types.slice(...)` 和 `getDateAnnotationColors(...)` 调用。
+- `weapp/tests/navigation.test.js`：
+  - 新增防回归测试，确保标注管理器不再在 WXML 中调用数组方法或组件方法，并且使用 `displayTypes` / `previewAnnotationColors` 渲染。
+- `TODO.md`、`docs/weapp/DEVELOPMENT_PLAN.md`、`docs/weapp/UI_MIGRATION_MATRIX.md`：更新日期、文件进度和下一步测试。
+
+### 验证
+
+- `npm.cmd run test:weapp` → 60 项通过
+
+### 下一步测试
+
+微信开发者工具中打开觉察日记 → 点击日历标注 → 添加一个新类型 → 保存/创建后应立即回到主界面，并在类型网格中显示新类型；点击该类型后，再点击日期，应出现待保存圆点和“保存”按钮；保存后关闭再打开，标注仍应显示。
+
+## 2026-07-10: 小程序“我的”页热力上色、过往练习数据与会员权益卡修正
+
+### 背景
+
+用户复验后反馈：“我的”页年度热力图仍全白；个人资料页“保存设置”按钮需要与上方内容等宽；会员页权益卡片缺失多项，应照搬网页版；下一步优先推进“过往练习”，让它先接入数据。
+
+### 修改内容
+
+- `weapp/pages/profile/profile.wxss`：在 profile 页显式补齐 `.heat-dot.green-gradient-1~4` 色阶，避免热力点被 `.heat-dot` 默认浅色背景盖住，导致有记录也显示全白。
+- `weapp/pages/profile/profile.js`：过往练习区块先接入当前可得统计数据，`historicalDays` 使用当前记录天数，`historicalAvgMinutes` 使用平均分钟，`historicalHours` 使用累计小时；后续接 profile 历史基数时可在此基础上叠加。
+- `weapp/pages/profile/profile.js`、`weapp/pages/profile/profile.wxml`：按网页版 `PRO_BENEFITS` 补齐会员权益表 6 行：每条记录照片、单张照片大小、练习选项、日历标注、日历颜色、唱诵倒计时。
+- `weapp/pages/profile/profile.wxml`、`weapp/pages/profile/profile.wxss`：将会员“开通 Pro 会员”入口改为与上方内容等宽的白色动作卡，保留后续接入小程序支付/激活码的入口。
+- `weapp/pages/profile/profile.wxss`：去除微信 `button::after` 默认边框，减少保存按钮与网页版样式偏差。
+- `weapp/tests/navigation.test.js`：新增回归测试，保护 profile 热力色阶、过往练习数据绑定、完整会员权益表和等宽会员入口。
+- `TODO.md`、`docs/weapp/DEVELOPMENT_PLAN.md`、`docs/weapp/UI_MIGRATION_MATRIX.md`：更新当前进度、测试重点和下一步。
+
+### 验证
+
+- `npm.cmd run test:weapp` → 47 项通过
+
+### 下一步测试
+
+微信开发者工具中优先复验：有练习记录的日期是否出现绿色热力点；个人资料“过往练习”两张白色数字卡是否显示当前统计；“保存设置”按钮是否和上方输入区等宽；会员 tab 是否显示 6 行完整权益，开通入口是否与卡片等宽。
+
+## 2026-07-10: 小程序“我的”页二轮源码核对修正
+
+### 背景
+
+用户继续验收“我的”页后指出：热力统计只关联游客记录，登录账号的真实练习记录没有进入统计；设置弹层四个 tab 按钮大小、颜色和样式不统一；个人资料页头像相机图标被圆形裁切，过往练习区块被做成普通表单字段，签名框高度过大。要求重新核对网页版源码做 1:1 复刻。
+
+### 修改内容
+
+- `weapp/pages/profile/profile.js`：有 Supabase session 时，“我的”页优先直接读取云端 `practice_records` 和云端练习选项；没有 session 时才读取游客本地记录，避免登录用户统计仍只看游客数据。
+- `weapp/pages/profile/profile.wxml`：个人签名从高 textarea 改回网页版单行 input；过往练习改为独立区块，包含标题行、“累计约 X 小时”和两个白色统计小卡片（天数、分钟/次）。
+- `weapp/pages/profile/profile.wxss`：设置四 tab 统一成圆角胶囊样式；未选中为浅米底，选中为绿色渐变，会员 tab 选中为金色渐变；个人资料头像允许相机按钮溢出显示，不再被圆形裁切；签名框高度收窄；过往练习卡片按网页版白底圆角卡片样式复刻。
+- `weapp/scripts/generate-landing-icons.mjs`、`weapp/images/icons/profile-calendar.png`：新增 profile 过往练习 Calendar 图标，继续使用包内 lucide 语义图标，不用临时字符。
+- `weapp/tests/navigation.test.js`：新增回归测试，保护 profile 页有 session 时读取云端记录、设置 tab 会员金色选中态、相机按钮不被裁切、签名框为单行 input、过往练习为源码同款卡片结构。
+- `TODO.md`、`docs/weapp/DEVELOPMENT_PLAN.md`、`docs/weapp/UI_MIGRATION_MATRIX.md`：更新文件进度、测试重点和下一步。
+
+### 验证
+
+- `npm.cmd run test:weapp` → 46 项通过
+
+### 下一步测试
+
+微信开发者工具中用登录账号进入“我的”页，确认年度热力图和三列统计读取该账号云端真实练习记录；再打开设置，检查四个 tab 的胶囊大小、颜色和选中态是否统一，会员 tab 选中是否为金色；进入个人资料 tab，检查相机按钮不被头像裁切，签名框是否为单行高度，过往练习是否为标题行 + 两张白色数字卡片。
+
+## 2026-07-10: 小程序“我的”页 UI 漂移修正
+
+### 背景
+
+用户验收“我的”页时指出四个漂移点：右上角齿轮图标不一致、默认头像不一致、空记录时年度热力图不应整块隐藏、个人资料页保存按钮样式不对。本次只修复这四项，不扩展真实功能。
+
+### 修改内容
+
+- `weapp/scripts/generate-landing-icons.mjs`：补充 `profile-settings.png`、`profile-user.png`、`profile-user-muted.png`、`profile-camera.png` 四个 profile 专用 lucide 语义图标，并重新生成到 `weapp/images/icons/`。
+- `weapp/pages/profile/profile.wxml`：右上角设置、主屏默认头像、个人资料头像和相机入口从临时字符改为包内 PNG；热力图改为始终渲染 12 个月底盘，空状态文案不再替代热力图；个人资料按钮文案改为网页版的“保存设置”。
+- `weapp/pages/profile/profile.wxss`：补齐 profile 图标尺寸；个人资料头像改回浅色底 + muted User；保存按钮改为全宽圆角渐变样式。
+- `weapp/tests/navigation.test.js`：新增防漂移断言，禁止 profile 页继续使用 `⚙`、`♙`、`⌁` 临时字符；保护 profile 图标包内路径、空记录热力图渲染和“保存设置”文案。
+- `TODO.md`、`docs/weapp/DEVELOPMENT_PLAN.md`：更新本轮文件进度和下一步验收点。
+
+### 验证
+
+- `npm.cmd run test:weapp` → 45 项通过
+
+### 下一步测试
+
+微信开发者工具中切到“我的”页，重点看四处：右上角齿轮是否变成网页版同款线框；默认头像是否是 User 线框而不是棋子/字符；没有练习记录时是否仍显示全年热力图圆点；个人资料 tab 的“保存设置”是否为全宽圆角绿色渐变按钮。
+
+## 2026-07-10: 小程序“我的”页复刻网页版我的数据 UI 外壳
+
+### 背景
+
+用户确认这一轮先不处理口令音频慢的问题，改为迁移小程序“我的”页。要求是先完整复刻网页版“我的数据”页的按钮、UI、布局和设置弹层外壳，功能可以后续一个按钮一个按钮接入；网页版真源为 `components/stats/StatsTab.tsx`、`components/settings/SettingsModal.tsx`、`AccountBindingSection.tsx`、`MembershipCard.tsx` 和 `MembershipActions.tsx`。用户已明确小程序不保留网页版左上角 PWA“安装到主屏幕”按钮。
+
+### 修改内容
+
+- `weapp/pages/profile/profile.js`：重写“我的”页状态与本地数据派生逻辑；读取当年记录和练习选项，计算总熬汤天数、总熬汤时长、平均分钟，并生成 12 个月、16 列年度热力图数据。
+- `weapp/pages/profile/profile.wxml`：复刻网页版 StatsTab 主屏结构：右上角设置按钮、居中渐变头像、昵称、FREE/PRO badge、升级 Pro 胶囊、ID、签名、三列统计卡和年度热力图；不保留 Download/PWA 安装按钮。
+- `weapp/pages/profile/profile.wxml`：新增设置底部弹层外壳，包含“个人资料 / 会员 / 账户同步 / 数据管理”四个 tab；补齐保存、开通 Pro、绑定邮箱、继续本地存储、点击登录、立即同步、退出登录、同步卡住重置、修改密码、复制/导入数据胶囊、运行日志、清空本地数据等按钮。
+- `weapp/pages/profile/profile.wxml`：新增激活码、退出选项、修改密码三个居中弹窗外壳；真实提交功能暂不接入，占位按钮统一提示“下一步接入”。
+- `weapp/pages/profile/profile.wxss`：按网页版视觉迁移圆形渐变头像、FREE/PRO badge、会员胶囊、三列白色圆角统计卡、年度热力图、底部上滑设置弹层、会员金色卡片、设置列表项和居中弹窗。
+- `weapp/tests/navigation.test.js`：新增“我的”页 UI 回归测试，覆盖主屏结构、PWA 安装按钮移除、四个设置分区、全部占位按钮、年度热力图和包内 Moon Day 图片路径。
+- `TODO.md`、`docs/weapp/DEVELOPMENT_PLAN.md`、`docs/weapp/UI_MIGRATION_MATRIX.md`：更新日期、文件进度、测试重点和下一步。
+
+### 验证
+
+- `npm.cmd run test:weapp` → 45 项通过
+
+### 下一步测试
+
+微信开发者工具中切到“我的”页，对照网页版“我的数据”检查：顶部只保留右上角设置按钮；头像、昵称、FREE badge、升级 Pro 胶囊、ID、签名、三列统计卡和年度热力图的间距/圆角/色阶是否接近；打开设置弹层，逐个切换四个 tab，确认按钮都出现、关闭正常、底部导航被遮住。若 UI 通过，下一步按按钮接入真实功能，优先建议接“个人资料保存”或“会员激活码”。
+
+## 2026-07-10: 小程序唱诵/口令按钮互斥与口令音频预热
+
+### 背景
+
+继续对照网页版源码发现：网页版在开始练习时明确禁止“开篇唱诵”和“一序列口令跟练”同时使用。小程序此前只在点击开始时拦截，按钮状态层仍可能同时显示为开启/选中，容易造成误解。同时，远程 44MB 口令音频首次加载超过 10 秒，需要先做小程序侧可控的预热优化。
+
+### 修改内容
+
+- `weapp/pages/practice/practice.js`：打开“开篇唱诵”时，如果当前选中“一序列口令”，自动取消口令选中并释放口令音频。
+- `weapp/pages/practice/practice.js`：选中“一序列口令”时，如果“开篇唱诵”已开启，自动关闭唱诵并更新按钮文案为“关”。
+- `weapp/pages/practice/practice.js`：选中“一序列口令”时立即调用 `guidedAudio.preload()`，提前建立音频上下文和请求资源；取消选择时释放音频。
+- `weapp/services/guided-audio.js`：新增 `preload()`；音频上下文默认 `autoplay = false`，真正开始练习时复用已预热的上下文并播放，避免点开始后才重新发起加载。
+- `weapp/tests/navigation.test.js`：新增按钮互斥和口令预热的回归保护。
+- `TODO.md`、`docs/weapp/DEVELOPMENT_PLAN.md`：更新文件进度、测试重点和下一步。
+
+### 验证
+
+- `npm.cmd run test:weapp` → 42 项通过
+
+### 下一步测试
+
+微信开发者工具中测试两种互斥路径：先开唱诵再点一序列，应自动关闭唱诵；先选一序列再点唱诵，应自动取消口令。音频速度测试要分两种：刚进入页面立刻点开始的冷启动速度；先选中“一序列”等 3–5 秒再点开始的预热速度。如果预热后仍超过 2 秒，下一步应优化音频源本身（faststart/切片/码率/CDN Range），不要把 44MB 文件重新打入审核包。
+
+## 2026-07-10: 小程序今日练习音频链路收口与包体修正
+
+### 背景
+
+当前落地页与整体 UI 已由用户确认“可以接受”，主线从继续抠落地页视觉，切回今日练习的真实可用闭环。继续检查时发现两个需要在真机验收前先处理的问题：WXML 中直接调用时间格式化函数存在兼容风险；一序列口令音频如果直接打入小程序包会超过合理审核包体。
+
+### 修改内容
+
+- `weapp/pages/practice/practice.wxml`：音频进度文本不再写 `{{formatAudioTime(...)}}`，改为绑定 `guidedAudioCurrentText` 和 `guidedAudioDurationText`。
+- `weapp/pages/practice/practice.js`：在 JS 的 `onTimeUpdate` 中预格式化音频当前时间和总时长；重新加载口令音频时同步重置显示文本。
+- `weapp/services/guided-audio.js`：一序列口令音频改为远程播放 `https://ash.ashtangalife.online/audio/guruji-led-primary.m4a`，保留加载、播放、暂停、进度、失败重试和进退控制。
+- `weapp/audio/`：移除 44MB 的 `guruji-led-primary.m4a`，审核包内仅保留开篇唱诵 `opening-chant.mp3`。
+- `weapp/tests/navigation.test.js`：更新落地页顶部栏断言为当前已接受的 UI；新增保护测试，防止 WXML 再直接调用 `formatAudioTime`，并防止口令大音频重新打进本地包。
+- `docs/weapp/DEVELOPMENT_PLAN.md`、`docs/weapp/UI_MIGRATION_MATRIX.md`、`TODO.md`：更新当前日期、文件进度、测试重点和下一步。
+
+### 验证
+
+- `npm.cmd run test:weapp` → 41 项通过
+- `weapp/audio` 当前约 1.05MB，仅包含 `opening-chant.mp3`
+- 运行时代码扫描：UI 素材已包内化；仅保留 API / Supabase 配置和一序列口令音频远程 URL
+
+### 下一步测试
+
+微信开发者工具中优先验收今日练习完整链路：普通练习开始/暂停/继续/结束/保存；开篇唱诵倒计时、播放和跳过；一序列口令加载、播放、暂停、继续、进退、失败重试；保存后觉察日记刷新。重点观察远程音频合法域名、首播缓冲、切后台/回前台后的恢复行为。
+
+## 2026-07-10: 小程序 UI 素材包内化
+
+### 背景
+
+小程序后续需要单独上传代码审核，不能只引用网页工程 `public/` 下的素材，也不应依赖线上图片或 `data:image` 图标。继续排查发现：今日练习页 logo 和开始按钮仍使用线上图片；Moon Day 图片仍使用线上 URL；Tab、公共表单、今日练习音量、觉察日记工具栏仍有 `data:image` 图标。
+
+### 修改内容
+
+- `weapp/images/`：补齐小程序包内 UI 素材：`icon-light.png`、`icon-green.png`、Moon Day 图片、Tab 图标、公共表单图标、今日练习音量图标、觉察日记工具栏图标。
+- `weapp/scripts/generate-landing-icons.mjs`：从“落地页图标生成脚本”扩展为小程序图标生成脚本，统一生成落地页、Tab、表单、音量、工具栏图标。
+- `weapp/custom-tab-bar/index.js`：底部 Tab 的 Calendar / BookOpen / User 图标从 `data:image` 改为 `/images/icons/tab-*.png`。
+- `weapp/pages/practice/practice.wxml`：品牌 logo、开始按钮 `icon-light` / `icon-green` 改为包内 `/images/...`。
+- `weapp/pages/practice/practice.js`：音量图标改为 `/images/icons/practice-volume*.png`。
+- `weapp/pages/journal/journal.js`：工具栏 Cloud / Message / Pencil / Plus 图标改为包内 PNG；Moon Day 图片改为 `/images/moon-phase/*.png`。
+- `weapp/components/practice-record-form/index.js`：相机、全屏编辑图标和日期选择器 Moon Day 图片改为包内资源。
+- `weapp/tests/navigation.test.js`：新增递归扫描测试，禁止运行时代码再次出现 `data:image` UI 图标或网页托管的 icon/moon-phase 图片路径。
+- `docs/weapp/DEVELOPMENT_PLAN.md`、`docs/weapp/UI_MIGRATION_MATRIX.md`、`TODO.md`：更新日期、文件进度、测试重点和下一步。
+
+### 验证
+
+- `rg -n "https://|data:image" weapp -g "*.js" -g "*.wxml" -g "*.wxss" -g "*.json"`：运行时代码仅剩 API / Supabase 配置；素材路径已本地化。
+- `npm.cmd run test:weapp` → 40 项通过
+
+### 下一步测试
+
+微信开发者工具中重点看：底部 Tab 图标、今日练习 logo/开始按钮/音量图标、觉察日记工具栏、Moon Day 图标、公共表单相机/全屏图标、落地页所有图标是否都正常显示。若有图标尺寸或颜色偏差，先改 `weapp/scripts/generate-landing-icons.mjs` 再重新生成 PNG。
+
+## 2026-07-10: 小程序落地页二轮修正——图标、顶部安全区和按钮
+
+### 背景
+
+微信开发者工具继续验收落地页时发现：6 个核心卡片图标仍是临时符号，不是网页版 lucide 图标；顶部 logo 和“开始练习”按钮仍可能被微信自定义导航栏/胶囊区域压住；两个“开始练习”按钮样式和网页版不一致；Hero 中 `&amp;` 被当作字面量显示；logo 下方英文 slogan 过长导致换行。
+
+### 修改内容
+
+- `weapp/pages/landing/landing.wxml`：移除 `◷`、`□`、`▦`、`◇`、`☕`、`⌁` 等自编符号；改为引用本地图标资源；Hero 的 `&` 改为数据绑定，避免显示成 `&amp;`。
+- `weapp/pages/landing/landing.js`：增加落地页图标路径映射，引用 `/images/icons/landing-*.png`；保留首次展示逻辑 `has_seen_landing`。
+- `weapp/pages/landing/landing.wxss`：顶部栏高度从 `124rpx` 级别继续加高到 `178rpx + safe-area`，hero 首屏内容下移；logo 保持圆形；英文 slogan 缩小并强制单行省略；两个“开始练习”按钮改为网页版深绿到墨绿渐变、金色箭头和阴影。
+- `weapp/scripts/generate-landing-icons.mjs`：新增图标生成脚本，从网页版 lucide 语义生成小程序本地 PNG，避免微信端 SVG/data URI 兼容性问题。
+- `weapp/images/icons/landing-*.png`：新增 12 个落地页本地图标：ArrowRight、Loader、Leaf、ChevronDown、Timer、BookOpen、BarChart3、Moon、Wind、Shield、Coffee、Github。
+- `weapp/tests/navigation.test.js`：增加保护，禁止落地页继续使用自编符号、`&amp;` 字面量和旧安全区高度；锁定 6 个核心图标为本地 PNG。
+- `docs/weapp/DEVELOPMENT_PLAN.md`、`docs/weapp/UI_MIGRATION_MATRIX.md`、`TODO.md`：更新日期、文件进度、测试重点和下一步。
+
+### 验证
+
+- `npm.cmd run test:weapp` → 39 项通过
+
+### 下一步测试
+
+在微信开发者工具中清空本地数据后重新打开小程序，重点看：顶部 logo/按钮是否还被挡；logo 是否圆形；6 个卡片图标和其他装饰图标是否全部显示；两个“开始练习”按钮是否接近网页版；Hero 是否显示真实 `&` 而不是 `&amp;`；英文 slogan 是否保持单行。
+
+## 2026-07-10: 小程序落地页重新核对与首轮修正
+
+### 背景
+
+小程序独立落地页 `pages/landing/landing` 和网页版 `app/page.tsx` 存在明显偏差：顶部品牌栏被自定义导航/安全区挤压，logo 不是圆形；多个 `data:image/svg+xml` 图标在微信环境下可能不显示；WXML 使用了不稳妥的 `nav` / `section` 标签；Hero 引文把 `<br/>` 当成文字展示；页面仍残留 `Est. 2026`、`Scroll`、`Rest In Peace`、`Journal` 等未按小程序语境处理的英文；动画也不完整。
+
+### 修改内容
+
+- `weapp/pages/landing/landing.wxml`：按网页版层级重写为稳定小程序结构：Navbar、Hero、Features、Brand Story、Guruji、Promise、CTA。
+- 将 `nav` / `section` 改为 `view`，避免小程序解析和样式不稳定。
+- 顶部品牌栏加大安全区和高度，避免被顶部区域遮挡；logo 改为圆形并加轻阴影。
+- 移除小程序不稳定的 SVG data image 图标，改用可渲染的文字/符号图标。
+- 修复 Hero 引文换行，不再显示假 `<br/>`。
+- 文案本地化：`始于 2026`、`向下`、`谨以纪念`、`日记`、`© 2026 熬汤日记`。
+- `weapp/pages/landing/landing.wxss`：补进入动画、下滑提示动画、月亮旋转、CTA 光泽、特征区纹理和按钮渐变。
+- `weapp/tests/navigation.test.js`：增加落地页质量保护，防止再出现不稳定标签、SVG data image、假换行和未翻译文案。
+
+### 验证
+
+- `npm.cmd run test:weapp` → 39 项通过
+- `npm.cmd run typecheck` → 通过
+
+### 下一步
+
+在微信开发者工具中验收落地页：首次展示/二次跳过/清空数据后重现；顶部品牌栏是否避开导航区域；logo 是否圆形；图标是否全部显示；动画是否自然；文案是否符合小程序语境。
+
+## 2026-07-10: 小程序唱诵倒计时位置修正、保存按钮全宽 + 口令跟练（一序列）音频接入
+
+### 背景
+
+微信开发者工具验收时发现三处问题：唱诵倒计时大圆圈和计时大圆圈位置不一致（圆圈在同一个位置，但倒计时的 padding 布局导致位置偏差）；3 个编辑记录表单的保存按钮未左右顶满（与网页版不一致）。同时需将网页版的口令跟练音频（一序列）完整迁移到小程序。
+
+### 修改内容
+
+- `weapp/pages/practice/practice.wxss`：唱诵倒计时遮罩改为 `rgba(255,255,255,0.3) + backdrop-filter: blur(8px) + border: 1rpx solid rgba(255,255,255,0.3)`，与网页版 `bg-white/30 backdrop-blur-[8px]` 一致；新增 `.chant-countdown-main`（flex:1 居中布局，与计时大圆圈同位置）；新增 `.chant-skip-area`（底部位置对齐 session controls）。`.completion-save` 增加 `width: 100%`、`min-width: 0`、`margin-left/right: 0`、`line-height: 1`、`padding: 0`、`box-sizing: border-box` 覆盖微信 button 默认宽度限制。
+- `weapp/components/practice-record-form/index.wxss`：`.save-button` 增加 `width: 100%` 和 `box-sizing: border-box`。
+- `weapp/pages/practice/practice.wxml`：唱诵倒计时遮罩重构为 flex:1 布局；新增 3 段音频 UI（加载中旋转卡片、错误卡片+重试、进度条+时间标签）；新增进退控制（‹/› 圆形按钮 + 10/15/30 秒步长选择器）。
+- `weapp/pages/practice/practice.js`：新增 `guidedAudio` require；新增强口令相关 7 个 data 字段；`onStartPractice` 对口令模式创建 `initiallyPaused` 会话并调用 `loadGuidedAudio()`；`onHide/onUnload` 释放音频；`togglePause` 同步音频播放状态；`requestEndPractice/cancelEndPractice` 控制音频暂停/恢复；`restorePracticeSession` 支持口令音频自动加载（暂停状态静默加载）。
+- `weapp/services/practice-session.js`：`start(option, now, initiallyPaused = false)` 新增 `initiallyPaused` 参数，口令模式下创建暂停会话（加载期间不计时）。
+- `weapp/services/guided-audio.js`（新增）：基于 WebApp `hooks/useGuidedAudio.ts`，使用 `wx.createInnerAudioContext()` 播放 `/audio/guruji-led-primary.m4a`，`obeyMuteSwitch = false`；支持 `load/play/pause/seek/retry/releaseAudio/getState`。
+- `weapp/audio/guruji-led-primary.m4a`：从 WebApp `public/audio/` 复制（44MB）。
+
+### 技术细节
+
+- 唱诵和口令跟练互斥（网页版限制已保留）。
+- 口令模式练习计时从音频加载完成开始，加载时间（约 10 秒首次）不计入练习时长。
+- 会话恢复时：暂停状态的口令 session 静默加载音频但不自动恢复计时。
+- 音频结束自动触发「结束练习」确认弹窗。
+
+### 验证
+
+- `node --check weapp/services/guided-audio.js weapp/services/practice-session.js weapp/pages/practice/practice.js` → 通过
+- `npm.cmd run test:weapp` → 通过（已有测试未受影响）
+- `npm.cmd run typecheck` → 通过
+
+### 下一步
+
+微信开发者工具验收倒计时位置、保存按钮宽度和口令音频加载/播放/进退/错误恢复。通过后进入公共表单视觉收口和真机验收。
+
+---
+
+## 2026-07-10: 小程序公共表单三处视觉细节修复
+
+### 背景
+
+微信开发者工具验收时发现三处视觉细节：完成弹层“练习完成”标题和下方表单距离太近；全屏编辑页左上角“收起”的 V 形箭头和文字没有垂直对齐；小程序顶部原生导航栏不能做按钮同款渐变，应保持 logo/品牌主绿。
+
+### 修改内容
+
+- `weapp/pages/practice/practice.wxss`：为 `.completion-title` 增加 `margin-bottom: 34rpx`，拉开标题与公共表单距离。
+- `weapp/components/practice-record-form/index.wxml` / `.wxss`：把文字 `⌄` 换成 CSS chevron，和“收起”文字使用 flex 居中对齐。
+- `weapp/app.json`：确认微信原生导航栏不支持 CSS 渐变，`navigationBarBackgroundColor` 保持 logo/品牌主绿 `#2A4B3C`。
+- `weapp/tests/practice-record-form.test.js` / `weapp/tests/navigation.test.js`：增加标题间距、CSS chevron 和顶部栏色值保护。
+
+### 验证
+
+- `npm.cmd run test:weapp` → 38 项通过
+- `npm.cmd run typecheck` → 通过
+
+### 下一步
+
+在微信开发者工具中确认三处视觉：完成标题与表单间距是否舒展；“收起”箭头是否和文字居中；顶部原生导航栏是否与 logo/品牌主绿协调。
+
+### 补充确认
+
+小程序当前也已有独立落地页 `pages/landing/landing`：使用 `has_seen_landing` 控制首次展示，点击“开始练习”后写入本地标记并进入今日练习；后续进入小程序会自动跳过落地页。清空本地数据后，该标记消失，落地页会再次展示。
+
+## 2026-07-10: 小程序公共表单突破解锁、图片和全屏入口修复
+
+### 背景
+
+微信开发者工具验收时发现四类问题：公共表单点击“解锁/突破”后没有展开；完成练习弹层顶部重复显示序列和时间，而下方表单已经有同样字段；完成、补录、编辑三处共用表单缺少图片入口；第一版图片入口做成了独立大块区域，和网页版“笔记框右下角相机/展开圆按钮”不一致。
+
+### 修改内容
+
+- `weapp/components/practice-record-form/index.js`：把 `breakthroughEnabled` 纳入表单状态一起向父级传递，避免父级回传空 `breakthrough` 时把按钮状态重置。
+- `weapp/components/practice-record-form/index.wxml` / `.wxss`：按网页版把相机上传和全屏编辑放到“觉察/笔记”输入框右下角的两个绿色圆形按钮；支持微信本地选择图片、预览和删除。
+- `weapp/components/practice-record-form/index.js`：新增全屏笔记编辑开关和同步输入逻辑；全屏页收起后内容同步回公共表单。
+- `weapp/pages/practice/practice.wxml`：移除完成练习弹层顶部重复的序列/时间摘要。
+- `weapp/pages/practice/practice.js`：完成练习保存时带上 `photos`，待保存表单恢复时保留图片和突破开关状态。
+- `weapp/pages/journal/journal.js`：补录和编辑表单保存/回显 `photos`。
+- `weapp/services/data-repository.js`：游客本地记录保留 `photos` 字段。
+- `weapp/services/practice-records.js`：云端 create/update payload 允许 `photos` 字段；真正 OSS 上传和照片元数据仍放到阶段二账号同步统一完成。
+- `weapp/tests/practice-record-form.test.js`：新增公共表单突破解锁、图片入口、全屏入口位置和完成弹层去重保护。
+
+### 落地页逻辑确认
+
+网页版落地页 `app/page.tsx` 当前只依赖 `localStorage.has_seen_landing`：第一次点击“开始练习”后写入 `true`，后续访问 `/` 会自动跳转 `/practice`；如果清空浏览器本地数据，该标记消失，落地页会再次展示。小程序当前冷启动直接进入 `pages/practice/practice`，没有独立落地页。
+
+### 验证
+
+- `node --check weapp/components/practice-record-form/index.js weapp/pages/practice/practice.js weapp/pages/journal/journal.js weapp/services/data-repository.js weapp/services/practice-records.js` → 通过
+- `npm.cmd run test:weapp` → 36 项通过
+- `npm.cmd run typecheck` → 通过
+
+### 下一步
+
+在微信开发者工具验收完成练习、补录、编辑三处公共表单：突破解锁是否展开、图片是否在笔记框右下角相机按钮进入、全屏编辑是否在右下角展开按钮进入、图片能否选择/预览/删除/保存、完成弹层是否不再重复显示序列和时间。通过后继续按网页版抠表单视觉细节。
+
+## 2026-07-10: 小程序纯本地测试入口阻塞修复
+
+### 背景
+
+微信开发者工具中仍无法顺畅测试纯本地版本：冷启动会先进旧的测试/登录入口；历史登录 session 会让仓库进入云端模式，导致云端练习选项为空时看不到网页版默认选项；自定义练习弹层被底部悬浮导航盖住。
+
+### 修改内容
+
+- `weapp/app.json`：冷启动首页改为 `pages/practice/practice`，登录/注册页保留为非 Tab 页面，由“我的”入口进入。
+- `weapp/app.js`：启动时默认游客模式；只有明确设置 `weapp_account_mode_enabled` 且存在 session 才进入云端，避免历史登录残留干扰纯本地测试。
+- `weapp/services/data-repository.js`：游客开关优先；账号模式显式开启才走云端；练习选项为空时回退到网页版默认选项 `一序列 / Mysore`、`半序列 / 站立+休息`。
+- `weapp/pages/index/index.js`：真实登录成功后清理游客开关并开启账号模式，避免登录后仍停留在游客仓库。
+- `weapp/pages/profile/profile.js`：登录入口开启账号模式；退出后清理账号模式并回到游客模式。
+- `weapp/pages/practice/practice.wxss`：提高练习页弹层遮罩层级，确保自定义练习弹窗盖住底部悬浮导航。
+- `weapp/components/practice-record-form/index.wxss`：提高日期/类型底部选择器层级，避免被底部导航遮挡。
+- `weapp/tests/navigation.test.js`：增加冷启动首页必须是今日练习的保护。
+- `weapp/tests/local-data.test.js`：增加游客模式优先于历史登录 session 的保护。
+
+### 验证
+
+- `node --check weapp/app.js weapp/services/data-repository.js weapp/pages/index/index.js weapp/pages/practice/practice.js` → 通过
+- `npm.cmd run test:weapp` → 32 项通过
+- `npm.cmd run typecheck` → 通过
+
+### 下一步
+
+在微信开发者工具中先验证：冷启动直接进入今日练习；默认练习选项出现；点击 `+ 自定义` 后底部悬浮导航被遮罩盖住。确认纯本地入口可用后，再继续验收完成/补录/编辑公共表单。
+
+## 2026-07-10: 小程序公共练习记录表单接入
+
+### 背景
+
+小程序的“完成练习”“补录练习”“编辑记录”原本各自有一套表单或原生 picker，和网页版 `PracticeForm` / `RecordPickers` 的结构差距较大。继续分别改会导致 UI 越修越分叉，也不利于后续账号同步和会员能力统一。
+
+### 修改内容
+
+- 新增 `weapp/components/practice-record-form/` 公共练习记录表单。
+- 表单顺序按网页版迁移：日期/类型、时长/突破、突破内容、日历颜色、觉察/笔记、保存。
+- 用自定义日期月历底部弹层替换微信原生日期 picker，并在月历中显示已有练习色阶、突破点和 Moon Day 图标。
+- 用三列类型卡片底部弹层替换原生类型 picker，过滤唱诵、今日人数和自定义按钮，只展示真实练习类型。
+- `weapp/pages/journal/` 的补录和编辑接入公共表单。
+- `weapp/pages/practice/` 的完成练习弹层接入公共表单；完成前已填写的表单内容会写入 pending completion，重启后可恢复。
+- 更新小程序总路线、UI 迁移矩阵和 TODO，下一步固定为微信开发者工具真机验收公共表单及视觉收口。
+
+### 验证
+
+- `node --check weapp/components/practice-record-form/index.js weapp/pages/journal/journal.js weapp/pages/practice/practice.js` → 通过
+- `npm.cmd run test:weapp` → 30 项通过
+- `npm.cmd run typecheck` → 通过
+
+### 下一步
+
+在微信开发者工具中验收完成练习、补录、编辑三处公共表单；重点看底部弹层高度、安全区、保存按钮可见性、已有练习日期着色和类型选择器内容。通过后继续迁移唱诵和一序列口令控制。
+
 ## 2026-06-26: 会员页开通流程收口 + 免费照片上限调整
+
+### 背景
+
+DESIGN.md 第一版定义的色值（`#2D5A27` / `#F9F8F6` / `#1A1A1A`）与实际 WebApp 代码不一致。WebApp 实际使用 `#2A4B3C`（森林绿）/ `#F9F7F2`（米白）/ `#C1A268`（金色）。小程序 WXSS 颜色也是随意的，和 WebApp 对不上。
+
+### 修改内容
+
+1. **DESIGN.md 第二版** — 删除过时色值，从 WebApp `globals.css` + `page.tsx` 抽取真实 token：
+   - 主色 `#2A4B3C`，背景 `#F9F7F2`，金色 `#C1A268`
+   - 文字层级用 `#2A4B3C` + opacity 实现，小程序等效实色对照表
+   - 增加 WebApp vs 小程序组件差异对照
+
+2. **小程序 6 个 WXSS 文件统一色板**：
+   - `app.wxss`, `practice.wxss`, `index.wxss`, `journal.wxss`, `profile.wxss`, `privacy.wxss`
+   - 删除旧色 `#26352E` / `#7A817C` / `#747D78` / `#9B814D` / `#273A30` / `#D9DDD9` 等
+
+3. **小程序 tabBar 图标换为 lucide SVG**：
+   - 从 WebApp 的 lucide-react 提取 Calendar / BookOpen / CircleUser 路径
+   - base64 内嵌，选中/未选中两套色值
+
+4. **小程序练习页修复**：
+   - 选中态/开始按钮使用 WebApp 同款绿色渐变 `rgba(74,122,68,0.7) → rgba(45,90,39,0.85)`
+   - 开始按钮从 `<button>` 改为 `<view>` + `overflow:hidden` 保证正圆
+   - Logo 圆角 `50%`
+
+5. **tabBar 宽度缩紧**：`max-width: 560rpx` → `380rpx`
+
+### 备注
+
+- `backdrop-filter: blur()` 微信小程序不支持，毛玻璃效果用半透明背景替代
+- DESIGN.md 换为以 WebApp 代码为真实源，更新记录在 Decisions Log
 
 ### 背景
 
@@ -4350,3 +5231,481 @@ export const INVITE_VERSION = 'v2'  // 从 v1 更新到 v2
 - 手机 375px、平板 768px、桌面 1280px 截图检查通过。
 - 页面无横向溢出，中文大标题没有桌面端末字孤行。
 - Vitest 55 文件 / 562 项、TypeScript 和轻量 lint 通过。
+
+---
+
+## 2026-07-03: 公开内容杂志版式迭代优化
+
+**类型**: UI 优化
+
+**状态**: 已推送至 master
+
+### 修改内容
+
+1. **纸纹背景** — 修复 `bg-paper-pattern` SVG（去掉无效属性），新增 `bg-paper-dark` 页脚纸纹变体，全局框架改用纸纹质感替代平面渐变。
+
+2. **入场动画** — 新增 `animate-enter` + 5 档延迟工具类（`animate-enter-delay-1` 至 `animate-enter-delay-5`），页头、正文区、页脚分段渐入。
+
+3. **金色装饰** — 栏目页标题下加入金色标尺线、侧栏标记加粗为 `border-t-2`、首字下沉放大至 `text-7xl`，区块引号边框加粗。
+
+4. **页头重构单行** — 去掉「阿斯汤加 Ashtanga」副标，三行变一行：`[icon 24px] 熬汤日记 · 呼吸·觉察 · Practice, practice... | 记录工具 · 阿斯汤加 · 关于作者`。字号统一 `text-base`，层级靠透明度区分。品牌名去掉跳转链接。
+
+5. **页脚精简** — 去掉 ASHTANGA JOURNAL 装饰分割线、去掉「开始练习」按钮。二维码缩小至 64px，左对齐。最终 5 行：描述 → 二维码+扫码文字 → 分割线 → 版权行。
+
+6. **条目交互** — 目录和精选链接标题悬停变金色，↗ 箭头悬停右上位移。卡片区 hover 添加轻微阴影。
+
+### 提交记录
+- `dac2e09` — 页头字号统一为 text-sm（后改为 text-base）
+- `6d744b2` — 页头熬汤日记去掉跳转链接
+- `cf406b0` — 页脚精简：去掉开始练习按钮，二维码左对齐
+- `104d10c` — master2 合并至 master
+
+设计方向：纸张质感瑜伽杂志，宋体（Noto Serif SC）+ 墨绿(#2A4B3C) / 米白(#F9F7F2) / 旧金(#C1A268) 配色不变。
+
+---
+
+## 2026-07-09: 小程序迁移路线收口
+
+### 当前事实
+
+- 原生小程序验证工程位于 `weapp/`，微信开发者工具可正常导入并显示首屏。
+- 正式站点公开 API 与前台唱诵音频已在小程序环境跑通。
+- `wx.login` 已验证可以取得 code，`wx.checkSession` 已验证可以检查微信侧会话。
+- 当前缓存的 `auth_token` 仍是探针生成的 `test-token`，没有交换 Supabase session，不能访问真实用户数据。
+- 现有 WebApp 登录实际使用 Supabase 邮箱和密码；`/api/auth/register` 是新用户注册接口，需要邮箱、密码和验证码，不是验证码登录接口。
+- WebApp 的练习记录主要由客户端直接访问 Supabase PostgREST，并由 RLS 保护；当前没有一套完整的练习记录 CRUD 业务 API。
+
+### 路线决策
+
+- 继续使用原生微信小程序，不切换 Taro。
+- 首版沿用现有邮箱账号体系，不建设微信身份绑定。
+- 老用户使用邮箱和密码登录；新用户复用现有邮箱、密码和验证码注册流程。
+- 小程序通过 Supabase Auth REST 获取和刷新 session，通过 PostgREST + RLS 访问同一份业务数据。
+- 不建立微信云数据库副本，不接微信支付，不一次性复制全部 WebApp 页面。
+
+### 三步计划
+
+1. 真实账号接入：登录、注册、token 保存与刷新、退出和会话失效处理。
+2. 只读数据：最近记录、日历、基础统计、会员状态，并验证同账号两端一致。
+3. 写入闭环：新增、编辑、软删除，以及 WebApp 与小程序之间的同步、冲突、去重和失败恢复。
+
+### 关键保护线
+
+- 小程序只能包含公开 anon key，禁止包含 Supabase service role key、微信 AppSecret 等服务端密钥。
+- “微信 session 有效”与“熬汤日记账号已登录”必须明确区分。
+- 小程序直接写云端，WebApp 使用本地优先同步；第三步必须完成真实跨端回归，不能只以数据库写入成功作为验收。
+- 小程序迁移期间不启动练习选项固定槽位系统。
+
+### 文档入口
+
+- 详细计划与验收标准：`docs/weapp/DEVELOPMENT_PLAN.md`
+- 当前勾选进度：`TODO.md`
+
+### 2026-07-09 第一刀实现：真实邮箱账号接入
+
+- 新增 `weapp/config.js`，只包含公开站点地址、Supabase URL 和 publishable/anon key。
+- 新增 `weapp/utils/request.js`，统一封装小程序请求、Supabase 请求头和错误响应。
+- 新增 `weapp/services/auth.js`：
+  - 邮箱密码登录；
+  - 新用户验证码注册后登录；
+  - session 本地持久化；
+  - access token 提前刷新；
+  - refresh token 轮换保存；
+  - 401 后刷新恢复；
+  - 退出时无论远端是否成功都清理本地会话与旧 `test-token`。
+- 首页由技术探针页改为真实登录/注册页；登录后展示真实账号邮箱和会话状态。
+- 新增 `npm run test:weapp`，覆盖登录保存、token 刷新、鉴权请求头和退出清理。
+
+联网协议验证：
+
+- 专用老账号通过 Supabase Auth REST 登录成功。
+- access token 可读取当前用户身份。
+- refresh token 可正常续期并返回轮换后的 session。
+- 验证过程未输出邮箱、密码或 token。
+
+下一步：在微信开发者工具和真机中验收老账号登录、重启恢复、退出与新用户验证码注册；通过后再进入只读练习数据阶段。
+
+### 2026-07-09 登录注册协议与隐私审查
+
+- 登录/注册页增加默认未勾选的双协议复选框。
+- 未勾选时同时禁止获取验证码和提交登录/注册；按钮禁用之外另有函数级守卫。
+- 点击《用户协议》或《隐私政策》打开底部弹窗，使用 `scroll-view` 阅读完整正文。
+- 协议统一存放在 `weapp/content/agreements.js`，独立隐私页也读取同一数据源。
+- 成功登录或注册后，本地记录协议版本、同意时间和用户 ID。
+- 新增《用户协议》，补足账号、用户内容、会员、知识产权、非医疗/非教学边界和服务终止规则。
+- 隐私政策删除未经证实的“服务器位于中国境内”和“定期备份”承诺，补充第三方服务、保存期限、数据权利、儿童监护人同意与重大变更重新同意。
+- 详细审查：`docs/weapp/AGREEMENT_REVIEW.md`。
+
+上线阻塞：必须确认 Supabase 实际部署地域；如存在境外处理，应按真实情况补充跨境告知和单独同意。同时在微信公众平台核对隐私保护指引。
+
+补充主体信息：
+
+- 用户确认小程序和公众号均为个人主体。
+- 当前审核版本按用户要求暂不在协议正文展示个人登记姓名，统一表述为“微信小程序登记的个人开发者”；若审核要求再补充。
+- 对外联系邮箱确认为 `519216978@qq.com`，微信为 `xiao519216978`。
+- 账号安全、会员、责任边界、数据存储与删除、协议更新等重大条款已增加醒目的“重要提示”样式。
+
+真机测试发现协议弹窗底部按钮被固定高度计算挤出屏幕。弹窗已改为 flex 纵向布局：页头和“我已阅读，返回勾选”按钮固定可见，中间正文独立滚动。
+
+### 2026-07-09 真实登录真机通过并进入只读数据阶段
+
+用户在微信开发者工具中使用现有 WebApp 账号 `zaohezi2020@gmail.com` 登录成功：
+
+- 页面显示 `ACCOUNT CONNECTED`；
+- 显示正确账号邮箱；
+- Supabase 用户身份验证通过；
+- 刷新后 session 仍保持。
+
+随后开始第二步：
+
+- 新增小程序练习记录服务，通过 Supabase PostgREST + RLS 读取当前账号最近 10 条未删除记录；
+- 查询只选择首屏展示所需字段，不读取照片；
+- 登录成功或恢复 session 后自动读取，也支持手动刷新；
+- 页面覆盖加载、空数据和错误状态；
+- 新增对鉴权请求头、软删除过滤、排序和数量限制的测试。
+
+### 2026-07-09 小程序重进后 Supabase session_id 失效修复
+
+真机重新进入小程序时出现：
+
+`Session from session_id claim in JWT does not exist`
+
+原因：
+
+- 本地 session 已持久化，但 Supabase `/auth/v1/user` 判断 JWT 中的 session ID 不存在。
+- Supabase 对该错误可能返回 403；原恢复逻辑只在 401 时尝试 refresh token，因此直接把英文错误显示给用户。
+
+修复：
+
+- 401、403、`session_id claim`、session 不存在和无效 JWT 均进入一次性 session 恢复。
+- 使用本地 refresh token 换取新 access token 与轮换后的 refresh token。
+- 用新 access token 重新查询用户，并保存完整新 session。
+- 练习记录请求复用同一恢复判断。
+- 如果 refresh token 本身也已失效，清理本地会话并显示“登录状态已过期，请重新登录”。
+- 新增 403 session_id 不存在 → refresh → 用户查询成功的回归测试。
+
+真机复验结果：修复后重新进入小程序可以保持登录，最近练习记录正常显示。真实账号持久会话闭环完成。
+
+### 2026-07-09 小程序三 Tab 骨架与统一 UI 基础
+
+在继续开发日历、统计前，先确定首版信息架构：
+
+- 今日练习：承接练习类型、计时、唱诵和完成记录。
+- 觉察日记：承接月历、最近记录、查看和补录。
+- 我的：承接统计、会员、账号和设置。
+
+本次实现：
+
+- `app.json` 增加原生底部三 Tab。
+- 登录页与业务页面分离；已有 session 或登录成功后 `switchTab` 进入今日练习。
+- 最近练习从登录页迁入觉察日记。
+- 邮箱、会员占位、统计占位和退出登录迁入我的。
+- 新增 `page-auth` 守卫，三个业务 Tab 无有效 session 时统一返回登录页。
+- `app.wxss` 建立三页共用的页面留白、刊头、标题、卡片、按钮和加载/错误状态样式。
+- 暂不把 WebApp 的体式库放入小程序首版 Tab。
+- 新增导航结构测试，防止后续把记录重新堆回登录页或意外改变三个主入口。
+
+### 2026-07-09 小程序 UI 路线纠偏
+
+用户明确：小程序 UI 保持网页版熬汤日记一致，不需要也不接受另一套视觉设计。
+
+因此调整原则：
+
+- 网页版 `/practice` 是唯一 UI 和交互设计真源。
+- 原生小程序只做技术实现适配，不重新设计品牌、版式或信息层级。
+- 当前三 Tab 的英文刊头、方形卡片和解释性占位文案仅用于验证路由，不作为目标 UI。
+- 后续先停止堆叠日历、统计等功能，按“今日练习 → 觉察日记 → 我的 → 底部导航”的顺序对齐网页版视觉骨架，再继续功能迁移。
+- 网页版有四个入口，小程序首版仍保留三个入口；体式库暂不进入底部导航，其余页面尽量保持网页版外观与操作习惯。
+
+执行方式进一步确认：
+
+- 不采用“先把全部静态 UI 画完，再集中接功能”的瀑布式迁移。
+- 先建立全量 UI / 功能地图和公共设计系统。
+- 然后按“今日练习 → 觉察日记 → 我的”逐 Tab 纵向完成：先复刻该 Tab 的网页版 UI，紧接着完成其中按钮、图标、数据和异常状态，真机验收后再进入下一个 Tab。
+- 新增 `docs/weapp/UI_MIGRATION_MATRIX.md`，列出公共层、三个 Tab、每个控件的 UI 与功能状态，以及逐 Tab 完成门。
+
+### 2026-07-09 今日练习首轮网页版 UI 迁移
+
+- 系统默认 tabBar 改为自定义悬浮圆角导航，保留今日练习、觉察日记、我的三个入口。
+- 今日练习删除杂志式英文刊头、方形卡片和解释性占位布局。
+- 按网页版 `PracticeDashboard` 重建 Logo、品牌名、日期、三列圆角选项、选中渐变、今日人数、自定义虚线入口与圆形呼吸开始按钮。
+- 接入真实 Supabase `practice_options` 只读查询和现有今日练习人数 API。
+
+### 2026-07-09 小程序色阶与真实月历迁移
+
+- 保留用户已手工调整的今日练习布局与悬浮 Tab 样式，没有整页覆盖。
+- 将 WebApp `globals.css` 中的 `green-gradient`、深浅渐变与 1–4 级日历绿色提取为小程序公共样式。
+- 觉察日记移除静态月历占位，改为按当前月份从 Supabase PostgREST + RLS 读取真实练习记录。
+- 月历同一天有多条记录时使用最高有效 `color_level`，仅完成且非草稿的记录显示练习色阶。
+- 月历加入上月、下月控制；今日使用金色描边，未来日期使用弱化文字。
+- 今日练习的音频提示由字符占位替换为与 WebApp 相同语义的 Lucide Volume 图标。
+- `npm run test:weapp` 通过 17 项，根项目 `npm run typecheck` 通过；真机颜色、间距和小程序 SVG data URI 表现仍需在微信开发者工具复验。
+
+### 2026-07-09 觉察日记完整骨架对齐
+
+- 修复日历着色逻辑：与 WebApp 一致，只要存在非草稿记录就显示绿色，不再额外要求 `duration > 0`。
+- 迁入 2026 年新月/满月日期，未练习的 Moon Day 显示原站月相图片，点击显示与 Web 相同的休息提示；已练习 Moon Day 显示黄色标记。
+- 月历顶部从两个翻月按钮补齐为六个：云同步、社群消息、上月、下月、日历标注、补录练习；尚未接入的动作提供轻提示，不再缺席 UI。
+- 移除临时的英文刊头与“最近练习”卡片，按 WebApp 结构改为顶部留白、月历、四栏月度统计卡、当前月真实记录时光轴。
+- 时光轴迁移日期、分钟、练习类型、中轴标记、突破内容和觉察正文；点击绿色日期可滚动定位对应记录。
+
+### 2026-07-09 觉察日记写入闭环
+
+- 日历 `+` 按钮已接入补录底部弹层，字段包含日期、练习类型、分钟、突破、觉察正文和 1–4 级日历颜色。
+- 点击时光轴记录可打开同一套编辑弹层；保存后刷新当前月月历、统计和时光轴。
+- 新增记录通过 Supabase PostgREST 写入当前 session 的 `user_id`；编辑仅允许更新业务白名单字段。
+- 删除采用 `deleted_at` 软删除，不物理删除数据库记录；RLS 继续作为最终访问边界。
+- 云同步按钮现在会重新拉取练习选项和当前月记录。
+- 小程序自动化测试增加新增、更新和软删除请求校验，共 21 项通过。
+
+### 2026-07-09 小程序游客本地模式第一阶段
+
+- 产品决策改为“免登录打开即用；登录用于云端备份和跨设备”，不再把账号作为进入三个业务 Tab 的前置条件。
+- 新增 `weapp/services/local-data.js`，使用微信 Storage 保存游客记录和默认练习选项；游客删除保留 `deleted_at` 标记。
+- 新增 `weapp/services/data-repository.js`，页面只依赖统一仓库接口；当前按 Supabase session 在游客本机与登录云端之间切换。
+- 登录页增加游客入口并持久记住选择；再次打开小程序时可直接进入。
+- 今日练习、觉察日记移除强制登录守卫；月历、补录、编辑、色阶和删除均可操作游客记录。
+- “我的”页面增加游客身份、本机记录数量和登录入口；退出账号后切回游客工作区。
+- 本阶段刻意不实现游客记录合并和登录账号离线缓存，下一阶段完成；游客数据仍保留在本机，不会因登录而删除。
+- `npm run test:weapp` 通过 25 项，根项目 `npm run typecheck` 通过。
+- 详细文件进度、验收步骤和下一步见 `docs/weapp/LOCAL_DATA_MODE.md`。
+
+### 2026-07-09 小程序开发路线重新收口
+
+- 将 `docs/weapp/DEVELOPMENT_PLAN.md` 重写为唯一开发总路线，其他文档降为 UI、本地同步、协议专项说明。
+- 开发顺序固定为：纯本地完整产品 → 账号本地缓存与云同步 → 会员与付费能力。
+- 当前阶段只做本地版三个 Tab，并按“一个 Tab 的 UI + 功能 + 真机验收”纵向完成。
+- 当前唯一下一步是今日练习本地计时闭环；已有认证和云端 CRUD 保留但冻结，不继续扩展同步。
+- 总路线新增当前文件进度、UI 1:1 验收方法、本地/跨端完成门、当前测试项和明确暂不执行范围。
+
+### 2026-07-09 今日练习本地计时闭环
+
+- 新增 `weapp/services/practice-session.js`，活动计时使用时间戳计算，不依赖页面定时器累计，切后台后可按真实时间恢复。
+- 计时状态持久保存练习类型、开始时间、累计秒数和暂停状态；重新进入今日练习时自动恢复。
+- 今日练习接入全屏计时、呼吸圆环、暂停/继续、结束确认、结束并保存和放弃操作。
+- 完成弹层接入突破、觉察笔记和四级日历颜色，保存后通过统一仓库创建记录并跳转觉察日记。
+- 结束后尚未保存的完成状态和表单文字也会持久保存；关闭、重开后可继续填写，保存成功后才清理。
+- 自定义 tabBar 在计时页、结束确认和完成弹层期间隐藏，退出流程后恢复。
+- 新增计时服务测试：开始、暂停、继续、重进恢复、结束待保存和放弃；小程序自动化测试共 29 项通过，根项目类型检查通过。
+- 下一步不是继续堆功能，而是在微信开发者工具完成计时闭环与网页版视觉对照测试，再接唱诵和口令联动。
+
+### 2026-07-09 真机反馈：表单、日期选择、色阶与默认类型纠偏
+
+- 用户指出完成练习和补录练习的表单与网页版差异明显，微信原生日期 picker 不等同于网页版自定义月历。
+- 根因确认：两个入口分别手写表单，没有迁移网页版共用的 `PracticeForm`、`DatePickerModal` 和 `TypeSelectorModal`。
+- 修复月历加载顺序：先加载练习类型再构建月历；记录缺少 `color_level` 时按精确类型或“类型 + 说明”前缀回退到类型默认色阶。
+- 游客默认保留“一序列 Mysore”和“半序列”，加上固定口令一序列共三个可选类型；自定义入口现在可补足第三个本地类型槽位。
+- 本地第三类型使用 UUID、说明和四级颜色保存，超过三个本地类型时明确拒绝。
+- 自动化测试增加本地第三类型和上限验证，共 30 项通过，根项目类型检查通过。
+- 当前唯一下一步改为公共练习表单组件及自定义日期/类型选择器，不再继续扩展其他功能。
+- 生产表没有 `practice_options.updated_at` 字段，真实查询首次暴露 400 后已按服务端提示移除该字段。
+- 修正后的第二次远程复验因工具联网额度限制未执行；本地契约测试已更新，仍需在微信开发者工具真机编译时确认真实选项。
+
+## 2026-07-10: 标注管理器修复尝试（乐观更新 + CSS）— 放弃
+
+### 背景
+
+用户反馈标注管理器两个问题：
+1. **CSS 布局**：颜色选择圆圈选中时 box-shadow 被容器边缘截断、圆圈行不居中、"名称"输入框溢出画面。
+2. **核心功能**：创建标注类型后，类型网格不显示新类型，无法选择类型点击日期标注。
+
+此前已尝试过三种修复方案（types 属性观测器 → selectComponent 回调 → saveVersion 属性观测器），均未成功。
+
+### 修复尝试：乐观更新
+
+第四种方案放弃依赖父级异步回调，改由组件直接修改自己的 types 数据。
+
+**改动内容**：
+
+- `weapp/components/annotation-manager/index.js`：
+  - `confirmCreate()` — 立即插入带临时 ID 的乐观类型到本地列表，state 回 showMode: 'main'，同步触发 parent event
+  - `confirmEdit()` — 立即修改本地 types 中匹配项，state 回 main
+  - `confirmDelete()` — 立即从本地 types 中移除，state 回 main
+  - 移除 `saveVersion` property 和 observer
+  - 移除 `isSaving` 数据字段及相关逻辑
+
+- `weapp/components/annotation-manager/index.wxss`：
+  - `.ann-color-grid`: padding 4rpx → 8rpx（给 box-shadow 留空间）
+  - `.ann-form-scroll`: 左右 padding 40rpx → 32rpx（防止输入框溢出）
+
+- `weapp/pages/journal/journal.js` / `.wxml`：移除所有 `annotationSaveVersion` 数据字段、递增逻辑和 WXML 绑定
+
+- `weapp/tests/annotations.test.js`：新增 12 项测试覆盖完整 CRUD、幂等性、月标注地图、颜色查询和导出
+
+### 验证结果
+
+- `npm.cmd run test:weapp` → 59 项全部通过（12 项新增 + 47 项已有）
+- 但微信开发者工具中标注管理器仍然不显示新类型
+
+### 结论
+
+**放弃修复**。根因判定为 `triggerEvent` → parent async handler（dataRepository.createAnnotationType → await loadAnnotationTypes 更新 annotationTypes property）→ WeChat 组件 property binding 更新之间的时序问题无法可靠解决。乐观更新可以让组件内立即看见新类型，但 WeChat 的 property 绑定机制似乎会在一轮 setData 后覆盖组件内的临时状态，导致乐观数据不生效。
+
+将此事登记为 TODO 中的长期已知问题，待后续找到更可靠的小程序组件状态管理方案后再处理。
+
+## 2026-07-16 - 小程序新账号教程连续性与真实会员状态
+
+### 实现结果
+
+- 新注册账号进入账号模式时，会把游客教程复制到该账号独立的本机工作区；教程仍不上传、不导出、不计入真实练习统计。
+- 对已经注册但错过注册回调的新账号增加一次恢复路径：账号创建 24 小时内首次读取会补回游客教程，即使已经新增真实记录也不会漏掉。
+- 账号云端刷新会保留本机教程及其软删除标记；教程编辑和删除不建立 pending operation，用户主动删除后不会被后续空云端刷新复活。
+- 新增 `weapp/services/membership.js`，用 Supabase access token 请求 `/api/membership/status`，会话失效时刷新并重试。
+- “我的”主屏和“设置 → 会员”接入真实 FREE/PRO、会员类型、到期日和剩余天数；有效会员入口显示“续费 Pro 会员”。
+- 注册接口的试用赠送异常由空 `catch` 改为服务端错误日志，便于以后直接定位赠送失败。
+
+### 文件进度
+
+- `weapp/services/account-workspace.js`：保留教程与删除 tombstone。
+- `weapp/services/data-repository.js`：教程恢复、本机专用编辑/删除、统计隔离。
+- `weapp/components/auth-modal/index.js`、`weapp/pages/index/index.js`：注册成功教程连续性接线。
+- `weapp/services/membership.js`：真实会员状态服务。
+- `weapp/pages/profile/profile.js`、`profile.wxml`、`profile.wxss`：真实会员 UI。
+- `app/api/auth/register/route.ts`：试用赠送失败日志。
+- `weapp/tests/account-workspace.test.js`、`auth.test.js`、`navigation.test.js`：新增回归保护。
+
+### 验证与下一步
+
+- `npm.cmd run test:weapp`：109/109 通过。
+- `npx.cmd vitest run __tests__/api-auth-routes.test.ts`：36/36 通过。
+- `npm.cmd run typecheck`：通过。
+- `npm.cmd run lint`：通过。
+- 微信开发者工具下一步核对：当前测试账号重新编译后出现一条教程；“我的”显示 PRO；会员页显示 trial、到期日和约 31 天；教程删除后刷新不复活。
+- 验收通过后接 `/api/membership/activate`，再建立统一 FREE/PRO 能力策略。
+
+## 2026-07-17 - 小程序照片上传改为表单内即时完成
+
+### 根因
+
+小程序此前在选图时只保存微信本机路径，真正的 OSS 上传要等记录保存后由觉察日记后台同步，因此表单一直显示“待上传”，保存后主页面仍长时间 loading。网页版会先创建草稿，选图后立即上传，保存只完成草稿；两端时机不同造成了明显体验差异。
+
+### 实现
+
+- 公共表单移除重复添加方框；3 张以内为三列 1:1，更多照片用固定方图横向滚动。
+- 数据仓库新增 `uploadRecordPhotos()`：保证草稿已同步后上传，按网页版每批并发 2 张，成功即把本机路径替换为 OSS HTTPS URL。
+- 每张照片具备读取、上传、成功、失败状态；失败任务保留在账号队列与运行日志中，可在表单点击重试。
+- 补录创建可清理草稿；完成练习草稿 ID 持久化，重启后不会重复建草稿；编辑复用原记录。
+- 上传未完成时公共表单禁止保存，觉察日记也禁止关闭表单；完成练习草稿建立期间禁止抢先保存，消除重复记录竞态。
+- 上传使用页面现有会员能力，避免重复请求会员状态造成额外延迟；服务端照片数量和文件大小限制仍保留最终校验。
+
+### 文件与验证
+
+- 代码：`weapp/components/practice-record-form/`、`weapp/services/data-repository.js`、`weapp/pages/journal/`、`weapp/pages/practice/`。
+- 测试：`weapp/tests/practice-record-form.test.js`、`membership-ui.test.js`、`account-workspace.test.js`。
+- `node --check` 全部通过；`npm.cmd run test:weapp` 137/137 通过。
+
+### 下一步
+
+在微信开发者工具和真机一次性验收 3 张网格、4～9 张横滑、逐张上传状态、保存锁定、失败重试以及保存后觉察日记立即显示；验收通过后回到总路线中的“我的”页剩余资料/修改密码功能。
+
+## 2026-07-17 - 小程序会员限制统一与网页版提示 UI 复刻
+
+### 真源审计
+
+- 会员提示真源：`components/Membership/MembershipPromptModal.tsx`、`MembershipCard.tsx`。
+- 锁定态真源：`components/practice/PracticeDashboard.tsx`、`OptionModals.tsx`、`PracticeForm.tsx`、`CalendarAnnotation/AnnotationManagerModal.tsx`。
+- 唱诵限制真源：`components/practice/PracticeModalHost.tsx`。
+- 确认权益仍为：照片 1/9 张、单张 5/30 MB、选项 3/11、标注 1/9、颜色 1/4、唱诵倒计时固定 1 分钟/自定义。
+
+### 实现
+
+- 新增公共小程序会员 Sheet，两个主业务页共用同一组件和 reason 文案。
+- 将练习页、日记页散落的 `wx.showModal` 会员提示替换为真源底部 Sheet。
+- FREE 照片超量整批拒绝后直接显示会员 Sheet；Pro 超过剩余额度仍显示普通数量错误，不误导升级。
+- 全部锁定态用从 Lucide 真源复制的 Crown/Lock SVG，不再显示自造 PRO 字样。
+- 升级入口写入一次性页面意图并切到 Profile，Profile 自动打开会员设置分区。
+- 未接支付和激活码；会员 Sheet 保留真实价格/UI，按钮说明为小程序支付后自动开通。
+
+### 文件与验证
+
+- 新增：`weapp/components/membership-prompt/`、三个 `membership-*.svg` 包内素材。
+- 修改：`weapp/pages/practice/`、`weapp/pages/journal/`、`weapp/pages/profile/profile.js`、公共练习表单、标注管理器和会员 UI 测试。
+- `node --check` 通过。
+- `npm.cmd run test:weapp`：140/140 通过。
+
+### 下一步
+
+微信开发者工具和真机一次性验收 FREE 五个可见限制入口、Pro 全额度和降级保留数据；通过后开发“我的”页剩余头像/资料/修改密码功能。
+
+## 2026-07-17 - 小程序账号资料闭环：头像上传与真实修改密码
+
+### 真源核对
+
+- 头像与资料保存：`components/settings/SettingsModal.tsx`。
+- 修改密码：`components/AccountBindingSection.tsx`。
+- 保留平台差异：小程序用 `wx.chooseMedia`、`wx.compressImage` 和现有 OSS 签名接口；字段、校验、状态反馈和视觉层级对齐网页版。
+
+### 实现
+
+- `photo-storage.uploadAvatar()` 复用 OSS 签名和 PUT 上传，但不创建练习照片元数据，避免头像污染照片表。
+- `user-profile` 不再强制丢弃 `avatar`；`data-repository` 读取账号资料时以云端头像为准，本机缓存只作为离线回退。
+- Profile 头像入口支持登录判断、5MB 校验、压缩、上传、保存、加载遮罩和失败反馈；相机按钮保持在头像圆形外侧。
+- `auth.changePassword()` 先用邮箱和当前密码取得新会话，再带 Bearer token 更新 Supabase Auth 密码。
+- 修改密码弹窗加入完整字段、动态强度规则、错误提示、防重复提交和成功后关闭。
+- 资料保存按钮加入提交中状态，保留姓名、签名和过往练习校准数据的一次性保存。
+
+### 文件与验证
+
+- 服务：`weapp/services/photo-storage.js`、`user-profile.js`、`data-repository.js`、`auth.js`。
+- 页面：`weapp/pages/profile/profile.js|wxml|wxss`。
+- 测试：`auth.test.js`、`photo-storage.test.js`、`account-workspace.test.js`、`account-sync-ui.test.js`、`navigation.test.js`。
+- 语法与差异检查通过；`npm.cmd run test:weapp` 144/144 通过。
+
+### 下一步
+
+先真机验收头像跨刷新/跨设备读取和修改密码重新登录，再进入分享卡照片、长文自适应、滚动缩放与高清导出；音频首播性能和支付分别放到后续独立轮次。
+
+## 2026-07-20 - 密码规则前置校验与 Gmail 投递排查
+
+- 根因一：公共认证组件的注册第一步只校验邮箱和协议，未在调用 `sendRegisterCode()` 前执行已有的 `validatePassword()`；现已前置，错误密码不再触发邮件接口。
+- 补充确认：用户实际测试的是登录表单“忘记密码？”，确实应该发送邮件；此前将其判断为已登录改密是错误的，现已纠正。
+- 修改密码的组合错误拆成具体提示：缺字母提示“密码必须包含字母”，缺数字提示“密码必须包含数字”。
+- 通过 Gmail 全邮箱检索确认连接账号为 `zaohezi2020@gmail.com`；用户反馈时确实没有重置密码邮件。
+- 初次用 Windows `curl.exe --data-raw` 直接嵌 JSON 的测试被 PowerShell 改写双引号，因此产生的 HTTP 500 是无效请求体导致的诊断误差；随后改用 JSON 文件消除此变量。
+- 数据库临时写入/删除诊断成功，表结构未损坏；本地服务端改为用 Service Role 处理验证码查询、写入和清理，并记录未预期异常。
+- `a041193b` 推到 `master2` 后只生成 Preview；随后从干净 `origin/master` worktree cherry-pick 为 `bb9ea5af`，相对生产分支只修改验证码接口一个文件，并完成 Vercel Production 部署。
+- 生产复验返回 HTTP 200 和 Resend `delivery_id=9383a340-752f-412a-9110-63d2e3a10e55`；Gmail 同秒收到重置密码验证码，位于 Inbox。
+- 文件：`weapp/components/auth-modal/index.js`、`weapp/pages/profile/profile.js`、`weapp/tests/account-sync-ui.test.js`、`app/api/auth/send-verification-code/route.ts`、`__tests__/api-auth-routes.test.ts`。
+- 验证：TypeScript、`git diff --check` 通过；API 路由 37/37、小程序 145/145 通过。
+
+### 下一步
+
+忘记密码生产闭环已完成，继续既定分享卡路线。后续生产热修复继续使用干净 `master` worktree，禁止从主脏工作区整包部署。
+
+## 2026-07-27 - 小程序切换个体工商户主体与新 AppID
+
+- 新主体确认为“广州市番禺区车棚与四月信息技术部（个体工商户）”，新 AppID 为 `wx36f4826bc022d43f`。
+- `weapp/project.config.json` 已从旧个人主体 AppID 切换到新 AppID。
+- 当前认证仍为邮箱密码 + Supabase Auth，代码未使用 `wx.login`，因此 AppSecret 当前不参与账号或同步功能；AppSecret 继续禁止进入客户端和仓库。
+- 用户协议与隐私政策已更新运营主体和版本日期，会员条款移除激活码旧口径，保留未来微信支付成功后自动开通/续费的路线。
+- 新增 `weapp/tests/appid-migration.test.js`，保护新 AppID 并检查小程序公开配置不包含 AppSecret。
+- 新增 `docs/weapp/APPID_MIGRATION.md`，记录新旧 AppID Storage 隔离、游客数据迁移、合法域名、隐私指引和支付前置。
+
+### 下一步
+
+使用新 AppID 重新导入微信开发者工具，在公众平台重配合法域名和用户隐私保护指引；完成新 AppID 下游客冷启动、旧邮箱账号恢复、照片、口令音频和相册保存最小真机回归后，再恢复非支付集中收口。
+
+## 2026-07-27 - 非支付功能集中收口
+
+- 用户已在微信开发者工具确认工程显示新 AppID；本地代码工程不重建。
+- 删除 `weapp/pages/profile/profile.js` 中无任何页面入口的 `placeholderAction`，清除最后一处“功能下一步接入”运行时死代码。
+- `weapp/tests/navigation.test.js` 增加防回归断言，禁止占位处理器重新进入“我的”页。
+- 新增 `docs/weapp/NON_PAYMENT_ACCEPTANCE.md`，将游客、FREE、PRO、离线同步、照片、分享卡、口令音频、认证和数据管理整理成一次性真机验收门。
+- 验证：小程序自动化 158/158、TypeScript、lint 和 `git diff --check` 全部通过。
+
+### 下一步
+
+在新 AppID 下完成非支付集中真机验收。通过后冻结非支付功能，只开发微信支付与服务端自动开通/续费，最后执行提审回归。
+
+## 2026-08-13 - 小程序首次提审提交（1.0.0）
+
+- 首次提审版本 1.0.0 已上传微信公众平台，等待审核。
+- 提审排雷（对照 reject.html 全量自查，唯一实质缺口已补）：
+  - 内容过滤 3.2.11：本地敏感词过滤，小程序 + 网页共用词库，接入日记/备注/自定义练习类型/标注标签保存。
+  - 审核账号 zaohezi2020@gmail.com + Pro 开通 SQL（supabase/grant_review_account_pro.sql）。
+  - 订单中心页 pages/orders/orders（交易类小程序硬性要求）。
+  - 日记页联系入口去小红书、改「联系作者」，只留微信（components/contact-author）。
+  - 隐私保护指引按实际采集完整填写（含 Supabase 孟买跨境告知已在隐私政策体现）。
+- 两笔 ¥19.8 测试款（沙箱 + 现网）均已原路退款。
+- 代码包体检「图片和音频资源」为建议项未通过（主包媒体约 390KB），不阻塞审核，后续可挪 CDN 优化。
+- 验证：小程序测试 238/238、web vitest、typecheck、发布门禁全部通过。
