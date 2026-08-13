@@ -2,10 +2,10 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ChevronLeft } from 'lucide-react'
+import { ChevronLeft, Sparkles } from 'lucide-react'
 import { ActivateModal } from '@/components/Membership/ActivateModal'
 import { MembershipCard } from '@/components/Membership/MembershipCard'
-import { MembershipActions } from '@/components/Membership/MembershipActions'
+
 import { useMembership } from '@/hooks/useMembership'
 
 export default function SettingsPage() {
@@ -33,14 +33,24 @@ export default function SettingsPage() {
       {/* 内容 */}
       <main className="max-w-lg mx-auto px-4 py-6 space-y-6">
         {/* 会员卡片 */}
-        <MembershipCard showStatus membership={membership} loading={loading} />
-
-        {/* 操作按钮 */}
-        <MembershipActions
-          onActivate={() => setShowActivateModal(true)}
-          isActive={membership?.is_active}
+        <MembershipCard
+          showStatus
+          membership={membership}
+          loading={loading}
+          headerAction={
+            <button
+              onClick={() => setShowActivateModal(true)}
+              className="flex flex-col items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-[#C1A268] to-[#D4AF37] text-white shadow-sm hover:opacity-90 transition-opacity shrink-0"
+            >
+              <Sparkles className="w-5 h-5" />
+              <span className="text-[10px] font-serif mt-0.5 leading-none">
+                {membership?.is_active ? '续费' : '开通'}
+              </span>
+            </button>
+          }
         />
 
+        {/* 操作按钮 */}
         {/* 版本信息 */}
         <section className="text-center pt-8">
           <p className="text-xs text-gray-400">熬汤日记 v1.0</p>

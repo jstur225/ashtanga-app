@@ -1,58 +1,452 @@
-<view class="app-page">
-  <view class="app-header">
-    <text class="app-eyebrow">YOUR PRACTICE</text>
-    <text class="app-title">我的</text>
-    <text class="app-subtitle">统计、会员和账号设置统一放在这里。</text>
+<view class="profile-page">
+  <view class="profile-topbar">
+    <view></view>
+    <view class="top-icon-button settings-entry" bindtap="openSettings" aria-label="打开设置">
+      <image class="top-icon-image" src="/images/icons/profile-settings.png" mode="aspectFit" />
+    </view>
   </view>
 
-  <view wx:if="{{loading}}" class="app-card app-state">正在读取账号信息…</view>
+  <view wx:if="{{loading}}" class="profile-state">正在读取我的数据…</view>
 
   <block wx:else>
-    <view wx:if="{{isLoggedIn}}" class="app-card profile-card">
-      <text class="profile-avatar">汤</text>
-      <view class="profile-copy">
-        <text class="app-card-label">SIGNED IN</text>
-        <text class="profile-email">{{userEmail}}</text>
+    <view class="identity-section">
+      <view class="avatar-wrap green-gradient">
+        <image wx:if="{{profileAvatar}}" class="avatar-image" src="{{profileAvatar}}" mode="aspectFill" />
+        <image wx:else class="avatar-icon" src="/images/icons/profile-user.png" mode="aspectFit" />
+      </view>
+
+      <view class="name-row">
+        <text class="profile-name">{{profileName}}</text>
+        <text class="pro-badge {{isPro ? 'active' : ''}}">{{isPro ? 'PRO' : 'FREE'}}</text>
+      </view>
+
+      <view wx:if="{{membershipLoading}}" class="membership-pill muted">
+        <text class="mini-spinner">◌</text>
+        <text>正在加载会员状态…</text>
+      </view>
+      <view wx:elif="{{isPro}}" class="membership-pill active">
+        <text class="pill-icon">♛</text>
+        <text>{{membershipText}}</text>
+      </view>
+      <view wx:else class="membership-pill upgrade" bindtap="openMembershipShell">
+        <text class="pill-icon">✦</text>
+        <text>升级 Pro 解锁更多功能</text>
+        <text class="chevron">›</text>
+      </view>
+
+      <text class="profile-id">ID: {{maskedUserId}}</text>
+      <text class="profile-signature">{{profileSignature}}</text>
+    </view>
+
+    <view class="total-stats-grid">
+      <view class="total-stat-card">
+        <text class="total-stat-value">{{totalDays}}</text>
+        <text class="total-stat-label">总熬汤天数</text>
+      </view>
+      <view class="total-stat-card">
+        <text class="total-stat-value">{{totalHours}}</text>
+        <text class="total-stat-label">总熬汤时长（小时）</text>
+      </view>
+      <view class="total-stat-card">
+        <text class="total-stat-value">{{avgMinutes}}</text>
+        <text class="total-stat-label">平均分钟</text>
       </view>
     </view>
 
-    <view wx:else class="app-card guest-profile-card">
-      <text class="profile-avatar guest-avatar">客</text>
-      <view class="profile-copy">
-        <text class="app-card-label">LOCAL MODE</text>
-        <text class="profile-email">游客模式</text>
-        <text class="guest-profile-copy">当前 {{guestRecordCount}} 条记录仅保存在这台设备</text>
+    <view class="heatmap-card">
+      <view class="heatmap-header">
+        <text class="heatmap-title">练习是连贯的珍珠</text>
       </view>
-    </view>
 
-    <view class="stats-grid">
-      <view class="app-card stats-card">
-        <text class="stats-value">{{isLoggedIn ? '—' : guestRecordCount}}</text>
-        <text class="stats-label">练习天数</text>
+      <view class="heatmap-body">
+        <view wx:for="{{heatmapMonths}}" wx:key="monthKey" class="heatmap-row">
+          <text class="month-label">{{item.monthLabel}}</text>
+          <view class="dot-grid">
+            <view
+              wx:for="{{item.days}}"
+              wx:for-item="day"
+              wx:key="date"
+              class="heat-dot {{day.colorClass}} {{day.moonType && day.practiced ? 'moon-practiced' : ''}}"
+            >
+              <image wx:if="{{day.moonType && !day.practiced}}" class="moon-dot-image" src="{{day.moonIcon}}" mode="aspectFill" />
+              <view wx:if="{{day.moonType && day.practiced}}" class="moon-spark"></view>
+            </view>
+          </view>
+        </view>
       </view>
-      <view class="app-card stats-card">
-        <text class="stats-value">—</text>
-        <text class="stats-label">累计时长</text>
-      </view>
+      <view wx:if="{{totalDays === 0}}" class="empty-heatmap">暂无练习数据</view>
     </view>
-
-    <view wx:if="{{isLoggedIn}}" class="app-card">
-      <text class="app-card-label">MEMBERSHIP</text>
-      <text class="app-card-title">会员状态</text>
-      <text class="app-card-copy">下一步读取现有 Pro 状态和有效期。</text>
-    </view>
-
-    <button
-      wx:if="{{isLoggedIn}}"
-      class="app-secondary-button logout-button"
-      bindtap="logout"
-      loading="{{submitLoading}}"
-    >退出登录</button>
-
-    <button
-      wx:else
-      class="app-primary-button login-button"
-      bindtap="openLogin"
-    >登录或注册，开启云端备份</button>
   </block>
+
+  <view wx:if="{{settingsOpen}}" class="sheet-mask" bindtap="closeSettings"></view>
+  <view wx:if="{{settingsOpen}}" class="settings-sheet">
+    <view class="sheet-header">
+      <text class="sheet-title">设置</text>
+      <view class="sheet-close" bindtap="closeSettings">×</view>
+    </view>
+
+    <view class="settings-tabs">
+      <view
+        wx:for="{{settingsTabs}}"
+        wx:key="id"
+        class="settings-tab {{item.id === 'membership' ? 'membership-tab' : ''}} {{activeSettingsTab === item.id ? 'active' : ''}}"
+        data-tab="{{item.id}}"
+        bindtap="switchSettingsTab"
+      >{{item.label}}</view>
+    </view>
+
+    <view wx:if="{{activeSettingsTab === 'profile'}}" class="settings-panel">
+      <view class="profile-edit-avatar" bindtap="chooseAvatar" aria-label="上传头像">
+        <image wx:if="{{profileAvatar}}" class="profile-edit-avatar-image" src="{{profileAvatar}}" mode="aspectFill" />
+        <image wx:else class="profile-edit-user-icon" src="/images/icons/profile-user-muted.png" mode="aspectFit" />
+        <view wx:if="{{uploadingAvatar}}" class="avatar-loading-mask"><view class="avatar-spinner"></view></view>
+        <view class="camera-dot">
+          <view wx:if="{{uploadingAvatar}}" class="camera-spinner"></view>
+          <image wx:else class="camera-icon" src="/images/icons/profile-camera.png" mode="aspectFit" />
+        </view>
+      </view>
+      <view class="form-field">
+        <text class="field-label">昵称</text>
+        <input class="profile-input" value="{{draftProfileName}}" bindinput="onProfileNameInput" placeholder="阿斯汤加习练者" />
+      </view>
+      <view class="form-field">
+        <text class="field-label">签名</text>
+        <input class="profile-input signature-input" value="{{draftProfileSignature}}" bindinput="onProfileSignatureInput" />
+      </view>
+
+      <view class="history-section">
+        <view class="history-header">
+          <view class="history-title-row">
+            <image class="history-icon" src="/images/icons/profile-calendar.png" mode="aspectFit" />
+            <text class="history-title">过往练习</text>
+          </view>
+          <text class="history-hours">累计约 {{historicalHours}} 小时</text>
+        </view>
+        <view class="history-grid">
+          <view class="history-card">
+            <input class="history-input" type="number" value="{{historicalDays || ''}}" bindinput="onHistoricalDaysInput" placeholder="0" aria-label="历史练习天数" />
+            <text class="history-label">天数</text>
+          </view>
+          <view class="history-card">
+            <input class="history-input" type="number" value="{{historicalAvgMinutes || ''}}" bindinput="onHistoricalAvgMinutesInput" placeholder="0" aria-label="平均每次分钟" />
+            <text class="history-label">分钟/次</text>
+          </view>
+        </view>
+        <text class="history-note">设置后，统计数据会以此为基础累加</text>
+      </view>
+      <button class="green-button" bindtap="saveProfileSettings" disabled="{{submitLoading}}">{{submitLoading ? '保存中...' : '保存设置'}}</button>
+    </view>
+
+    <view wx:elif="{{activeSettingsTab === 'membership'}}" class="settings-panel">
+      <view class="membership-order-card" bindtap="openOrderShell">
+        <view class="membership-order-card-left">
+          <view class="membership-order-icon">
+            <image src="/images/icons/membership-order.svg" mode="aspectFit" />
+          </view>
+          <view class="membership-order-copy">
+            <text class="membership-order-title">订单记录</text>
+            <text class="membership-order-subtitle">查看会员购买与到账状态</text>
+          </view>
+        </view>
+        <image class="membership-order-chevron" src="/images/icons/settings-chevron-right.svg" mode="aspectFit" />
+      </view>
+      <view class="membership-card-shell">
+        <view class="membership-card-head">
+          <view class="gold-icon">♛</view>
+          <view class="membership-card-copy">
+            <text class="membership-title">PRO 会员</text>
+            <block wx:if="{{membershipLoading}}">
+              <text class="membership-subtitle">正在加载会员状态…</text>
+            </block>
+            <block wx:elif="{{isPro}}">
+              <text class="membership-status-title">有效期至 {{membershipExpiresAt}}</text>
+              <text class="membership-subtitle">还剩 {{membershipDaysRemaining}} 天{{membershipType === 'trial' ? ' · 试用会员' : membershipType === 'quarter' ? ' · 季卡' : membershipType === 'year' ? ' · 年卡' : ''}}</text>
+            </block>
+            <text wx:else class="membership-subtitle">解锁更多记录与日历能力</text>
+          </view>
+          <view class="membership-head-action" bindtap="openMembershipShell">
+            <image class="membership-head-action-icon" src="/images/icons/membership-sparkles-white.svg" mode="aspectFit" />
+            <text class="membership-head-action-text">{{isPro ? '续费' : '开通'}}</text>
+          </view>
+        </view>
+
+        <view class="benefit-table">
+          <view class="benefit-row header">
+            <text>权益</text><text>普通</text><text>Pro</text>
+          </view>
+          <view wx:for="{{proBenefits}}" wx:key="feature" class="benefit-row">
+            <text>{{item.feature}}</text>
+            <text>{{item.free}}</text>
+            <text class="benefit-pro">{{item.pro}}</text>
+          </view>
+        </view>
+
+        <view class="price-grid">
+          <view class="price-card">
+            <text class="price">¥19.8</text>
+            <text class="price-label">季卡</text>
+            <text class="price-days">90 天</text>
+          </view>
+          <view class="price-card recommended">
+            <text class="recommend-tag">推荐</text>
+            <text class="price">¥69.8</text>
+            <text class="price-label">年卡</text>
+            <text class="price-days">365 天</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view wx:elif="{{activeSettingsTab === 'account'}}" class="settings-panel">
+      <block wx:if="{{!isAccountMode}}">
+        <account-guest-panel bind:auth="openLogin" bind:keep-local="closeSettings" />
+      </block>
+
+      <block wx:else>
+        <view class="cloud-storage-notice">
+          <view class="bound-email-row">
+            <image src="/images/icons/account-check-circle.svg" mode="aspectFit" />
+            <text class="bound-email-title">已绑定邮箱</text>
+            <text class="bound-email-value">{{maskedUserId}}</text>
+          </view>
+          <view class="cloud-title-row">
+            <image src="/images/icons/account-cloud.svg" mode="aspectFit" />
+            <text>云端同步已开启</text>
+          </view>
+          <view class="cloud-benefits">
+            <text>• 换设备或重装小程序，觉察数据不丢失</text>
+            <text>• 支持多设备登录，旧设备不用时请清空本地数据</text>
+          </view>
+          <view class="cloud-sync-row">
+            <view class="sync-status-dot {{syncStatus}}"></view>
+            <text>{{pendingSyncCount > 0 ? pendingSyncCount + ' 项数据待同步' : lastSyncText}}</text>
+          </view>
+        </view>
+        <view class="account-action-row">
+          <button class="green-button account-half-button" bindtap="syncAccountRecords" disabled="{{syncStatus === 'syncing'}}"><image class="account-sync-icon {{syncStatus === 'syncing' ? 'is-spinning' : ''}}" src="/images/icons/account-refresh.svg" mode="aspectFit" />{{syncStatus === 'syncing' ? '同步中...' : '立即同步'}}</button>
+          <button class="secondary-button account-half-button" bindtap="openLogoutShell"><image src="/images/icons/account-logout.svg" mode="aspectFit" />退出登录</button>
+        </view>
+        <button wx:if="{{syncStatus === 'syncing'}}" class="sync-reset-button" bindtap="resetSyncStatus">×　同步卡住？点击重置</button>
+        <button class="dashed-button account-password-button" bindtap="openPasswordShell"><image src="/images/icons/account-key.svg" mode="aspectFit" />修改密码</button>
+      </block>
+    </view>
+
+    <view wx:else class="settings-panel">
+      <view wx:if="{{!isLoggedIn}}" class="data-backup-notice">
+        <text>未开启云端同步，建议定期备份数据，防止意外丢失。</text>
+      </view>
+      <view class="settings-list">
+        <view class="setting-item" bindtap="openExportShell">
+          <view class="setting-icon blue"><image src="/images/icons/settings-copy.svg" mode="aspectFit" /></view>
+          <view class="setting-copy"><text>导出数据胶囊</text><text>一键复制到剪贴板</text></view>
+          <image class="setting-chevron" src="/images/icons/settings-chevron-right.svg" mode="aspectFit" />
+        </view>
+        <view class="setting-item" bindtap="openImportShell">
+          <view class="setting-icon red"><image src="/images/icons/settings-download.svg" mode="aspectFit" /></view>
+          <view class="setting-copy"><text>导入数据胶囊</text><text>从剪贴板恢复数据</text></view>
+          <image class="setting-chevron" src="/images/icons/settings-chevron-right.svg" mode="aspectFit" />
+        </view>
+        <view class="setting-item {{debugLogGenerating ? 'is-loading' : ''}}" bindtap="openDebugLogShell">
+          <view class="setting-icon orange"><image src="/images/icons/settings-bug.svg" mode="aspectFit" /></view>
+          <view class="setting-copy">
+            <text>{{debugLogGenerating ? '正在生成日志...' : '运行日志'}}</text>
+            <text>{{debugLogGenerating ? '请稍候，正在收集小程序运行信息...' : '如遇问题，请导出日志发给开发者'}}</text>
+          </view>
+          <view wx:if="{{debugLogGenerating}}" class="setting-loading-spinner"></view>
+          <image wx:else class="setting-chevron" src="/images/icons/settings-chevron-right.svg" mode="aspectFit" />
+        </view>
+        <view class="setting-item danger" bindtap="confirmClearLocalData">
+          <view class="setting-icon danger"><image src="/images/icons/settings-trash-2.svg" mode="aspectFit" /></view>
+          <view class="setting-copy"><text>清空本地数据</text><text>删除这台设备上的本地记录</text></view>
+          <image class="setting-chevron danger" src="/images/icons/settings-chevron-right.svg" mode="aspectFit" />
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view wx:if="{{showClearDataShell}}" class="center-mask" bindtap="closeClearDataShell"></view>
+  <view wx:if="{{showClearDataShell}}" class="center-modal clear-data-modal">
+    <view class="modal-close" bindtap="closeClearDataShell">×</view>
+    <block wx:if="{{clearDataStep === 1}}">
+      <text class="modal-title">⚠️ 危险操作警告</text>
+      <text class="modal-copy">您正在尝试清空本地数据胶囊。</text>
+      <view class="clear-warning-card">
+        <text class="clear-warning-title">此操作将永久删除：</text>
+        <text>• 所有本地练习记录</text>
+        <text>• 本地练习选项</text>
+        <text>• 本地个人信息</text>
+        <text>• 日历标注</text>
+      </view>
+      <text class="clear-irreversible">⚠️ 此操作不可撤销，云端数据不受影响</text>
+      <view class="modal-actions">
+        <button class="secondary-button half" bindtap="closeClearDataShell">取消</button>
+        <button class="danger-button half" bindtap="goToClearDataStepTwo">继续操作</button>
+      </view>
+    </block>
+    <block wx:elif="{{clearDataStep === 2}}">
+      <text class="modal-title">⚠️ 二次确认</text>
+      <text class="modal-copy">为防止误操作，请输入下方确认词。</text>
+      <view class="clear-phrase-card"><text>确认词：</text><text>确认删除</text></view>
+      <input class="clear-phrase-input" value="{{clearConfirmPhrase}}" bindinput="onClearConfirmPhraseInput" placeholder="请输入确认删除" />
+      <view class="modal-actions">
+        <button class="secondary-button half" bindtap="confirmClearLocalData">返回</button>
+        <button class="danger-button half" bindtap="validateClearConfirmPhrase">确认</button>
+      </view>
+    </block>
+    <block wx:else>
+      <text class="modal-title">最后一次确认</text>
+      <text class="modal-copy">确定要清空这台设备上的本地数据吗？</text>
+      <text class="clear-irreversible">点击下方按钮后将立即执行，无法恢复。</text>
+      <button class="danger-button full" bindtap="completeClearLocalData">确认清空本地数据</button>
+    </block>
+  </view>
+
+  <view wx:if="{{showExportShell}}" class="center-mask" bindtap="closeExportShell"></view>
+  <view wx:if="{{showExportShell}}" class="center-modal data-modal">
+    <view class="modal-close" bindtap="closeExportShell">×</view>
+    <text class="modal-title">导出数据胶囊</text>
+    <text class="modal-copy left">这是你的本机练习记录、练习选项、个人资料和日历标注。请妥善保存，建议定期备份。</text>
+    <textarea class="data-textarea" value="{{exportText}}" readonly maxlength="-1" />
+    <view class="modal-actions">
+      <button class="secondary-button half" bindtap="closeExportShell">返回</button>
+      <button class="green-button half" bindtap="copyExportData">复制数据胶囊</button>
+    </view>
+  </view>
+
+  <view wx:if="{{showImportShell}}" class="center-mask" bindtap="closeImportShell"></view>
+  <view wx:if="{{showImportShell}}" class="center-modal data-modal">
+    <view class="modal-close" bindtap="closeImportShell">×</view>
+    <text class="modal-title">导入数据胶囊</text>
+    <view class="import-notice"><text>请粘贴之前复制的数据胶囊内容。导入后将切换到本地模式，云端数据不会被删除。</text></view>
+    <text class="data-field-label">数据胶囊内容</text>
+    <textarea class="data-textarea import" value="{{importText}}" bindinput="onImportTextInput" maxlength="-1" placeholder="在此粘贴数据胶囊..." />
+    <view class="modal-actions vertical">
+      <button class="green-button import-action" bindtap="pasteImportData"><image src="/images/icons/import-clipboard-paste.svg" mode="aspectFit" />一键粘贴</button>
+      <button class="green-button import-action" bindtap="confirmImportData"><image src="/images/icons/import-check.svg" mode="aspectFit" />确认导入</button>
+    </view>
+  </view>
+
+  <view wx:if="{{showDebugLogShell}}" class="center-mask" bindtap="closeDebugLogShell"></view>
+  <view wx:if="{{showDebugLogShell}}" class="center-modal data-modal debug-log-modal">
+    <view class="modal-close" bindtap="closeDebugLogShell">×</view>
+    <view class="debug-modal-heading">
+      <view class="debug-modal-icon"><image src="/images/icons/settings-bug.svg" mode="aspectFit" /></view>
+      <view class="debug-modal-title-copy">
+        <text class="debug-modal-title">运行日志</text>
+        <text class="debug-modal-subtitle">如遇问题，请导出日志发给开发者</text>
+      </view>
+    </view>
+    <view class="debug-export-notice">
+      <text>💡 点击下方按钮导出 JSON 文件发给开发者</text>
+    </view>
+    <text class="data-field-label">日志内容</text>
+    <textarea class="data-textarea debug-log-textarea" value="{{debugLogText}}" readonly maxlength="-1" />
+    <button class="green-button debug-export-button" bindtap="exportDebugLogFile" loading="{{debugLogExporting}}" disabled="{{debugLogExporting}}">
+      <image wx:if="{{!debugLogExporting}}" src="/images/icons/debug-download-white.svg" mode="aspectFit" />
+      <text>{{debugLogExporting ? '正在生成文件...' : '导出文件'}}</text>
+    </button>
+  </view>
+
+  <view wx:if="{{showPurchaseShell}}" class="center-mask" bindtap="closeMembershipShell"></view>
+  <view wx:if="{{showPurchaseShell}}" class="center-modal purchase-modal">
+    <view class="modal-close" bindtap="closeMembershipShell">×</view>
+    <view class="gold-icon large">♛</view>
+    <text class="modal-title">开通 Pro 会员</text>
+    <text class="modal-copy">选择会员时长，付款成功后自动开通或顺延有效期。</text>
+    <view class="purchase-plan-grid">
+      <view
+        wx:for="{{paymentPlans}}"
+        wx:key="id"
+        class="purchase-plan-card {{selectedPaymentPlan === item.id ? 'selected' : ''}}"
+        data-plan="{{item.id}}"
+        bindtap="selectPaymentPlan"
+      >
+        <text wx:if="{{item.recommended}}" class="purchase-recommend">推荐</text>
+        <view class="purchase-price"><text>¥</text><text>{{item.price}}</text></view>
+        <text class="purchase-plan-name">{{item.name}}</text>
+        <text class="purchase-plan-days">{{item.duration_days}} 天</text>
+        <view class="purchase-radio"><view></view></view>
+      </view>
+    </view>
+    <view class="purchase-notice">
+      <text>• 一次性付款，不会自动续费</text>
+      <text>• 当前会员未到期时，新时长从原到期日顺延</text>
+      <text>• 支付结果以微信支付订单状态为准</text>
+    </view>
+    <view class="purchase-agreement" bindtap="togglePurchaseAgreement">
+      <view class="purchase-checkbox {{purchaseAgreementChecked ? 'checked' : ''}}">
+        <text wx:if="{{purchaseAgreementChecked}}">✓</text>
+      </view>
+      <text>我已阅读并同意以上会员购买说明</text>
+    </view>
+    <text wx:if="{{purchaseStatusText}}" class="purchase-status">{{purchaseStatusText}}</text>
+    <button class="gold-button purchase-button" bindtap="startMembershipPurchase" disabled="{{purchaseLoading || !purchaseAgreementChecked}}">
+      {{purchaseLoading ? '正在处理…' : '微信支付 ¥' + selectedPaymentPrice}}
+    </button>
+  </view>
+
+  <view wx:if="{{showOrderShell}}" class="center-mask" bindtap="closeOrderShell"></view>
+  <view wx:if="{{showOrderShell}}" class="center-modal order-modal">
+    <view class="modal-close" bindtap="closeOrderShell">×</view>
+    <text class="modal-title">订单记录</text>
+    <text class="modal-copy">这里显示当前登录账号最近的会员订单。</text>
+
+    <view wx:if="{{orderLoading}}" class="order-loading">
+      <text class="mini-spinner">◌</text>
+      <text>正在读取订单…</text>
+    </view>
+    <view wx:elif="{{paymentOrders.length === 0}}" class="order-empty">
+      <text class="order-empty-title">还没有订单</text>
+      <text class="order-empty-copy">购买 Pro 会员后，订单会显示在这里。</text>
+    </view>
+    <scroll-view wx:else scroll-y class="order-list" enhanced show-scrollbar="{{false}}">
+      <view wx:for="{{paymentOrders}}" wx:key="id" class="order-card">
+        <view class="order-card-head">
+          <view>
+            <view class="order-plan-line">
+              <text class="order-plan">{{item.planName}}</text>
+              <text wx:if="{{item.isSandbox}}" class="order-sandbox-badge">测试订单</text>
+            </view>
+            <text class="order-time">{{item.createdAtText}}</text>
+          </view>
+          <text class="order-status {{item.statusClass}}">{{item.statusLabel}}</text>
+        </view>
+        <view class="order-card-body">
+          <view class="order-row"><text>金额</text><text class="order-value amount">{{item.amountText}}</text></view>
+          <view class="order-row"><text>会员时长</text><text class="order-value">{{item.duration_days}} 天</text></view>
+          <view wx:if="{{item.paidAtText}}" class="order-row"><text>到账时间</text><text class="order-value">{{item.paidAtText}}</text></view>
+          <view class="order-number"><text>订单号</text><text user-select="true">{{item.out_trade_no}}</text></view>
+        </view>
+        <button
+          wx:if="{{item.canRefresh}}"
+          class="order-refresh-button"
+          data-order-id="{{item.id}}"
+          bindtap="refreshPaymentOrder"
+          loading="{{orderRefreshingId === item.id}}"
+          disabled="{{orderRefreshingId !== ''}}"
+        >刷新状态</button>
+      </view>
+    </scroll-view>
+  </view>
+
+  <view wx:if="{{showLogoutShell}}" class="center-mask" bindtap="closeLogoutShell"></view>
+  <view wx:if="{{showLogoutShell}}" class="center-modal">
+    <view class="modal-close" bindtap="closeLogoutShell">×</view>
+    <text class="modal-title">退出选项</text>
+    <text class="modal-copy">请选择退出方式</text>
+    <view class="setting-item" bindtap="logout">
+      <view class="setting-icon"><image src="/images/icons/account-logout.svg" mode="aspectFit" /></view>
+      <view class="setting-copy"><text>仅退出登录</text><text>数据保留在本地</text></view>
+      <image class="setting-chevron" src="/images/icons/settings-chevron-right.svg" mode="aspectFit" />
+    </view>
+    <view class="setting-item danger logout-clear-option" bindtap="openLogoutAndClear">
+      <view class="setting-icon danger"><image src="/images/icons/settings-trash-2.svg" mode="aspectFit" /></view>
+      <view class="setting-copy"><text>退出并清空数据</text><text>彻底删除所有本地数据</text></view>
+      <image class="setting-chevron danger" src="/images/icons/settings-chevron-right.svg" mode="aspectFit" />
+    </view>
+  </view>
+
+  <change-password-modal show="{{showPasswordShell}}" email="{{userEmail}}" bind:close="closePasswordShell" bind:success="onPasswordChanged" />
 </view>
+
+<auth-modal show="{{showAuthModal}}" initial-mode="{{authInitialMode}}" bind:close="closeAuthModal" bind:success="onAuthSuccess" />
