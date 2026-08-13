@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { deleteOssObjectByUrl } from '@/lib/oss-delete'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || ''
@@ -48,7 +49,7 @@ export async function PATCH(
     // 3. 验证照片存在且属于当前用户（只查询未删除的照片）
     const { data: existingPhoto, error: fetchError } = await supabase
       .from('photos')
-      .select('id, user_id, practice_record_id')
+      .select('id, user_id, practice_record_id, oss_url')
       .eq('id', id)
       .is('deleted_at', null)
       .single()
@@ -91,11 +92,24 @@ export async function PATCH(
 
     console.log('[Photos API] 照片已软删除:', { photoId: id })
 
-    // 5. 更新 practice_records 表的 photos 字段为空数组
+    // 5. 按剩余未删除照片重建记录字段，删除单张时保留其他照片。
+    const { data: remainingPhotos, error: remainingError } = await supabase
+      .from('photos')
+      .select('oss_url, display_order, uploaded_at')
+      .eq('practice_record_id', existingPhoto.practice_record_id)
+      .eq('user_id', user.id)
+      .is('deleted_at', null)
+      .order('display_order', { ascending: true })
+      .order('uploaded_at', { ascending: true })
+
+    if (remainingError) {
+      console.error('[Photos API] 查询剩余照片失败:', remainingError)
+    }
+    const remainingUrls = (remainingPhotos || []).map((item) => item.oss_url).filter(Boolean)
     const { error: updateError } = await supabase
       .from('practice_records')
       .update({
-        photos: JSON.stringify([]),
+        photos: JSON.stringify(remainingUrls),
         updated_at: new Date().toISOString(),
       })
       .eq('id', existingPhoto.practice_record_id)
@@ -106,6 +120,17 @@ export async function PATCH(
       // 不影响删除成功，只记录错误
     } else {
       console.log('[Photos API] 记录 photos 字段已清空:', { recordId: existingPhoto.practice_record_id })
+    }
+
+    // 5. 元数据已软删后，尽力删除 OSS 对象，避免留下孤儿文件。
+    //    失败只记录、不影响删除结果。
+    const ossResult = await deleteOssObjectByUrl(existingPhoto.oss_url, user.id)
+    if (!ossResult.ok) {
+      console.error('[Photos API] OSS 对象删除失败（元数据已删，文件可能残留）:', {
+        photoId: id,
+        reason: ossResult.error,
+        status: ossResult.status,
+      })
     }
 
     return NextResponse.json({
