@@ -1,0 +1,45 @@
+<view wx:if="{{show}}" class="password-mask" bindtap="close" catchtouchmove="stopPropagation">
+  <view class="password-modal" catchtap="stopPropagation">
+    <view class="password-header">
+      <text class="password-title">🔑 修改密码</text>
+      <view class="password-close" bindtap="close">×</view>
+    </view>
+
+    <view class="password-fields">
+      <view class="password-field">
+        <text class="password-label">当前密码</text>
+        <view class="password-input-wrap">
+          <image class="password-input-icon" src="/images/icons/auth-lock.svg" mode="aspectFit" />
+          <input class="password-input" value="{{currentPassword}}" bindinput="onCurrentPasswordInput" placeholder="请输入当前密码" password />
+        </view>
+      </view>
+      <view class="password-field">
+        <text class="password-label">新密码</text>
+        <view class="password-input-wrap">
+          <image class="password-input-icon" src="/images/icons/account-key.svg" mode="aspectFit" />
+          <input class="password-input" value="{{newPassword}}" bindinput="onNewPasswordInput" placeholder="至少8位字符，包含字母和数字" password maxlength="72" />
+        </view>
+      </view>
+      <view class="password-field">
+        <text class="password-label">确认新密码</text>
+        <view class="password-input-wrap">
+          <image class="password-input-icon" src="/images/icons/auth-lock.svg" mode="aspectFit" />
+          <input class="password-input" value="{{confirmPassword}}" bindinput="onConfirmPasswordInput" placeholder="再次输入新密码" password maxlength="72" />
+        </view>
+      </view>
+    </view>
+
+    <view wx:if="{{passwordError}}" class="password-error">!　{{passwordError}}</view>
+    <view wx:if="{{newPassword}}" class="password-rules">
+      <text>密码要求：</text>
+      <text class="{{passwordHasMinLength ? 'passed' : 'failed'}}">{{passwordHasMinLength ? '✓' : '✗'}} 至少8位字符</text>
+      <text class="{{passwordHasLetter ? 'passed' : 'failed'}}">{{passwordHasLetter ? '✓' : '✗'}} 包含字母</text>
+      <text class="{{passwordHasNumber ? 'passed' : 'failed'}}">{{passwordHasNumber ? '✓' : '✗'}} 包含数字</text>
+    </view>
+
+    <view class="password-actions">
+      <button class="password-action password-cancel {{changingPassword ? 'password-action-disabled' : ''}}" bindtap="close" disabled="{{changingPassword}}">取消</button>
+      <button class="password-action password-confirm {{changingPassword ? 'password-action-disabled' : ''}}" bindtap="submitPasswordChange" disabled="{{changingPassword}}">{{changingPassword ? '修改中...' : '确认修改'}}</button>
+    </view>
+  </view>
+</view>

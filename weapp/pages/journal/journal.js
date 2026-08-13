@@ -6,6 +6,7 @@ const membershipPolicy = require('../../services/membership-policy');
 const runtimeErrors = require('../../services/runtime-errors');
 const pageRefreshGate = require('../../services/page-refresh-gate');
 const { getMoonType, getMoonIcon } = require('../../services/moon-days');
+const { checkText } = require('../../services/content-filter');
 
 const ICONS = {
   cloud: '/images/icons/journal-cloud.png',
@@ -1008,6 +1009,13 @@ Page({
       color_level: Number(form.color_level) || 3,
       photos: Array.isArray(form.photos) ? form.photos : []
     };
+
+    const blockedNote = checkText(payload.notes);
+    const blockedBreakthrough = payload.breakthrough ? checkText(payload.breakthrough) : null;
+    if (!blockedNote.ok || (blockedBreakthrough && !blockedBreakthrough.ok)) {
+      wx.showToast({ title: '内容包含不当词汇，请修改后重试', icon: 'none' });
+      return;
+    }
 
     this.setData({ submitLoading: true });
     try {

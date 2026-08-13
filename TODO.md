@@ -1,5 +1,24 @@
 # 待处理问题
 
+## 2026-08-13 - 微信提审排雷 ✅ 自查完成，待提审
+
+- [x] 对照 reject.html 全量自查 → docs/weapp/REVIEW_READINESS.md；唯一实质缺口 3.2.11 已补。
+- [x] 3.2.11 内容过滤：本地敏感词过滤（weapp/services/content-filter.js + 网页版 lib/content-filter.ts 共用词库），练习日记/备注/自定义练习类型/标注标签保存时拦截；web+小程序；小程序 233/233 + vitest 4/4 + typecheck 通过。
+- [x] 修改密码弹窗底部按钮溢出修复（mask 可滚动 + modal margin:auto 居中）。
+- [x] 提审材料草稿 → docs/weapp/REVIEW_SUBMISSION.md（版本描述 + 用户隐私保护指引逐项）。
+- [ ] 审核账号 zaohezi2020@gmail.com：在 Supabase SQL Editor 执行 supabase/grant_review_account_pro.sql 开通 Pro（3.1.4）。
+- [ ] 微信后台：核对简介/服务类目与标签/用户隐私保护指引/版本描述（版本描述里填审核账号，密码提审时填）。
+- [ ] 体验版回归（游客/注册/登录/打卡/照片/日记/修改密码/退出）后上传提审。
+
+
+## 2026-08-13 - RLS 发布前审计 ✅ 已通过
+
+- [x] 修复 `fulfill_membership_payment` 被 anon/authenticated 可执行（高危）。
+- [x] 7 个 SECURITY DEFINER 函数撤销客户端执行权限，仅 service_role。
+- [x] `practice-photos` 遗留 storage 桶转私有。
+- [x] 复验 A/B/C/D/E 全绿。
+
+
 ## 2026-08-13 - 微信虚拟支付已切现网 ✅ 验证通过
 
 - [x] `WECHAT_VIRTUAL_PAY_ENV=0` + 现网 AppKey 已配置并 Redeploy，健康接口 `env:0 ready:true`。

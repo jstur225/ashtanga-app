@@ -1,5 +1,15 @@
 # 微信小程序开发日志 — 熬汤日记
 
+## 2026-08-13 - RLS 发布前审计 ✅ 全绿通过
+
+- 执行 `supabase/rls_release_audit.sql` + 汇总复验，五项全达标：
+  - A（RLS 未开且有客户端权限的表）0 行；E（RLS 未开）0 张。
+  - B：7 个 SECURITY DEFINER 函数（can_*/get_*/soft_delete_photo/delete_photo_debug 等）已 REVOKE anon/authenticated，仅 service_role 可执行；客户端从未直接调用，服务端不受影响。
+  - C：payment_orders anon/authenticated 均不可读写。
+  - D：遗留 Supabase storage 桶 `practice-photos` 已转私有（照片实际走阿里云 OSS，`lib/storage.ts` 无人引用）。
+- 关键修复：`fulfill_membership_payment` 曾被 anon/authenticated 可执行（可白嫖会员），已 REVOKE 仅 service_role。
+
+
 ## 2026-08-13 - 微信虚拟支付切换现网 ✅ 已完成并验证
 
 - Vercel 环境变量：`WECHAT_VIRTUAL_PAY_ENV` 1→0，新增 `WECHAT_VIRTUAL_PAY_PRODUCTION_APP_KEY`，Redeploy。

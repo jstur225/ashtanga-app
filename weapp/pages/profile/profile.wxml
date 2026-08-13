@@ -28,7 +28,7 @@
         <text class="pill-icon">♛</text>
         <text>{{membershipText}}</text>
       </view>
-      <view wx:else class="membership-pill upgrade" bindtap="openMembershipShell">
+      <view wx:else class="membership-pill upgrade" bindtap="onMembershipActionTap">
         <text class="pill-icon">✦</text>
         <text>升级 Pro 解锁更多功能</text>
         <text class="chevron">›</text>
@@ -150,6 +150,10 @@
         </view>
         <image class="membership-order-chevron" src="/images/icons/settings-chevron-right.svg" mode="aspectFit" />
       </view>
+      <view wx:if="{{isIOS}}" class="membership-ios-notice">
+        <text class="membership-ios-notice-text">iOS 暂不支持在线购买，请联系作者开通</text>
+        <button class="membership-ios-copy" bindtap="copyAuthorWechat">复制微信号 {{authorWechatId}}</button>
+      </view>
       <view class="membership-card-shell">
         <view class="membership-card-head">
           <view class="gold-icon">♛</view>
@@ -164,7 +168,7 @@
             </block>
             <text wx:else class="membership-subtitle">解锁更多记录与日历能力</text>
           </view>
-          <view class="membership-head-action" bindtap="openMembershipShell">
+          <view class="membership-head-action" bindtap="onMembershipActionTap">
             <image class="membership-head-action-icon" src="/images/icons/membership-sparkles-white.svg" mode="aspectFit" />
             <text class="membership-head-action-text">{{isPro ? '续费' : '开通'}}</text>
           </view>

@@ -99,8 +99,25 @@ test('锁定态按网页真源使用锁图标而非 PRO 文字角标', () => {
 });
 
 test('会员卡片头部常驻开通/续费按钮，不滚动即可见', () => {
-  assert.match(profileTemplate, /membership-head-action[\s\S]*bindtap="openMembershipShell"/);
+  assert.match(profileTemplate, /membership-head-action[\s\S]*bindtap="onMembershipActionTap"/);
   assert.match(profileTemplate, /membership-head-action-text[\s\S]*\{\{isPro \? '续费' : '开通'\}\}/);
   assert.match(profileStyle, /\.membership-head-action \{/);
   assert.match(profileStyle, /margin-left: auto/);
+});
+
+test('iOS 显示“请联系作者”提示并支持复制微信号；其他平台保留在线购买', () => {
+  assert.match(profileSource, /isIOS: false/);
+  assert.match(profileSource, /authorWechatId: 'xiao519216978'/);
+  assert.match(profileSource, /copyAuthorWechat\(\)/);
+  assert.match(profileSource, /wx\.setClipboardData\(\{[\s\S]*this\.data\.authorWechatId/);
+  assert.match(profileSource, /onMembershipActionTap\(\)[\s\S]*isIOS[\s\S]*copyAuthorWechat\(\)[\s\S]*openMembershipShell\(\)/);
+  assert.match(profileSource, /getSystemInfoSync[\s\S]*platform[\s\S]*=== 'ios'/);
+
+  assert.match(profileTemplate, /wx:if="\{\{isIOS\}\}" class="membership-ios-notice"/);
+  assert.match(profileTemplate, /iOS 暂不支持在线购买，请联系作者开通/);
+  assert.match(profileTemplate, /复制微信号 \{\{authorWechatId\}\}/);
+  assert.match(profileTemplate, /bindtap="onMembershipActionTap"/);
+
+  assert.match(profileStyle, /\.membership-ios-notice \{/);
+  assert.match(profileStyle, /\.membership-ios-copy \{/);
 });

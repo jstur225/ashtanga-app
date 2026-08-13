@@ -567,7 +567,7 @@ test('我的页会员卡复刻网页版完整权益表和等宽入口', () => {
     assert.match(profileSource + profileTemplate, new RegExp(text));
   }
   assert.match(profileTemplate, /wx:for="\{\{proBenefits\}\}"/);
-  assert.match(profileTemplate, /membership-head-action[\s\S]*bindtap="openMembershipShell"/);
+  assert.match(profileTemplate, /membership-head-action[\s\S]*bindtap="onMembershipActionTap"/);
   assert.match(profileStyles, /\.membership-head-action[\s\S]*background: linear-gradient/);
   assert.match(profileSource, /membershipService\.getMembershipStatus\(\)/);
   assert.match(profileSource, /membership\.is_active/);
