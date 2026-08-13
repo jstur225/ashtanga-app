@@ -6,7 +6,7 @@
 - [x] 3.2.11 内容过滤：本地敏感词过滤（weapp/services/content-filter.js + 网页版 lib/content-filter.ts 共用词库），练习日记/备注/自定义练习类型/标注标签保存时拦截；web+小程序；小程序 233/233 + vitest 4/4 + typecheck 通过。
 - [x] 修改密码弹窗底部按钮溢出修复（mask 可滚动 + modal margin:auto 居中）。
 - [x] 提审材料草稿 → docs/weapp/REVIEW_SUBMISSION.md（版本描述 + 用户隐私保护指引逐项）。
-- [ ] 审核账号 zaohezi2020@gmail.com：在 Supabase SQL Editor 执行 supabase/grant_review_account_pro.sql 开通 Pro（3.1.4）。
+- [x] 审核账号 zaohezi2020@gmail.com：Pro 已开通（用户确认 2026-08-13），付费功能可完整体验。
 - [ ] 微信后台：核对简介/服务类目与标签/用户隐私保护指引/版本描述（版本描述里填审核账号，密码提审时填）。
 - [ ] 体验版回归（游客/注册/登录/打卡/照片/日记/修改密码/退出）后上传提审。
 

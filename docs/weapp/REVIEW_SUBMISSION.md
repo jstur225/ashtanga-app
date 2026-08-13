@@ -33,5 +33,5 @@
 
 - 邮箱：zaohezi2020@gmail.com
 - 密码：提审时在后台「版本描述」中填写（**不写入仓库**，避免泄露）
-- 状态：待开通 Pro → 在 Supabase SQL Editor 执行 supabase/grant_review_account_pro.sql
+- 状态：已开通 Pro（用户确认 2026-08-13）
 - 隐私提醒：该账号为项目真实账号，提审前建议先确认展示给审核员的个人数据可接受
