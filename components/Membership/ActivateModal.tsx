@@ -43,7 +43,7 @@ export function ActivateModal({ isOpen, onClose, onSuccess }: ActivateModalProps
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50">
       <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl animate-in fade-in zoom-in duration-200">
         {/* 关闭按钮 */}
         <button
