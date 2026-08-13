@@ -8,9 +8,12 @@ const RECENT_RECORD_FIELDS = [
   'duration',
   'notes',
   'breakthrough',
+  'start_time',
   'color_level',
+  'photos',
   'created_at',
-  'updated_at'
+  'updated_at',
+  'deleted_at'
 ].join(',');
 
 async function authenticatedRequest(path, options = {}, hasRetried = false) {
@@ -38,6 +41,39 @@ async function authenticatedRequest(path, options = {}, hasRetried = false) {
   }
 }
 
+function normalizePhotos(value) {
+  if (Array.isArray(value)) return value.filter(Boolean);
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
+    } catch (error) {
+      return value ? [value] : [];
+    }
+  }
+  return [];
+}
+
+function normalizeRecord(record) {
+  return record ? { ...record, photos: normalizePhotos(record.photos) } : record;
+}
+
+function normalizeRecordList(records) {
+  return (Array.isArray(records) ? records : []).map(normalizeRecord);
+}
+
+async function getEarliestRecordDate() {
+  const query = [
+    'select=date',
+    'deleted_at=is.null',
+    'order=date.asc',
+    'limit=1'
+  ].join('&');
+  const rows = await authenticatedRequest(`/rest/v1/practice_records?${query}`);
+  const list = normalizeRecordList(rows);
+  return list.length ? String(list[0].date || '') : '';
+}
+
 async function getRecentRecords(limit = 10) {
   const safeLimit = Math.min(Math.max(Number(limit) || 10, 1), 50);
   const query = [
@@ -47,9 +83,10 @@ async function getRecentRecords(limit = 10) {
     `limit=${safeLimit}`
   ].join('&');
 
-  return authenticatedRequest(`/rest/v1/practice_records?${query}`, {
+  const result = await authenticatedRequest(`/rest/v1/practice_records?${query}`, {
     method: 'GET'
   });
+  return normalizeRecordList(result);
 }
 
 async function getRecordsByDateRange(startDate, endDate) {
@@ -65,9 +102,19 @@ async function getRecordsByDateRange(startDate, endDate) {
     'order=date.asc,created_at.asc'
   ].join('&');
 
-  return authenticatedRequest(`/rest/v1/practice_records?${query}`, {
+  const result = await authenticatedRequest(`/rest/v1/practice_records?${query}`, {
     method: 'GET'
   });
+  return normalizeRecordList(result);
+}
+
+async function getRecordById(id) {
+  if (!id) throw new Error('缺少练习记录 ID');
+  const result = await authenticatedRequest(
+    `/rest/v1/practice_records?select=${RECENT_RECORD_FIELDS}&id=eq.${encodeURIComponent(id)}&limit=1`,
+    { method: 'GET' }
+  );
+  return normalizeRecord(Array.isArray(result) ? result[0] || null : result);
 }
 
 function createUuid() {
@@ -88,7 +135,7 @@ async function createRecord(input) {
 
   const now = new Date().toISOString();
   const record = {
-    id: createUuid(),
+    id: input.id || createUuid(),
     user_id: session.user.id,
     date: input.date,
     type: input.type,
@@ -98,16 +145,16 @@ async function createRecord(input) {
     start_time: input.start_time || null,
     color_level: Math.min(4, Math.max(1, Number(input.color_level) || 3)),
     photos: Array.isArray(input.photos) ? input.photos : [],
-    created_at: now,
-    updated_at: now
+    created_at: input.created_at || now,
+    updated_at: input.updated_at || now
   };
 
-  const result = await authenticatedRequest('/rest/v1/practice_records', {
+  const result = await authenticatedRequest('/rest/v1/practice_records?on_conflict=id', {
     method: 'POST',
-    header: { Prefer: 'return=representation' },
+    header: { Prefer: 'resolution=merge-duplicates,return=representation' },
     data: record
   });
-  return Array.isArray(result) ? result[0] : result;
+  return normalizeRecord(Array.isArray(result) ? result[0] : result);
 }
 
 async function updateRecord(id, updates) {
@@ -142,7 +189,7 @@ async function updateRecord(id, updates) {
       data: payload
     }
   );
-  return Array.isArray(result) ? result[0] : result;
+  return normalizeRecord(Array.isArray(result) ? result[0] : result);
 }
 
 async function softDeleteRecord(id) {
@@ -163,8 +210,11 @@ async function softDeleteRecord(id) {
 
 module.exports = {
   authenticatedRequest,
+  normalizePhotos,
+  getEarliestRecordDate,
   getRecentRecords,
   getRecordsByDateRange,
+  getRecordById,
   createRecord,
   updateRecord,
   softDeleteRecord

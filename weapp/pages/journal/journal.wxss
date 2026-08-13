@@ -8,7 +8,7 @@
   align-items: center;
   color: #868C88;
   display: flex;
-  font-family: 'Songti SC', STSong, serif;
+  font-family: 'Ashtanga Serif', 'Songti SC', STSong, serif;
   font-size: 20rpx;
   justify-content: space-between;
   margin: -34rpx 28rpx 18rpx;
@@ -53,7 +53,7 @@
 .calendar-title {
   color: #2A4B3C;
   flex: 1;
-  font-family: 'Songti SC', STSong, serif;
+  font-family: 'Ashtanga Serif', 'Songti SC', STSong, serif;
   font-size: 30rpx;
   font-weight: 600;
   text-align: center;
@@ -79,6 +79,23 @@
   transform: scale(0.96);
 }
 
+.calendar-control.syncing .toolbar-icon {
+  animation: sync-spin 0.9s linear infinite;
+}
+
+.sync-control-offline {
+  background: #A8A29E;
+}
+
+.sync-control-offline .toolbar-icon {
+  opacity: 0.78;
+}
+
+@keyframes sync-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
 .toolbar-icon {
   height: 27rpx;
   width: 27rpx;
@@ -99,12 +116,38 @@
   width: 7rpx;
 }
 
-.status-online {
-  background: #4ADE80;
-}
+.sync-status-offline,
+.sync-status-error { background: #F87171; }
+.sync-status-idle { background: #A8A29E; }
+.sync-status-syncing { background: #60A5FA; }
+.sync-status-success { background: #4ADE80; }
 
 .status-message {
   background: #F87171;
+}
+
+/* 标注圆点容器 - 位于日历日期底部 */
+.ann-dot-container {
+  align-items: center;
+  bottom: 6rpx;
+  display: flex;
+  gap: 2rpx;
+  left: 50%;
+  position: absolute;
+  transform: translateX(-50%);
+  z-index: 3;
+}
+
+.ann-dot {
+  border-radius: 50%;
+  height: 6rpx;
+  width: 6rpx;
+}
+
+.ann-dot-more {
+  color: #868C88;
+  font-size: 14rpx;
+  line-height: 1;
 }
 
 .chevron {
@@ -137,7 +180,7 @@
 
 .calendar-weekday {
   color: #868C88;
-  font-family: 'Songti SC', STSong, serif;
+  font-family: 'Ashtanga Serif', 'Songti SC', STSong, serif;
   font-size: 18rpx;
   padding: 4rpx 0;
   text-align: center;
@@ -158,13 +201,13 @@
 
 .calendar-day {
   align-items: center;
-  background: #F9F8F6;
+  background-color: #F9F8F6;
   border: 1rpx solid transparent;
   border-radius: 50%;
   box-sizing: border-box;
   color: #2A4B3C;
   display: flex;
-  font-family: 'Songti SC', STSong, serif;
+  font-family: 'Ashtanga Serif', 'Songti SC', STSong, serif;
   font-size: 18rpx;
   height: 64rpx;
   justify-content: center;
@@ -185,6 +228,12 @@
 .calendar-day.practiced.future {
   color: #FFFFFF;
 }
+
+/* 更高特异性覆盖 base 层的 background-color */
+.calendar-day.green-gradient-1 { background-color: #C4CCBE; }
+.calendar-day.green-gradient-2 { background-color: #8DA688; }
+.calendar-day.green-gradient-3 { background-color: #4A7A44; }
+.calendar-day.green-gradient-4 { background-color: #1A3D1A; }
 
 .calendar-day.moon-only {
   background: transparent;
@@ -246,6 +295,11 @@
   padding: 24rpx 12rpx;
 }
 
+.monthly-stats-card:active {
+  opacity: 0.88;
+  transform: scale(0.98);
+}
+
 .stat-item {
   align-items: center;
   display: flex;
@@ -255,7 +309,7 @@
 
 .stat-value {
   color: #2D5A27;
-  font-family: 'Songti SC', STSong, serif;
+  font-family: 'Ashtanga Serif', 'Songti SC', STSong, serif;
   font-size: 42rpx;
 }
 
@@ -265,7 +319,7 @@
 
 .stat-label {
   color: #868C88;
-  font-family: 'Songti SC', STSong, serif;
+  font-family: 'Ashtanga Serif', 'Songti SC', STSong, serif;
   font-size: 17rpx;
   margin-top: 8rpx;
   white-space: nowrap;
@@ -298,7 +352,7 @@
 .timeline-duration,
 .timeline-type {
   display: block;
-  font-family: 'Songti SC', STSong, serif;
+  font-family: 'Ashtanga Serif', 'Songti SC', STSong, serif;
   font-style: italic;
 }
 
@@ -359,10 +413,22 @@
   padding: 8rpx 56rpx 22rpx 24rpx;
 }
 
+.timeline-share-note {
+  border-radius: 0 16rpx 16rpx 0;
+  box-sizing: border-box;
+  margin: -4rpx -8rpx -4rpx -6rpx;
+  padding: 4rpx 8rpx 4rpx 6rpx;
+  transition: background-color 160ms ease;
+}
+
+.timeline-share-note:active {
+  background: rgba(45, 90, 39, 0.06);
+}
+
 .timeline-notes {
   color: #2A4B3C;
   display: block;
-  font-family: 'Songti SC', STSong, serif;
+  font-family: 'Ashtanga Serif', 'Songti SC', STSong, serif;
   font-size: 25rpx;
   line-height: 1.45;
   text-align: justify;
@@ -374,7 +440,7 @@
   align-items: flex-start;
   color: #E67E22;
   display: flex;
-  font-family: 'Songti SC', STSong, serif;
+  font-family: 'Ashtanga Serif', 'Songti SC', STSong, serif;
   font-size: 25rpx;
   font-weight: 700;
   gap: 6rpx;
@@ -389,7 +455,7 @@
 .timeline-end {
   color: #868C88;
   display: block;
-  font-family: 'Songti SC', STSong, serif;
+  font-family: 'Ashtanga Serif', 'Songti SC', STSong, serif;
   font-size: 23rpx;
   padding: 32rpx 0;
   text-align: center;
@@ -438,7 +504,7 @@
 
 .sheet-title {
   color: #2A4B3C;
-  font-family: 'Songti SC', STSong, serif;
+  font-family: 'Ashtanga Serif', 'Songti SC', STSong, serif;
   font-size: 34rpx;
   font-weight: 600;
 }
@@ -477,7 +543,7 @@
 .form-label {
   color: #536D60;
   display: block;
-  font-family: 'Songti SC', STSong, serif;
+  font-family: 'Ashtanga Serif', 'Songti SC', STSong, serif;
   font-size: 23rpx;
   margin-bottom: 12rpx;
 }
@@ -488,7 +554,7 @@
   border-radius: 24rpx;
   box-sizing: border-box;
   color: #2A4B3C;
-  font-family: 'Songti SC', STSong, serif;
+  font-family: 'Ashtanga Serif', 'Songti SC', STSong, serif;
   font-size: 26rpx;
   min-height: 84rpx;
   padding: 22rpx 24rpx;
@@ -535,7 +601,7 @@
 .delete-record-button {
   color: #A34837;
   flex: 0 0 auto;
-  font-family: 'Songti SC', STSong, serif;
+  font-family: 'Ashtanga Serif', 'Songti SC', STSong, serif;
   font-size: 24rpx;
   padding: 24rpx 8rpx;
 }
@@ -546,7 +612,7 @@
   box-shadow: 0 8rpx 28rpx rgba(45, 90, 39, 0.25);
   color: #FFFFFF;
   flex: 1;
-  font-family: 'Songti SC', STSong, serif;
+  font-family: 'Ashtanga Serif', 'Songti SC', STSong, serif;
   font-size: 27rpx;
   height: 88rpx;
   line-height: 88rpx;
@@ -579,13 +645,13 @@
 
 .moon-dialog-title {
   color: #2A4B3C;
-  font-family: 'Songti SC', STSong, serif;
+  font-family: 'Ashtanga Serif', 'Songti SC', STSong, serif;
   font-size: 32rpx;
 }
 
 .moon-dialog-copy {
   color: #868C88;
-  font-family: 'Songti SC', STSong, serif;
+  font-family: 'Ashtanga Serif', 'Songti SC', STSong, serif;
   font-size: 24rpx;
   line-height: 1.7;
   margin: 20rpx 0 30rpx;
@@ -599,9 +665,138 @@
   box-shadow: 0 8rpx 32rpx rgba(45, 90, 39, 0.25);
   box-sizing: border-box;
   color: #FFFFFF;
-  font-family: 'Songti SC', STSong, serif;
+  font-family: 'Ashtanga Serif', 'Songti SC', STSong, serif;
   font-size: 26rpx;
   padding: 22rpx 80rpx;
   text-align: center;
   width: 100%;
+}
+
+.timeline-photos {
+  margin-top: 16rpx;
+  width: 100%;
+}
+
+.timeline-photos.single {
+  width: 90%;
+}
+
+.timeline-photos.multiple {
+  display: grid;
+  gap: 8rpx;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.timeline-photo {
+  border-radius: 16rpx;
+  display: block;
+  overflow: hidden;
+}
+
+.timeline-photo-shell {
+  border-radius: 16rpx;
+  overflow: hidden;
+  position: relative;
+}
+
+.timeline-photo-shell.single {
+  width: 100%;
+}
+
+.timeline-photo-shell.multiple {
+  aspect-ratio: 1 / 1;
+  min-height: 138rpx;
+  width: 100%;
+}
+
+.timeline-photo.single {
+  height: auto;
+  width: 100%;
+}
+
+.timeline-photo.multiple {
+  height: 100%;
+  width: 100%;
+}
+
+.timeline-photo-sync-overlay { align-items: center; background: rgba(245, 246, 244, .9); bottom: 0; color: #68716C; display: flex; flex-direction: column; font-size: 19rpx; gap: 10rpx; justify-content: center; left: 0; position: absolute; right: 0; top: 0; }
+.timeline-photo-sync-overlay.error { background: rgba(255, 242, 239, .92); color: #A34837; }
+.timeline-photo-spinner { animation: timeline-photo-spin .9s linear infinite; border: 4rpx solid #D8DDD8; border-radius: 50%; border-top-color: #868C88; box-sizing: border-box; height: 44rpx; width: 44rpx; }
+.timeline-photo-error-mark { align-items: center; border: 3rpx solid #A34837; border-radius: 50%; display: flex; font-size: 25rpx; font-weight: 700; height: 38rpx; justify-content: center; width: 38rpx; }
+@keyframes timeline-photo-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+.account-sync-mask {
+  align-items: flex-end;
+  background: rgba(0, 0, 0, 0.3);
+  bottom: 0;
+  display: flex;
+  left: 0;
+  position: fixed;
+  right: 0;
+  top: 0;
+  z-index: 180;
+}
+
+.account-sync-sheet {
+  background: #FFFFFF;
+  border-radius: 48rpx 48rpx 0 0;
+  box-shadow: 0 -8rpx 40rpx rgba(0, 0, 0, 0.08);
+  box-sizing: border-box;
+  max-height: calc(100vh - 32rpx);
+  overflow-y: auto;
+  padding: 48rpx 48rpx calc(80rpx + env(safe-area-inset-bottom));
+  width: 100%;
+}
+
+.account-sync-header {
+  align-items: center;
+  color: #2A4B3C;
+  display: flex;
+  font-family: 'Ashtanga Serif', 'Songti SC', STSong, serif;
+  font-size: 34rpx;
+  justify-content: space-between;
+  margin-bottom: 24rpx;
+}
+
+.account-sync-close { color: #868C88; font-size: 52rpx; line-height: 1; padding-left: 24rpx; }
+.account-local-notice, .account-cloud-notice { border-radius: 48rpx; box-sizing: border-box; margin-bottom: 28rpx; padding: 28rpx; width: 100%; }
+.account-local-notice { background: #FFFBEB; border: 3rpx double #F5D98B; }
+.account-cloud-notice { background: #F7FEE7; border: 1rpx solid #DDE8C7; }
+.account-notice-title { color: #92400E; display: block; font-size: 25rpx; font-weight: 600; margin-bottom: 14rpx; }
+.account-notice-copy { color: #A16207; display: block; font-size: 22rpx; line-height: 1.7; }
+.account-notice-row { align-items: center; border-top: 1rpx solid rgba(120, 92, 35, 0.14); color: #68716C; display: flex; font-size: 21rpx; gap: 12rpx; margin-top: 20rpx; padding-top: 18rpx; }
+.account-notice-row image, .account-bound-row image, .account-cloud-title image { height: 30rpx; width: 30rpx; }
+.account-status-dot { background: #A8A29E; border-radius: 50%; height: 12rpx; width: 12rpx; }
+.account-status-dot.syncing { background: #60A5FA; }
+.account-status-dot.success { background: #4ADE80; }
+.account-status-dot.error { background: #F87171; }
+.account-button-stack { align-items: stretch; box-sizing: border-box; display: flex; flex-direction: column; gap: 24rpx; width: 100%; }
+.account-primary, .account-secondary, .account-password-button { align-items: center; border-radius: 999rpx; box-sizing: border-box; display: flex; font-family: 'Ashtanga Serif', Georgia, 'Times New Roman', serif; font-size: 27rpx; font-weight: 500; height: 96rpx; justify-content: center; line-height: 1; margin: 0; padding: 0 28rpx; text-align: center; width: 100%; }
+.account-primary { color: #FFFFFF; }
+.account-primary[disabled] { opacity: 0.5; }
+.account-primary text, .account-secondary text, .account-password-button text { color: inherit; line-height: 1; }
+.account-secondary { background: #F5F2EC; border: 1rpx solid #E8E4DC; color: #2A4B3C; }
+.account-primary image, .account-secondary image, .account-password-button image { flex: 0 0 30rpx; height: 30rpx; margin-right: 12rpx; width: 30rpx; }
+.account-action-row { display: flex; gap: 18rpx; margin-bottom: 18rpx; width: 100%; }
+.account-half-button { flex: 1; min-width: 0; width: auto; }
+.account-password-button { background: transparent; border: 1rpx dashed #E7E2D8; color: #68716C; }
+.account-sync-icon { transform-origin: 50% 50%; }
+.account-sync-icon.is-spinning { animation: account-sync-icon-spin 0.9s linear infinite; }
+.sync-reset-button { background: transparent; color: #868C88; font-family: 'Ashtanga Serif', Georgia, 'Times New Roman', serif; font-size: 20rpx; height: 58rpx; line-height: 58rpx; margin: -8rpx 0 10rpx; padding: 0; width: 100%; }
+@keyframes account-sync-icon-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.account-inline-login { align-items: center; color: #868C88; display: flex; font-size: 22rpx; justify-content: center; margin-top: 24rpx; text-align: center; width: 100%; }
+.account-text-link { color: #2D5A27; margin-left: 7rpx; text-decoration: underline; }
+.account-bound-row, .account-cloud-title { align-items: center; color: #2A4B3C; display: flex; font-size: 23rpx; gap: 10rpx; }
+.account-email { color: #68716C; flex: 1; margin-left: auto; text-align: right; }
+.account-cloud-title { border-top: 1rpx solid #E1EACF; font-weight: 600; margin-top: 20rpx; padding-top: 20rpx; }
+.account-cloud-copy { color: #68716C; display: flex; flex-direction: column; font-size: 21rpx; gap: 10rpx; line-height: 1.6; margin-top: 16rpx; }
+
+/* 时光轴加载更多 */
+.timeline-load-area {
+  padding: 8rpx 0 24rpx;
+}
+.timeline-more-tap {
+  color: #9CA3AF;
+  text-align: center;
+  padding: 20rpx 0;
 }

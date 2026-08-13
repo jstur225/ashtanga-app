@@ -1,26 +1,20 @@
 const dataRepository = require('../../services/data-repository');
-
-const MOON_DAYS_2026 = {
-  '2026-01-03': 'full', '2026-01-19': 'new',
-  '2026-02-02': 'full', '2026-02-17': 'new',
-  '2026-03-03': 'full', '2026-03-19': 'new',
-  '2026-04-02': 'full', '2026-04-17': 'new',
-  '2026-05-02': 'full', '2026-05-17': 'new', '2026-05-31': 'full',
-  '2026-06-15': 'new', '2026-06-30': 'full',
-  '2026-07-14': 'new', '2026-07-29': 'full',
-  '2026-08-13': 'new', '2026-08-28': 'full',
-  '2026-09-11': 'new', '2026-09-27': 'full',
-  '2026-10-10': 'new', '2026-10-26': 'full',
-  '2026-11-09': 'new', '2026-11-24': 'full',
-  '2026-12-09': 'new', '2026-12-24': 'full'
-};
+const auth = require('../../services/auth');
+const localData = require('../../services/local-data');
+const membershipService = require('../../services/membership');
+const membershipPolicy = require('../../services/membership-policy');
+const runtimeErrors = require('../../services/runtime-errors');
+const pageRefreshGate = require('../../services/page-refresh-gate');
+const { getMoonType, getMoonIcon } = require('../../services/moon-days');
 
 const ICONS = {
-  cloud: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0iTTE3LjUgMTlIOWE3IDcgMCAxIDEgNi43LTloMS44YTQuNSA0LjUgMCAxIDEgMCA5WiIvPjwvc3ZnPg==',
-  message: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0iTTIxIDE1YTQgNCAwIDAgMS00IDRIOGwtNSAzVjdhNCA0IDAgMCAxIDQtNGgxMGE0IDQgMCAwIDEgNCA0WiIvPjwvc3ZnPg==',
-  pencil: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0iTTEyIDIwaDkiLz48cGF0aCBkPSJNMTYuNSAzLjVhMi4xIDIuMSAwIDAgMSAzIDNMOCAxOGwtNCAxIDEtNFoiLz48L3N2Zz4=',
-  plus: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCI+PHBhdGggZD0iTTEyIDV2MTRNNSAxMmgxNCIvPjwvc3ZnPg=='
+  cloud: '/images/icons/journal-cloud.png',
+  message: '/images/icons/journal-message.png',
+  pencil: '/images/icons/journal-pencil.png',
+  plus: '/images/icons/journal-plus.png'
 };
+
+const INVITE_VERSION = 'v1';
 
 Page({
   data: {
@@ -33,7 +27,14 @@ Page({
     todayDate: '',
     weekDays: ['日', '一', '二', '三', '四', '五', '六'],
     colorLevels: [1, 2, 3, 4],
+    isPro: false,
+    maxPhotos: membershipPolicy.FREE.maxPhotosPerRecord,
+    maxPracticeOptions: membershipPolicy.FREE.maxPracticeOptions,
+    maxAnnotationTypes: membershipPolicy.FREE.maxAnnotationTypes,
     monthRecords: [],
+    timelineRecords: [],
+    timelineLoadingMore: false,
+    timelineHasMore: false,
     monthlyStats: {
       practiceDays: 0,
       totalMinutes: 0,
@@ -57,35 +58,196 @@ Page({
     },
     selectedTypeIndex: 0,
     submitLoading: false,
-    dataMode: 'guest'
+    draftPreparing: false,
+    formPhotoUploading: false,
+    dataMode: 'guest',
+    syncStatus: 'idle',
+    pendingSyncCount: 0,
+    showAccountSync: false,
+    showAuthModal: false,
+    showPasswordShell: false,
+    authInitialMode: 'login',
+    accountEmail: '',
+    maskedAccountEmail: '',
+    // XHS 邀请
+    showXiaohongshuModal: false,
+    hasNewXhsMessage: false,
+    // 标注
+    showAnnotationManager: false,
+    annotationTypes: [],
+    showMembershipPrompt: false,
+    membershipPromptReason: 'locked_annotation',
+    annotationDates: {},
+    annotationMap: {},
+    annotationTypeIdMap: {},
+    // 同步动画
+    syncing: false,
+    // 月度统计分享卡
+    showMonthlyShare: false,
+    shareCardData: {
+      year: 0,
+      month: 0,
+      totalHours: 0,
+      breathCount: 0,
+      photosynthesisCount: 0,
+      profileName: '阿斯汤加习练者',
+      profileSignature: '练习、练习，一切随之而来。',
+      profileAvatar: '',
+      calendarDays: []
+    },
+    // 单条觉察笔记分享卡
+    showRecordShare: false,
+    recordShareData: {
+      formattedDate: '',
+      type: '',
+      durationMinutes: 0,
+      breakthrough: '',
+      notes: '',
+      thisMonthDays: 0,
+      totalPracticeCount: 0,
+      totalHours: 0,
+      profileName: '阿斯汤加习练者',
+      profileSignature: '练习、练习，一切随之而来。',
+      profileAvatar: '',
+      photos: []
+    }
   },
 
   onLoad() {
+    runtimeErrors.recordEvent('page', 'journal_load');
+    this._olderTimelineRecords = [];
+    this._timelineLoadedKeys = [];
+    this._timelineFloorKey = '';
+    this._timelineFloorPromise = null;
+    this._timelineLoading = false;
+    this.prepareTimelineFloor();
     const now = new Date();
+    const readVersion = wx.getStorageSync('xhs_invite_version') || '';
     this.setData({
       currentYear: now.getFullYear(),
       currentMonth: now.getMonth(),
-      todayDate: this.formatDate(now.getFullYear(), now.getMonth() + 1, now.getDate())
+      todayDate: this.formatDate(now.getFullYear(), now.getMonth() + 1, now.getDate()),
+      hasNewXhsMessage: readVersion !== INVITE_VERSION
     });
   },
 
   onShow() {
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
-      this.getTabBar().setData({ selected: 1 });
+      this.getTabBar().setData({
+        selected: 1,
+        hidden: this.data.showRecordSheet ||
+          this.data.showAnnotationManager ||
+          this.data.showXiaohongshuModal ||
+          this.data.showMonthlyShare ||
+          this.data.showRecordShare ||
+          this.data.showMembershipPrompt
+      });
     }
-    this.loadPage();
+    const cacheTrace = runtimeErrors.startTrace('page', 'journal_cache_render');
+    this.renderCachedCalendar();
+    runtimeErrors.finishTrace(cacheTrace, 'success', {
+      record_count: this.data.monthRecords.length,
+      calendar_day_count: this.data.calendarDays.length
+    });
+    pageRefreshGate.run(this.getRefreshGateKey(), () => this.loadPage()).catch(() => null);
   },
 
-  async loadPage() {
-    this.setData({ dataMode: dataRepository.getMode() });
-    await this.loadPracticeOptions();
-    await this.loadCalendar();
+  getRefreshGateKey() {
+    const session = auth.getStoredSession();
+    const userId = session && session.user ? session.user.id || 'account' : 'guest';
+    return `journal:${dataRepository.getMode()}:${userId}`;
+  },
+
+  onHide() {
+    this.stopPhotoSyncRefresh();
+  },
+
+  onUnload() {
+    this.stopPhotoSyncRefresh();
+  },
+
+  async loadPage(options = {}) {
+    const trace = runtimeErrors.startTrace('page', 'journal_background_refresh', {
+      skip_background_sync: Boolean(options.skipBackgroundSync)
+    });
+    try {
+    const dataMode = dataRepository.getMode();
+    const initialSyncState = dataRepository.getRecordSyncState();
+    if (options.skipBackgroundSync || dataMode !== 'cloud') {
+      this.setData({
+        pendingSyncCount: initialSyncState.pending,
+        syncStatus: initialSyncState.pending > 0 ? 'error' : dataMode === 'cloud' ? 'success' : 'idle'
+      });
+    } else {
+      this.runBackgroundAccountSync();
+    }
+    const [membership, currentUser] = await Promise.all([
+      membershipService.getMembershipStatus()
+        .catch(() => ({ ...membershipService.EMPTY_STATUS })),
+      dataMode === 'cloud'
+        ? auth.getCurrentUser().catch(() => null)
+        : Promise.resolve(null)
+    ]);
+    const capabilities = membershipPolicy.getCapabilities(membership);
+    const accountEmail = currentUser && currentUser.email ? currentUser.email : '';
+    this.setData({
+      dataMode,
+      isPro: capabilities.tier === 'pro',
+      maxPhotos: capabilities.maxPhotosPerRecord,
+      maxPracticeOptions: capabilities.maxPracticeOptions,
+      maxAnnotationTypes: capabilities.maxAnnotationTypes,
+      accountEmail,
+      maskedAccountEmail: this.maskEmail(accountEmail)
+    });
+    await Promise.all([
+      this.loadPracticeOptions(),
+      this.loadCalendar({ preserveExisting: true })
+    ]);
+    runtimeErrors.finishTrace(trace, 'success', {
+      mode: dataMode,
+      record_count: this.data.monthRecords.length,
+      option_count: this.data.practiceOptions.length
+    });
+    } catch (error) {
+      runtimeErrors.finishTrace(trace, 'error', { message: error && error.message });
+      throw error;
+    }
+  },
+
+  async loadAnnotationTypes() {
+    try {
+      const types = await dataRepository.getAnnotationTypes();
+      this.setData({ annotationTypes: types });
+    } catch (error) {
+      // 静默失败，不影响主流程
+    }
+  },
+
+  async loadAnnotationDates() {
+    const { currentYear, currentMonth } = this.data;
+    try {
+      const [types, assignments] = await Promise.all([
+        dataRepository.getAnnotationTypes(),
+        dataRepository.getMonthAssignments(currentYear, currentMonth + 1)
+      ]);
+      const annotationState = this.buildAnnotationState(types, assignments);
+      this.setData({ annotationTypes: types, ...annotationState });
+      return annotationState;
+    } catch (error) {
+      // 静默失败
+      return { annotationDates: this.data.annotationDates, annotationMap: this.data.annotationMap };
+    }
   },
 
   async loadPracticeOptions() {
     try {
       const options = await dataRepository.getPracticeOptions();
-      const validOptions = options.filter((option) => option.label && option.label !== '草稿');
+      const validOptions = options
+        .filter((option) => option.label && option.label !== '草稿')
+        .map((option, index) => ({
+          ...option,
+          membershipLocked: !this.data.isPro && index >= this.data.maxPracticeOptions
+        }));
       this.setData({
         practiceOptions: validOptions,
         optionLabels: validOptions.map((option) => option.label)
@@ -100,46 +262,115 @@ Page({
     }
   },
 
-  async loadCalendar() {
+  getCurrentMonthRange() {
     const { currentYear, currentMonth } = this.data;
     const monthNumber = currentMonth + 1;
     const lastDay = new Date(currentYear, monthNumber, 0).getDate();
-    const startDate = this.formatDate(currentYear, monthNumber, 1);
-    const endDate = this.formatDate(currentYear, monthNumber, lastDay);
+    return {
+      currentYear,
+      currentMonth,
+      monthNumber,
+      startDate: this.formatDate(currentYear, monthNumber, 1),
+      endDate: this.formatDate(currentYear, monthNumber, lastDay)
+    };
+  },
+
+  buildAnnotationState(types, assignments) {
+    const safeTypes = Array.isArray(types) ? types.filter((type) => !type.deleted_at) : [];
+    const safeAssignments = Array.isArray(assignments) ? assignments : [];
+    const typeMap = Object.fromEntries(safeTypes.map((type) => [type.id, type]));
+    const annotationDates = {};
+    const annotationMap = {};
+    safeAssignments.forEach((assignment) => {
+      const type = typeMap[assignment.annotation_type_id];
+      if (!type) return;
+      if (!annotationDates[type.id]) annotationDates[type.id] = new Set();
+      annotationDates[type.id].add(assignment.date);
+      if (!annotationMap[assignment.date]) annotationMap[assignment.date] = [];
+      annotationMap[assignment.date].push({ label: type.label, color: type.color });
+    });
+    return { annotationDates, annotationMap };
+  },
+
+  applyCalendarData(records, annotationState = {}) {
+    const { currentYear, currentMonth } = this.data;
+    const safeRecords = Array.isArray(records) ? records : [];
+    const validRecords = safeRecords
+      .filter((record) => record.type !== '草稿')
+      .sort((a, b) => (
+        b.date.localeCompare(a.date) ||
+        String(b.created_at || '').localeCompare(String(a.created_at || ''))
+      ));
+    const annotationMap = annotationState.annotationMap || this.data.annotationMap;
+    const monthRecords = this.buildTimelineRecords(validRecords);
+    this.photoSyncSnapshot = this.getPhotoSyncSnapshot(validRecords);
+    this.setData({
+      ...annotationState,
+      calendarDays: this.buildCalendarDays(currentYear, currentMonth, safeRecords, annotationMap),
+      monthRecords,
+      monthlyStats: this.calculateMonthlyStats(validRecords)
+    });
+    this.rebuildTimeline();
+  },
+
+  renderCachedCalendar() {
+    if (!this.data.currentYear) return;
+    const { monthNumber, startDate, endDate } = this.getCurrentMonthRange();
+    const records = dataRepository.getCachedRecordsByDateRange(startDate, endDate);
+    const annotations = dataRepository.getCachedAnnotations();
+    const monthKey = `${this.data.currentYear}-${String(monthNumber).padStart(2, '0')}`;
+    const types = annotations && Array.isArray(annotations.types) ? annotations.types : [];
+    const assignments = annotations && Array.isArray(annotations.assignments)
+      ? annotations.assignments.filter((item) => String(item.date || '').startsWith(monthKey))
+      : [];
+    const annotationState = this.buildAnnotationState(types, assignments);
+    this.setData({
+      calendarLoading: false,
+      calendarError: '',
+      calendarTitle: `${this.data.currentYear}年${monthNumber}月`,
+      annotationTypes: types.filter((type) => !type.deleted_at)
+    });
+    this.applyCalendarData(records, annotationState);
+  },
+
+  async loadCalendar(options = {}) {
+    const { currentYear, currentMonth, monthNumber, startDate, endDate } = this.getCurrentMonthRange();
+    const requestKey = `${currentYear}-${monthNumber}`;
+    const preserveExisting = Boolean(options.preserveExisting && this.data.calendarDays.length);
 
     this.setData({
-      calendarLoading: true,
+      calendarLoading: !preserveExisting,
       calendarError: '',
       calendarTitle: `${currentYear}年${monthNumber}月`
     });
 
     try {
-      const records = await dataRepository.getRecordsByDateRange(startDate, endDate);
-      const validRecords = records
-        .filter((record) => record.type !== '草稿')
-        .sort((a, b) => (
-          b.date.localeCompare(a.date) ||
-          String(b.created_at || '').localeCompare(String(a.created_at || ''))
-        ));
-
-      this.setData({
-        calendarDays: this.buildCalendarDays(currentYear, currentMonth, records),
-        monthRecords: this.buildTimelineRecords(validRecords),
-        monthlyStats: this.calculateMonthlyStats(validRecords)
-      });
+      const [records, types, assignments] = await Promise.all([
+        dataRepository.getRecordsByDateRange(startDate, endDate),
+        dataRepository.getAnnotationTypes(),
+        dataRepository.getMonthAssignments(currentYear, monthNumber)
+      ]);
+      if (`${this.data.currentYear}-${this.data.currentMonth + 1}` !== requestKey) return;
+      const annotationState = this.buildAnnotationState(types, assignments);
+      this.setData({ annotationTypes: types });
+      this.applyCalendarData(records, annotationState);
     } catch (error) {
-      this.setData({
-        calendarError: error.message || '月历读取失败，请稍后重试',
-        calendarDays: this.buildCalendarDays(currentYear, currentMonth, []),
-        monthRecords: [],
-        monthlyStats: this.calculateMonthlyStats([])
-      });
+      if (`${this.data.currentYear}-${this.data.currentMonth + 1}` !== requestKey) return;
+      if (!preserveExisting) {
+        this.setData({
+          calendarError: error.message || '月历读取失败，请稍后重试',
+          calendarDays: this.buildCalendarDays(currentYear, currentMonth, []),
+          monthRecords: [],
+          monthlyStats: this.calculateMonthlyStats([])
+        });
+        this.rebuildTimeline();
+      }
     } finally {
       this.setData({ calendarLoading: false });
     }
   },
 
-  buildCalendarDays(year, month, records) {
+  buildCalendarDays(year, month, records, annotationMap = this.data.annotationMap) {
     const firstWeekday = new Date(year, month, 1).getDay();
     const totalDays = new Date(year, month + 1, 0).getDate();
     const today = new Date();
@@ -169,7 +400,9 @@ Page({
     for (let day = 1; day <= totalDays; day += 1) {
       const date = this.formatDate(year, month + 1, day);
       const practice = recordMap[date];
-      const moonType = MOON_DAYS_2026[date] || '';
+      const moonType = getMoonType(date);
+      const annos = annotationMap[date] || [];
+      const annotationColors = annos.length > 0 ? annos.map((a) => a.color) : [];
       days.push({
         key: date,
         day,
@@ -178,10 +411,11 @@ Page({
         colorClass: practice ? `green-gradient-${practice.colorLevel}` : '',
         hasBreakthrough: Boolean(practice && practice.hasBreakthrough),
         moonType,
-        moonIcon: moonType
-          ? `https://ash.ashtangalife.online/moon-phase/${moonType === 'new' ? 'new-moon' : 'full-moon'}.png`
-          : '',
-        isFuture: date > todayKey
+        moonIcon: getMoonIcon(date),
+        isFuture: date > todayKey,
+        annotationColors,
+        previewAnnotationColors: annotationColors.slice(0, 3),
+        extraAnnotationCount: Math.max(0, annotationColors.length - 3)
       });
     }
 
@@ -206,12 +440,17 @@ Page({
     return records.map((record) => {
       const dateParts = String(record.date).split('-');
       const durationMinutes = Math.floor(Number(record.duration || 0) / 60);
+      const photos = Array.isArray(record.photos) ? record.photos : [];
       return {
         ...record,
+        photoItems: photos.map((src) => ({
+          src,
+          status: dataRepository.getPhotoSyncStatus(record.id, src)
+        })),
         timelineDate: `${Number(dateParts[1])}/${Number(dateParts[2])}`,
         durationMinutes,
         displayType: String(record.type || '').split(/\s+|-\s*/)[0],
-        dotClass: MOON_DAYS_2026[record.date]
+        dotClass: getMoonType(record.date)
           ? 'moon'
           : record.breakthrough
             ? 'breakthrough'
@@ -249,18 +488,228 @@ Page({
     };
   },
 
+  buildMonthlyShareData() {
+    const { currentYear, currentMonth, monthRecords } = this.data;
+    const completed = monthRecords.filter((record) => Number(record.duration || 0) > 0 && record.type !== '草稿');
+    const totalSeconds = completed.reduce((sum, record) => sum + Number(record.duration || 0), 0);
+    const totalHours = Math.round(totalSeconds / 3600);
+    const breathCount = Math.round(totalSeconds / 6);
+    const photosynthesisCount = breathCount * 144;
+    const firstDay = new Date(currentYear, currentMonth, 1);
+    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+    const practicedDates = {};
+    completed.forEach((record) => {
+      const parts = String(record.date || '').split('-');
+      const day = Number(parts[2]);
+      if (day) practicedDates[day] = true;
+    });
+    const calendarDays = [];
+    for (let index = 0; index < firstDay.getDay(); index += 1) {
+      calendarDays.push({ key: `empty-${index}`, empty: true, practiced: false });
+    }
+    for (let day = 1; day <= daysInMonth; day += 1) {
+      calendarDays.push({ key: `day-${day}`, day, practiced: Boolean(practicedDates[day]) });
+    }
+    const profile = dataRepository.getCachedProfile();
+    return {
+      year: currentYear,
+      month: currentMonth + 1,
+      totalHours,
+      breathCount,
+      photosynthesisCount,
+      profileName: profile.name,
+      profileSignature: profile.signature,
+      profileAvatar: profile.avatar || '',
+      calendarDays
+    };
+  },
+
+  openMonthlyShare() {
+    const shareCardData = this.buildMonthlyShareData();
+    this.setData({ showMonthlyShare: true, shareCardData }, () => {
+      this.setTabBarHidden(true);
+    });
+  },
+
+  closeMonthlyShare() {
+    this.setData({ showMonthlyShare: false });
+    this.setTabBarHidden(false);
+  },
+
+  buildRecordShareData(record) {
+    const profile = dataRepository.getCachedProfile();
+    const startDate = `${this.data.currentYear}-01-01`;
+    const endDate = `${this.data.currentYear}-12-31`;
+    const cachedYearRecords = dataRepository.getCachedRecordsByDateRange(startDate, endDate);
+    const yearRecords = cachedYearRecords.length ? cachedYearRecords : this.data.monthRecords;
+    const completed = yearRecords.filter((item) => Number(item.duration || 0) > 0 && item.type !== '草稿');
+    const totalSeconds = completed.reduce((sum, item) => sum + Number(item.duration || 0), 0);
+    const dateParts = String(record.date || '').split('-');
+    return {
+      recordId: record.id || '',
+      formattedDate: dateParts.length === 3
+        ? `${dateParts[0]}.${dateParts[1]}.${dateParts[2]}`
+        : String(record.date || ''),
+      type: record.type || '',
+      durationMinutes: Math.floor(Number(record.duration || 0) / 60),
+      breakthrough: record.breakthrough || '',
+      notes: record.notes || '今日练习完成',
+      thisMonthDays: this.data.monthlyStats.practiceDays,
+      totalPracticeCount: completed.length,
+      totalHours: Math.round(totalSeconds / 3600),
+      profileName: profile.name,
+      profileSignature: profile.signature,
+      profileAvatar: profile.avatar || '',
+      photos: Array.isArray(record.photos) ? record.photos.filter(Boolean) : []
+    };
+  },
+
+  async refreshRecordShareStats(recordId) {
+    try {
+      const startDate = `${this.data.currentYear}-01-01`;
+      const endDate = `${this.data.currentYear}-12-31`;
+      const yearRecords = await dataRepository.getRecordsByDateRange(startDate, endDate);
+      if (!this.data.showRecordShare || this.data.recordShareData.recordId !== recordId) return;
+      const completed = yearRecords.filter((item) => Number(item.duration || 0) > 0 && item.type !== '草稿');
+      const totalSeconds = completed.reduce((sum, item) => sum + Number(item.duration || 0), 0);
+      this.setData({
+        'recordShareData.totalPracticeCount': completed.length,
+        'recordShareData.totalHours': Math.round(totalSeconds / 3600)
+      });
+    } catch (error) {
+      // 卡片先用本地缓存即时打开；后台统计失败不阻塞预览和保存。
+    }
+  },
+
+  openRecordShare(event) {
+    const record = event.currentTarget.dataset.record;
+    if (!record) return;
+    const recordShareData = this.buildRecordShareData(record);
+    this.setData({ showRecordShare: true, recordShareData }, () => {
+      this.setTabBarHidden(true);
+    });
+    void this.refreshRecordShareStats(recordShareData.recordId);
+  },
+
+  closeRecordShare() {
+    this.setData({ showRecordShare: false });
+    this.setTabBarHidden(false);
+  },
+
   formatDate(year, month, day) {
     return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
   },
 
+  getTimelineMonthKey(year, monthIndex) {
+    return `${year}-${String(monthIndex + 1).padStart(2, '0')}`;
+  },
+
+  rebuildTimeline() {
+    const currentKey = this.getTimelineMonthKey(this.data.currentYear, this.data.currentMonth);
+    const loadedKeys = this._timelineLoadedKeys.length ? this._timelineLoadedKeys : [currentKey];
+    this._timelineLoadedKeys = loadedKeys;
+    const floorKey = this._timelineFloorKey || '';
+    const lastKey = loadedKeys[loadedKeys.length - 1];
+    const hasMore = Boolean(floorKey) && lastKey > floorKey;
+    this.setData({
+      timelineRecords: this.data.monthRecords.concat(this._olderTimelineRecords),
+      timelineHasMore: hasMore
+    });
+  },
+
+  prepareTimelineFloor() {
+    if (this._timelineFloorKey || this._timelineFloorPromise) return this._timelineFloorPromise;
+    this._timelineFloorPromise = dataRepository.getEarliestRecordDate()
+      .then((earliestDate) => {
+        if (earliestDate) {
+          const parts = String(earliestDate).split('-').map(Number);
+          this._timelineFloorKey = this.getTimelineMonthKey(parts[0], parts[1] - 1);
+        } else {
+          this._timelineFloorKey = '9999-12';
+        }
+      })
+      .catch(() => {
+        this._timelineFloorKey = this._timelineFloorKey || '';
+      })
+      .finally(() => {
+        this.rebuildTimeline();
+      });
+    return this._timelineFloorPromise;
+  },
+
+  async loadMoreTimeline() {
+    if (this._timelineLoading || this.data.timelineLoadingMore) return;
+    await this.prepareTimelineFloor();
+    const floorKey = this._timelineFloorKey || '';
+    const currentKey = this.getTimelineMonthKey(this.data.currentYear, this.data.currentMonth);
+    const loadedKeys = this._timelineLoadedKeys.length ? this._timelineLoadedKeys : [currentKey];
+    this._timelineLoadedKeys = loadedKeys;
+    const lastKey = loadedKeys[loadedKeys.length - 1];
+    if (!lastKey || !floorKey || lastKey <= floorKey) {
+      this.setData({ timelineHasMore: false });
+      return;
+    }
+    const parts = lastKey.split('-').map(Number);
+    const prev = new Date(parts[0], parts[1] - 2, 1);
+    const prevKey = this.getTimelineMonthKey(prev.getFullYear(), prev.getMonth());
+    if (prevKey < floorKey) {
+      this.setData({ timelineHasMore: false });
+      return;
+    }
+    this._timelineLoading = true;
+    this.setData({ timelineLoadingMore: true });
+    try {
+      const lastDay = new Date(prev.getFullYear(), prev.getMonth() + 1, 0).getDate();
+      const startDate = this.formatDate(prev.getFullYear(), prev.getMonth() + 1, 1);
+      const endDate = this.formatDate(prev.getFullYear(), prev.getMonth() + 1, lastDay);
+      const records = await dataRepository.getRecordsByDateRange(startDate, endDate);
+      const valid = (Array.isArray(records) ? records : [])
+        .filter((record) => record.type !== '草稿')
+        .sort((a, b) => (
+          String(b.date || '').localeCompare(String(a.date || '')) ||
+          String(b.created_at || '').localeCompare(String(a.created_at || ''))
+        ));
+      this._olderTimelineRecords = this._olderTimelineRecords.concat(this.buildTimelineRecords(valid));
+      this._timelineLoadedKeys = loadedKeys.concat([prevKey]);
+      this.rebuildTimeline();
+    } catch (error) {
+      runtimeErrors.recordEvent('page', 'journal_load_more_error', {
+        month: prevKey,
+        message: error && error.message
+      });
+    } finally {
+      this._timelineLoading = false;
+      this.setData({ timelineLoadingMore: false });
+    }
+  },
+
+  onReachBottom() {
+    if (this.data.showRecordSheet ||
+        this.data.showAnnotationManager ||
+        this.data.showXiaohongshuModal ||
+        this.data.showMonthlyShare ||
+        this.data.showRecordShare) {
+      return;
+    }
+    this.loadMoreTimeline();
+  },
+
+  onTimelineLoadMoreTap() {
+    this.loadMoreTimeline();
+  },
+
   changeMonth(offset) {
+    this._olderTimelineRecords = [];
+    this._timelineLoadedKeys = [];
+    this._timelineLoading = false;
     const target = new Date(this.data.currentYear, this.data.currentMonth + offset, 1);
     this.setData({
       currentYear: target.getFullYear(),
       currentMonth: target.getMonth(),
       highlightedDate: ''
     });
-    this.loadCalendar();
+    this.renderCachedCalendar();
+    this.loadCalendar({ preserveExisting: true });
   },
 
   onPreviousMonth() {
@@ -295,40 +744,157 @@ Page({
       return;
     }
     if (action === 'sync') {
-      if (this.data.dataMode === 'guest') {
-        wx.showToast({ title: '游客记录已保存在本机', icon: 'none' });
-        return;
-      }
-      this.loadPage().then(() => {
-        wx.showToast({ title: '同步完成', icon: 'success' });
-      });
+      this.openAccountSync();
       return;
     }
-    const messages = {
-      message: '社群入口稍后接入',
-      annotation: '日历标注稍后接入'
-    };
-    wx.showToast({ title: messages[action] || '稍后接入', icon: 'none' });
+    if (action === 'message') {
+      this.setData({
+        showXiaohongshuModal: true,
+        hasNewXhsMessage: false
+      }, () => this.setTabBarHidden(true));
+      wx.setStorageSync('xhs_invite_version', INVITE_VERSION);
+      return;
+    }
+    if (action === 'annotation') {
+      this.setData({ showAnnotationManager: true }, () => this.setTabBarHidden(true));
+      return;
+    }
   },
 
-  openAddRecord() {
+  onXiaohongshuClose() {
+    this.setData({ showXiaohongshuModal: false });
+    this.setTabBarHidden(false);
+  },
+
+  // ===== 标注事件处理 =====
+
+  onAnnotationClose() {
+    this.setData({ showAnnotationManager: false });
+    this.setTabBarHidden(false);
+    this.renderCachedCalendar();
+    this.loadCalendar({ preserveExisting: true });
+  },
+
+  async onAnnotationCreateType(event) {
+    const { optimisticId, label, color } = event.detail;
+    try {
+      const created = await dataRepository.createAnnotationType(label, color);
+      if (optimisticId && created && created.id) {
+        this.setData({
+          annotationTypeIdMap: {
+            ...this.data.annotationTypeIdMap,
+            [optimisticId]: created.id
+          }
+        });
+      }
+      await this.loadAnnotationTypes();
+      wx.showToast({ title: '创建成功', icon: 'success' });
+    } catch (error) {
+      wx.showToast({ title: '创建失败，请重试', icon: 'none' });
+    }
+  },
+
+  async onAnnotationUpdateType(event) {
+    const { id, updates } = event.detail;
+    try {
+      await dataRepository.updateAnnotationType(id, updates);
+      await this.loadAnnotationTypes();
+      wx.showToast({ title: '更新成功', icon: 'success' });
+    } catch (error) {
+      wx.showToast({ title: '更新失败，请重试', icon: 'none' });
+    }
+  },
+
+  async onAnnotationDeleteType(event) {
+    const { id } = event.detail;
+    try {
+      await dataRepository.deleteAnnotationType(id);
+      await this.loadAnnotationTypes();
+      wx.showToast({ title: '删除成功', icon: 'success' });
+    } catch (error) {
+      wx.showToast({ title: '删除失败，请重试', icon: 'none' });
+    }
+  },
+
+  async onAnnotationSave(event) {
+    const { adds, removes } = event.detail;
+    const { annotationTypeIdMap } = this.data;
+    const resolveTypeId = (typeId) => annotationTypeIdMap[typeId] || typeId;
+    try {
+      const promises = [];
+      for (const [typeId, dates] of Object.entries(adds)) {
+        const realTypeId = resolveTypeId(typeId);
+        for (const date of dates) {
+          promises.push(dataRepository.addAnnotation(realTypeId, date));
+        }
+      }
+      for (const [typeId, dates] of Object.entries(removes)) {
+        const realTypeId = resolveTypeId(typeId);
+        for (const date of dates) {
+          promises.push(dataRepository.removeAnnotation(realTypeId, date));
+        }
+      }
+      await Promise.all(promises);
+      this.setData({ showAnnotationManager: false });
+      this.setTabBarHidden(false);
+      this.renderCachedCalendar();
+      this.loadCalendar({ preserveExisting: true });
+      dataRepository.syncPhotosInBackground().then(() => {
+        const nextSyncState = dataRepository.getRecordSyncState();
+        this.setData({
+          pendingSyncCount: nextSyncState.pending,
+          syncStatus: nextSyncState.pending > 0 ? 'error' : 'success'
+        });
+      });
+      wx.showToast({ title: '标注已保存', icon: 'success' });
+    } catch (error) {
+      wx.showToast({ title: '保存失败，请重试', icon: 'none' });
+    }
+  },
+
+  async openAddRecord() {
+    if (this.data.draftPreparing || this.data.submitLoading) return;
     const today = new Date();
     const firstOption = this.data.practiceOptions[0] || { label: '一序列', color_level: 3 };
+    const form = {
+      date: this.formatDate(today.getFullYear(), today.getMonth() + 1, today.getDate()),
+      type: firstOption.label,
+      durationMinutes: '60',
+      notes: '',
+      breakthrough: '',
+      breakthroughEnabled: false,
+      color_level: Number(firstOption.color_level) || 3,
+      photos: []
+    };
+    if (this.data.dataMode === 'cloud') {
+      this.setData({ draftPreparing: true });
+      wx.showLoading({ title: '准备记录中' });
+      try {
+        const draft = await dataRepository.createRecord({
+          date: form.date,
+          type: '草稿',
+          duration: 60,
+          notes: '',
+          color_level: form.color_level,
+          photos: []
+        });
+        form.id = draft.id;
+        form.isDraft = true;
+      } catch (error) {
+        wx.showToast({ title: error.message || '准备记录失败', icon: 'none' });
+        return;
+      } finally {
+        wx.hideLoading();
+        this.setData({ draftPreparing: false });
+      }
+    }
     this.setData({
       showRecordSheet: true,
       recordSheetMode: 'add',
       selectedTypeIndex: 0,
-      recordForm: {
-        date: this.formatDate(today.getFullYear(), today.getMonth() + 1, today.getDate()),
-        type: firstOption.label,
-        durationMinutes: '60',
-        notes: '',
-        breakthrough: '',
-        breakthroughEnabled: false,
-        color_level: Number(firstOption.color_level) || 3,
-        photos: []
-      }
-    });
+      formPhotoUploading: false,
+      recordForm: form
+    }, () => this.setTabBarHidden(true));
   },
 
   onRecordTap(event) {
@@ -351,6 +917,7 @@ Page({
       selectedTypeIndex,
       showRecordSheet: true,
       recordSheetMode: 'edit',
+      formPhotoUploading: false,
       recordForm: {
         id: record.id,
         date: record.date,
@@ -362,16 +929,39 @@ Page({
         color_level: Number(record.color_level) || 3,
         photos: Array.isArray(record.photos) ? record.photos : []
       }
-    });
+    }, () => this.setTabBarHidden(true));
   },
 
-  closeRecordSheet() {
+  async closeRecordSheet() {
     if (this.data.submitLoading) return;
-    this.setData({ showRecordSheet: false });
+    if (this.data.formPhotoUploading) {
+      wx.showToast({ title: '照片正在上传，请稍候', icon: 'none' });
+      return;
+    }
+    const draftId = this.data.recordSheetMode === 'add'
+      ? this.data.recordForm.id
+      : '';
+    this.setData({ submitLoading: true });
+    try {
+      if (draftId) {
+        await dataRepository.softDeleteRecord(draftId);
+        await dataRepository.syncPendingRecords({ includePhotos: true });
+      }
+      this.setData({ showRecordSheet: false, formPhotoUploading: false });
+      this.setTabBarHidden(false);
+    } catch (error) {
+      wx.showToast({ title: error.message || '草稿清理失败，请重试', icon: 'none' });
+    } finally {
+      this.setData({ submitLoading: false });
+    }
   },
 
   onSharedFormChange(event) {
     this.setData({ recordForm: event.detail });
+  },
+
+  onFormPhotoUploadState(event) {
+    this.setData({ formPhotoUploading: Boolean(event.detail && event.detail.uploading) });
   },
 
   onRecordFieldInput(event) {
@@ -421,17 +1011,19 @@ Page({
 
     this.setData({ submitLoading: true });
     try {
-      if (this.data.recordSheetMode === 'edit') {
+      if (this.data.recordSheetMode === 'edit' || form.id) {
         await dataRepository.updateRecord(form.id, payload);
       } else {
         await dataRepository.createRecord(payload);
       }
-      this.setData({ showRecordSheet: false });
+      this.setData({ showRecordSheet: false, formPhotoUploading: false });
       wx.showToast({
         title: this.data.recordSheetMode === 'edit' ? '更新成功' : '补卡成功',
         icon: 'success'
       });
-      await this.loadCalendar();
+      this.setTabBarHidden(false);
+      this.renderCachedCalendar();
+      this.loadCalendar({ preserveExisting: true });
     } catch (error) {
       wx.showToast({ title: error.message || '保存失败，请重试', icon: 'none' });
     } finally {
@@ -456,7 +1048,9 @@ Page({
           await dataRepository.softDeleteRecord(id);
           this.setData({ showRecordSheet: false });
           wx.showToast({ title: '已删除', icon: 'success' });
-          await this.loadCalendar();
+          this.setTabBarHidden(false);
+          this.renderCachedCalendar();
+          this.loadCalendar({ preserveExisting: true });
         } catch (error) {
           wx.showToast({ title: error.message || '删除失败，请重试', icon: 'none' });
         } finally {
@@ -468,6 +1062,291 @@ Page({
 
   closeMoonDialog() {
     this.setData({ moonDialog: { open: false, type: '' } });
+  },
+
+  setTabBarHidden(hidden) {
+    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+      this.getTabBar().setData({ hidden });
+    }
+  },
+
+  onMembershipLimit(event) {
+    const reason = event && event.detail ? event.detail.reason : 'locked_annotation';
+    this.setData({
+      showMembershipPrompt: true,
+      membershipPromptReason: reason
+    }, () => this.setTabBarHidden(true));
+  },
+
+  closeMembershipPrompt() {
+    this.setData({ showMembershipPrompt: false }, () => {
+      this.setTabBarHidden(Boolean(
+        this.data.showRecordSheet ||
+        this.data.showAnnotationManager ||
+        this.data.showXiaohongshuModal ||
+        this.data.showMonthlyShare ||
+        this.data.showRecordShare
+      ));
+    });
+  },
+
+  getCachedVisibleMonthRecords() {
+    if (!this.data.currentYear) return [];
+    const { startDate, endDate } = this.getCurrentMonthRange();
+    return dataRepository.getCachedRecordsByDateRange(startDate, endDate)
+      .filter((record) => record.type !== '草稿')
+      .sort((a, b) => (
+        String(b.date || '').localeCompare(String(a.date || '')) ||
+        String(b.created_at || '').localeCompare(String(a.created_at || ''))
+      ));
+  },
+
+  getPhotoSyncSnapshot(records) {
+    return (Array.isArray(records) ? records : []).map((record) => {
+      const photos = Array.isArray(record.photos) ? record.photos : [];
+      const photoState = photos.map((src) => (
+        `${src}:${dataRepository.getPhotoSyncStatus(record.id, src)}`
+      )).join(',');
+      return `${record.id || ''}[${photoState}]`;
+    }).join('|');
+  },
+
+  refreshPhotoSyncItems() {
+    const records = this.getCachedVisibleMonthRecords();
+    const nextSnapshot = this.getPhotoSyncSnapshot(records);
+    if (nextSnapshot === this.photoSyncSnapshot) return false;
+    this.photoSyncSnapshot = nextSnapshot;
+    this.setData({ monthRecords: this.buildTimelineRecords(records) });
+    this.rebuildTimeline();
+    return true;
+  },
+
+  openMembershipSettings() {
+    this.setData({ showMembershipPrompt: false });
+    wx.setStorageSync('ashtanga_profile_settings_tab', 'membership');
+    wx.switchTab({ url: '/pages/profile/profile' });
+  },
+
+  previewTimelinePhoto(event) {
+    const photos = event.currentTarget.dataset.photos;
+    const urls = Array.isArray(photos) ? photos.filter(Boolean) : [];
+    if (!urls.length) return;
+    wx.previewImage({
+      current: event.currentTarget.dataset.current || urls[0],
+      urls
+    });
+  },
+
+  maskEmail(email) {
+    const [name = '', domain = ''] = String(email || '').split('@');
+    if (!domain) return '';
+    const visible = name.slice(0, Math.min(3, name.length));
+    return `${visible}${'*'.repeat(Math.max(3, name.length - visible.length))}@${domain}`;
+  },
+
+  openAccountSync() {
+    this.setData({ showAccountSync: true }, () => this.setTabBarHidden(true));
+  },
+
+  closeAccountSync() {
+    this.setData({ showAccountSync: false });
+    this.setTabBarHidden(false);
+  },
+
+  keepLocalMode() {
+    this.closeAccountSync();
+  },
+
+  openAuthFromSync(event) {
+    const mode = (event.detail && event.detail.mode) || event.currentTarget.dataset.mode || 'login';
+    this.setData({
+      showAccountSync: false,
+      showAuthModal: true,
+      authInitialMode: mode
+    });
+  },
+
+  closeAuthModal() {
+    this.setData({ showAuthModal: false });
+    this.setTabBarHidden(false);
+  },
+
+  async onAuthSuccess(event) {
+    const user = event.detail && event.detail.user;
+    const accountEmail = user && user.email ? user.email : '';
+    this.setData({
+      showAuthModal: false,
+      dataMode: 'cloud',
+      accountEmail,
+      maskedAccountEmail: this.maskEmail(accountEmail),
+      syncStatus: 'idle'
+    });
+    this.setTabBarHidden(false);
+    await this.offerGuestMerge();
+    await this.loadPage();
+    wx.showToast({ title: '登录成功', icon: 'success' });
+  },
+
+  async offerGuestMerge() {
+    const summary = dataRepository.getGuestMergeSummary();
+    if (!summary.eligible) return;
+    const confirmed = await new Promise((resolve) => {
+      wx.showModal({
+        title: '合并本机练习数据？',
+        content: `检测到本机有 ${summary.counts.records} 条练习记录${summary.counts.photos ? `、${summary.counts.photos} 张照片` : ''}。合并后会保留账号原有数据，并把本机数据上传到同一账号。`,
+        confirmText: '合并数据',
+        cancelText: '暂不合并',
+        success: (result) => resolve(Boolean(result.confirm)),
+        fail: () => resolve(false)
+      });
+    });
+    if (!confirmed) {
+      dataRepository.dismissGuestMerge();
+      return;
+    }
+    wx.showLoading({ title: '合并数据中' });
+    try {
+      const result = await dataRepository.migrateGuestDataToAccount();
+      wx.showToast({
+        title: result.pending ? `已加入同步，待处理 ${result.pending} 项` : '本机数据已合并',
+        icon: result.pending ? 'none' : 'success'
+      });
+    } catch (error) {
+      wx.showToast({ title: error && error.message ? error.message : '本机数据合并失败', icon: 'none' });
+    } finally {
+      wx.hideLoading();
+    }
+  },
+
+  async runAccountSync() {
+    if (this.data.syncing) return;
+    this.setData({ syncing: true, syncStatus: 'syncing' });
+    this.startPhotoSyncRefresh();
+    try {
+      const result = await dataRepository.syncPendingRecords({ includePhotos: true });
+      dataRepository.invalidateSharedReads();
+      await this.loadPage({ skipBackgroundSync: true });
+      const completed = result.pending === 0;
+      this.setData({
+        syncStatus: completed ? 'success' : 'error',
+        pendingSyncCount: result.pending
+      });
+      wx.showToast({
+        title: completed ? `同步完成${result.synced ? ` ${result.synced} 条` : ''}` : `还有 ${result.pending} 条待同步`,
+        icon: completed ? 'success' : 'none'
+      });
+    } catch (error) {
+      this.setData({ syncStatus: 'error' });
+      wx.showToast({ title: '同步失败，请重试', icon: 'none' });
+    } finally {
+      this.stopPhotoSyncRefresh();
+      this.renderCachedCalendar();
+      this.setData({ syncing: false });
+    }
+  },
+
+  startPhotoSyncRefresh() {
+    this.stopPhotoSyncRefresh();
+    this.photoSyncSnapshot = this.getPhotoSyncSnapshot(this.getCachedVisibleMonthRecords());
+    this.photoSyncRefreshTimer = setInterval(() => {
+      this.refreshPhotoSyncItems();
+    }, 600);
+  },
+
+  stopPhotoSyncRefresh() {
+    if (!this.photoSyncRefreshTimer) return;
+    clearInterval(this.photoSyncRefreshTimer);
+    this.photoSyncRefreshTimer = null;
+  },
+
+  runBackgroundAccountSync() {
+    if (dataRepository.getMode() !== 'cloud') return Promise.resolve(null);
+    if (this.backgroundSyncPromise) {
+      this.startPhotoSyncRefresh();
+      return this.backgroundSyncPromise;
+    }
+    const state = dataRepository.getRecordSyncState();
+    if (!state.pending) {
+      this.stopPhotoSyncRefresh();
+      this.setData({ syncing: false, syncStatus: 'success', pendingSyncCount: 0 });
+      return Promise.resolve({ synced: 0, pending: 0 });
+    }
+
+    this.setData({ syncing: true, syncStatus: 'syncing', pendingSyncCount: state.pending });
+    this.startPhotoSyncRefresh();
+    this.backgroundSyncPromise = dataRepository.syncPendingRecords({ includePhotos: true })
+      .then((result) => {
+        const next = dataRepository.getRecordSyncState();
+        this.setData({
+          pendingSyncCount: next.pending,
+          syncStatus: next.pending > 0 || result.error ? 'error' : 'success'
+        });
+        return result;
+      })
+      .catch((error) => {
+        const next = dataRepository.getRecordSyncState();
+        this.setData({ syncStatus: 'error', pendingSyncCount: next.pending });
+        return { synced: 0, pending: next.pending, error };
+      })
+      .finally(() => {
+        this.stopPhotoSyncRefresh();
+        this.renderCachedCalendar();
+        this.backgroundSyncPromise = null;
+        this.setData({ syncing: false });
+      });
+    return this.backgroundSyncPromise;
+  },
+
+  resetAccountSyncStatus() {
+    const state = dataRepository.getRecordSyncState();
+    this.setData({
+      syncing: false,
+      syncStatus: state.pending > 0 ? 'error' : 'success',
+      pendingSyncCount: state.pending
+    });
+    wx.showToast({ title: state.pending > 0 ? '已保留待同步数据' : '同步状态已重置', icon: 'none' });
+  },
+
+  requestAccountLogout() {
+    wx.showModal({
+      title: '退出登录？',
+      content: '退出后将回到游客模式，账号云端数据不会被删除。',
+      confirmText: '退出登录',
+      confirmColor: '#A34837',
+      success: async (result) => {
+        if (!result.confirm) return;
+        try {
+          await auth.signOut();
+        } catch (error) {
+          // 远端退出失败时仍清理本机会话。
+        }
+        wx.removeStorageSync('weapp_account_mode_enabled');
+        wx.setStorageSync('weapp_guest_mode_enabled', true);
+        getApp().globalData.dataMode = 'guest';
+        localData.ensureTutorialRecord();
+        this.setData({ showAccountSync: false, syncing: false });
+        this.setTabBarHidden(false);
+        wx.switchTab({ url: '/pages/practice/practice' });
+      }
+    });
+  },
+
+  openPasswordFromSync() {
+    this.setData({
+      showAccountSync: false,
+      showPasswordShell: true
+    });
+  },
+
+  closePasswordShell() {
+    this.setData({ showPasswordShell: false });
+    this.setTabBarHidden(false);
+  },
+
+  onPasswordChanged() {
+    this.setData({ showPasswordShell: false });
+    this.setTabBarHidden(false);
+    wx.showToast({ title: '密码修改成功', icon: 'success' });
   },
 
   goToAccount() {

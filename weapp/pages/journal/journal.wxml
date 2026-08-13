@@ -1,3 +1,4 @@
+<page-meta page-style="{{showRecordShare ? 'overflow: hidden;' : ''}}" />
 <view class="journal-page">
   <view wx:if="{{dataMode === 'guest'}}" class="guest-notice">
     <text>游客模式 · 记录仅保存在本机</text>
@@ -6,13 +7,13 @@
   <view class="calendar-card">
     <view class="calendar-toolbar">
       <view class="toolbar-side">
-        <view class="calendar-control green-gradient-deep" data-action="sync" bindtap="onToolbarTap" aria-label="同步">
+        <view class="calendar-control sync-control {{dataMode === 'cloud' ? 'green-gradient' : 'sync-control-offline'}} {{syncing ? 'syncing' : ''}}" data-action="sync" bindtap="onToolbarTap" aria-label="同步">
           <image class="toolbar-icon" src="{{icons.cloud}}" mode="aspectFit" />
-          <view class="status-dot status-online"></view>
+          <view class="status-dot sync-status-{{dataMode === 'guest' ? 'offline' : syncStatus}}"></view>
         </view>
         <view class="calendar-control green-gradient-deep" data-action="message" bindtap="onToolbarTap" aria-label="社群消息">
           <image class="toolbar-icon small" src="{{icons.message}}" mode="aspectFit" />
-          <view class="status-dot status-message"></view>
+          <view wx:if="{{hasNewXhsMessage}}" class="status-dot status-message"></view>
         </view>
         <view class="calendar-control green-gradient-deep" bindtap="onPreviousMonth" aria-label="上一个月">
           <view class="chevron chevron-left"></view>
@@ -56,13 +57,17 @@
           <text class="day-number">{{item.day}}</text>
           <view wx:if="{{item.moonType && item.practiced}}" class="calendar-marker moon-marker"></view>
           <view wx:elif="{{item.hasBreakthrough}}" class="calendar-marker breakthrough-marker"></view>
+          <view wx:if="{{item.annotationColors && item.annotationColors.length > 0}}" class="ann-dot-container">
+            <view wx:for="{{item.previewAnnotationColors}}" wx:key="*this" class="ann-dot" style="background-color: {{item}}"></view>
+            <text wx:if="{{item.extraAnnotationCount > 0}}" class="ann-dot-more">+{{item.extraAnnotationCount}}</text>
+          </view>
         </view>
       </view>
     </view>
     <text wx:if="{{calendarError}}" class="calendar-error">{{calendarError}}</text>
   </view>
 
-  <view class="monthly-stats-card">
+  <view class="monthly-stats-card" bindtap="openMonthlyShare" aria-label="生成月度统计卡片">
     <view class="stat-item">
       <text class="stat-value">{{monthlyStats.practiceDays}}</text>
       <text class="stat-label">熬汤天数</text>
@@ -83,10 +88,10 @@
 
   <view wx:if="{{calendarLoading}}" class="timeline-state">正在读取练习记录…</view>
   <view wx:elif="{{calendarError}}" class="timeline-state error">{{calendarError}}</view>
-  <view wx:elif="{{monthRecords.length === 0}}" class="timeline-state">这个月还没有练习记录</view>
+  <view wx:elif="{{timelineRecords.length === 0}}" class="timeline-state">这个月还没有练习记录</view>
   <view wx:else class="timeline">
     <view
-      wx:for="{{monthRecords}}"
+      wx:for="{{timelineRecords}}"
       wx:key="id"
       id="record-{{item.id}}"
       class="timeline-record {{highlightedDate === item.date ? 'highlighted' : ''}}"
@@ -103,17 +108,77 @@
       <view class="timeline-line">
         <view class="timeline-dot {{item.dotClass}}"></view>
       </view>
-      <view class="timeline-content">
+      <view class="timeline-content" data-record="{{item}}" catchtap="openRecordShare">
         <view wx:if="{{item.breakthrough}}" class="breakthrough">
           <text class="sparkle">✦</text>
           <text>{{item.breakthrough}}</text>
         </view>
-        <text class="timeline-notes">{{item.notes || '今日练习完成'}}</text>
+        <view class="timeline-share-note">
+          <text class="timeline-notes">{{item.notes || '今日练习完成'}}</text>
+          <view
+            wx:if="{{item.photos && item.photos.length}}"
+            class="timeline-photos {{item.photos.length === 1 ? 'single' : 'multiple'}}"
+          >
+            <view wx:for="{{item.photoItems}}" wx:for-item="photoItem" wx:key="src" class="timeline-photo-shell {{item.photos.length === 1 ? 'single' : 'multiple'}}">
+              <image class="timeline-photo {{item.photos.length === 1 ? 'single' : 'multiple'}}" src="{{photoItem.src}}" mode="{{item.photos.length === 1 ? 'widthFix' : 'aspectFill'}}" data-photos="{{item.photos}}" data-current="{{photoItem.src}}" catchtap="previewTimelinePhoto" />
+              <view wx:if="{{photoItem.status === 'uploading' || photoItem.status === 'pending'}}" class="timeline-photo-sync-overlay">
+                <view class="timeline-photo-spinner"></view>
+                <text>{{photoItem.status === 'uploading' ? '上传中' : '等待上传'}}</text>
+              </view>
+              <view wx:elif="{{photoItem.status === 'error'}}" class="timeline-photo-sync-overlay error">
+                <text class="timeline-photo-error-mark">!</text>
+                <text>上传失败</text>
+              </view>
+            </view>
+          </view>
+        </view>
       </view>
     </view>
   </view>
-  <text class="timeline-end">{{monthRecords.length ? '已经到底啦~' : ''}}</text>
+  <view class="timeline-load-area">
+    <text wx:if="{{timelineLoadingMore}}" class="timeline-end">加载中…</text>
+    <text wx:elif="{{timelineHasMore}}" class="timeline-end timeline-more-tap" bindtap="onTimelineLoadMoreTap">上拉加载更多</text>
+    <text wx:else class="timeline-end">{{timelineRecords.length ? '已经到底啦~' : ''}}</text>
+  </view>
 </view>
+
+<view wx:if="{{showAccountSync}}" class="account-sync-mask" bindtap="closeAccountSync" catchtouchmove="stopPropagation">
+  <view class="account-sync-sheet" catchtap="stopPropagation">
+    <view class="account-sync-header"><text>账户同步</text><text class="account-sync-close" bindtap="closeAccountSync">×</text></view>
+    <block wx:if="{{dataMode === 'guest'}}">
+      <account-guest-panel bind:auth="openAuthFromSync" bind:keep-local="keepLocalMode" />
+    </block>
+    <block wx:else>
+      <view class="account-cloud-notice">
+        <view class="account-bound-row"><image src="/images/icons/account-check-circle.svg" mode="aspectFit" /><text>已绑定邮箱</text><text class="account-email">{{maskedAccountEmail}}</text></view>
+        <view class="account-cloud-title"><image src="/images/icons/account-cloud.svg" mode="aspectFit" /><text>云端同步已开启</text></view>
+        <view class="account-cloud-copy"><text>• 换设备或重装小程序，觉察数据不丢失</text><text>• 支持多设备登录，旧设备不用时请清空本地数据</text></view>
+        <view class="account-notice-row"><view class="account-status-dot {{syncStatus}}"></view><text>当前同步状态：{{syncStatus === 'syncing' ? '同步中' : pendingSyncCount > 0 ? pendingSyncCount + ' 项待同步' : syncStatus === 'success' ? '已完成' : '已同步'}}</text></view>
+      </view>
+      <view class="account-action-row">
+        <button class="account-primary account-half-button green-gradient" bindtap="runAccountSync" disabled="{{syncing}}"><image class="account-sync-icon {{syncing ? 'is-spinning' : ''}}" src="/images/icons/account-refresh.svg" mode="aspectFit" />{{syncing ? '同步中...' : '立即同步'}}</button>
+        <button class="account-secondary account-half-button" bindtap="requestAccountLogout"><image src="/images/icons/account-logout.svg" mode="aspectFit" />退出登录</button>
+      </view>
+      <button wx:if="{{syncing}}" class="sync-reset-button" bindtap="resetAccountSyncStatus">×　同步卡住？点击重置</button>
+      <button class="account-password-button" bindtap="openPasswordFromSync"><image src="/images/icons/account-key.svg" mode="aspectFit" />修改密码</button>
+    </block>
+  </view>
+</view>
+
+<auth-modal show="{{showAuthModal}}" initial-mode="{{authInitialMode}}" bind:close="closeAuthModal" bind:success="onAuthSuccess" />
+<change-password-modal show="{{showPasswordShell}}" email="{{accountEmail}}" bind:close="closePasswordShell" bind:success="onPasswordChanged" />
+
+<monthly-stats-share-card
+  show="{{showMonthlyShare}}"
+  card-data="{{shareCardData}}"
+  bind:close="closeMonthlyShare"
+/>
+
+<record-share-card
+  show="{{showRecordShare}}"
+  card-data="{{recordShareData}}"
+  bind:close="closeRecordShare"
+/>
 
 <view wx:if="{{showRecordSheet}}" class="sheet-mask" bindtap="closeRecordSheet">
   <view class="record-sheet" catchtap="stopPropagation">
@@ -132,10 +197,15 @@
         options="{{practiceOptions}}"
         records="{{monthRecords}}"
         show-delete="{{recordSheetMode === 'edit'}}"
+        is-pro="{{isPro}}"
+        photo-enabled="{{dataMode === 'cloud'}}"
+        max-photos="{{maxPhotos}}"
         save-text="{{recordSheetMode === 'edit' ? '保存修改' : '保存练习'}}"
         bind:change="onSharedFormChange"
         bind:save="saveRecord"
         bind:delete="deleteRecord"
+        bind:uploadState="onFormPhotoUploadState"
+        bind:membershipLimit="onMembershipLimit"
       />
     </scroll-view>
   </view>
@@ -148,3 +218,31 @@
     <view class="moon-dialog-button green-gradient" bindtap="closeMoonDialog">知道了</view>
   </view>
 </view>
+
+<xiaohongshu-invite
+  show="{{showXiaohongshuModal}}"
+  bind:close="onXiaohongshuClose"
+/>
+
+<annotation-manager
+  show="{{showAnnotationManager}}"
+  types="{{annotationTypes}}"
+  annotationDates="{{annotationDates}}"
+  calendarYear="{{currentYear}}"
+  calendarMonth="{{currentMonth}}"
+  isPro="{{isPro}}"
+  maxTypes="{{maxAnnotationTypes}}"
+  bind:close="onAnnotationClose"
+  bind:createType="onAnnotationCreateType"
+  bind:updateType="onAnnotationUpdateType"
+  bind:deleteType="onAnnotationDeleteType"
+  bind:saveAnnotations="onAnnotationSave"
+  bind:membershipLimit="onMembershipLimit"
+/>
+
+<membership-prompt
+  show="{{showMembershipPrompt}}"
+  reason="{{membershipPromptReason}}"
+  bind:close="closeMembershipPrompt"
+  bind:upgrade="openMembershipSettings"
+/>

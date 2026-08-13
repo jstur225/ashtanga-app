@@ -1,17 +1,7 @@
-const MOON_DAYS_2026 = {
-  '2026-01-03': 'full', '2026-01-19': 'new',
-  '2026-02-02': 'full', '2026-02-17': 'new',
-  '2026-03-03': 'full', '2026-03-19': 'new',
-  '2026-04-02': 'full', '2026-04-17': 'new',
-  '2026-05-02': 'full', '2026-05-17': 'new', '2026-05-31': 'full',
-  '2026-06-15': 'new', '2026-06-30': 'full',
-  '2026-07-14': 'new', '2026-07-29': 'full',
-  '2026-08-13': 'new', '2026-08-28': 'full',
-  '2026-09-11': 'new', '2026-09-27': 'full',
-  '2026-10-10': 'new', '2026-10-26': 'full',
-  '2026-11-09': 'new', '2026-11-24': 'full',
-  '2026-12-09': 'new', '2026-12-24': 'full'
-};
+const photoStorage = require('../../services/photo-storage');
+const dataRepository = require('../../services/data-repository');
+const membershipPolicy = require('../../services/membership-policy');
+const { getMoonType, getMoonIcon } = require('../../services/moon-days');
 
 Component({
   properties: {
@@ -19,7 +9,10 @@ Component({
     options: { type: Array, value: [] },
     records: { type: Array, value: [] },
     showDelete: { type: Boolean, value: false },
-    saveText: { type: String, value: '保存练习' }
+    saveText: { type: String, value: '保存练习' },
+    maxPhotos: { type: Number, value: 1 },
+    isPro: { type: Boolean, value: false },
+    photoEnabled: { type: Boolean, value: false }
   },
 
   data: {
@@ -43,10 +36,13 @@ Component({
     calendarTitle: '',
     calendarDays: [],
     weekDays: ['日', '一', '二', '三', '四', '五', '六'],
-    colorLevels: [1, 2, 3, 4],
+    colorLevelOptions: membershipPolicy.buildColorLevelOptions(false),
+    photoItems: [],
+    uploadingPhotos: false,
+    hasIncompletePhotos: false,
     showFullscreenNotes: false,
-    cameraIcon: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="%23ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>',
-    expandIcon: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="%23ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 15 6 6"/><path d="M21 16v5h-5"/><path d="m15 9 6-6"/><path d="M21 8V3h-5"/><path d="M9 15l-6 6"/><path d="M3 16v5h5"/><path d="m9 9-6-6"/><path d="M3 8V3h5"/></svg>'
+    cameraIcon: '/images/icons/form-camera.png',
+    expandIcon: '/images/icons/form-expand.png'
   },
 
   observers: {
@@ -59,15 +55,18 @@ Component({
         notes: form.notes || '',
         breakthrough: form.breakthrough || '',
         breakthroughEnabled: Boolean(form.breakthroughEnabled),
-        color_level: Number(form.color_level) || 3,
+        color_level: membershipPolicy.normalizeColorLevel(form.color_level, this.properties.isPro),
         photos: this.normalizePhotos(form.photos),
-        id: form.id
+        id: form.id,
+        isDraft: Boolean(form.isDraft)
       };
       this.setData({
         value,
         dateDisplay: this.formatDisplayDate(value.date),
         typeDisplay: this.formatTypeDisplay(value.type),
         typeOptions: this.buildTypeOptions(this.properties.options, value.type),
+        photoItems: this.buildPhotoItems(value.photos),
+        hasIncompletePhotos: value.photos.some((path) => !photoStorage.isCloudPhoto(path)),
         breakthroughEnabled: typeof form.breakthroughEnabled === 'boolean'
           ? form.breakthroughEnabled
           : Boolean(form.breakthrough)
@@ -77,6 +76,13 @@ Component({
       this.setData({
         typeOptions: this.buildTypeOptions(options, this.data.value.type)
       });
+    },
+    'isPro': function syncMembership(isPro) {
+      const colorLevel = membershipPolicy.normalizeColorLevel(this.data.value.color_level, isPro);
+      this.setData({
+        colorLevelOptions: membershipPolicy.buildColorLevelOptions(isPro),
+        'value.color_level': colorLevel
+      }, () => this.emitChange());
     },
     'records.**': function syncRecords() {
       if (this.data.showDatePicker) this.buildCalendar();
@@ -122,8 +128,13 @@ Component({
     },
 
     selectColor(event) {
+      const level = Number(event.currentTarget.dataset.level) || 3;
+      if (!membershipPolicy.isColorLevelAllowed(level, this.properties.isPro)) {
+        this.triggerEvent('membershipLimit', { reason: 'color_level' });
+        return;
+      }
       this.setData({
-        'value.color_level': Number(event.currentTarget.dataset.level) || 3
+        'value.color_level': level
       }, () => this.emitChange());
     },
 
@@ -173,7 +184,7 @@ Component({
       for (let day = 1; day <= totalDays; day += 1) {
         const date = this.formatDate(viewYear, viewMonth + 1, day);
         const record = recordMap[date];
-        const moonType = MOON_DAYS_2026[date] || '';
+        const moonType = getMoonType(date);
         days.push({
           key: date,
           day,
@@ -184,9 +195,7 @@ Component({
           colorClass: record ? `green-gradient-${record.level}` : '',
           breakthrough: Boolean(record && record.breakthrough),
           moonType,
-          moonIcon: moonType
-            ? `https://ash.ashtangalife.online/moon-phase/${moonType === 'new' ? 'new-moon' : 'full-moon'}.png`
-            : ''
+          moonIcon: getMoonIcon(date)
         });
       }
       this.setData({
@@ -226,47 +235,125 @@ Component({
     selectType(event) {
       const option = event.currentTarget.dataset.option;
       if (!option) return;
+      if (option.membershipLocked) {
+        this.triggerEvent('membershipLimit', { reason: 'locked_option' });
+        return;
+      }
       const type = option.notes ? `${option.label} ${option.notes}` : option.label;
       this.setData({
         'value.type': type,
         typeDisplay: this.formatTypeDisplay(type),
         typeOptions: this.buildTypeOptions(this.properties.options, type),
-        'value.color_level': Number(option.color_level) || 3,
+        'value.color_level': membershipPolicy.normalizeColorLevel(option.color_level, this.properties.isPro),
         showTypePicker: false
       }, () => this.emitChange());
     },
 
+    async saveChosenPhotos(paths, currentPhotos) {
+      const selectedPaths = Array.isArray(paths) ? paths.filter(Boolean) : [];
+      const maxPhotos = Math.min(9, Math.max(1, Number(this.properties.maxPhotos) || 1));
+      const remaining = Math.max(0, maxPhotos - currentPhotos.length);
+      if (selectedPaths.length > remaining) {
+        if (!this.properties.isPro) {
+          this.triggerEvent('membershipLimit', { reason: 'photo_count' });
+          return;
+        }
+        wx.showModal({
+          title: '照片数量超出限制',
+          content: maxPhotos === 1
+            ? `FREE 用户每条记录最多添加 1 张照片，本次选择了 ${selectedPaths.length} 张，已取消添加。`
+            : `当前还可添加 ${remaining} 张照片，本次选择了 ${selectedPaths.length} 张，已取消添加。`,
+          showCancel: false,
+          confirmText: '知道了',
+          confirmColor: '#2A4B3C'
+        });
+        return;
+      }
+      if (!selectedPaths.length) return;
+      const recordId = this.data.value.id;
+      if (!recordId) {
+        wx.showToast({ title: '正在准备练习记录，请稍后再试', icon: 'none' });
+        return;
+      }
+      if (this.data.uploadingPhotos) {
+        wx.showToast({ title: '照片正在上传，请稍候', icon: 'none' });
+        return;
+      }
+
+      this._photoStatuses = this._photoStatuses || {};
+      selectedPaths.forEach((path) => { this._photoStatuses[path] = 'reading'; });
+      this.setUploadingState(true);
+      this.setPhotos([...currentPhotos, ...selectedPaths]);
+      const preparedPaths = new Map();
+      try {
+        const result = await dataRepository.uploadRecordPhotos(recordId, selectedPaths, {
+          currentPhotos,
+          isPro: this.properties.isPro,
+          maxPhotos: this.properties.maxPhotos,
+          onProgress: (detail) => {
+            if (detail.sourcePath && detail.path && (detail.status === 'uploading' || detail.status === 'error')) {
+              preparedPaths.set(detail.sourcePath, detail.path);
+            }
+            this.applyPhotoProgress(detail);
+          }
+        });
+        this.setPhotos(result.photos);
+        if (result.failed.length > 0) {
+          wx.showToast({ title: `${result.failed.length} 张照片上传失败，请点击重试`, icon: 'none' });
+        } else {
+          wx.showToast({ title: '照片上传完成', icon: 'success' });
+        }
+      } catch (error) {
+        const remainingPhotos = this.normalizePhotos(this.data.value.photos).filter((path) => (
+          !selectedPaths.includes(path) || preparedPaths.has(path)
+        ));
+        this.setPhotos(remainingPhotos);
+        wx.showToast({ title: error && error.message ? error.message : '照片上传失败', icon: 'none' });
+      } finally {
+        this.setUploadingState(false);
+        this.refreshPhotoItems();
+      }
+    },
+
     choosePhoto() {
+      if (!this.properties.photoEnabled) {
+        wx.showModal({
+          title: '照片云端存储',
+          content: membershipPolicy.getReasonMessage('photo_account'),
+          showCancel: false,
+          confirmText: '知道了',
+          confirmColor: '#2A4B3C'
+        });
+        return;
+      }
       const currentPhotos = this.normalizePhotos(this.data.value.photos);
-      const remaining = Math.max(0, 9 - currentPhotos.length);
+      const maxPhotos = Math.min(9, Math.max(1, Number(this.properties.maxPhotos) || 1));
+      const remaining = Math.max(0, maxPhotos - currentPhotos.length);
       if (!remaining) {
-        wx.showToast({ title: '最多添加 9 张照片', icon: 'none' });
+        this.triggerEvent('membershipLimit', { reason: 'photo_count' });
         return;
       }
 
       if (wx.chooseMedia) {
         wx.chooseMedia({
-          count: remaining,
+          count: 20,
           mediaType: ['image'],
           sourceType: ['album', 'camera'],
           success: (result) => {
             const paths = (result.tempFiles || [])
               .map((file) => file.tempFilePath)
               .filter(Boolean);
-            this.setPhotos([...currentPhotos, ...paths].slice(0, 9));
+            this.saveChosenPhotos(paths, currentPhotos);
           }
         });
         return;
       }
 
       wx.chooseImage({
-        count: remaining,
+        count: 9,
         sourceType: ['album', 'camera'],
         success: (result) => {
-          this.setPhotos([
-            ...currentPhotos,
-            ...(result.tempFilePaths || [])
-          ].slice(0, 9));
+          this.saveChosenPhotos(result.tempFilePaths || [], currentPhotos);
         }
       });
     },
@@ -284,6 +371,10 @@ Component({
     },
 
     removePhoto(event) {
+      if (this.data.uploadingPhotos) {
+        wx.showToast({ title: '照片正在上传，请稍候', icon: 'none' });
+        return;
+      }
       const index = Number(event.currentTarget.dataset.index);
       const photos = this.normalizePhotos(this.data.value.photos)
         .filter((_, photoIndex) => photoIndex !== index);
@@ -291,15 +382,92 @@ Component({
     },
 
     setPhotos(photos) {
+      const normalized = this.normalizePhotos(photos);
       this.setData({
-        'value.photos': this.normalizePhotos(photos)
+        'value.photos': normalized,
+        photoItems: this.buildPhotoItems(normalized),
+        hasIncompletePhotos: normalized.some((path) => !photoStorage.isCloudPhoto(path))
       }, () => this.emitChange());
     },
 
+    buildPhotoItems(photos) {
+      return this.normalizePhotos(photos).map((src) => ({
+        src,
+        status: photoStorage.isCloudPhoto(src)
+          ? 'success'
+          : (this._photoStatuses && this._photoStatuses[src]) || 'error',
+        statusText: photoStorage.isCloudPhoto(src)
+          ? ''
+          : this.getPhotoStatusText((this._photoStatuses && this._photoStatuses[src]) || 'error')
+      }));
+    },
+
+    getPhotoStatusText(status) {
+      if (status === 'reading') return '读取中';
+      if (status === 'uploading') return '上传中';
+      return '上传失败\n点击重试';
+    },
+
+    applyPhotoProgress(detail = {}) {
+      const sourcePath = detail.sourcePath || '';
+      const path = detail.path || sourcePath;
+      const remotePath = detail.remotePath || '';
+      let photos = this.normalizePhotos(this.data.value.photos);
+      if (sourcePath && path && sourcePath !== path) {
+        photos = photos.map((item) => (item === sourcePath ? path : item));
+        if (this._photoStatuses) delete this._photoStatuses[sourcePath];
+      }
+      if (remotePath) {
+        photos = photos.map((item) => (item === path || item === sourcePath ? remotePath : item));
+        if (this._photoStatuses) {
+          delete this._photoStatuses[path];
+          delete this._photoStatuses[sourcePath];
+        }
+      } else if (path) {
+        this._photoStatuses = this._photoStatuses || {};
+        this._photoStatuses[path] = detail.status || 'uploading';
+      }
+      this.setPhotos(photos);
+    },
+
+    refreshPhotoItems() {
+      const photos = this.normalizePhotos(this.data.value.photos);
+      this.setData({
+        photoItems: this.buildPhotoItems(photos),
+        hasIncompletePhotos: photos.some((path) => !photoStorage.isCloudPhoto(path))
+      });
+    },
+
+    setUploadingState(uploading) {
+      this.setData({ uploadingPhotos: Boolean(uploading) });
+      this.triggerEvent('uploadState', { uploading: Boolean(uploading) });
+    },
+
+    retryPhoto(event) {
+      const path = event.currentTarget.dataset.src;
+      if (!path || photoStorage.isCloudPhoto(path) || this.data.uploadingPhotos) return;
+      const currentPhotos = this.normalizePhotos(this.data.value.photos).filter((item) => item !== path);
+      this.saveChosenPhotos([path], currentPhotos);
+    },
+
     submit() {
+      if (this.data.uploadingPhotos || this.data.hasIncompletePhotos) {
+        wx.showToast({
+          title: this.data.uploadingPhotos ? '请等待照片上传完成' : '请重试或移除上传失败的照片',
+          icon: 'none'
+        });
+        return;
+      }
       if (!this.data.value.date || !this.data.value.type) {
         wx.showToast({ title: '请选择日期和练习类型', icon: 'none' });
         return;
+      }
+      const syncState = dataRepository.getRecordSyncState ? dataRepository.getRecordSyncState() : null;
+      const pendingPhotoCount = syncState && syncState.pending_by_entity
+        ? Number(syncState.pending_by_entity.photo || 0)
+        : 0;
+      if (pendingPhotoCount > 0) {
+        wx.showToast({ title: '照片已上传，保存后自动同步', icon: 'none' });
       }
       this.triggerEvent('save', {
         ...this.data.value,
