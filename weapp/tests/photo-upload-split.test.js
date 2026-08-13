@@ -53,3 +53,11 @@ test('background sync photo upload path still registers metadata after bytes', (
   assert.match(dr, /operation\.entity === 'photo' && operation\.action === 'upload'/);
   assert.match(dr, /photoStorage\.uploadPhoto\(/);
 });
+
+test('记录保存复用进行中的同步时，会补一次同步确保记录操作落库', () => {
+  const dr = read('services/data-repository.js');
+  assert.match(dr, /async function ensureRecordOperationSynced\(accountId, recordId\)/);
+  assert.match(dr, /recordStillPending[\s\S]*await syncPendingRecords\(\);/);
+  assert.match(dr, /await ensureRecordOperationSynced\(accountId, record\.id\);/);
+  assert.match(dr, /await ensureRecordOperationSynced\(accountId, id\);/);
+});

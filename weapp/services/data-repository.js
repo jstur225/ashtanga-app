@@ -173,6 +173,21 @@ async function getRecordsByDateRange(startDate, endDate) {
   }
 }
 
+async function ensureRecordOperationSynced(accountId, recordId) {
+  await syncPendingRecords();
+  // 若刚才的同步复用了进行中的 Promise（例如照片后台同步仍在跑），
+  // 新入队的记录操作可能没被这轮处理；补一次同步确保尽快落库。
+  const recordStillPending = accountWorkspace.getPendingOperations(accountId)
+    .some((operation) => (
+      operation.entity === 'record' &&
+      operation.record_id === recordId &&
+      !operation.last_error
+    ));
+  if (recordStillPending) {
+    await syncPendingRecords();
+  }
+}
+
 async function createRecord(input) {
   const inputPhotos = Array.isArray(input.photos) ? input.photos : [];
   const cloudMode = isCloudMode();
@@ -199,7 +214,7 @@ async function createRecord(input) {
     photos: getRemotePhotos(record.photos)
   });
   queuePhotoChanges(accountId, record.id, [], record.photos);
-  await syncPendingRecords();
+  await ensureRecordOperationSynced(accountId, record.id);
   return accountWorkspace.getRecord(accountId, record.id) || record;
 }
 
@@ -540,7 +555,7 @@ async function updateRecord(id, updates) {
   if (Object.prototype.hasOwnProperty.call(preparedUpdates, 'photos')) {
     queuePhotoChanges(accountId, id, current.photos, next.photos);
   }
-  await syncPendingRecords();
+  await ensureRecordOperationSynced(accountId, id);
   return accountWorkspace.getRecord(accountId, id) || next;
 }
 
