@@ -1,5 +1,13 @@
 # 待处理问题
 
+## 2026-08-13 - 修复：保存与照片后台同步撞车 ✅
+
+- [x] 根因：上传后触发的照片后台同步复用同一 Promise；紧接的保存入队的 record 操作不在该轮同步快照内，需手动同步才落库。
+- [x] 新增 `ensureRecordOperationSynced()`，createRecord/updateRecord 保存后若 record 操作未处理则补一次同步；`224/224` 通过。
+- [x] 同日：OSS 上传域名加入 request 合法域名（mp.weixin.qq.com 后台），真机上传恢复且更快。
+- [ ] 真机复验：上传照片后直接保存，无需手动同步即自动落库。
+
+
 ## 2026-08-13 - OSS 孤儿清理：方式一（源头删除）✅ 代码完成，待部署；方式二（定时兜底）待做
 
 - [x] 新增 `lib/oss-delete.ts`（原生签名 DELETE，无新依赖），两个删除接口（delete-by-record、PATCH [id]）元数据软删后连 OSS 对象一起删；失败只记录。

@@ -1,5 +1,23 @@
 # 微信小程序开发日志 — 熬汤日记
 
+## 2026-08-13 - 修复：保存与照片后台同步撞车导致记录需手动同步 ✅
+
+### 现象
+- 真机上传照片后（方案 C），照片字节与登记都成功，但记录没自动同步；手动点“立即同步”才成功。
+- 日志：照片后台同步（include_photos）结束后 pending_after=1，剩余一条 record 操作，需下一轮同步才处理。
+
+### 根因
+- 上传完成时触发的照片后台同步正在跑（复用 accountSyncPromise）；紧接着保存记录入队的 record 操作在同步开始后才产生，这轮同步不处理它，只能等下一轮；下一轮没有自动触发。
+
+### 修复
+- 新增 `ensureRecordOperationSynced()`：保存后先同步，若 record 操作仍 pending 且无错误，补一次同步确保落库。
+- 应用到 `createRecord` 与 `updateRecord`；新增回归测试，`224/224` 通过。
+- 小程序端改动，重新编译即生效（无需发布）。
+
+### 附注
+- 同日真机报错 `request:fail url not in domain list`：OSS 上传域名未加入小程序 request 合法域名，已由用户在 mp.weixin.qq.com 后台添加 `https://ashtanga-app-photos.oss-cn-shanghai.aliyuncs.com` 解决；修复后上传更快（2 张 OSS 落地 117ms/230ms）。
+
+
 ## 2026-08-13 - 删除照片时连 OSS 对象一起删（源头清理）✅ 代码完成，待部署
 
 ### 本轮改动
