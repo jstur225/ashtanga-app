@@ -11,9 +11,9 @@
           <image class="toolbar-icon" src="{{icons.cloud}}" mode="aspectFit" />
           <view class="status-dot sync-status-{{dataMode === 'guest' ? 'offline' : syncStatus}}"></view>
         </view>
-        <view class="calendar-control green-gradient-deep" data-action="message" bindtap="onToolbarTap" aria-label="社群消息">
+        <view class="calendar-control green-gradient-deep" data-action="message" bindtap="onToolbarTap" aria-label="联系作者">
           <image class="toolbar-icon small" src="{{icons.message}}" mode="aspectFit" />
-          <view wx:if="{{hasNewXhsMessage}}" class="status-dot status-message"></view>
+          <view wx:if="{{hasContactNotice}}" class="status-dot status-message"></view>
         </view>
         <view class="calendar-control green-gradient-deep" bindtap="onPreviousMonth" aria-label="上一个月">
           <view class="chevron chevron-left"></view>
@@ -219,9 +219,9 @@
   </view>
 </view>
 
-<xiaohongshu-invite
-  show="{{showXiaohongshuModal}}"
-  bind:close="onXiaohongshuClose"
+<contact-author
+  show="{{showContactModal}}"
+  bind:close="onContactClose"
 />
 
 <annotation-manager

@@ -1,0 +1,100 @@
+.contact-mask {
+  align-items: center;
+  background: rgba(0, 0, 0, 0.4);
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  left: 0;
+  padding: 32rpx;
+  position: fixed;
+  right: 0;
+  top: 0;
+  z-index: 100;
+}
+
+.contact-modal {
+  background: #FFFFFF;
+  border-radius: 48rpx;
+  box-shadow: 0 8rpx 60rpx rgba(45, 90, 39, 0.3);
+  max-width: 600rpx;
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+}
+
+.contact-close {
+  height: 48rpx;
+  position: absolute;
+  right: 16rpx;
+  top: 16rpx;
+  width: 48rpx;
+  z-index: 10;
+}
+
+.contact-close-line {
+  background: #868C88;
+  border-radius: 2rpx;
+  height: 3rpx;
+  left: 9rpx;
+  position: absolute;
+  top: 23rpx;
+  width: 30rpx;
+}
+
+.contact-close-line-a {
+  transform: rotate(45deg);
+}
+
+.contact-close-line-b {
+  transform: rotate(-45deg);
+}
+
+.contact-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+  padding: 44rpx 32rpx 36rpx;
+}
+
+.contact-intro {
+  color: #2A4B3C;
+  display: block;
+  font-family: 'Ashtanga Serif', 'Songti SC', STSong, serif;
+  font-size: 28rpx;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.contact-desc {
+  color: #868C88;
+  display: block;
+  font-family: 'Ashtanga Serif', 'Songti SC', STSong, serif;
+  font-size: 24rpx;
+  line-height: 1.65;
+}
+
+.contact-wechat {
+  color: #2A4B3C;
+  display: block;
+  font-family: 'Ashtanga Serif', 'Songti SC', STSong, serif;
+  font-size: 26rpx;
+  font-weight: 600;
+  margin-top: 6rpx;
+}
+
+.contact-btn {
+  background: #07C160;
+  border-radius: 999rpx;
+  color: #FFFFFF;
+  font-family: 'Ashtanga Serif', 'Songti SC', STSong, serif;
+  font-size: 26rpx;
+  margin-top: 16rpx;
+  padding: 24rpx 0;
+  text-align: center;
+  transition: opacity 200ms ease;
+  width: 100%;
+}
+
+.contact-btn:active {
+  opacity: 0.82;
+}

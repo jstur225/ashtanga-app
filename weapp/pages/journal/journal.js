@@ -15,7 +15,7 @@ const ICONS = {
   plus: '/images/icons/journal-plus.png'
 };
 
-const INVITE_VERSION = 'v1';
+const CONTACT_NOTICE_VERSION = 'v1';
 
 Page({
   data: {
@@ -70,9 +70,9 @@ Page({
     authInitialMode: 'login',
     accountEmail: '',
     maskedAccountEmail: '',
-    // XHS 邀请
-    showXiaohongshuModal: false,
-    hasNewXhsMessage: false,
+    // 联系作者
+    showContactModal: false,
+    hasContactNotice: false,
     // 标注
     showAnnotationManager: false,
     annotationTypes: [],
@@ -123,12 +123,12 @@ Page({
     this._timelineLoading = false;
     this.prepareTimelineFloor();
     const now = new Date();
-    const readVersion = wx.getStorageSync('xhs_invite_version') || '';
+    const readVersion = wx.getStorageSync('contact_notice_version') || '';
     this.setData({
       currentYear: now.getFullYear(),
       currentMonth: now.getMonth(),
       todayDate: this.formatDate(now.getFullYear(), now.getMonth() + 1, now.getDate()),
-      hasNewXhsMessage: readVersion !== INVITE_VERSION
+      hasContactNotice: readVersion !== CONTACT_NOTICE_VERSION
     });
   },
 
@@ -138,7 +138,7 @@ Page({
         selected: 1,
         hidden: this.data.showRecordSheet ||
           this.data.showAnnotationManager ||
-          this.data.showXiaohongshuModal ||
+          this.data.showContactModal ||
           this.data.showMonthlyShare ||
           this.data.showRecordShare ||
           this.data.showMembershipPrompt
@@ -687,7 +687,7 @@ Page({
   onReachBottom() {
     if (this.data.showRecordSheet ||
         this.data.showAnnotationManager ||
-        this.data.showXiaohongshuModal ||
+        this.data.showContactModal ||
         this.data.showMonthlyShare ||
         this.data.showRecordShare) {
       return;
@@ -750,10 +750,10 @@ Page({
     }
     if (action === 'message') {
       this.setData({
-        showXiaohongshuModal: true,
-        hasNewXhsMessage: false
+        showContactModal: true,
+        hasContactNotice: false
       }, () => this.setTabBarHidden(true));
-      wx.setStorageSync('xhs_invite_version', INVITE_VERSION);
+      wx.setStorageSync('contact_notice_version', CONTACT_NOTICE_VERSION);
       return;
     }
     if (action === 'annotation') {
@@ -762,8 +762,8 @@ Page({
     }
   },
 
-  onXiaohongshuClose() {
-    this.setData({ showXiaohongshuModal: false });
+  onContactClose() {
+    this.setData({ showContactModal: false });
     this.setTabBarHidden(false);
   },
 
@@ -1091,7 +1091,7 @@ Page({
       this.setTabBarHidden(Boolean(
         this.data.showRecordSheet ||
         this.data.showAnnotationManager ||
-        this.data.showXiaohongshuModal ||
+        this.data.showContactModal ||
         this.data.showMonthlyShare ||
         this.data.showRecordShare
       ));
