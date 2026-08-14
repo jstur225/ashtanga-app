@@ -116,8 +116,6 @@ Page({
     profileAvatar: '',
     uploadingAvatar: false,
     isPro: false,
-    isIOS: false,
-    authorWechatId: 'xiao519216978',
     membershipLoading: false,
     membershipText: '',
     membershipType: null,
@@ -167,11 +165,6 @@ Page({
   },
 
   onShow() {
-    if (!this._platformChecked) {
-      this._platformChecked = true;
-      const sys = wx.getSystemInfoSync ? wx.getSystemInfoSync() : {};
-      this.setData({ isIOS: String(sys.platform || '').toLowerCase() === 'ios' });
-    }
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setData({ selected: 3, hidden: false });
     }
@@ -515,20 +508,7 @@ Page({
     }
   },
 
-  copyAuthorWechat() {
-    wx.setClipboardData({
-      data: this.data.authorWechatId,
-      success: () => wx.showToast({ title: '微信号已复制', icon: 'success' }),
-      fail: () => wx.showToast({ title: '复制失败，请手动复制', icon: 'none' })
-    });
-  },
-
   onMembershipActionTap() {
-    if (this.data.isIOS) {
-      this.copyAuthorWechat();
-      wx.showToast({ title: 'iOS 暂不支持在线购买，已复制微信号，请联系作者开通', icon: 'none' });
-      return;
-    }
     this.openMembershipShell();
   },
 

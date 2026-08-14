@@ -150,10 +150,6 @@
         </view>
         <image class="membership-order-chevron" src="/images/icons/settings-chevron-right.svg" mode="aspectFit" />
       </view>
-      <view wx:if="{{isIOS}}" class="membership-ios-notice">
-        <text class="membership-ios-notice-text">iOS 暂不支持在线购买，请联系作者开通</text>
-        <button class="membership-ios-copy" bindtap="copyAuthorWechat">复制微信号 {{authorWechatId}}</button>
-      </view>
       <view class="membership-card-shell">
         <view class="membership-card-head">
           <view class="gold-icon">♛</view>

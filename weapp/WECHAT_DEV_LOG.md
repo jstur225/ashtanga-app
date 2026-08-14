@@ -1,5 +1,15 @@
 # 微信小程序开发日志 — 熬汤日记
 
+## 2026-08-14 - 审核通过 + iOS 虚拟支付（Apple IAP）接入 ✅
+
+- 1.0.0 提审通过。
+- 微信后台已启用 Apple IAP 支付；道具（pro90d/pro365d）Android/iOS 双端互通，无需重配。
+- 移除小程序 iOS 拦截（原「iOS 暂不支持在线购买，请联系作者」+ 复制微信号逻辑），iOS 用户走同一 wx.requestVirtualPayment，平台自动路由 Apple 支付；小程序 238/238 通过。
+- 服务端 happy path 无需改动（query_order 轮询对 iOS 同样生效，env=0 现网）。
+- 用户侧条件：iPhone/iPad iOS 15+、微信 8.0.68+、商品 ≥1 元、仅中国大陆 App Store 账户。
+- 费率约 12%（Apple 12% + 腾讯 5%，2026 腾讯技术服务费限时减免为 0）；结算月结后 45-60 天；退款走 App Store 申请（不能开发者主动退）。
+- 待办：上传新版本提审；可选实现 iOS 退款问询响应接口 xpay_subscribe_ios_refund_query_notify。
+
 ## 2026-08-13 - 小程序 1.0.0 已上传提审 ✅ 等待审核
 
 - 首次提审（版本 1.0.0）已上传微信公众平台，当前状态：审核中。

@@ -1,5 +1,15 @@
 # 待处理问题
 
+## 2026-08-14 - iOS 虚拟支付（Apple IAP）✅ 代码完成，待上传新版本
+
+- [x] 1.0.0 提审通过。
+- [x] 微信后台已开启 Apple IAP 支付；道具双端互通，无需重配。
+- [x] 客户端移除 iOS 拦截（profile 页「iOS 暂不支持在线购买」/复制微信号逻辑），iOS 用户走同一 wx.requestVirtualPayment（平台自动路由 Apple 支付）；238/238 通过。
+- [x] 服务端 happy path 无需改动（query_order 轮询对 iOS 生效）。
+- [ ] 上传新版本（如 1.0.1）并提审。
+- [ ] 可选后续：实现 iOS 退款问询响应接口 xpay_subscribe_ios_refund_query_notify（不实现则退款由 Apple 决定）。
+- 备注：用户侧条件 iOS 15+ / 微信 8.0.68+ / 商品 ≥1 元 / 仅中国大陆 App Store；费率约 12%；退款走 App Store 申请。
+
 ## 2026-08-13 - 微信提审 ✅ 1.0.0 已提交，等待审核
 
 - [x] 对照 reject.html 全量自查 → docs/weapp/REVIEW_READINESS.md；唯一实质缺口 3.2.11 已补。
