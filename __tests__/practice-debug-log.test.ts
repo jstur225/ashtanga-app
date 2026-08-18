@@ -1,10 +1,12 @@
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import fs from "node:fs"
 import path from "node:path"
 import type { PracticeOption, PracticeRecord, UserProfile } from "@/hooks/usePracticeData"
 import {
   collectPhotoHealthDiagnostics,
   collectPracticeDebugLog,
+  deriveConnectionDiagnosis,
+  hasRecentAuthNetworkFailure,
   summarizePracticeData,
   summarizeSyncLogs,
   withDiagnosticTimeout,
@@ -55,6 +57,11 @@ describe("practice debug log summaries", () => {
   beforeEach(() => {
     localStorage.clear()
     sessionStorage.clear()
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.unstubAllEnvs()
   })
 
   it("汇总练习数量、时长、色阶与选项默认色阶", () => {
@@ -116,7 +123,13 @@ describe("practice debug log summaries", () => {
   })
 
   it("完整采集在未登录环境生成可序列化日志并安全降级", async () => {
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://project.supabase.co")
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "public-anon-key")
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("ok", { status: 200 })))
     localStorage.setItem("sync_logs", JSON.stringify([{ action: "上传本地记录", timestamp: "now" }]))
+    localStorage.setItem("ashtanga_runtime_diagnostics", JSON.stringify([
+      { timestamp: new Date().toISOString(), type: "auth_sign_in_failed", details: { networkError: true, errorMessage: "Load failed" } },
+    ]))
     const result = await collectPracticeDebugLog({
       user: null,
       syncStatus: "idle",
@@ -154,7 +167,17 @@ describe("practice debug log summaries", () => {
       chantDelaySeconds: 60,
     })
 
-    expect(result._meta).toMatchObject({ version: "2.6", description: "熬汤日记调试日志 - 用于问题排查" })
+    expect(result._meta).toMatchObject({ version: "2.7", description: "熬汤日记调试日志 - 用于问题排查" })
+    expect(result.connectionDiagnostics).toMatchObject({
+      probes: {
+        sameOrigin: { status: "success", reachable: true, httpStatus: 200 },
+        supabaseData: { testStatus: "success" },
+      },
+      diagnosis: { code: "RECOVERED_TRANSIENT_NETWORK_FAILURE" },
+      recentAuthAttempts: [
+        { type: "auth_sign_in_failed", details: { networkError: true, errorMessage: "Load failed" } },
+      ],
+    })
     expect(result.supabaseConnection).toMatchObject({ testStatus: "success", error: null })
     expect(result.membershipLogs).toMatchObject({ hasSession: false, note: "用户未登录，无法查询后端会员状态" })
     expect(result.photoLogs).toMatchObject({ summary: { total: 1, errors: 0 } })
@@ -165,6 +188,53 @@ describe("practice debug log summaries", () => {
     expect(result.syncLogs.summary).toMatchObject({ total: 1, uploadCount: 1 })
     expect(result.currentAppState).toMatchObject({ isPracticing: true })
     expect(() => JSON.stringify(result)).not.toThrow()
+  })
+
+  it.each([
+    [false, null, "timeout", null, "timeout", "timeout", false, "BROWSER_OFFLINE"],
+    [true, false, "network_error", false, "network_error", "timeout", true, "GENERAL_NETWORK_OR_WEBVIEW_FAILURE"],
+    [true, true, "success", false, "network_error", "timeout", true, "SUPABASE_AUTH_UNREACHABLE"],
+    [true, false, "network_error", true, "success", "success", false, "SAME_ORIGIN_UNREACHABLE"],
+    [true, true, "success", true, "success", "error", false, "SUPABASE_DATA_API_FAILURE"],
+    [true, true, "success", true, "success", "success", false, "ALL_CONNECTIONS_HEALTHY"],
+    [true, true, "success", true, "success", "success", true, "RECOVERED_TRANSIENT_NETWORK_FAILURE"],
+    [true, true, "success", null, "not_configured", "success", false, "SUPABASE_CONFIGURATION_UNAVAILABLE"],
+    [true, null, "timeout", true, "success", "success", false, "PARTIAL_OR_UNKNOWN_CONNECTIVITY"],
+    [true, true, "http_error", true, "success", "success", false, "SAME_ORIGIN_HTTP_ERROR"],
+    [true, true, "success", true, "http_error", "success", false, "SUPABASE_AUTH_HTTP_ERROR"],
+  ] as const)("连接矩阵诊断 %#", (
+    online,
+    sameOriginReachable,
+    sameOriginStatus,
+    supabaseAuthReachable,
+    supabaseAuthStatus,
+    supabaseDataStatus,
+    hasRecentNetworkFailure,
+    expectedCode,
+  ) => {
+    expect(deriveConnectionDiagnosis({
+      online,
+      sameOriginReachable,
+      sameOriginStatus,
+      supabaseAuthReachable,
+      supabaseAuthStatus,
+      supabaseDataStatus,
+      hasRecentNetworkFailure,
+    }).code).toBe(expectedCode)
+  })
+
+  it("只把 30 分钟内最近一次完成的登录网络失败用于恢复诊断", () => {
+    const now = Date.parse("2026-08-18T10:00:00.000Z")
+    expect(hasRecentAuthNetworkFailure([
+      { timestamp: "2026-08-18T09:55:00.000Z", type: "auth_sign_in_failed", details: { networkError: true } },
+    ], now)).toBe(true)
+    expect(hasRecentAuthNetworkFailure([
+      { timestamp: "2026-08-18T09:59:00.000Z", type: "auth_sign_in_succeeded", details: {} },
+      { timestamp: "2026-08-18T09:55:00.000Z", type: "auth_sign_in_failed", details: { networkError: true } },
+    ], now)).toBe(false)
+    expect(hasRecentAuthNetworkFailure([
+      { timestamp: "2026-08-18T09:00:00.000Z", type: "auth_sign_in_failed", details: { networkError: true } },
+    ], now)).toBe(false)
   })
 
   it("照片健康检查直接识别 0 字节、丢失对象和加载失败", async () => {
