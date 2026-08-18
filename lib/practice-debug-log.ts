@@ -49,10 +49,30 @@ export interface PracticeDebugLogInput {
   chantDelaySeconds: number
 }
 
+type ConnectionProbeStatus = 'success' | 'http_error' | 'network_error' | 'timeout' | 'not_configured'
+
+interface ConnectionProbeResult {
+  target: string
+  url: string | null
+  status: ConnectionProbeStatus
+  reachable: boolean | null
+  httpStatus: number | null
+  latency: number
+  errorName: string | null
+  error: string | null
+}
+
+type ConnectionProbeFetcher = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
+
+const CONNECTION_PROBE_TIMEOUT_MS = 5000
+const RECENT_AUTH_FAILURE_WINDOW_MS = 30 * 60 * 1000
+
 export async function collectPracticeDebugLog(input: PracticeDebugLogInput) {
   const nonDraftRecords = input.practiceHistory.filter((record) => record.type !== '草稿')
+  const runtimeDiagnostics = readJsonStorage('ashtanga_runtime_diagnostics', [], '读取启动诊断失败')
   const [
     connection,
+    connectionProbes,
     serviceWorkerStatus,
     photoLogs,
     photoHealth,
@@ -63,7 +83,17 @@ export async function collectPracticeDebugLog(input: PracticeDebugLogInput) {
       testStatus: 'timeout',
       latency: -1,
       error: 'Supabase 连接测试超过 5 秒',
+      errorName: 'TimeoutError',
+      errorCode: null,
+      httpStatus: null,
+      statusText: null,
+      details: null,
+      hint: null,
     }),
+    withDiagnosticTimeout('连接端点探测', collectConnectionProbes(), {
+      sameOrigin: timeoutProbe('本站源站'),
+      supabaseAuth: timeoutProbe('Supabase Auth'),
+    }, 7000),
     withDiagnosticTimeout('Service Worker 状态', collectServiceWorkerStatus(), {
       supported: 'unknown',
       error: 'Service Worker 状态收集超过 5 秒',
@@ -93,9 +123,16 @@ export async function collectPracticeDebugLog(input: PracticeDebugLogInput) {
     }),
   ])
 
+  const connectionDiagnostics = buildConnectionDiagnostics({
+    probes: connectionProbes,
+    supabaseData: connection,
+    serviceWorkerStatus,
+    runtimeDiagnostics,
+  })
+
   return {
     _meta: {
-      version: '2.6',
+      version: '2.7',
       exportTime: new Date().toISOString(),
       description: '熬汤日记调试日志 - 用于问题排查',
       gitVersion: getVersionInfo(),
@@ -103,6 +140,7 @@ export async function collectPracticeDebugLog(input: PracticeDebugLogInput) {
     serviceWorkerStatus,
     environment: collectEnvironment(),
     networkInfo: collectNetworkInfo(),
+    connectionDiagnostics,
     supabaseConnection: { ...connection, timestamp: new Date().toISOString() },
     authState: collectAuthState(input.user),
     syncState: {
@@ -139,7 +177,7 @@ export async function collectPracticeDebugLog(input: PracticeDebugLogInput) {
         : 'unknown',
     })),
     errorHistory: readJsonStorage('__errorHistory', [], '读取错误历史失败'),
-    runtimeDiagnostics: readJsonStorage('ashtanga_runtime_diagnostics', [], '读取启动诊断失败'),
+    runtimeDiagnostics,
     startupSession: readJsonStorage('ashtanga_runtime_session', null, '读取启动会话失败'),
     performanceInfo: collectPerformanceInfo(),
     currentAppState: collectCurrentAppState(input),
@@ -151,16 +189,253 @@ export async function collectPracticeDebugLog(input: PracticeDebugLogInput) {
   }
 }
 
+function timeoutProbe(target: string): ConnectionProbeResult {
+  return {
+    target,
+    url: null,
+    status: 'timeout',
+    reachable: false,
+    httpStatus: null,
+    latency: -1,
+    errorName: 'TimeoutError',
+    error: `${target}探测超过 7 秒`,
+  }
+}
+
+async function collectConnectionProbes(fetcher: ConnectionProbeFetcher = fetch) {
+  const cacheBuster = `ashtanga_diag=${Date.now()}`
+  const sameOriginUrl = new URL(`/sw.js?${cacheBuster}`, window.location.origin).toString()
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, '')
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  const sameOriginProbe = runConnectionProbe('本站源站', sameOriginUrl, fetcher)
+  const supabaseAuthProbe = supabaseUrl
+    ? runConnectionProbe('Supabase Auth', `${supabaseUrl}/auth/v1/health?${cacheBuster}`, fetcher, {
+        headers: supabaseKey ? { apikey: supabaseKey } : undefined,
+      })
+    : Promise.resolve({
+        target: 'Supabase Auth',
+        url: null,
+        status: 'not_configured' as const,
+        reachable: null,
+        httpStatus: null,
+        latency: -1,
+        errorName: null,
+        error: 'NEXT_PUBLIC_SUPABASE_URL 未配置',
+      })
+
+  const [sameOrigin, supabaseAuth] = await Promise.all([sameOriginProbe, supabaseAuthProbe])
+
+  return { sameOrigin, supabaseAuth }
+}
+
+async function runConnectionProbe(
+  target: string,
+  url: string,
+  fetcher: ConnectionProbeFetcher,
+  init: RequestInit = {},
+): Promise<ConnectionProbeResult> {
+  const controller = new AbortController()
+  let timedOut = false
+  const startedAt = Date.now()
+  const timeoutId = setTimeout(() => {
+    timedOut = true
+    controller.abort()
+  }, CONNECTION_PROBE_TIMEOUT_MS)
+
+  try {
+    const response = await fetcher(url, {
+      ...init,
+      method: 'GET',
+      cache: 'no-store',
+      signal: controller.signal,
+    })
+    return {
+      target,
+      url,
+      status: response.ok ? 'success' : 'http_error',
+      reachable: true,
+      httpStatus: response.status,
+      latency: Date.now() - startedAt,
+      errorName: null,
+      error: response.ok ? null : `HTTP ${response.status}`,
+    }
+  } catch (error) {
+    return {
+      target,
+      url,
+      status: timedOut ? 'timeout' : 'network_error',
+      reachable: false,
+      httpStatus: null,
+      latency: Date.now() - startedAt,
+      errorName: error instanceof Error ? error.name : null,
+      error: toErrorMessage(error),
+    }
+  } finally {
+    clearTimeout(timeoutId)
+  }
+}
+
+function buildConnectionDiagnostics({
+  probes,
+  supabaseData,
+  serviceWorkerStatus,
+  runtimeDiagnostics,
+}: {
+  probes: { sameOrigin: ConnectionProbeResult; supabaseAuth: ConnectionProbeResult }
+  supabaseData: { testStatus: string; latency: number; error: string | null }
+  serviceWorkerStatus: Record<string, unknown>
+  runtimeDiagnostics: unknown
+}) {
+  const recentAuthAttempts = Array.isArray(runtimeDiagnostics)
+    ? runtimeDiagnostics.filter((entry) => (
+        typeof entry?.type === 'string' && entry.type.startsWith('auth_sign_in_')
+      )).slice(0, 20)
+    : []
+  const hasRecentNetworkFailure = hasRecentAuthNetworkFailure(recentAuthAttempts)
+  const diagnosis = deriveConnectionDiagnosis({
+    online: navigator.onLine,
+    sameOriginReachable: probes.sameOrigin.reachable,
+    sameOriginStatus: probes.sameOrigin.status,
+    supabaseAuthReachable: probes.supabaseAuth.reachable,
+    supabaseAuthStatus: probes.supabaseAuth.status,
+    supabaseDataStatus: supabaseData.testStatus,
+    hasRecentNetworkFailure,
+  })
+
+  return {
+    collectedAt: new Date().toISOString(),
+    diagnosis,
+    browserState: {
+      online: navigator.onLine,
+      visibilityState: document.visibilityState,
+      displayMode: typeof window.matchMedia === 'function'
+        && window.matchMedia('(display-mode: standalone)').matches
+        ? 'standalone'
+        : 'browser',
+      pageOrigin: window.location.origin,
+      path: window.location.pathname,
+    },
+    probes: {
+      sameOrigin: probes.sameOrigin,
+      supabaseAuth: probes.supabaseAuth,
+      supabaseData,
+    },
+    pwa: {
+      serviceWorkerSupported: serviceWorkerStatus.supported ?? null,
+      controlledByServiceWorker: serviceWorkerStatus.controller ?? null,
+      controllerState: serviceWorkerStatus.state ?? null,
+      controllerScript: serviceWorkerStatus.scope ?? null,
+      registrations: serviceWorkerStatus.registrations ?? null,
+      caches: serviceWorkerStatus.caches ?? null,
+    },
+    recentAuthAttempts,
+    recentAuthFailureWindowMinutes: RECENT_AUTH_FAILURE_WINDOW_MS / 60000,
+  }
+}
+
+export function hasRecentAuthNetworkFailure(runtimeDiagnostics: unknown, now = Date.now()) {
+  if (!Array.isArray(runtimeDiagnostics)) return false
+
+  const latestCompletedAttempt = runtimeDiagnostics.find((entry) => (
+    entry?.type === 'auth_sign_in_failed' || entry?.type === 'auth_sign_in_succeeded'
+  ))
+  if (latestCompletedAttempt?.type !== 'auth_sign_in_failed'
+    || latestCompletedAttempt?.details?.networkError !== true) return false
+
+  const failedAt = Date.parse(latestCompletedAttempt.timestamp)
+  const ageMs = now - failedAt
+  return Number.isFinite(failedAt) && ageMs >= 0 && ageMs <= RECENT_AUTH_FAILURE_WINDOW_MS
+}
+
+export function deriveConnectionDiagnosis({
+  online,
+  sameOriginReachable,
+  sameOriginStatus,
+  supabaseAuthReachable,
+  supabaseAuthStatus,
+  supabaseDataStatus,
+  hasRecentNetworkFailure,
+}: {
+  online: boolean
+  sameOriginReachable: boolean | null
+  sameOriginStatus: ConnectionProbeStatus
+  supabaseAuthReachable: boolean | null
+  supabaseAuthStatus: ConnectionProbeStatus
+  supabaseDataStatus: string
+  hasRecentNetworkFailure: boolean
+}) {
+  if (!online) return { code: 'BROWSER_OFFLINE', message: '浏览器报告当前处于离线状态' }
+  if (sameOriginStatus === 'http_error') {
+    return { code: 'SAME_ORIGIN_HTTP_ERROR', message: '本站源站可以建立连接，但实时资源返回了 HTTP 错误' }
+  }
+  if (supabaseAuthStatus === 'http_error') {
+    return { code: 'SUPABASE_AUTH_HTTP_ERROR', message: 'Supabase 登录服务可以建立连接，但健康检查返回了 HTTP 错误' }
+  }
+  if (sameOriginReachable === false && supabaseAuthReachable === false) {
+    return { code: 'GENERAL_NETWORK_OR_WEBVIEW_FAILURE', message: '本站源站与登录服务均无法连接，优先排查设备网络或 WebView/PWA 网络进程' }
+  }
+  if (sameOriginReachable === true && supabaseAuthReachable === false) {
+    return { code: 'SUPABASE_AUTH_UNREACHABLE', message: '本站可连接，但 Supabase 登录服务不可达，属于单域名、DNS、代理或跨域链路问题' }
+  }
+  if (sameOriginReachable === false && supabaseAuthReachable === true) {
+    return { code: 'SAME_ORIGIN_UNREACHABLE', message: '登录服务可连接，但本站实时源站不可达；PWA 可能正在使用缓存页面' }
+  }
+  if (supabaseAuthReachable === true && supabaseDataStatus !== 'success') {
+    return { code: 'SUPABASE_DATA_API_FAILURE', message: 'Supabase Auth 可连接，但数据接口探测失败' }
+  }
+  if (sameOriginStatus === 'success' && supabaseAuthStatus === 'success' && supabaseDataStatus === 'success') {
+    return hasRecentNetworkFailure
+      ? { code: 'RECOVERED_TRANSIENT_NETWORK_FAILURE', message: '当前连接已恢复，但日志记录到最近一次登录网络失败' }
+      : { code: 'ALL_CONNECTIONS_HEALTHY', message: '本站、登录服务与数据接口当前均可连接' }
+  }
+  if (supabaseAuthReachable === null) {
+    return { code: 'SUPABASE_CONFIGURATION_UNAVAILABLE', message: '当前构建未提供 Supabase 公共地址，无法完成 Auth 端点探测' }
+  }
+  return { code: 'PARTIAL_OR_UNKNOWN_CONNECTIVITY', message: '连接探测结果不完整，请结合各端点状态和最近登录记录判断' }
+}
+
 async function testSupabaseConnection() {
   try {
     const startedAt = Date.now()
-    const { error } = await supabase.from('user_profiles').select('count', { count: 'exact', head: true })
+    const { error, status, statusText } = await supabase.from('user_profiles').select('count', { count: 'exact', head: true })
     const latency = Date.now() - startedAt
     return error
-      ? { testStatus: 'error', latency, error: error.message }
-      : { testStatus: 'success', latency, error: null }
+      ? {
+          testStatus: 'error',
+          latency,
+          error: error.message,
+          errorName: 'PostgrestError',
+          errorCode: error.code || null,
+          httpStatus: typeof status === 'number' ? status : null,
+          statusText: statusText || null,
+          details: error.details || null,
+          hint: error.hint || null,
+        }
+      : {
+          testStatus: 'success',
+          latency,
+          error: null,
+          errorName: null,
+          errorCode: null,
+          httpStatus: typeof status === 'number' ? status : null,
+          statusText: statusText || null,
+          details: null,
+          hint: null,
+        }
   } catch (error) {
-    return { testStatus: 'exception', latency: -1, error: toErrorMessage(error) }
+    const connectionError = error as { name?: string; code?: string; status?: number; details?: string; hint?: string }
+    return {
+      testStatus: 'exception',
+      latency: -1,
+      error: toErrorMessage(error),
+      errorName: connectionError?.name || null,
+      errorCode: connectionError?.code || null,
+      httpStatus: connectionError?.status || null,
+      statusText: null,
+      details: connectionError?.details || null,
+      hint: connectionError?.hint || null,
+    }
   }
 }
 
