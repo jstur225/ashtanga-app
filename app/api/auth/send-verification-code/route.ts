@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { randomUUID } from 'node:crypto'
+import { normalizeAuthEmail } from '@/lib/auth-email'
 
 // Service Role 客户端延迟初始化
 // 当前项目尚未为 verification_codes 生成 Database 类型，服务端管理客户端
@@ -39,9 +40,16 @@ async function sendVerificationEmail(email: string, code: string, type: string) 
   }
 
   // 根据类型确定邮件主题
+  const actionLabel = type === 'email_verification'
+    ? '验证邮箱'
+    : type === 'login'
+      ? '登录熬汤日记'
+      : '重置密码'
   const subject = type === 'email_verification'
     ? '【熬汤日记】验证您的邮箱'
-    : '【熬汤日记】重置密码验证码'
+    : type === 'login'
+      ? '【熬汤日记】登录验证码'
+      : '【熬汤日记】重置密码验证码'
 
   // 邮件内容
   const html = `
@@ -129,7 +137,7 @@ async function sendVerificationEmail(email: string, code: string, type: string) 
 
           <div class="content">
             <p style="font-size: 16px; font-family: Georgia, 'Times New Roman', Times, serif !important;">
-              您好，您正在${type === 'email_verification' ? '验证邮箱' : '重置密码'}，验证码如下：
+              您好，您正在${actionLabel}，验证码如下：
             </p>
           </div>
 
@@ -163,6 +171,7 @@ async function sendVerificationEmail(email: string, code: string, type: string) 
       to: email,
       subject: subject,
       html: html,
+      text: `熬汤日记\n\n您正在${actionLabel}。\n验证码：${code}\n有效期：5分钟。\n\n如果这不是您的操作，请忽略此邮件。`,
     }),
   })
 
@@ -194,11 +203,19 @@ async function sendVerificationEmail(email: string, code: string, type: string) 
 export async function POST(request: NextRequest) {
   try {
     const { email: rawEmail, type = 'reset_password' } = await request.json()
-    const email = typeof rawEmail === 'string' ? rawEmail.trim().toLowerCase() : ''
+    const email = normalizeAuthEmail(rawEmail)
+    const supportedTypes = ['email_verification', 'reset_password', 'login']
 
     if (!email) {
       return NextResponse.json(
         { error: '请提供邮箱地址' },
+        { status: 400 }
+      )
+    }
+
+    if (!supportedTypes.includes(type)) {
+      return NextResponse.json(
+        { error: '不支持的验证码类型' },
         { status: 400 }
       )
     }
@@ -241,12 +258,12 @@ export async function POST(request: NextRequest) {
     const now = new Date()
     const expiresAt = new Date(now.getTime() + 5 * 60 * 1000).toISOString()
 
-    // 检查邮箱是否已注册（仅在 email_verification 类型时检查）
-    if (type === 'email_verification') {
+    // 注册时要求邮箱未占用；验证码登录时要求账号已经存在。
+    if (type === 'email_verification' || type === 'login') {
       const { data: existingUser, error: userCheckError } = await database
         .auth
         .admin
-        .listUsers()
+        .listUsers({ page: 1, perPage: 1000 })
 
       if (userCheckError) {
         return NextResponse.json(
@@ -259,10 +276,17 @@ export async function POST(request: NextRequest) {
         (user: any) => user.email?.toLowerCase() === email.toLowerCase()
       )
 
-      if (userEmailExists) {
+      if (type === 'email_verification' && userEmailExists) {
         return NextResponse.json(
           { error: '该邮箱已注册，请直接登录' },
           { status: 400 }
+        )
+      }
+
+      if (type === 'login' && !userEmailExists) {
+        return NextResponse.json(
+          { error: '该邮箱尚未注册，请先绑定邮箱账号' },
+          { status: 404 }
         )
       }
     }
@@ -274,7 +298,7 @@ export async function POST(request: NextRequest) {
         id: verificationId,
         email,
         code,
-        type, // 'reset_password' 或 'email_verification'
+        type,
         expires_at: expiresAt,
       })
 
@@ -310,6 +334,7 @@ export async function POST(request: NextRequest) {
         { status: 502 }
       )
     }
+
   } catch (error) {
     console.error('[VerificationEmail] Unexpected send-code failure', {
       message: error instanceof Error ? error.message : String(error),
