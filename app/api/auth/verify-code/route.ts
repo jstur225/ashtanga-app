@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
+import { normalizeAuthEmail } from '@/lib/auth-email'
 
 // 验证验证码
 export async function POST(request: NextRequest) {
   try {
-    const { email, code, type = 'email_verification' } = await request.json()
+    const { email: rawEmail, code, type = 'email_verification' } = await request.json()
+    const email = normalizeAuthEmail(rawEmail)
 
     if (!email || !code) {
       return NextResponse.json(
@@ -35,18 +37,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (error || !verificationData) {
-      return NextResponse.json(
-        { error: '验证码错误或已过期' },
-        { status: 400 }
-      )
+    // 忘记密码还有“设置新密码”这一步，不能在这里只预览验证后就消费。
+    // reset-password 会在真正更新密码前原子占用，并在更新失败时释放。
+    if (type !== 'reset_password') {
+      await supabase
+        .from('verification_codes')
+        .update({ used: true })
+        .eq('id', verificationData.id)
     }
-
-    // 标记验证码为已使用
-    await supabase
-      .from('verification_codes')
-      .update({ used: true })
-      .eq('id', verificationData.id)
 
     return NextResponse.json({
       success: true,
