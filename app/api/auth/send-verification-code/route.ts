@@ -42,14 +42,10 @@ async function sendVerificationEmail(email: string, code: string, type: string) 
   // 根据类型确定邮件主题
   const actionLabel = type === 'email_verification'
     ? '验证邮箱'
-    : type === 'login'
-      ? '登录熬汤日记'
-      : '重置密码'
+    : '重置密码'
   const subject = type === 'email_verification'
     ? '【熬汤日记】验证您的邮箱'
-    : type === 'login'
-      ? '【熬汤日记】登录验证码'
-      : '【熬汤日记】重置密码验证码'
+    : '【熬汤日记】重置密码验证码'
 
   // 邮件内容
   const html = `
@@ -204,7 +200,7 @@ export async function POST(request: NextRequest) {
   try {
     const { email: rawEmail, type = 'reset_password' } = await request.json()
     const email = normalizeAuthEmail(rawEmail)
-    const supportedTypes = ['email_verification', 'reset_password', 'login']
+    const supportedTypes = ['email_verification', 'reset_password']
 
     if (!email) {
       return NextResponse.json(
@@ -258,8 +254,8 @@ export async function POST(request: NextRequest) {
     const now = new Date()
     const expiresAt = new Date(now.getTime() + 5 * 60 * 1000).toISOString()
 
-    // 注册时要求邮箱未占用；验证码登录时要求账号已经存在。
-    if (type === 'email_verification' || type === 'login') {
+    // 注册时要求邮箱未占用。
+    if (type === 'email_verification') {
       const { data: existingUser, error: userCheckError } = await database
         .auth
         .admin
@@ -276,17 +272,10 @@ export async function POST(request: NextRequest) {
         (user: any) => user.email?.toLowerCase() === email.toLowerCase()
       )
 
-      if (type === 'email_verification' && userEmailExists) {
+      if (userEmailExists) {
         return NextResponse.json(
           { error: '该邮箱已注册，请直接登录' },
           { status: 400 }
-        )
-      }
-
-      if (type === 'login' && !userEmailExists) {
-        return NextResponse.json(
-          { error: '该邮箱尚未注册，请先绑定邮箱账号' },
-          { status: 404 }
         )
       }
     }
