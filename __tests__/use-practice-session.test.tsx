@@ -88,10 +88,11 @@ describe("usePracticeSession", () => {
 
   it("口令练习可直接以暂停状态启动，音频就绪后再恢复", () => {
     const { result } = renderHook(() => usePracticeSession())
-    act(() => { result.current.start(true, 1_000, { optionId: "guided_audio", label: "一序列", notes: "口令" }) })
+    act(() => { result.current.start(true, 1_000, { optionId: "guided_audio", label: "一序列", notes: "口令", guidedAudioVariantId: "sharath-jois-led-primary" }) })
 
     expect(result.current.isPracticing).toBe(true)
     expect(result.current.isPaused).toBe(true)
+    expect(result.current.activePractice?.guidedAudioVariantId).toBe("sharath-jois-led-primary")
 
     act(() => { result.current.resume(2_000) })
     expect(result.current.isPracticing).toBe(true)

@@ -12,6 +12,12 @@ vi.mock("@/lib/audioCache", () => ({ audioCache: cache }))
 
 import { shouldShowPracticeControls, useGuidedAudio } from "@/hooks/useGuidedAudio"
 
+const guidedOptions = {
+  source: "/audio/test.m4a",
+  cacheKey: "test-audio",
+  cacheVersion: "1.0",
+}
+
 class AudioMock {
   static instances: AudioMock[] = []
   src = ""
@@ -47,7 +53,7 @@ describe("useGuidedAudio", () => {
   it("流式加载期间拒绝重复启动，元数据就绪后恢复练习", async () => {
     const onReady = vi.fn()
     const { result } = renderHook(() => useGuidedAudio({
-      source: "/audio/test.m4a",
+      ...guidedOptions,
       onReady,
       onEnded: vi.fn(),
     }))
@@ -59,6 +65,14 @@ describe("useGuidedAudio", () => {
 
     expect(first).toBe(true)
     expect(second).toBe(false)
+    expect(cache.isCacheValid).toHaveBeenCalledWith("test-audio", "1.0")
+    expect(cache.downloadAndCache).toHaveBeenCalledWith(
+      "/audio/test.m4a",
+      "test-audio",
+      "1.0",
+      undefined,
+      { priority: "low" },
+    )
     expect(AudioMock.instances).toHaveLength(1)
     act(() => { AudioMock.instances[0].emit("loadedmetadata") })
     expect(result.current.isLoaded).toBe(true)
@@ -69,7 +83,7 @@ describe("useGuidedAudio", () => {
   it("播放失败后恢复普通计时并保留可重试错误", async () => {
     const onReady = vi.fn()
     const { result } = renderHook(() => useGuidedAudio({
-      source: "/audio/test.m4a",
+      ...guidedOptions,
       onReady,
       onEnded: vi.fn(),
     }))
@@ -82,11 +96,27 @@ describe("useGuidedAudio", () => {
     expect(onReady).toHaveBeenCalledTimes(1)
   })
 
+  it("命中缓存时只读取当前口令版本", async () => {
+    cache.isCacheValid.mockResolvedValue(true)
+    cache.getAudioBuffer.mockResolvedValue(new ArrayBuffer(4))
+    const { result } = renderHook(() => useGuidedAudio({
+      ...guidedOptions,
+      onReady: vi.fn(),
+      onEnded: vi.fn(),
+    }))
+
+    await act(async () => { await result.current.load() })
+
+    expect(cache.getAudioBuffer).toHaveBeenCalledWith("test-audio")
+    expect(cache.downloadAndCache).not.toHaveBeenCalled()
+    expect(result.current.isUsingCache).toBe(true)
+  })
+
   it("音频事件使用最新的会话回调，避免捕获启动前状态", async () => {
     const initialReady = vi.fn()
     const latestReady = vi.fn()
     const { result, rerender } = renderHook(
-      ({ onReady }) => useGuidedAudio({ source: "/audio/test.m4a", onReady, onEnded: vi.fn() }),
+      ({ onReady }) => useGuidedAudio({ ...guidedOptions, onReady, onEnded: vi.fn() }),
       { initialProps: { onReady: initialReady } },
     )
 
@@ -100,7 +130,7 @@ describe("useGuidedAudio", () => {
 
   it("快进后退限制在音频边界内，重置时释放媒体", async () => {
     const { result } = renderHook(() => useGuidedAudio({
-      source: "/audio/test.m4a",
+      ...guidedOptions,
       onReady: vi.fn(),
       onEnded: vi.fn(),
     }))

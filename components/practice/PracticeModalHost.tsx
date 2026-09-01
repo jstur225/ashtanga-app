@@ -5,6 +5,7 @@ import dynamic from "next/dynamic"
 import { AnimatePresence, motion } from "framer-motion"
 import { ChevronDown, ChevronUp, Crown, Lock, X } from "lucide-react"
 import { CustomPracticeModal, EditOptionModal } from "@/components/practice/OptionModals"
+import { GuidedAudioVersionSheet } from "@/components/practice/GuidedAudioVersionSheet"
 import { AccountSyncModal } from "@/components/AccountSyncModal"
 import { CompletionSheet } from "@/components/practice-record/CompletionSheet"
 
@@ -47,6 +48,7 @@ interface ChantSettingsSheetProps {
 interface PracticeModalHostProps {
   clearData: ClearDataDialogProps
   chantSettings: ChantSettingsSheetProps
+  guidedAudioVersions: ComponentProps<typeof GuidedAudioVersionSheet>
   external?: {
     customPractice: ComponentProps<typeof CustomPracticeModal>
     editOption: ComponentProps<typeof EditOptionModal>
@@ -226,7 +228,7 @@ function ChantSettingsSheet({
   )
 }
 
-export function PracticeModalHost({ clearData, chantSettings, external }: PracticeModalHostProps) {
+export function PracticeModalHost({ clearData, chantSettings, guidedAudioVersions, external }: PracticeModalHostProps) {
   return (
     <>
       {external && (
@@ -250,6 +252,7 @@ export function PracticeModalHost({ clearData, chantSettings, external }: Practi
       )}
       <ClearDataDialog {...clearData} />
       <ChantSettingsSheet {...chantSettings} />
+      <GuidedAudioVersionSheet {...guidedAudioVersions} />
     </>
   )
 }
