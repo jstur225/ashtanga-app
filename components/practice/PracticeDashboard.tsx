@@ -110,7 +110,7 @@ export function PracticeDashboard({
       </div>
 
       <p className="text-center text-xs text-muted-foreground font-serif mt-[-4px]">
-        单击选择·双击编辑
+        单击选择·双击设置或编辑
       </p>
 
       <div className="flex-1" />

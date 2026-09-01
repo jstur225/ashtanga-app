@@ -2,6 +2,7 @@ import React, { type ComponentProps } from "react"
 import { cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { PracticeModalHost } from "@/components/practice/PracticeModalHost"
+import { GUIDED_AUDIO_VARIANTS } from "@/lib/guided-audio-variants"
 
 vi.mock("framer-motion", () => ({
   AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
@@ -42,6 +43,13 @@ function createProps(overrides: Partial<ComponentProps<typeof PracticeModalHost>
       onDelayChange: vi.fn(),
       onClose: vi.fn(),
       onUpgrade: vi.fn(),
+    },
+    guidedAudioVersions: {
+      isOpen: false,
+      variants: GUIDED_AUDIO_VARIANTS,
+      selectedId: "guruji-led-primary",
+      onSelect: vi.fn(),
+      onClose: vi.fn(),
     },
     ...overrides,
   }
@@ -105,5 +113,21 @@ describe("PracticeModalHost", () => {
     expect(screen.getByText("Pro 功能")).toBeTruthy()
     fireEvent.click(screen.getByRole("button", { name: "升级 Pro 解锁自定义时长" }))
     expect(onUpgrade).toHaveBeenCalledTimes(1)
+  })
+
+  it("口令版本弹窗展示当前版本并选择 Sharath Jois", () => {
+    const onSelect = vi.fn()
+    const props = createProps()
+    render(
+      <PracticeModalHost
+        {...props}
+        guidedAudioVersions={{ ...props.guidedAudioVersions, isOpen: true, onSelect }}
+      />,
+    )
+
+    expect(screen.getByRole("dialog", { name: "选择口令版本" })).toBeTruthy()
+    expect(screen.getByRole("button", { name: /老掌门人/ }).getAttribute("aria-pressed")).toBe("true")
+    fireEvent.click(screen.getByRole("button", { name: /Sharath Jois/ }))
+    expect(onSelect).toHaveBeenCalledWith("sharath-jois-led-primary")
   })
 })

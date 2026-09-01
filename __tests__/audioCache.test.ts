@@ -5,30 +5,30 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
  * Tests the download-and-cache logic independently of IndexedDB.
  */
 class MockAudioCache {
-  private data: ArrayBuffer | null = null
-  private versionKey = 'audio-cache-version'
-  private currentVersion = '1.0'
+  private data = new Map<string, ArrayBuffer>()
 
-  async isCacheValid(): Promise<boolean> {
-    return localStorage.getItem(this.versionKey) === this.currentVersion && this.data !== null
+  async isCacheValid(audioKey: string, currentVersion: string): Promise<boolean> {
+    return localStorage.getItem(`audio-cache-version:${audioKey}`) === currentVersion && this.data.has(audioKey)
   }
 
-  async getAudioBuffer(): Promise<ArrayBuffer | null> {
-    return this.data
+  async getAudioBuffer(audioKey: string): Promise<ArrayBuffer | null> {
+    return this.data.get(audioKey) ?? null
   }
 
-  async saveAudio(buffer: ArrayBuffer): Promise<void> {
-    this.data = buffer
-    localStorage.setItem(this.versionKey, this.currentVersion)
+  async saveAudio(audioKey: string, currentVersion: string, buffer: ArrayBuffer): Promise<void> {
+    this.data.set(audioKey, buffer)
+    localStorage.setItem(`audio-cache-version:${audioKey}`, currentVersion)
   }
 
-  async clearCache(): Promise<void> {
-    this.data = null
-    localStorage.removeItem(this.versionKey)
+  async clearCache(audioKey: string): Promise<void> {
+    this.data.delete(audioKey)
+    localStorage.removeItem(`audio-cache-version:${audioKey}`)
   }
 
   async downloadAndCache(
     url: string,
+    audioKey: string,
+    currentVersion: string,
     onProgress?: (loaded: number, total: number) => void,
     options?: { priority?: 'high' | 'low' | 'auto' }
   ): Promise<ArrayBuffer> {
@@ -53,8 +53,8 @@ class MockAudioCache {
     for (const c of chunks) { allChunks.set(c, pos); pos += c.length }
 
     const arrayBuffer = allChunks.buffer
-    this.data = arrayBuffer
-    localStorage.setItem(this.versionKey, this.currentVersion)
+    this.data.set(audioKey, arrayBuffer)
+    localStorage.setItem(`audio-cache-version:${audioKey}`, currentVersion)
     return arrayBuffer
   }
 }
@@ -69,23 +69,23 @@ describe('audioCache', () => {
 
   describe('isCacheValid', () => {
     it('returns false when no cache exists', async () => {
-      expect(await cache.isCacheValid()).toBe(false)
+      expect(await cache.isCacheValid('guruji', '1.0')).toBe(false)
     })
 
     it('returns false when version mismatch', async () => {
-      localStorage.setItem('audio-cache-version', '0.9')
-      expect(await cache.isCacheValid()).toBe(false)
+      localStorage.setItem('audio-cache-version:guruji', '0.9')
+      expect(await cache.isCacheValid('guruji', '1.0')).toBe(false)
     })
   })
 
   describe('getAudioBuffer', () => {
     it('returns null when no cache', async () => {
-      expect(await cache.getAudioBuffer()).toBeNull()
+      expect(await cache.getAudioBuffer('guruji')).toBeNull()
     })
 
     it('returns buffer after save', async () => {
-      await cache.saveAudio(new ArrayBuffer(100))
-      const result = await cache.getAudioBuffer()
+      await cache.saveAudio('guruji', '1.0', new ArrayBuffer(100))
+      const result = await cache.getAudioBuffer('guruji')
       expect(result).toBeTruthy()
       expect(result!.byteLength).toBe(100)
     })
@@ -93,19 +93,28 @@ describe('audioCache', () => {
 
   describe('saveAudio + isCacheValid', () => {
     it('marks cache as valid after save', async () => {
-      expect(await cache.isCacheValid()).toBe(false)
-      await cache.saveAudio(new ArrayBuffer(100))
-      expect(await cache.isCacheValid()).toBe(true)
+      expect(await cache.isCacheValid('guruji', '1.0')).toBe(false)
+      await cache.saveAudio('guruji', '1.0', new ArrayBuffer(100))
+      expect(await cache.isCacheValid('guruji', '1.0')).toBe(true)
     })
   })
 
   describe('clearCache', () => {
     it('clears cache and invalidates', async () => {
-      await cache.saveAudio(new ArrayBuffer(100))
-      expect(await cache.isCacheValid()).toBe(true)
-      await cache.clearCache()
-      expect(await cache.isCacheValid()).toBe(false)
-      expect(await cache.getAudioBuffer()).toBeNull()
+      await cache.saveAudio('guruji', '1.0', new ArrayBuffer(100))
+      expect(await cache.isCacheValid('guruji', '1.0')).toBe(true)
+      await cache.clearCache('guruji')
+      expect(await cache.isCacheValid('guruji', '1.0')).toBe(false)
+      expect(await cache.getAudioBuffer('guruji')).toBeNull()
+    })
+
+    it('只清理指定口令版本', async () => {
+      await cache.saveAudio('guruji', '1.0', new ArrayBuffer(10))
+      await cache.saveAudio('sharath', '1.0', new ArrayBuffer(20))
+      await cache.clearCache('sharath')
+
+      expect(await cache.isCacheValid('guruji', '1.0')).toBe(true)
+      expect(await cache.isCacheValid('sharath', '1.0')).toBe(false)
     })
   })
 
@@ -125,9 +134,9 @@ describe('audioCache', () => {
         },
       })
 
-      const buffer = await cache.downloadAndCache('http://localhosthttp://localhost/audio/test.m4a')
+      const buffer = await cache.downloadAndCache('http://localhost/audio/test.m4a', 'guruji', '1.0')
       expect(buffer.byteLength).toBe(4)
-      expect(await cache.isCacheValid()).toBe(true)
+      expect(await cache.isCacheValid('guruji', '1.0')).toBe(true)
     })
 
     it('calls onProgress during download', async () => {
@@ -149,14 +158,14 @@ describe('audioCache', () => {
         },
       })
 
-      await cache.downloadAndCache('http://localhost/audio/test.m4a', onProgress)
+      await cache.downloadAndCache('http://localhost/audio/test.m4a', 'guruji', '1.0', onProgress)
       expect(onProgress).toHaveBeenCalledWith(2, 4)
       expect(onProgress).toHaveBeenCalledWith(4, 4)
     })
 
     it('throws on non-200 response', async () => {
       globalThis.fetch = vi.fn().mockResolvedValue({ ok: false, status: 404 })
-      await expect(cache.downloadAndCache('http://localhost/audio/test.m4a')).rejects.toThrow('下载失败: 404')
+      await expect(cache.downloadAndCache('http://localhost/audio/test.m4a', 'guruji', '1.0')).rejects.toThrow('下载失败: 404')
     })
 
     it('passes priority option to fetch', async () => {
@@ -167,7 +176,7 @@ describe('audioCache', () => {
         body: { getReader: () => ({ read: vi.fn().mockResolvedValueOnce({ done: false, value: mockData }).mockResolvedValueOnce({ done: true }) }) },
       })
 
-      await cache.downloadAndCache('http://localhost/audio/test.m4a', undefined, { priority: 'low' })
+      await cache.downloadAndCache('http://localhost/audio/test.m4a', 'guruji', '1.0', undefined, { priority: 'low' })
       expect(globalThis.fetch).toHaveBeenCalled()
       const request = (globalThis.fetch as any).mock.calls[0][0]
       expect(request).toBeInstanceOf(Request)

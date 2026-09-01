@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { useLocalStorage } from 'react-use';
 import { motion, AnimatePresence } from "framer-motion"
 import dynamic from 'next/dynamic'
-import { usePracticeData, type PracticeRecord, type PracticeOption, type UserProfile, GUIDED_AUDIO_OPTION, MAX_SLOTS_FREE, MAX_SLOTS_PRO } from "@/hooks/usePracticeData"
+import { usePracticeData, type PracticeRecord, type PracticeOption, type UserProfile, MAX_SLOTS_FREE, MAX_SLOTS_PRO } from "@/hooks/usePracticeData"
 import { useMembership } from "@/hooks/useMembership"
 import { useAnnotations } from "@/hooks/useAnnotations"
 import { useAuth } from "@/hooks/useAuth"
@@ -30,6 +30,12 @@ import { DynamicTabShell } from '@/components/practice/DynamicTabWrapper'
 import { PracticeDashboard } from '@/components/practice/PracticeDashboard'
 import { PracticeSessionView } from '@/components/practice/PracticeSessionView'
 import { PracticeModalHost } from '@/components/practice/PracticeModalHost'
+import {
+  DEFAULT_GUIDED_AUDIO_VARIANT,
+  GUIDED_AUDIO_VARIANTS,
+  GUIDED_AUDIO_VARIANT_STORAGE_KEY,
+  getGuidedAudioVariant,
+} from '@/lib/guided-audio-variants'
 
 // 懒加载弹窗（不阻塞首屏渲染）
 const TabLoading = () => (
@@ -47,7 +53,7 @@ import { INVITE_VERSION } from "@/lib/invite-version"
 // 固定功能栏按钮（不计入用户选项名额）
 const FIXED_BUTTONS = [
   { id: "chant_switch", label: "开篇唱诵", notes: "关" },
-  { id: "guided_audio", label: "一序列", notes: "老掌门人版口令" },
+  { id: "guided_audio", label: "一序列", notes: DEFAULT_GUIDED_AUDIO_VARIANT.note },
   { id: "today_count", label: "", notes: "今日练习人数" },
 ]
 
@@ -64,6 +70,7 @@ const APP_LOCAL_STORAGE_KEYS = [
   'ashtanga_active_practice',
   'ashtanga_chant_enabled',
   'ashtanga_chant_delay',
+  GUIDED_AUDIO_VARIANT_STORAGE_KEY,
   'ashtanga_export_logs',
   'ashtanga_photo_logs',
   'sync_logs',
@@ -140,6 +147,14 @@ export default function AshtangaTracker() {
 
   const [practiceOptions, setPracticeOptions] = useState<PracticeOption[]>([])
   const [selectedOption, setSelectedOption] = useState<string | null>(null)
+  const [storedGuidedAudioVariantId, setStoredGuidedAudioVariantId] = useLocalStorage<string>(
+    GUIDED_AUDIO_VARIANT_STORAGE_KEY,
+    DEFAULT_GUIDED_AUDIO_VARIANT.id,
+  )
+  const selectedGuidedAudioVariant = useMemo(
+    () => getGuidedAudioVariant(storedGuidedAudioVariantId),
+    [storedGuidedAudioVariantId],
+  )
   const [todayCount, setTodayCount] = useState<number | null>(null)
   const [customPracticeName, setCustomPracticeName] = useState("")
   const {
@@ -251,8 +266,16 @@ export default function AshtangaTracker() {
   const [chantDelay, setChantDelay] = useLocalStorage('ashtanga_chant_delay', 60) // 秒
   const chantDelaySeconds = chantDelay ?? 60
   const [showChantSettings, setShowChantSettings] = useState(false)
+  const [showGuidedAudioVersions, setShowGuidedAudioVersions] = useState(false)
   const [chantMins, setChantMins] = useState(1)
   const [chantSecs, setChantSecs] = useState(0)
+
+  const effectiveGuidedAudioVariant = useMemo(
+    () => activePractice?.optionId === 'guided_audio'
+      ? getGuidedAudioVariant(activePractice.guidedAudioVariantId)
+      : selectedGuidedAudioVariant,
+    [activePractice, selectedGuidedAudioVariant],
+  )
 
   const {
     progress: audioProgress,
@@ -271,10 +294,21 @@ export default function AshtangaTracker() {
     seek: handleAudioSeek,
     reset: resetGuidedAudio,
   } = useGuidedAudio({
-    source: GUIDED_AUDIO_OPTION.audio_src || '',
+    source: effectiveGuidedAudioVariant.audioSrc,
+    cacheKey: effectiveGuidedAudioVariant.cacheKey,
+    cacheVersion: effectiveGuidedAudioVariant.cacheVersion,
     onReady: resumePracticeSession,
     onEnded: requestPracticeEnd,
   })
+
+  const handleSelectGuidedAudioVariant = useCallback((id: string) => {
+    const variant = getGuidedAudioVariant(id)
+    setShowGuidedAudioVersions(false)
+    if (variant.id === selectedGuidedAudioVariant.id) return
+    resetGuidedAudio()
+    setStoredGuidedAudioVariantId(variant.id)
+    toast.success(`已切换为${variant.note}`)
+  }, [resetGuidedAudio, selectedGuidedAudioVariant.id, setStoredGuidedAudioVariantId])
 
   const {
     isCountdown: isChantCountdown,
@@ -410,6 +444,7 @@ export default function AshtangaTracker() {
     showDataConflict,
     showClearDataConfirm,
     showChantSettings,
+    showGuidedAudioVersions,
     showXiaohongshuModal,
   })
 
@@ -429,7 +464,9 @@ export default function AshtangaTracker() {
         label: b.id === 'today_count' ? (todayCount !== null ? String(todayCount) : '--') : b.label,
         notes: b.id === 'chant_switch'
           ? (chantEnabled ? `${chantDelaySeconds}秒后播放` : '关')
-          : b.notes,
+          : b.id === 'guided_audio'
+            ? selectedGuidedAudioVariant.note
+            : b.notes,
         is_custom: false,
         isCustom: false,
         is_fixed: true,      // 固定按钮
@@ -451,7 +488,7 @@ export default function AshtangaTracker() {
       // 自定义按钮
       { id: "custom", created_at: '', label: "自定义", notes: '', is_custom: false, isCustom: false }
     ])
-  }, [practiceOptionsData, todayCount, chantEnabled, chantDelaySeconds])
+  }, [practiceOptionsData, todayCount, chantEnabled, chantDelaySeconds, selectedGuidedAudioVariant.note])
 
   // 获取今日练习次数
   const fetchTodayCount = useCallback(() => {
@@ -521,6 +558,7 @@ export default function AshtangaTracker() {
     setChantMins,
     setChantSecs,
     setShowChantSettings,
+    setShowGuidedAudioVersions,
     setEditingOption,
     setShowEditModal,
     setShowCustomModal,
@@ -625,6 +663,7 @@ export default function AshtangaTracker() {
         optionId: selectedOption,
         label: getSelectedLabel(),
         notes: getSelectedNotes(),
+        guidedAudioVariantId: isGuidedAudio ? selectedGuidedAudioVariant.id : undefined,
       })
 
       // 口令跟练模式：加载音频
@@ -975,6 +1014,13 @@ export default function AshtangaTracker() {
             setMembershipPromptReason('options_full')
             setShowMembershipPrompt(true)
           },
+        }}
+        guidedAudioVersions={{
+          isOpen: showGuidedAudioVersions,
+          variants: GUIDED_AUDIO_VARIANTS,
+          selectedId: selectedGuidedAudioVariant.id,
+          onSelect: handleSelectGuidedAudioVariant,
+          onClose: () => setShowGuidedAudioVersions(false),
         }}
         external={{
           customPractice: {

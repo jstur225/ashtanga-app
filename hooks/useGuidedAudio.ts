@@ -5,6 +5,8 @@ import { audioCache } from "@/lib/audioCache"
 
 interface UseGuidedAudioOptions {
   source: string
+  cacheKey: string
+  cacheVersion: string
   onReady: () => void
   onEnded: () => void
 }
@@ -25,7 +27,7 @@ export function shouldShowPracticeControls(
   return activeOptionId !== "guided_audio" || Boolean(error) || (isLoaded && !isLoading)
 }
 
-export function useGuidedAudio({ source, onReady, onEnded }: UseGuidedAudioOptions) {
+export function useGuidedAudio({ source, cacheKey, cacheVersion, onReady, onEnded }: UseGuidedAudioOptions) {
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const blobUrlRef = useRef<string | null>(null)
   const loadingRef = useRef(false)
@@ -76,7 +78,7 @@ export function useGuidedAudio({ source, onReady, onEnded }: UseGuidedAudioOptio
       loadingRef.current = false
       setIsLoading(false)
       setError(message)
-      if (cacheBacked) void audioCache.clearCache()
+      if (cacheBacked) void audioCache.clearCache(cacheKey)
       onReadyRef.current()
     }
 
@@ -94,7 +96,7 @@ export function useGuidedAudio({ source, onReady, onEnded }: UseGuidedAudioOptio
     })
     audio.addEventListener("ended", () => onEndedRef.current())
     audio.addEventListener("error", () => fail(cacheBacked ? "音频播放失败，请重试" : "音频播放失败，请检查网络连接"))
-  }, [])
+  }, [cacheKey])
 
   const load = useCallback(async () => {
     if (loadingRef.current) return false
@@ -106,10 +108,10 @@ export function useGuidedAudio({ source, onReady, onEnded }: UseGuidedAudioOptio
     loadingRef.current = true
 
     try {
-      const hasCache = await audioCache.isCacheValid()
+      const hasCache = await audioCache.isCacheValid(cacheKey, cacheVersion)
       if (hasCache) {
         setIsUsingCache(true)
-        const buffer = await audioCache.getAudioBuffer()
+        const buffer = await audioCache.getAudioBuffer(cacheKey)
         if (!buffer) throw new Error("缓存数据无效")
         const url = URL.createObjectURL(new Blob([buffer], { type: "audio/mp4" }))
         blobUrlRef.current = url
@@ -123,7 +125,7 @@ export function useGuidedAudio({ source, onReady, onEnded }: UseGuidedAudioOptio
         attachEvents(audio, false)
         audioRef.current = audio
         setIsBackgroundCaching(true)
-        void audioCache.downloadAndCache(source, undefined, { priority: "low" })
+        void audioCache.downloadAndCache(source, cacheKey, cacheVersion, undefined, { priority: "low" })
           .catch(() => undefined)
           .finally(() => setIsBackgroundCaching(false))
       }
@@ -135,7 +137,7 @@ export function useGuidedAudio({ source, onReady, onEnded }: UseGuidedAudioOptio
       onReadyRef.current()
       return false
     }
-  }, [attachEvents, releaseMedia, source])
+  }, [attachEvents, cacheKey, cacheVersion, releaseMedia, source])
 
   const pause = useCallback(() => audioRef.current?.pause(), [])
   const play = useCallback(() => {

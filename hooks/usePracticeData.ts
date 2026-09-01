@@ -9,6 +9,7 @@ import {
   migrateOldOptions,
   serializeExportData,
 } from '@/lib/import-export';
+import { DEFAULT_GUIDED_AUDIO_VARIANT } from '@/lib/guided-audio-variants';
 
 export interface PracticeRecord {
   id: string;
@@ -67,10 +68,10 @@ export const GUIDED_AUDIO_OPTION: PracticeOption = {
   id: 'guided_audio',
   created_at: '2026-01-01T00:00:00.000Z',
   label: '一序列',
-  notes: '老掌门人版口令',
+  notes: DEFAULT_GUIDED_AUDIO_VARIANT.note,
   is_custom: false,
   is_preset: true,
-  audio_src: '/audio/guruji-led-primary.m4a',
+  audio_src: DEFAULT_GUIDED_AUDIO_VARIANT.audioSrc,
   can_edit: false,
 };
 
