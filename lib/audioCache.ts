@@ -6,6 +6,57 @@ const STORE_NAME = 'audioCache';
 const LEGACY_AUDIO_KEY = 'guruji-led-primary';
 const LEGACY_CACHE_VERSION_KEY = 'audio-cache-version';
 
+type AudioDownloadDetails = {
+  requestedUrl: string;
+  responseUrl: string | null;
+  status: number;
+  redirected: boolean;
+  contentType: string | null;
+  contentLength: string | null;
+  receivedBytes?: number;
+};
+
+export class AudioDownloadError extends Error {
+  details: AudioDownloadDetails;
+
+  constructor(message: string, details: AudioDownloadDetails) {
+    super(message);
+    this.name = 'AudioDownloadError';
+    this.details = details;
+  }
+}
+
+function startsWith(bytes: Uint8Array, signature: readonly number[], offset = 0) {
+  return signature.every((value, index) => bytes[offset + index] === value);
+}
+
+function hasSupportedAudioSignature(bytes: Uint8Array) {
+  // M4A / MP4 (ISO Base Media File Format)
+  if (bytes.length >= 8 && startsWith(bytes, [0x66, 0x74, 0x79, 0x70], 4)) return true;
+  // MP3 with ID3 metadata or an MPEG frame sync.
+  if (bytes.length >= 3 && startsWith(bytes, [0x49, 0x44, 0x33])) return true;
+  if (bytes.length >= 2 && bytes[0] === 0xff && (bytes[1] & 0xe0) === 0xe0) return true;
+  // OGG, WAV and FLAC are accepted so this cache remains reusable.
+  if (bytes.length >= 4 && startsWith(bytes, [0x4f, 0x67, 0x67, 0x53])) return true;
+  if (bytes.length >= 12 && startsWith(bytes, [0x52, 0x49, 0x46, 0x46])
+    && startsWith(bytes, [0x57, 0x41, 0x56, 0x45], 8)) return true;
+  return bytes.length >= 4 && startsWith(bytes, [0x66, 0x4c, 0x61, 0x43]);
+}
+
+export function validateAudioPayload(arrayBuffer: ArrayBuffer, contentType: string | null): void {
+  const bytes = new Uint8Array(arrayBuffer);
+  const prefix = new TextDecoder().decode(bytes.subarray(0, Math.min(bytes.length, 160))).trimStart();
+
+  if (prefix.startsWith('version https://git-lfs.github.com/spec/v1')) {
+    throw new Error('音频地址返回了 Git LFS 指针，而不是真实音频');
+  }
+
+  if (!hasSupportedAudioSignature(bytes)) {
+    const normalizedType = contentType?.split(';', 1)[0].trim().toLowerCase() || 'unknown';
+    throw new Error(`响应不是有效音频: ${normalizedType}, ${bytes.byteLength} bytes`);
+  }
+}
+
 function getCacheVersionKey(audioKey: string) {
   return `audio-cache-version:${audioKey}`;
 }
@@ -51,8 +102,16 @@ class AudioCacheService {
         return false;
       }
 
-      const hasAudio = await this.hasAudio(audioKey);
-      return hasAudio;
+      const buffer = await this.getAudioBuffer(audioKey);
+      if (!buffer) return false;
+
+      try {
+        validateAudioPayload(buffer, 'audio/mp4');
+        return true;
+      } catch {
+        await this.clearCache(audioKey).catch(() => undefined);
+        return false;
+      }
     } catch {
       return false;
     }
@@ -144,15 +203,24 @@ class AudioCacheService {
   ): Promise<ArrayBuffer> {
     const response = await fetch(new Request(url, { priority: options?.priority || 'auto' }));
 
+    const details: AudioDownloadDetails = {
+      requestedUrl: url,
+      responseUrl: response.url || null,
+      status: response.status,
+      redirected: Boolean(response.redirected),
+      contentType: response.headers.get('content-type'),
+      contentLength: response.headers.get('content-length'),
+    };
+
     if (!response.ok) {
-      throw new Error(`下载失败: ${response.status}`);
+      throw new AudioDownloadError(`下载失败: ${response.status}`, details);
     }
 
     const contentLength = response.headers.get('content-length');
     const total = contentLength ? parseInt(contentLength, 10) : 0;
 
     if (!response.body) {
-      throw new Error('无法读取响应体');
+      throw new AudioDownloadError('无法读取响应体', details);
     }
 
     const reader = response.body.getReader();
@@ -181,6 +249,15 @@ class AudioCacheService {
     }
 
     const arrayBuffer = allChunks.buffer;
+
+    try {
+      validateAudioPayload(arrayBuffer, details.contentType);
+    } catch (error) {
+      throw new AudioDownloadError(
+        error instanceof Error ? error.message : '响应不是有效音频',
+        { ...details, receivedBytes: loaded },
+      );
+    }
 
     // 保存到 IndexedDB（后台执行，不阻塞）
     this.saveAudio(audioKey, currentVersion, arrayBuffer).catch((err) => {

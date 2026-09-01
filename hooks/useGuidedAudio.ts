@@ -11,6 +11,56 @@ interface UseGuidedAudioOptions {
   onEnded: () => void
 }
 
+type RuntimeDiagnosticWindow = Window & {
+  __ashtangaRuntimeDiagnostic?: (type: string, details: Record<string, unknown>) => void
+}
+
+function describeError(error: unknown) {
+  if (error instanceof Error) {
+    const errorWithDetails = error as Error & { details?: unknown }
+    return {
+      name: error.name,
+      message: error.message,
+      stack: error.stack?.slice(0, 1200) ?? null,
+      downloadDetails: errorWithDetails.details ?? null,
+    }
+  }
+  return { name: null, message: String(error), stack: null, downloadDetails: null }
+}
+
+function getNetworkDetails() {
+  if (typeof navigator === "undefined") return {}
+  const connection = (navigator as Navigator & {
+    connection?: { effectiveType?: string; downlink?: number; rtt?: number; saveData?: boolean }
+  }).connection
+  return {
+    online: navigator.onLine,
+    effectiveType: connection?.effectiveType ?? null,
+    downlink: connection?.downlink ?? null,
+    rtt: connection?.rtt ?? null,
+    saveData: connection?.saveData ?? null,
+  }
+}
+
+function recordGuidedAudioDiagnostic(type: string, details: Record<string, unknown>) {
+  if (typeof window === "undefined") return
+  try {
+    ;(window as RuntimeDiagnosticWindow).__ashtangaRuntimeDiagnostic?.(type, details)
+  } catch {
+    // Diagnostics must never interrupt playback or recovery.
+  }
+}
+
+function getMediaDetails(audio: HTMLAudioElement) {
+  return {
+    currentSrc: audio.currentSrc || audio.src || null,
+    networkState: audio.networkState,
+    readyState: audio.readyState,
+    mediaErrorCode: audio.error?.code ?? null,
+    mediaErrorMessage: audio.error?.message ?? null,
+  }
+}
+
 export function formatAudioTime(seconds: number): string {
   if (!seconds || Number.isNaN(seconds)) return "00:00"
   const minutes = Math.floor(seconds / 60)
@@ -72,13 +122,32 @@ export function useGuidedAudio({ source, cacheKey, cacheVersion, onReady, onEnde
 
   const attachEvents = useCallback((audio: HTMLAudioElement, cacheBacked: boolean) => {
     let failed = false
-    const fail = (message: string) => {
+    const fail = (message: string, phase: "autoplay" | "media_element", cause?: unknown) => {
       if (failed) return
       failed = true
+      recordGuidedAudioDiagnostic("guided_audio_playback_error", {
+        source,
+        cacheKey,
+        cacheVersion,
+        cacheBacked,
+        phase,
+        ...getMediaDetails(audio),
+        ...describeError(cause),
+        ...getNetworkDetails(),
+      })
       loadingRef.current = false
       setIsLoading(false)
       setError(message)
-      if (cacheBacked) void audioCache.clearCache(cacheKey)
+      if (cacheBacked) {
+        void audioCache.clearCache(cacheKey).catch((clearError) => {
+          recordGuidedAudioDiagnostic("guided_audio_cache_clear_error", {
+            source,
+            cacheKey,
+            cacheVersion,
+            ...describeError(clearError),
+          })
+        })
+      }
       onReadyRef.current()
     }
 
@@ -88,15 +157,19 @@ export function useGuidedAudio({ source, cacheKey, cacheVersion, onReady, onEnde
       setIsLoading(false)
       loadingRef.current = false
       onReadyRef.current()
-      void audio.play().catch(() => fail("音频播放失败，请重试"))
+      void audio.play().catch((playError) => fail("音频播放失败，请重试", "autoplay", playError))
     })
     audio.addEventListener("timeupdate", () => {
       setCurrentTime(audio.currentTime)
       setProgress(audio.duration > 0 ? (audio.currentTime / audio.duration) * 100 : 0)
     })
     audio.addEventListener("ended", () => onEndedRef.current())
-    audio.addEventListener("error", () => fail(cacheBacked ? "音频播放失败，请重试" : "音频播放失败，请检查网络连接"))
-  }, [cacheKey])
+    audio.addEventListener("error", () => fail(
+      cacheBacked ? "音频播放失败，请重试" : "音频播放失败，请检查网络连接",
+      "media_element",
+      audio.error,
+    ))
+  }, [cacheKey, cacheVersion, source])
 
   const load = useCallback(async () => {
     if (loadingRef.current) return false
@@ -126,11 +199,26 @@ export function useGuidedAudio({ source, cacheKey, cacheVersion, onReady, onEnde
         audioRef.current = audio
         setIsBackgroundCaching(true)
         void audioCache.downloadAndCache(source, cacheKey, cacheVersion, undefined, { priority: "low" })
-          .catch(() => undefined)
+          .catch((cacheError) => {
+            recordGuidedAudioDiagnostic("guided_audio_cache_error", {
+              source,
+              cacheKey,
+              cacheVersion,
+              ...describeError(cacheError),
+              ...getNetworkDetails(),
+            })
+          })
           .finally(() => setIsBackgroundCaching(false))
       }
       return true
-    } catch {
+    } catch (loadError) {
+      recordGuidedAudioDiagnostic("guided_audio_load_error", {
+        source,
+        cacheKey,
+        cacheVersion,
+        ...describeError(loadError),
+        ...getNetworkDetails(),
+      })
       loadingRef.current = false
       setIsLoading(false)
       setError("音频加载失败")
@@ -141,8 +229,22 @@ export function useGuidedAudio({ source, cacheKey, cacheVersion, onReady, onEnde
 
   const pause = useCallback(() => audioRef.current?.pause(), [])
   const play = useCallback(() => {
-    if (audioRef.current) void audioRef.current.play()
-  }, [])
+    const audio = audioRef.current
+    if (!audio) return
+    void audio.play().catch((playError) => {
+      recordGuidedAudioDiagnostic("guided_audio_playback_error", {
+        source,
+        cacheKey,
+        cacheVersion,
+        cacheBacked: isUsingCache,
+        phase: "manual_play",
+        ...getMediaDetails(audio),
+        ...describeError(playError),
+        ...getNetworkDetails(),
+      })
+      setError("音频播放失败，请重试")
+    })
+  }, [cacheKey, cacheVersion, isUsingCache, source])
   const seek = useCallback((direction: "forward" | "backward") => {
     const audio = audioRef.current
     if (!audio || !isLoaded) return
