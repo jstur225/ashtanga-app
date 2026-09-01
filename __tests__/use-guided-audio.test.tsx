@@ -1,4 +1,4 @@
-import { act, renderHook } from "@testing-library/react"
+import { act, renderHook, waitFor } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 const cache = vi.hoisted(() => ({
@@ -42,12 +42,16 @@ class AudioMock {
 }
 
 describe("useGuidedAudio", () => {
+  const recordDiagnostic = vi.fn()
+
   beforeEach(() => {
     vi.clearAllMocks()
     AudioMock.instances = []
     vi.stubGlobal("Audio", AudioMock)
     cache.isCacheValid.mockResolvedValue(false)
     cache.downloadAndCache.mockResolvedValue(new ArrayBuffer(1))
+    ;(window as Window & { __ashtangaRuntimeDiagnostic?: typeof recordDiagnostic })
+      .__ashtangaRuntimeDiagnostic = recordDiagnostic
   })
 
   it("流式加载期间拒绝重复启动，元数据就绪后恢复练习", async () => {
@@ -94,6 +98,34 @@ describe("useGuidedAudio", () => {
     expect(result.current.error).toContain("网络连接")
     expect(result.current.isLoading).toBe(false)
     expect(onReady).toHaveBeenCalledTimes(1)
+    expect(recordDiagnostic).toHaveBeenCalledWith(
+      "guided_audio_playback_error",
+      expect.objectContaining({
+        cacheKey: "test-audio",
+        phase: "media_element",
+        source: "/audio/test.m4a",
+      }),
+    )
+  })
+
+  it("后台缓存下载失败时记录原始错误，方便导出运行日志", async () => {
+    cache.downloadAndCache.mockRejectedValue(new Error("响应不是有效音频: text/html"))
+    const { result } = renderHook(() => useGuidedAudio({
+      ...guidedOptions,
+      onReady: vi.fn(),
+      onEnded: vi.fn(),
+    }))
+
+    await act(async () => { await result.current.load() })
+
+    await waitFor(() => expect(recordDiagnostic).toHaveBeenCalledWith(
+      "guided_audio_cache_error",
+      expect.objectContaining({
+        cacheKey: "test-audio",
+        message: "响应不是有效音频: text/html",
+        source: "/audio/test.m4a",
+      }),
+    ))
   })
 
   it("命中缓存时只读取当前口令版本", async () => {
