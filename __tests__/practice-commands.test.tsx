@@ -50,6 +50,7 @@ function createArgs(overrides: Record<string, unknown> = {}) {
     setChantMins: vi.fn(),
     setChantSecs: vi.fn(),
     setShowChantSettings: vi.fn(),
+    setShowGuidedAudioVersions: vi.fn(),
     setEditingOption: vi.fn(),
     setShowEditModal: vi.fn(),
     setShowCustomModal: vi.fn(),
@@ -100,6 +101,19 @@ describe("practice command rules", () => {
     expect(rules.isOptionsFull).toBe(true)
     expect(rules.canDeleteOption).toBe(true)
     expect([...rules.lockedOptionIds]).toEqual(["four"])
+  })
+
+  it("双击一序列口令按钮打开版本选择，单击仍选择口令练习", () => {
+    const guided = option("guided_audio", { is_fixed: true, is_preset: true })
+    const args = createArgs({ practiceOptions: [guided, option("one"), option("two")] })
+    const { result } = renderHook(() => usePracticeCommands(args as never))
+
+    result.current.handleOptionTap(guided)
+    expect(args.setSelectedOption).toHaveBeenCalledWith("guided_audio")
+    expect(args.setShowGuidedAudioVersions).not.toHaveBeenCalled()
+
+    result.current.handleOptionTap(guided)
+    expect(args.setShowGuidedAudioVersions).toHaveBeenCalledWith(true)
   })
 
   it("免费名额已满时打开会员提示，不创建选项或触发同步", async () => {

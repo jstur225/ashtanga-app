@@ -31,6 +31,7 @@ interface UsePracticeCommandsArgs {
   setChantMins: (value: number) => void
   setChantSecs: (value: number) => void
   setShowChantSettings: (value: boolean) => void
+  setShowGuidedAudioVersions: (value: boolean) => void
   setEditingOption: (value: PracticeOption | null) => void
   setShowEditModal: (value: boolean) => void
   setShowCustomModal: (value: boolean) => void
@@ -87,6 +88,8 @@ export function usePracticeCommands(args: UsePracticeCommandsArgs) {
           args.setChantMins(Math.floor(args.chantDelaySeconds / 60))
           args.setChantSecs(args.chantDelaySeconds % 60)
           args.setShowChantSettings(true)
+        } else if (option.id === "guided_audio") {
+          args.setShowGuidedAudioVersions(true)
         }
         return
       }

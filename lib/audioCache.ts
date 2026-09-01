@@ -3,11 +3,12 @@
 
 const DB_NAME = 'AshtangaAudioDB';
 const STORE_NAME = 'audioCache';
-const AUDIO_KEY = 'guruji-led-primary';
-const CACHE_VERSION_KEY = 'audio-cache-version';
+const LEGACY_AUDIO_KEY = 'guruji-led-primary';
+const LEGACY_CACHE_VERSION_KEY = 'audio-cache-version';
 
-// 当前音频版本，如果音频文件更新，修改此版本号
-const CURRENT_AUDIO_VERSION = '1.0';
+function getCacheVersionKey(audioKey: string) {
+  return `audio-cache-version:${audioKey}`;
+}
 
 class AudioCacheService {
   private db: IDBDatabase | null = null;
@@ -35,14 +36,22 @@ class AudioCacheService {
   }
 
   // 检查缓存是否有效（存在且版本正确）
-  async isCacheValid(): Promise<boolean> {
+  async isCacheValid(audioKey: string, currentVersion: string): Promise<boolean> {
     try {
-      const cachedVersion = localStorage.getItem(CACHE_VERSION_KEY);
-      if (cachedVersion !== CURRENT_AUDIO_VERSION) {
+      const versionKey = getCacheVersionKey(audioKey);
+      let cachedVersion = localStorage.getItem(versionKey);
+
+      // 兼容升级前已经下载的老掌门人缓存，避免重新下载大文件。
+      if (!cachedVersion && audioKey === LEGACY_AUDIO_KEY) {
+        cachedVersion = localStorage.getItem(LEGACY_CACHE_VERSION_KEY);
+        if (cachedVersion === currentVersion) localStorage.setItem(versionKey, cachedVersion);
+      }
+
+      if (cachedVersion !== currentVersion) {
         return false;
       }
 
-      const hasAudio = await this.hasAudio();
+      const hasAudio = await this.hasAudio(audioKey);
       return hasAudio;
     } catch {
       return false;
@@ -50,13 +59,13 @@ class AudioCacheService {
   }
 
   // 检查是否有缓存的音频
-  async hasAudio(): Promise<boolean> {
+  async hasAudio(audioKey: string): Promise<boolean> {
     if (!this.db) await this.init();
 
     return new Promise((resolve) => {
       const transaction = this.db!.transaction([STORE_NAME], 'readonly');
       const store = transaction.objectStore(STORE_NAME);
-      const request = store.get(AUDIO_KEY);
+      const request = store.get(audioKey);
 
       request.onsuccess = () => {
         resolve(request.result !== undefined);
@@ -67,13 +76,13 @@ class AudioCacheService {
   }
 
   // 获取缓存的音频（返回 Blob URL）
-  async getAudioUrl(): Promise<string | null> {
+  async getAudioUrl(audioKey: string): Promise<string | null> {
     if (!this.db) await this.init();
 
     return new Promise((resolve) => {
       const transaction = this.db!.transaction([STORE_NAME], 'readonly');
       const store = transaction.objectStore(STORE_NAME);
-      const request = store.get(AUDIO_KEY);
+      const request = store.get(audioKey);
 
       request.onsuccess = () => {
         if (request.result) {
@@ -90,13 +99,13 @@ class AudioCacheService {
   }
 
   // 获取缓存的音频（返回 ArrayBuffer，用于创建 Audio 对象）
-  async getAudioBuffer(): Promise<ArrayBuffer | null> {
+  async getAudioBuffer(audioKey: string): Promise<ArrayBuffer | null> {
     if (!this.db) await this.init();
 
     return new Promise((resolve) => {
       const transaction = this.db!.transaction([STORE_NAME], 'readonly');
       const store = transaction.objectStore(STORE_NAME);
-      const request = store.get(AUDIO_KEY);
+      const request = store.get(audioKey);
 
       request.onsuccess = () => {
         resolve(request.result || null);
@@ -107,17 +116,17 @@ class AudioCacheService {
   }
 
   // 保存音频到缓存
-  async saveAudio(arrayBuffer: ArrayBuffer): Promise<void> {
+  async saveAudio(audioKey: string, currentVersion: string, arrayBuffer: ArrayBuffer): Promise<void> {
     if (!this.db) await this.init();
 
     return new Promise((resolve, reject) => {
       const transaction = this.db!.transaction([STORE_NAME], 'readwrite');
       const store = transaction.objectStore(STORE_NAME);
-      const request = store.put(arrayBuffer, AUDIO_KEY);
+      const request = store.put(arrayBuffer, audioKey);
 
       request.onsuccess = () => {
         // 保存版本号
-        localStorage.setItem(CACHE_VERSION_KEY, CURRENT_AUDIO_VERSION);
+        localStorage.setItem(getCacheVersionKey(audioKey), currentVersion);
         resolve();
       };
 
@@ -128,6 +137,8 @@ class AudioCacheService {
   // 下载并缓存音频，带进度回调
   async downloadAndCache(
     url: string,
+    audioKey: string,
+    currentVersion: string,
     onProgress?: (loaded: number, total: number) => void,
     options?: { priority?: 'high' | 'low' | 'auto' }
   ): Promise<ArrayBuffer> {
@@ -172,7 +183,7 @@ class AudioCacheService {
     const arrayBuffer = allChunks.buffer;
 
     // 保存到 IndexedDB（后台执行，不阻塞）
-    this.saveAudio(arrayBuffer).catch((err) => {
+    this.saveAudio(audioKey, currentVersion, arrayBuffer).catch((err) => {
       console.error('缓存音频失败:', err);
     });
 
@@ -180,16 +191,17 @@ class AudioCacheService {
   }
 
   // 清理缓存
-  async clearCache(): Promise<void> {
+  async clearCache(audioKey: string): Promise<void> {
     if (!this.db) await this.init();
 
     return new Promise((resolve, reject) => {
       const transaction = this.db!.transaction([STORE_NAME], 'readwrite');
       const store = transaction.objectStore(STORE_NAME);
-      const request = store.delete(AUDIO_KEY);
+      const request = store.delete(audioKey);
 
       request.onsuccess = () => {
-        localStorage.removeItem(CACHE_VERSION_KEY);
+        localStorage.removeItem(getCacheVersionKey(audioKey));
+        if (audioKey === LEGACY_AUDIO_KEY) localStorage.removeItem(LEGACY_CACHE_VERSION_KEY);
         resolve();
       };
 

@@ -26,6 +26,7 @@ export interface ActivePracticeContext {
   optionId: string
   label: string
   notes: string
+  guidedAudioVariantId?: string
 }
 
 type StoredValueSetter<T> = (next: T) => void

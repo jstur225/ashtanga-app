@@ -42,6 +42,19 @@ test.describe('L4 练习流程', () => {
     await expect(anyControl).toBeVisible({ timeout: 20_000 })
   })
 
+  test('口令模式：双击选择 Sharath Jois 并持久化', async ({ page }) => {
+    await page.goto('/practice', { waitUntil: 'domcontentloaded' })
+    await waitForHydration(page)
+
+    await page.getByRole('button', { name: /一序列.*老掌门人版口令/ }).dblclick()
+    await expect(page.getByRole('dialog', { name: '选择口令版本' })).toBeVisible()
+    await page.getByRole('button', { name: /Sharath Jois版口令/ }).click()
+
+    await expect(page.getByRole('button', { name: /一序列.*Sharath Jois版口令/ })).toBeVisible()
+    await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('ashtanga_guided_audio_variant') || 'null')))
+      .toBe('sharath-jois-led-primary')
+  })
+
   test('唱诵模式：开启 → 倒计时覆盖层出现 → 跳过', async ({ page }) => {
     await page.goto('/practice', { waitUntil: 'domcontentloaded' })
     await waitForHydration(page)
