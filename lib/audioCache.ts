@@ -199,9 +199,12 @@ class AudioCacheService {
     audioKey: string,
     currentVersion: string,
     onProgress?: (loaded: number, total: number) => void,
-    options?: { priority?: 'high' | 'low' | 'auto' }
+    options?: { priority?: 'high' | 'low' | 'auto'; signal?: AbortSignal }
   ): Promise<ArrayBuffer> {
-    const response = await fetch(new Request(url, { priority: options?.priority || 'auto' }));
+    const response = await fetch(new Request(url, {
+      priority: options?.priority || 'auto',
+      signal: options?.signal,
+    }));
 
     const details: AudioDownloadDetails = {
       requestedUrl: url,
@@ -284,6 +287,28 @@ class AudioCacheService {
 
       request.onerror = () => reject(request.error);
     });
+  }
+
+  // 清理所有口令音频及其版本标记（“删除全部数据”使用）
+  async clearAllCaches(): Promise<void> {
+    if (!this.db) await this.init();
+
+    await new Promise<void>((resolve, reject) => {
+      const transaction = this.db!.transaction([STORE_NAME], 'readwrite');
+      const store = transaction.objectStore(STORE_NAME);
+      store.clear();
+
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error);
+      transaction.onabort = () => reject(transaction.error ?? new Error('清空音频缓存事务已中止'));
+    });
+
+    for (let index = localStorage.length - 1; index >= 0; index -= 1) {
+      const key = localStorage.key(index);
+      if (key?.startsWith('audio-cache-version:') || key === LEGACY_CACHE_VERSION_KEY) {
+        localStorage.removeItem(key);
+      }
+    }
   }
 }
 
