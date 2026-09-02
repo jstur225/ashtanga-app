@@ -51,6 +51,10 @@ function recordGuidedAudioDiagnostic(type: string, details: Record<string, unkno
   }
 }
 
+function isAutoplayBlocked(error: unknown) {
+  return error instanceof Error && error.name === "NotAllowedError"
+}
+
 function getMediaDetails(audio: HTMLAudioElement) {
   return {
     currentSrc: audio.currentSrc || audio.src || null,
@@ -80,6 +84,7 @@ export function shouldShowPracticeControls(
 export function useGuidedAudio({ source, cacheKey, cacheVersion, onReady, onEnded }: UseGuidedAudioOptions) {
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const blobUrlRef = useRef<string | null>(null)
+  const cacheDownloadControllerRef = useRef<AbortController | null>(null)
   const loadingRef = useRef(false)
   const onReadyRef = useRef(onReady)
   const onEndedRef = useRef(onEnded)
@@ -96,10 +101,15 @@ export function useGuidedAudio({ source, cacheKey, cacheVersion, onReady, onEnde
   const [isBackgroundCaching, setIsBackgroundCaching] = useState(false)
 
   const releaseMedia = useCallback(() => {
-    if (audioRef.current) {
-      audioRef.current.pause()
-      audioRef.current.src = ""
-      audioRef.current = null
+    cacheDownloadControllerRef.current?.abort()
+    cacheDownloadControllerRef.current = null
+    const audio = audioRef.current
+    // Detach first: assigning an empty src can itself emit a media error. Any
+    // event from this released element must not affect the next playback.
+    audioRef.current = null
+    if (audio) {
+      audio.pause()
+      audio.src = ""
     }
     if (blobUrlRef.current) {
       URL.revokeObjectURL(blobUrlRef.current)
@@ -123,7 +133,7 @@ export function useGuidedAudio({ source, cacheKey, cacheVersion, onReady, onEnde
   const attachEvents = useCallback((audio: HTMLAudioElement, cacheBacked: boolean) => {
     let failed = false
     const fail = (message: string, phase: "autoplay" | "media_element", cause?: unknown) => {
-      if (failed) return
+      if (failed || audioRef.current !== audio) return
       failed = true
       recordGuidedAudioDiagnostic("guided_audio_playback_error", {
         source,
@@ -152,23 +162,50 @@ export function useGuidedAudio({ source, cacheKey, cacheVersion, onReady, onEnde
     }
 
     audio.addEventListener("loadedmetadata", () => {
+      if (audioRef.current !== audio) return
       setDuration(audio.duration)
       setIsLoaded(true)
       setIsLoading(false)
       loadingRef.current = false
-      onReadyRef.current()
-      void audio.play().catch((playError) => fail("音频播放失败，请重试", "autoplay", playError))
+      void audio.play()
+        .then(() => {
+          if (audioRef.current === audio) onReadyRef.current()
+        })
+        .catch((playError) => {
+          if (audioRef.current !== audio) return
+          if (isAutoplayBlocked(playError)) {
+            recordGuidedAudioDiagnostic("guided_audio_autoplay_blocked", {
+              source,
+              cacheKey,
+              cacheVersion,
+              cacheBacked,
+              phase: "autoplay",
+              ...getMediaDetails(audio),
+              ...describeError(playError),
+              ...getNetworkDetails(),
+            })
+            setError(null)
+            return
+          }
+          fail("音频播放失败，请重试", "autoplay", playError)
+        })
     })
     audio.addEventListener("timeupdate", () => {
+      if (audioRef.current !== audio) return
       setCurrentTime(audio.currentTime)
       setProgress(audio.duration > 0 ? (audio.currentTime / audio.duration) * 100 : 0)
     })
-    audio.addEventListener("ended", () => onEndedRef.current())
-    audio.addEventListener("error", () => fail(
-      cacheBacked ? "音频播放失败，请重试" : "音频播放失败，请检查网络连接",
-      "media_element",
-      audio.error,
-    ))
+    audio.addEventListener("ended", () => {
+      if (audioRef.current === audio) onEndedRef.current()
+    })
+    audio.addEventListener("error", () => {
+      if (audioRef.current !== audio) return
+      fail(
+        cacheBacked ? "音频播放失败，请重试" : "音频播放失败，请检查网络连接",
+        "media_element",
+        audio.error,
+      )
+    })
   }, [cacheKey, cacheVersion, source])
 
   const load = useCallback(async () => {
@@ -197,9 +234,15 @@ export function useGuidedAudio({ source, cacheKey, cacheVersion, onReady, onEnde
         const audio = new Audio(source)
         attachEvents(audio, false)
         audioRef.current = audio
+        const cacheDownloadController = new AbortController()
+        cacheDownloadControllerRef.current = cacheDownloadController
         setIsBackgroundCaching(true)
-        void audioCache.downloadAndCache(source, cacheKey, cacheVersion, undefined, { priority: "low" })
+        void audioCache.downloadAndCache(source, cacheKey, cacheVersion, undefined, {
+          priority: "low",
+          signal: cacheDownloadController.signal,
+        })
           .catch((cacheError) => {
+            if (cacheError instanceof Error && cacheError.name === "AbortError") return
             recordGuidedAudioDiagnostic("guided_audio_cache_error", {
               source,
               cacheKey,
@@ -208,7 +251,12 @@ export function useGuidedAudio({ source, cacheKey, cacheVersion, onReady, onEnde
               ...getNetworkDetails(),
             })
           })
-          .finally(() => setIsBackgroundCaching(false))
+          .finally(() => {
+            if (cacheDownloadControllerRef.current === cacheDownloadController) {
+              cacheDownloadControllerRef.current = null
+            }
+            setIsBackgroundCaching(false)
+          })
       }
       return true
     } catch (loadError) {

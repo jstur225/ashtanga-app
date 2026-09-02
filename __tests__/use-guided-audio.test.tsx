@@ -75,10 +75,13 @@ describe("useGuidedAudio", () => {
       "test-audio",
       "1.0",
       undefined,
-      { priority: "low" },
+      { priority: "low", signal: expect.any(AbortSignal) },
     )
     expect(AudioMock.instances).toHaveLength(1)
-    act(() => { AudioMock.instances[0].emit("loadedmetadata") })
+    await act(async () => {
+      AudioMock.instances[0].emit("loadedmetadata")
+      await Promise.resolve()
+    })
     expect(result.current.isLoaded).toBe(true)
     expect(onReady).toHaveBeenCalledTimes(1)
     expect(AudioMock.instances[0].play).toHaveBeenCalledTimes(1)
@@ -105,6 +108,32 @@ describe("useGuidedAudio", () => {
         phase: "media_element",
         source: "/audio/test.m4a",
       }),
+    )
+  })
+
+  it("浏览器阻止自动播放时保持暂停等待用户继续，不显示音频故障", async () => {
+    const onReady = vi.fn()
+    const { result } = renderHook(() => useGuidedAudio({
+      ...guidedOptions,
+      onReady,
+      onEnded: vi.fn(),
+    }))
+
+    await act(async () => { await result.current.load() })
+    const audio = AudioMock.instances[0]
+    audio.play.mockRejectedValueOnce(Object.assign(new Error("user activation required"), { name: "NotAllowedError" }))
+    await act(async () => {
+      audio.emit("loadedmetadata")
+      await Promise.resolve()
+    })
+
+    expect(result.current.isLoaded).toBe(true)
+    expect(result.current.error).toBeNull()
+    expect(onReady).not.toHaveBeenCalled()
+    expect(cache.clearCache).not.toHaveBeenCalled()
+    expect(recordDiagnostic).toHaveBeenCalledWith(
+      "guided_audio_autoplay_blocked",
+      expect.objectContaining({ cacheKey: "test-audio", phase: "autoplay" }),
     )
   })
 
@@ -154,7 +183,10 @@ describe("useGuidedAudio", () => {
 
     await act(async () => { await result.current.load() })
     rerender({ onReady: latestReady })
-    act(() => { AudioMock.instances[0].emit("loadedmetadata") })
+    await act(async () => {
+      AudioMock.instances[0].emit("loadedmetadata")
+      await Promise.resolve()
+    })
 
     expect(initialReady).not.toHaveBeenCalled()
     expect(latestReady).toHaveBeenCalledTimes(1)
@@ -181,6 +213,46 @@ describe("useGuidedAudio", () => {
     expect(audio.pause).toHaveBeenCalled()
     expect(audio.src).toBe("")
     expect(result.current.isLoaded).toBe(false)
+  })
+
+  it("释放后的媒体错误事件不会被误报为播放失败或清除缓存", async () => {
+    cache.isCacheValid.mockResolvedValue(true)
+    cache.getAudioBuffer.mockResolvedValue(new ArrayBuffer(4))
+    const { result } = renderHook(() => useGuidedAudio({
+      ...guidedOptions,
+      onReady: vi.fn(),
+      onEnded: vi.fn(),
+    }))
+
+    await act(async () => { await result.current.load() })
+    const audio = AudioMock.instances[0]
+    recordDiagnostic.mockClear()
+    act(() => { result.current.reset() })
+    act(() => { audio.emit("error") })
+
+    expect(result.current.error).toBeNull()
+    expect(cache.clearCache).not.toHaveBeenCalled()
+    expect(recordDiagnostic).not.toHaveBeenCalledWith(
+      "guided_audio_playback_error",
+      expect.anything(),
+    )
+  })
+
+  it("重置时取消尚未完成的后台缓存下载，防止清空后重新写回", async () => {
+    cache.downloadAndCache.mockReturnValue(new Promise(() => undefined))
+    const { result } = renderHook(() => useGuidedAudio({
+      ...guidedOptions,
+      onReady: vi.fn(),
+      onEnded: vi.fn(),
+    }))
+
+    await act(async () => { await result.current.load() })
+    const options = cache.downloadAndCache.mock.calls[0][4] as { signal: AbortSignal }
+    expect(options.signal.aborted).toBe(false)
+
+    act(() => { result.current.reset() })
+
+    expect(options.signal.aborted).toBe(true)
   })
 
   it("音频失败时保留普通计时控制", () => {

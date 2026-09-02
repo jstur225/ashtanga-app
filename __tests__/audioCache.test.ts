@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { audioCache } from '@/lib/audioCache'
 
 /**
  * Self-contained mock AudioCacheService
@@ -25,14 +26,27 @@ class MockAudioCache {
     localStorage.removeItem(`audio-cache-version:${audioKey}`)
   }
 
+  async clearAllCaches(): Promise<void> {
+    this.data.clear()
+    for (let index = localStorage.length - 1; index >= 0; index -= 1) {
+      const key = localStorage.key(index)
+      if (key?.startsWith('audio-cache-version:') || key === 'audio-cache-version') {
+        localStorage.removeItem(key)
+      }
+    }
+  }
+
   async downloadAndCache(
     url: string,
     audioKey: string,
     currentVersion: string,
     onProgress?: (loaded: number, total: number) => void,
-    options?: { priority?: 'high' | 'low' | 'auto' }
+    options?: { priority?: 'high' | 'low' | 'auto'; signal?: AbortSignal }
   ): Promise<ArrayBuffer> {
-    const response = await fetch(new Request(url, { priority: options?.priority || 'auto' }))
+    const response = await fetch(new Request(url, {
+      priority: options?.priority || 'auto',
+      signal: options?.signal,
+    }))
     if (!response.ok) throw new Error(`下载失败: ${response.status}`)
 
     const total = parseInt(response.headers.get('content-length') || '0', 10)
@@ -100,6 +114,10 @@ describe('audioCache', () => {
   })
 
   describe('clearCache', () => {
+    it('生产缓存服务提供清空全部音频缓存的能力', () => {
+      expect(typeof (audioCache as typeof audioCache & { clearAllCaches?: unknown }).clearAllCaches).toBe('function')
+    })
+
     it('clears cache and invalidates', async () => {
       await cache.saveAudio('guruji', '1.0', new ArrayBuffer(100))
       expect(await cache.isCacheValid('guruji', '1.0')).toBe(true)
@@ -115,6 +133,20 @@ describe('audioCache', () => {
 
       expect(await cache.isCacheValid('guruji', '1.0')).toBe(true)
       expect(await cache.isCacheValid('sharath', '1.0')).toBe(false)
+    })
+
+    it('清理全部口令版本和版本标记', async () => {
+      await cache.saveAudio('guruji', '1.0', new ArrayBuffer(10))
+      await cache.saveAudio('sharath', '1.0', new ArrayBuffer(20))
+      localStorage.setItem('audio-cache-version', 'legacy')
+
+      await cache.clearAllCaches()
+
+      expect(await cache.getAudioBuffer('guruji')).toBeNull()
+      expect(await cache.getAudioBuffer('sharath')).toBeNull()
+      expect(localStorage.getItem('audio-cache-version:guruji')).toBeNull()
+      expect(localStorage.getItem('audio-cache-version:sharath')).toBeNull()
+      expect(localStorage.getItem('audio-cache-version')).toBeNull()
     })
   })
 

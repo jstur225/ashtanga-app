@@ -36,6 +36,7 @@ import {
   GUIDED_AUDIO_VARIANT_STORAGE_KEY,
   getGuidedAudioVariant,
 } from '@/lib/guided-audio-variants'
+import { audioCache } from '@/lib/audioCache'
 
 // 懒加载弹窗（不阻塞首屏渲染）
 const TabLoading = () => (
@@ -989,6 +990,25 @@ export default function AshtangaTracker() {
           onConfirmPhraseChange: setConfirmPhrase,
           onInvalidConfirmPhrase: () => toast.error('确认词输入错误，请重新输入'),
           onComplete: async () => {
+            try {
+              resetGuidedAudio()
+              await audioCache.clearAllCaches()
+            } catch (cacheError) {
+              const error = cacheError instanceof Error ? cacheError : new Error(String(cacheError))
+              try {
+                ;(window as Window & {
+                  __ashtangaRuntimeDiagnostic?: (type: string, details: Record<string, unknown>) => void
+                }).__ashtangaRuntimeDiagnostic?.('guided_audio_cache_clear_all_error', {
+                  name: error.name,
+                  message: error.message,
+                  stack: error.stack?.slice(0, 1200) ?? null,
+                })
+              } catch {
+                // 日志记录失败不能遮蔽原始缓存清理错误。
+              }
+              toast.error('音频缓存清理失败，请重试')
+              return
+            }
             clearAppLocalStorage()
             if (user && clearAllData) {
               await clearAllData()
