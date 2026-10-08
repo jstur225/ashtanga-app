@@ -10,6 +10,7 @@ import {
   type ForgotPasswordStep,
 } from '@/lib/auth-modal-utils'
 import { useCountdownTimer } from '@/hooks/useCountdownTimer'
+import { normalizeAuthEmail } from '@/lib/auth-email'
 
 interface ForgotPasswordFlowArgs {
   email: string
@@ -46,7 +47,7 @@ export function useForgotPasswordFlow() {
 
     setLoading(true)
     try {
-      await sendAuthVerificationCode(email)
+      await sendAuthVerificationCode(normalizeAuthEmail(email))
       toast.success('✅ 验证码已发送到您的邮箱', {
         description: '请查收邮件获取验证码',
         duration: 5000,
@@ -69,7 +70,7 @@ export function useForgotPasswordFlow() {
     setLoading(true)
     try {
       await postAuthJson('/api/auth/verify-code', {
-        email,
+        email: normalizeAuthEmail(email),
         code: verifyCode,
         type: 'reset_password',
       })
@@ -108,7 +109,7 @@ export function useForgotPasswordFlow() {
     setLoading(true)
     try {
       await postAuthJson('/api/auth/reset-password', {
-        email,
+        email: normalizeAuthEmail(email),
         newPassword,
         code: verifyCode,
       })

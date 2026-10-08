@@ -11,6 +11,7 @@ import {
   type RegisterStep,
 } from '@/lib/auth-modal-utils'
 import { useCountdownTimer } from '@/hooks/useCountdownTimer'
+import { normalizeAuthEmail } from '@/lib/auth-email'
 
 interface RegisterFlowArgs {
   email: string
@@ -43,7 +44,7 @@ export function useRegisterFlow() {
   }, [stopRegisterCountdown, stopRegisteringCountdown])
 
   const sendRegisterCode = useCallback(async (email: string) => {
-    await sendAuthVerificationCode(email, 'email_verification')
+    await sendAuthVerificationCode(normalizeAuthEmail(email), 'email_verification')
     toast.success('📧 验证码已发送到您的邮箱', {
       description: '请查收邮件获取验证码',
       duration: 5000,
@@ -75,13 +76,14 @@ export function useRegisterFlow() {
     setLoading(true)
 
     try {
+      const normalizedEmail = normalizeAuthEmail(email)
       if (registerStep === 'form') {
         const validation = validateAuthPassword(password)
         if (!validation.valid) {
           setError(validation.error || '密码格式不正确')
           return
         }
-        await sendRegisterCode(email)
+        await sendRegisterCode(normalizedEmail)
         return
       }
 
@@ -98,7 +100,7 @@ export function useRegisterFlow() {
       startRegisteringCountdown(60)
 
       await postAuthJson('/api/auth/register', {
-        email,
+        email: normalizedEmail,
         password,
         verificationCode: registerVerifyCode,
       })
@@ -107,7 +109,7 @@ export function useRegisterFlow() {
 
       toast.info('🔄 正在自动登录...', { duration: 2000 })
 
-      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email: normalizedEmail, password })
       if (signInError) {
         toast.warning('✅ 注册成功，请手动登录', {
           description: '账号已创建，请点击登录按钮',

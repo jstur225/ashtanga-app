@@ -1,6 +1,7 @@
 const auth = require('../../services/auth');
 const paymentService = require('../../services/payment');
 const membershipService = require('../../services/membership');
+const practiceShare = require('../../utils/practice-share');
 
 function formatOrderTime(value) {
   if (!value) return '';
@@ -36,6 +37,8 @@ function presentPaymentOrder(order) {
 }
 
 Page({
+  ...practiceShare.pageShareHandlers,
+
   data: {
     orderLoading: true,
     paymentOrders: [],
@@ -43,7 +46,9 @@ Page({
     errorMessage: ''
   },
 
-  onLoad() {
+  onLoad(options = {}) {
+    practiceShare.showShareMenu();
+    practiceShare.redirectTimelineEntryToPractice(options);
     this.load();
   },
 

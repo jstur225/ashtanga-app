@@ -230,7 +230,7 @@ export function mergeOptions(
 }
 
 /**
- * 获取有效色阶（免费用户不可使用等级 1 和 4）
+ * 获取有效色阶（免费用户只使用默认等级 3）
  */
 export function getEffectiveOptionColor(
   options: { label: string; color_level?: number }[],
@@ -238,7 +238,7 @@ export function getEffectiveOptionColor(
   isPro: boolean
 ): number {
   const raw = options.find(o => o.label === label)?.color_level ?? 3
-  return (!isPro && (raw === 1 || raw === 4)) ? 3 : raw
+  return (!isPro && raw !== 3) ? 3 : raw
 }
 
 /**

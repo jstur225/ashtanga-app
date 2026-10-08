@@ -1,0 +1,69 @@
+.membership-mask {
+  background: rgba(0, 0, 0, .5);
+  bottom: 0;
+  left: 0;
+  position: fixed;
+  right: 0;
+  top: 0;
+  z-index: 1200;
+}
+
+.membership-sheet {
+  background: #F9F7F2;
+  border-radius: 48rpx 48rpx 0 0;
+  bottom: 0;
+  box-shadow: 0 -8rpx 40rpx rgba(0, 0, 0, .08);
+  box-sizing: border-box;
+  left: 0;
+  max-height: 85vh;
+  padding: 32rpx 32rpx calc(32rpx + env(safe-area-inset-bottom));
+  position: fixed;
+  right: 0;
+  z-index: 1210;
+}
+
+.membership-scroll { max-height: calc(85vh - 64rpx - env(safe-area-inset-bottom)); }
+
+.membership-card {
+  background: linear-gradient(135deg, #F9F7F2, #F5F0E8);
+  border: 2rpx solid rgba(193, 162, 104, .2);
+  border-radius: 48rpx;
+  box-shadow: 0 2rpx 8rpx rgba(107, 90, 71, .06);
+  box-sizing: border-box;
+  padding: 40rpx;
+}
+
+.membership-header { align-items: flex-start; display: flex; justify-content: space-between; }
+.membership-heading { flex: 1; min-width: 0; }
+.membership-title-row { align-items: center; display: flex; gap: 16rpx; margin-bottom: 16rpx; }
+.crown-box { align-items: center; background: linear-gradient(135deg, #C1A268, #D4AF37); border-radius: 16rpx; display: flex; height: 64rpx; justify-content: center; width: 64rpx; }
+.crown-icon { height: 32rpx; width: 32rpx; }
+.membership-title { color: #8B7355; font-family: 'Ashtanga Serif', serif; font-size: 34rpx; }
+.membership-subtitle { color: #8B7355; display: block; font-family: 'Ashtanga Serif', serif; font-size: 25rpx; }
+.membership-close { height: 64rpx; margin-right: -16rpx; margin-top: -8rpx; position: relative; width: 64rpx; }
+.close-line { background: #868C88; height: 3rpx; left: 18rpx; position: absolute; top: 31rpx; width: 28rpx; }
+.close-line-a { transform: rotate(45deg); }
+.close-line-b { transform: rotate(-45deg); }
+
+.benefit-section { border-top: 2rpx solid rgba(193, 162, 104, .2); margin-top: 32rpx; padding-top: 32rpx; }
+.benefit-table { background: rgba(255, 255, 255, .7); border: 2rpx solid rgba(193, 162, 104, .15); border-radius: 32rpx; box-shadow: 0 2rpx 8rpx rgba(107, 90, 71, .05); overflow: hidden; }
+.benefit-row { align-items: center; border-top: 2rpx solid rgba(193, 162, 104, .1); box-sizing: border-box; color: #8B7355; display: grid; font-size: 24rpx; grid-template-columns: 1.25fr .8fr .8fr; min-height: 76rpx; }
+.benefit-cell { box-sizing: border-box; padding: 14rpx 12rpx; text-align: center; }
+.benefit-first-cell { color: #6B5A47; font-family: 'Ashtanga Serif', serif; padding-left: 24rpx; text-align: left; }
+.benefit-head { background: #F5F0E8; border-top: 0; font-family: 'Ashtanga Serif', serif; font-size: 21rpx; min-height: 56rpx; }
+.benefit-head .benefit-first-cell { color: #8B7355; }
+.benefit-pro { color: #9A7438 !important; font-weight: 600; }
+
+.price-grid { display: grid; gap: 24rpx; grid-template-columns: 1fr 1fr; margin-top: 32rpx; }
+.price-card { align-items: center; background: rgba(255, 255, 255, .6); border: 2rpx solid rgba(193, 162, 104, .15); border-radius: 32rpx; box-shadow: 0 2rpx 8rpx rgba(107, 90, 71, .05); display: flex; flex-direction: column; padding: 30rpx 20rpx; position: relative; text-align: center; }
+.price-card.recommended { background: rgba(255, 255, 255, .8); border-color: rgba(193, 162, 104, .35); box-shadow: 0 12rpx 36rpx rgba(193, 162, 104, .14); }
+.recommend-label { background: rgba(193, 162, 104, .15); border-radius: 999rpx; color: #9A7438; font-family: 'Ashtanga Serif', serif; font-size: 18rpx; padding: 4rpx 14rpx; position: absolute; right: 12rpx; top: 12rpx; }
+.price-value { align-items: flex-start; color: #6B5A47; display: flex; font-size: 54rpx; font-weight: 700; line-height: 1; }
+.price-value-pro { color: #9A7438; }
+.price-symbol { font-size: 28rpx; margin-right: 2rpx; }
+.price-name { color: #6B5A47; font-family: 'Ashtanga Serif', serif; font-size: 25rpx; margin-top: 22rpx; }
+.price-days { color: #8B7355; font-family: 'Ashtanga Serif', serif; font-size: 21rpx; margin-top: 4rpx; }
+
+.upgrade-button { align-items: center; background: linear-gradient(135deg, #C1A268, #D4AF37); border-radius: 999rpx; box-shadow: 0 12rpx 36rpx rgba(193, 162, 104, .28); color: #FFFFFF; display: flex; height: 88rpx; justify-content: center; margin-top: 32rpx; padding: 0 40rpx; }
+.upgrade-title-row { align-items: center; display: flex; font-family: 'Ashtanga Serif', serif; font-size: 28rpx; font-weight: 500; gap: 12rpx; justify-content: center; white-space: nowrap; }
+.upgrade-crown { height: 30rpx; width: 30rpx; }

@@ -3,21 +3,26 @@ const auth = require('../../services/auth');
 const practiceSession = require('../../services/practice-session');
 const chantPlayback = require('../../services/chant-playback');
 const guidedAudio = require('../../services/guided-audio');
+const guidedAudioVariants = require('../../services/guided-audio-variants');
 const membershipService = require('../../services/membership');
 const membershipPolicy = require('../../services/membership-policy');
 const runtimeErrors = require('../../services/runtime-errors');
 const pageRefreshGate = require('../../services/page-refresh-gate');
+const practiceShare = require('../../utils/practice-share');
 const { checkText } = require('../../services/content-filter');
 const {
   getTodayPracticeCount
 } = require('../../services/practice-options');
 
 const TODAY_COUNT_CACHE_KEY = 'weapp_today_practice_count_v1';
+const INITIAL_GUIDED_AUDIO_VARIANT = guidedAudioVariants.getStoredGuidedAudioVariant();
 
 // 双击检测（300ms 内同选项）
 let lastTap = null;
 
 Page({
+  ...practiceShare.pageShareHandlers,
+
   data: {
     loading: false,
     error: '',
@@ -75,11 +80,17 @@ Page({
     guidedAudioDurationText: '00:00',
     guidedAudioSeekStep: 15,
     guidedAudioLoadingText: '正在准备口令音频…',
+    guidedAudioComfortProgress: 8,
+    guidedAudioVariants: guidedAudioVariants.GUIDED_AUDIO_VARIANTS,
+    selectedGuidedAudioVariantId: INITIAL_GUIDED_AUDIO_VARIANT.id,
+    selectedGuidedAudioVariant: INITIAL_GUIDED_AUDIO_VARIANT,
+    showGuidedAudioVersions: false,
     showMembershipPrompt: false,
     membershipPromptReason: 'options_full'
   },
 
   onLoad() {
+    practiceShare.showShareMenu();
     const trace = runtimeErrors.startTrace('page', 'practice_cache_render');
     this.setToday();
     this.hydrateFromCache();
@@ -87,11 +98,14 @@ Page({
       option_count: this.data.practiceOptions.length,
       record_count: this.data.formRecords.length
     });
-    guidedAudio.preload();
+    guidedAudio.selectVariant(this.data.selectedGuidedAudioVariantId, false);
+    guidedAudio.preload(this.data.selectedGuidedAudioVariantId);
   },
 
   onShow() {
     this.syncTabBar();
+    chantPlayback.handleForeground();
+    guidedAudio.handleForeground();
     const storedSession = practiceSession.getSession();
     if (!storedSession || storedSession.optionId === 'guided_audio') {
       guidedAudio.preload();
@@ -114,12 +128,19 @@ Page({
 
   onHide() {
     this.stopTimer();
-    chantPlayback.stopAll();
-    guidedAudio.releaseAudio();
+    chantPlayback.handleBackground();
+    const activePractice = practiceSession.getSession();
+    if (activePractice && activePractice.optionId === 'guided_audio') {
+      guidedAudio.handleBackground();
+    } else {
+      this.stopGuidedAudioComfortProgress();
+      guidedAudio.releaseAudio();
+    }
   },
 
   onUnload() {
     this.stopTimer();
+    this.stopGuidedAudioComfortProgress();
     chantPlayback.stopAll();
     guidedAudio.releaseAudio();
   },
@@ -128,7 +149,7 @@ Page({
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setData({
         selected: 0,
-        hidden: this.data.isPracticing || this.data.showCompletion || this.data.showCustomOption || this.data.showEditOption || this.data.showEndConfirm || this.data.showChantSettings || this.data.showMembershipPrompt
+        hidden: this.data.isPracticing || this.data.showCompletion || this.data.showCustomOption || this.data.showEditOption || this.data.showEndConfirm || this.data.showChantSettings || this.data.showGuidedAudioVersions || this.data.showMembershipPrompt
       });
     }
   },
@@ -166,7 +187,7 @@ Page({
         {
           id: 'guided_audio',
           label: '一序列',
-          notes: '老掌门人版口令',
+          notes: this.data.selectedGuidedAudioVariant.note,
           isFixed: true,
           isPreset: true,
           hasAudio: true,
@@ -264,6 +285,12 @@ Page({
             chantSettingsMins: Math.floor(delay / 60),
             chantSettingsSecs: delay % 60
           }, () => this.setTabBarHidden(true));
+        } else if (option.id === 'guided_audio') {
+          guidedAudio.preload(this.data.selectedGuidedAudioVariantId);
+          this.setData({
+            selectedOptionId: 'guided_audio',
+            showGuidedAudioVersions: true
+          }, () => this.setTabBarHidden(true));
         } else if (option.isPreset) {
           wx.showToast({ title: '预设按钮暂不支持编辑，中文口令开发中。', icon: 'none' });
         }
@@ -359,7 +386,10 @@ Page({
     }
 
     const isGuidedAudio = option.id === 'guided_audio';
-    const activePractice = practiceSession.start(option, Date.now(), isGuidedAudio);
+    const activePractice = practiceSession.start({
+      ...option,
+      guidedAudioVariantId: isGuidedAudio ? this.data.selectedGuidedAudioVariantId : undefined
+    }, Date.now(), isGuidedAudio);
     this.setData({
       isPracticing: true,
       isPaused: isGuidedAudio,
@@ -426,6 +456,8 @@ Page({
     // 恢复口令跟练时自动加载音频（如果是暂停状态，加载后不自动恢复计时）
     if (activePractice.optionId === 'guided_audio') {
       const wasPaused = Boolean(activePractice.paused);
+      const sessionVariant = guidedAudioVariants.getGuidedAudioVariant(activePractice.guidedAudioVariantId);
+      guidedAudio.selectVariant(sessionVariant.id, false);
       this.loadGuidedAudio(wasPaused);
     }
 
@@ -523,6 +555,7 @@ Page({
     const finalSession = practiceSession.finish();
     if (!finalSession) return;
     chantPlayback.stopAll();
+    this.stopGuidedAudioComfortProgress();
     guidedAudio.releaseAudio();
     this.stopTimer();
     this.setData({
@@ -539,6 +572,7 @@ Page({
 
   discardPractice() {
     chantPlayback.stopAll();
+    this.stopGuidedAudioComfortProgress();
     guidedAudio.releaseAudio();
     practiceSession.discard();
     this.stopTimer();
@@ -879,7 +913,59 @@ Page({
 
   // === 口令跟练音频 ===
 
+  closeGuidedAudioVersions() {
+    this.setData({ showGuidedAudioVersions: false }, () => this.setTabBarHidden(false));
+  },
+
+  onSelectGuidedAudioVariant(event) {
+    const variant = guidedAudioVariants.storeGuidedAudioVariant(event.currentTarget.dataset.id);
+    const changed = variant.id !== this.data.selectedGuidedAudioVariantId;
+    if (changed) {
+      guidedAudio.selectVariant(variant.id, false);
+      const practiceOptions = this.data.practiceOptions.map((item) => (
+        item.id === 'guided_audio' ? { ...item, notes: variant.note } : item
+      ));
+      this.setData({
+        selectedGuidedAudioVariantId: variant.id,
+        selectedGuidedAudioVariant: variant,
+        practiceOptions
+      });
+      if (this.data.selectedOptionId === 'guided_audio') guidedAudio.preload(variant.id);
+      wx.showToast({ title: `已切换为${variant.note}`, icon: 'none' });
+    }
+    this.closeGuidedAudioVersions();
+  },
+
+  startGuidedAudioComfortProgress() {
+    this.stopGuidedAudioComfortProgress(false);
+    const startedAt = Date.now();
+    this.setData({ guidedAudioComfortProgress: 8 });
+    this.guidedAudioComfortTimer = setInterval(() => {
+      const elapsedMs = Math.max(0, Date.now() - startedAt);
+      const easedProgress = 99 * (1 - Math.exp(-elapsedMs / 2600));
+      this.setData({
+        guidedAudioComfortProgress: Math.min(99, Math.max(8, Math.round(easedProgress)))
+      });
+    }, 180);
+  },
+
+  stopGuidedAudioComfortProgress(reset = true) {
+    if (this.guidedAudioComfortTimer) {
+      clearInterval(this.guidedAudioComfortTimer);
+      this.guidedAudioComfortTimer = null;
+    }
+    if (reset && this.data.guidedAudioComfortProgress !== 8) {
+      this.setData({ guidedAudioComfortProgress: 8 });
+    }
+  },
+
   loadGuidedAudio(suppressResume = false) {
+    const activeSession = practiceSession.getSession();
+    const variant = activeSession && activeSession.optionId === 'guided_audio'
+      ? guidedAudioVariants.getGuidedAudioVariant(activeSession.guidedAudioVariantId)
+      : this.data.selectedGuidedAudioVariant;
+    guidedAudio.selectVariant(variant.id, false);
+    this.startGuidedAudioComfortProgress();
     this.setData({
       guidedAudioLoading: true,
       guidedAudioLoaded: false,
@@ -897,11 +983,18 @@ Page({
       onStatus: ({ status, text }) => {
         const nextState = {};
         if (text) nextState.guidedAudioLoadingText = text;
-        if (status === 'buffering') nextState.guidedAudioLoading = true;
-        if (status === 'playing' || status === 'ready') nextState.guidedAudioLoading = false;
+        if (status === 'buffering') {
+          nextState.guidedAudioLoading = true;
+          this.startGuidedAudioComfortProgress();
+        }
+        if (status === 'playing' || status === 'ready') {
+          nextState.guidedAudioLoading = false;
+          this.stopGuidedAudioComfortProgress();
+        }
         if (Object.keys(nextState).length > 0) this.setData(nextState);
       },
       onReady: () => {
+        this.stopGuidedAudioComfortProgress();
         this.setData({
           guidedAudioLoading: false,
           guidedAudioLoaded: true,
@@ -921,6 +1014,31 @@ Page({
       onEnded: () => {
         this.requestEndPractice();
       },
+      onPlaybackPause: () => {
+        const session = practiceSession.getSession();
+        if (!session || session.optionId !== 'guided_audio' || session.paused) return;
+        const activePractice = practiceSession.pause(Date.now());
+        const elapsedSeconds = practiceSession.getElapsedSeconds(activePractice);
+        this.stopTimer();
+        this.setData({
+          isPaused: true,
+          activePractice,
+          elapsedSeconds,
+          ...this.formatElapsed(elapsedSeconds)
+        });
+      },
+      onPlaybackResume: () => {
+        const session = practiceSession.getSession();
+        if (
+          !this.data.guidedAudioLoaded
+          || !session
+          || session.optionId !== 'guided_audio'
+          || !session.paused
+        ) return;
+        const activePractice = practiceSession.resume(Date.now());
+        this.setData({ isPaused: false, activePractice });
+        this.startTimer();
+      },
       onTimeUpdate: ({ currentTime, duration, progress }) => {
         this.setData({
           guidedAudioCurrentTime: currentTime,
@@ -931,13 +1049,14 @@ Page({
         });
       },
       onError: () => {
+        this.stopGuidedAudioComfortProgress();
         this.setData({
           guidedAudioLoading: false,
           guidedAudioLoaded: false,
           guidedAudioError: '音频播放失败，请重试'
         });
       }
-    });
+    }, variant.id);
   },
 
   onRetryGuidedAudio() {
@@ -1036,7 +1155,8 @@ Page({
         this.data.showCompletion ||
         this.data.showCustomOption ||
         this.data.showEditOption ||
-        this.data.showChantSettings
+        this.data.showChantSettings ||
+        this.data.showGuidedAudioVersions
       ));
     });
   },

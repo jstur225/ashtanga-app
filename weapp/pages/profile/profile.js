@@ -9,6 +9,7 @@ const paymentService = require('../../services/payment');
 const photoStorage = require('../../services/photo-storage');
 const runtimeErrors = require('../../services/runtime-errors');
 const pageRefreshGate = require('../../services/page-refresh-gate');
+const practiceShare = require('../../utils/practice-share');
 const { getMoonType, getMoonIcon } = require('../../services/moon-days');
 
 const DEFAULT_PROFILE = localProfile.DEFAULT_PROFILE;
@@ -102,6 +103,8 @@ function compressAvatar(path) {
 }
 
 Page({
+  ...practiceShare.pageShareHandlers,
+
   data: {
     loading: false,
     submitLoading: false,
@@ -162,6 +165,11 @@ Page({
     clearDataStep: 1,
     clearConfirmPhrase: '',
     clearDataAlsoLogout: false
+  },
+
+  onLoad(options = {}) {
+    practiceShare.showShareMenu();
+    practiceShare.redirectTimelineEntryToPractice(options);
   },
 
   onShow() {

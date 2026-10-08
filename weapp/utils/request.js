@@ -88,6 +88,7 @@ function request(options) {
 function supabaseRequest(path, options = {}) {
   const headers = {
     apikey: config.supabaseAnonKey,
+    Authorization: `Bearer ${config.supabaseAnonKey}`,
     'Content-Type': 'application/json',
     ...(options.header || {})
   };

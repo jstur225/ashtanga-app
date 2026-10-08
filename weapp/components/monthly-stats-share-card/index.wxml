@@ -1,0 +1,19 @@
+<view wx:if="{{show}}" class="share-mask" bindtap="handleClose">
+  <view class="share-modal" catchtap="stopPropagation">
+    <scroll-view class="share-preview-scroll" scroll-x scroll-y enhanced show-scrollbar="{{true}}" style="height:{{previewViewportHeight}}px">
+      <view class="share-preview-content" style="width:{{previewWidth}}px;height:{{previewHeight}}px;display:flex;justify-content:center">
+        <canvas id="monthlyStatsCanvas" type="2d" class="share-canvas" style="width:{{previewWidth}}px;height:{{previewHeight}}px"></canvas>
+        <view wx:if="{{rendering}}" class="rendering-mask"><view class="rendering-spinner"></view><text>正在整理卡片</text></view>
+      </view>
+    </scroll-view>
+    <view class="zoom-controls">
+      <view class="zoom-button" bindtap="zoomOut">−</view>
+      <view class="zoom-value" bindtap="resetZoom">{{previewPercent}}%</view>
+      <view class="zoom-button" bindtap="zoomIn">＋</view>
+    </view>
+    <view class="share-actions">
+      <view class="share-button secondary" bindtap="handleClose">返回</view>
+      <view class="share-button primary {{saving || rendering ? 'disabled' : ''}}" bindtap="saveImage"><text>{{saving ? '保存中...' : rendering ? '生成中...' : '保存图片'}}</text></view>
+    </view>
+  </view>
+</view>

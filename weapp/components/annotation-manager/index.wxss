@@ -1,0 +1,532 @@
+.ann-mask {
+  align-items: flex-end;
+  background: rgba(0, 0, 0, 0.3);
+  bottom: 0;
+  display: flex;
+  left: 0;
+  position: fixed;
+  right: 0;
+  top: 0;
+  z-index: 999;
+}
+
+.ann-sheet {
+  background: #FFFFFF;
+  border-radius: 48rpx 48rpx 0 0;
+  box-shadow: 0 -8rpx 40rpx rgba(0, 0, 0, 0.08);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  max-height: 85vh;
+  position: relative;
+  width: 100%;
+}
+
+/* ===== Header ===== */
+.ann-header {
+  align-items: flex-end;
+  display: flex;
+  flex-shrink: 0;
+  justify-content: space-between;
+  padding: 32rpx 40rpx 16rpx;
+}
+
+.ann-header-left {
+  align-items: baseline;
+  display: flex;
+  gap: 12rpx;
+}
+
+.ann-title {
+  color: #2A4B3C;
+  font-family: 'Ashtanga Serif', 'Songti SC', STSong, serif;
+  font-size: 34rpx;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.ann-subtitle {
+  color: #868C88;
+  font-family: 'Ashtanga Serif', 'Songti SC', STSong, serif;
+  font-size: 20rpx;
+  line-height: 1;
+}
+
+.ann-close-btn {
+  flex-shrink: 0;
+  height: 48rpx;
+  position: relative;
+  width: 48rpx;
+}
+
+.ann-close-line {
+  background: #868C88;
+  height: 2rpx;
+  left: 9rpx;
+  position: absolute;
+  top: 23rpx;
+  width: 30rpx;
+}
+
+.ann-close-line-a { transform: rotate(45deg); }
+.ann-close-line-b { transform: rotate(-45deg); }
+
+/* ===== Main scroll area ===== */
+.ann-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 32rpx 40rpx;
+}
+
+/* ===== 类型网格 ===== */
+.ann-type-grid {
+  display: grid;
+  gap: 12rpx;
+  grid-template-columns: repeat(5, 1fr);
+  margin-bottom: 24rpx;
+}
+
+.ann-type-cell {
+  align-items: center;
+  background: #FFFFFF;
+  border-radius: 24rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+  padding: 16rpx 8rpx;
+  transition: all 200ms ease;
+}
+
+.ann-type-cell:active {
+  opacity: 0.8;
+  transform: scale(0.96);
+}
+
+.ann-type-selected {
+  background: #FFFFFF;
+  box-shadow: none;
+}
+
+.ann-type-cell.membership-locked {
+  opacity: .45;
+  position: relative;
+}
+
+.ann-lock-icon {
+  height: 20rpx;
+  position: absolute;
+  right: 6rpx;
+  top: 6rpx;
+  width: 20rpx;
+}
+
+.ann-type-selected .ann-type-dot {
+  transform: scale(1.08);
+}
+
+.ann-type-dot {
+  border-radius: 50%;
+  flex-shrink: 0;
+  height: 36rpx;
+  transition: all 200ms ease;
+  width: 36rpx;
+}
+
+.ann-type-label {
+  color: #2A4B3C;
+  display: block;
+  font-family: 'Ashtanga Serif', 'Songti SC', STSong, serif;
+  font-size: 22rpx;
+  line-height: 1;
+  overflow: hidden;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 100%;
+}
+
+.ann-type-add {
+  border: 3rpx dashed #D9DDD9;
+  background: transparent;
+}
+
+.ann-add-icon {
+  align-items: center;
+  color: #868C88;
+  display: flex;
+  font-size: 36rpx;
+  height: 36rpx;
+  justify-content: center;
+  line-height: 1;
+  width: 36rpx;
+}
+
+/* ===== 日历区域 ===== */
+.ann-cal-section {
+  margin-top: 8rpx;
+}
+
+.ann-cal-nav {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+  gap: 24rpx;
+  margin-bottom: 16rpx;
+}
+
+.ann-cal-arrow {
+  align-items: center;
+  display: flex;
+  height: 48rpx;
+  justify-content: center;
+  width: 48rpx;
+}
+
+.ann-cal-arrow:active {
+  opacity: 0.6;
+}
+
+.ann-chevron {
+  border-color: #2A4B3C;
+  border-style: solid;
+  border-width: 0 3rpx 3rpx 0;
+  height: 12rpx;
+  width: 12rpx;
+}
+
+.ann-chevron-left { transform: rotate(135deg); }
+.ann-chevron-right { transform: rotate(-45deg); }
+
+.ann-cal-title {
+  color: #2A4B3C;
+  font-family: 'Ashtanga Serif', 'Songti SC', STSong, serif;
+  font-size: 28rpx;
+  min-width: 140rpx;
+  text-align: center;
+}
+
+.ann-cal-weekdays {
+  display: grid;
+  gap: 4rpx;
+  grid-template-columns: repeat(7, 1fr);
+  margin-bottom: 8rpx;
+}
+
+.ann-cal-weekday {
+  color: #868C88;
+  font-family: 'Ashtanga Serif', 'Songti SC', STSong, serif;
+  font-size: 20rpx;
+  padding: 8rpx 0;
+  text-align: center;
+}
+
+.ann-cal-grid {
+  display: grid;
+  gap: 4rpx;
+  grid-template-columns: repeat(7, 1fr);
+}
+
+.ann-cal-slot {
+  display: flex;
+  justify-content: center;
+}
+
+.ann-cal-day {
+  align-items: center;
+  background: #F9F8F6;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  height: 76rpx;
+  justify-content: center;
+  position: relative;
+  width: 76rpx;
+}
+
+.ann-cal-day-active {
+  cursor: pointer;
+}
+
+.ann-cal-day-num {
+  color: #2A4B3C;
+  font-family: 'Ashtanga Serif', 'Songti SC', STSong, serif;
+  font-size: 22rpx;
+  line-height: 1;
+}
+
+.ann-cal-dots {
+  align-items: center;
+  bottom: 8rpx;
+  display: flex;
+  gap: 2rpx;
+  left: 50%;
+  position: absolute;
+  transform: translateX(-50%);
+}
+
+.ann-cal-dot {
+  border-radius: 50%;
+  height: 8rpx;
+  width: 8rpx;
+}
+
+.ann-cal-dot-more {
+  color: #868C88;
+  font-size: 14rpx;
+  line-height: 1;
+}
+
+/* ===== 保存按钮 ===== */
+.ann-save-btn {
+  border: 1rpx solid rgba(255, 255, 255, 0.2);
+  border-radius: 999rpx;
+  box-sizing: border-box;
+  box-shadow: 0 8rpx 28rpx rgba(45, 90, 39, 0.25);
+  color: #FFFFFF;
+  display: block;
+  font-family: 'Ashtanga Serif', 'Songti SC', STSong, serif;
+  font-size: 26rpx;
+  margin-top: 24rpx;
+  padding: 22rpx 0;
+  text-align: center;
+  width: 100%;
+  background-image: linear-gradient(to top left, rgba(74, 122, 68, 0.7), rgba(45, 90, 39, 0.85));
+}
+
+.ann-save-btn:active {
+  opacity: 0.82;
+}
+
+/* ===== 表单容器（替换式，非覆盖式） ===== */
+.ann-form-container {
+  display: flex;
+  flex-direction: column;
+  max-height: 85vh;
+  overflow: hidden;
+  width: 100%;
+}
+
+.ann-form-header-inline {
+  align-items: center;
+  display: flex;
+  flex-shrink: 0;
+  justify-content: space-between;
+  padding: 32rpx 40rpx 0;
+}
+
+.ann-form-title-inline {
+  color: #2A4B3C;
+  font-family: 'Ashtanga Serif', 'Songti SC', STSong, serif;
+  font-size: 34rpx;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.ann-form-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24rpx 32rpx calc(40rpx + env(safe-area-inset-bottom));
+  width: 100%;
+}
+
+.ann-form-field {
+  margin-bottom: 28rpx;
+  width: 100%;
+}
+
+.ann-form-label {
+  color: #536D60;
+  display: block;
+  font-family: 'Ashtanga Serif', 'Songti SC', STSong, serif;
+  font-size: 24rpx;
+  margin-bottom: 12rpx;
+}
+
+.ann-form-input {
+  background: #F9F8F6;
+  border: 1rpx solid #E5E5E5;
+  border-radius: 24rpx;
+  box-sizing: border-box;
+  color: #2A4B3C;
+  font-family: 'Ashtanga Serif', 'Songti SC', STSong, serif;
+  font-size: 26rpx;
+  height: 88rpx;
+  max-width: 100%;
+  min-width: 0;
+  padding: 0 24rpx;
+  width: 100%;
+}
+
+.ann-color-grid {
+  display: grid;
+  gap: 12rpx;
+  grid-template-columns: repeat(9, 56rpx);
+  justify-content: center;
+  justify-items: center;
+  padding: 8rpx 0;
+  width: 100%;
+}
+
+.ann-color-item {
+  align-items: center;
+  border-radius: 50%;
+  display: flex;
+  height: 56rpx;
+  justify-content: center;
+  transition: all 200ms ease;
+  width: 56rpx;
+}
+
+.ann-color-item:active {
+  transform: scale(1.15);
+}
+
+.ann-color-selected {
+  box-shadow: 0 0 0 4rpx #C1A268, 0 0 16rpx rgba(193, 162, 104, 0.3);
+  transform: scale(1.1);
+}
+
+.ann-color-check {
+  color: #FFFFFF;
+  font-size: 28rpx;
+  font-weight: 700;
+}
+
+.ann-form-actions {
+  display: flex;
+  gap: 16rpx;
+  margin-top: 24rpx;
+  width: 100%;
+}
+
+.ann-form-actions-single {
+  margin-top: 24rpx;
+  width: 100%;
+}
+
+.ann-form-btn {
+  border-radius: 999rpx;
+  box-sizing: border-box;
+  font-family: 'Ashtanga Serif', 'Songti SC', STSong, serif;
+  font-size: 26rpx;
+  height: 88rpx;
+  line-height: 88rpx;
+  min-width: 0;
+  text-align: center;
+}
+
+.ann-form-actions-single .ann-form-btn {
+  width: 100%;
+}
+
+.ann-form-btn-delete {
+  border: 2rpx solid #FECACA;
+  color: #EF4444;
+  flex: 1;
+}
+
+.ann-form-btn-delete:active {
+  background: #FEF2F2;
+}
+
+.ann-form-btn-save {
+  border: 1rpx solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8rpx 28rpx rgba(45, 90, 39, 0.25);
+  color: #FFFFFF;
+  flex: 1;
+  background-image: linear-gradient(to top left, rgba(74, 122, 68, 0.7), rgba(45, 90, 39, 0.85));
+}
+
+.ann-form-btn-save:active {
+  opacity: 0.82;
+}
+
+/* ===== 类型已满 ===== */
+.ann-form-full-msg {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+  padding: 60rpx 0;
+}
+
+.ann-form-full-text {
+  color: #868C88;
+  font-family: 'Ashtanga Serif', 'Songti SC', STSong, serif;
+  font-size: 26rpx;
+}
+
+/* ===== 删除确认弹窗 ===== */
+.ann-delete-confirm-mask {
+  align-items: center;
+  background: rgba(0, 0, 0, 0.35);
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  left: 0;
+  padding: 40rpx;
+  position: fixed;
+  right: 0;
+  top: 0;
+  z-index: 999;
+}
+
+.ann-delete-confirm {
+  background: #FFFFFF;
+  border-radius: 48rpx;
+  box-shadow: 0 8rpx 60rpx rgba(0, 0, 0, 0.16);
+  padding: 40rpx;
+  width: 100%;
+  max-width: 560rpx;
+}
+
+.ann-delete-title {
+  color: #2A4B3C;
+  display: block;
+  font-family: 'Ashtanga Serif', 'Songti SC', STSong, serif;
+  font-size: 28rpx;
+  margin-bottom: 12rpx;
+}
+
+.ann-delete-desc {
+  color: #868C88;
+  display: block;
+  font-family: 'Ashtanga Serif', 'Songti SC', STSong, serif;
+  font-size: 24rpx;
+  line-height: 1.6;
+  margin-bottom: 32rpx;
+}
+
+.ann-delete-buttons {
+  display: flex;
+  gap: 16rpx;
+}
+
+.ann-delete-btn {
+  border-radius: 999rpx;
+  font-family: 'Ashtanga Serif', 'Songti SC', STSong, serif;
+  font-size: 26rpx;
+  flex: 1;
+  height: 80rpx;
+  line-height: 80rpx;
+  text-align: center;
+}
+
+.ann-delete-btn-cancel {
+  background: #F9F8F6;
+  border: 1rpx solid #E5E5E5;
+  color: #2A4B3C;
+}
+
+.ann-delete-btn-cancel:active {
+  background: #EFEEEC;
+}
+
+.ann-delete-btn-confirm {
+  background: #EF4444;
+  color: #FFFFFF;
+}
+
+.ann-delete-btn-confirm:active {
+  opacity: 0.85;
+}

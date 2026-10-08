@@ -381,7 +381,7 @@
     </view>
     <text wx:if="{{purchaseStatusText}}" class="purchase-status">{{purchaseStatusText}}</text>
     <button class="gold-button purchase-button" bindtap="startMembershipPurchase" disabled="{{purchaseLoading || !purchaseAgreementChecked}}">
-      {{purchaseLoading ? '正在处理…' : '微信支付 ¥' + selectedPaymentPrice}}
+      {{purchaseLoading ? '正在处理…' : '确认支付 ¥' + selectedPaymentPrice}}
     </button>
   </view>
 

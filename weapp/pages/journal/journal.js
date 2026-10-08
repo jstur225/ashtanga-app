@@ -5,6 +5,7 @@ const membershipService = require('../../services/membership');
 const membershipPolicy = require('../../services/membership-policy');
 const runtimeErrors = require('../../services/runtime-errors');
 const pageRefreshGate = require('../../services/page-refresh-gate');
+const practiceShare = require('../../utils/practice-share');
 const { getMoonType, getMoonIcon } = require('../../services/moon-days');
 const { checkText } = require('../../services/content-filter');
 
@@ -18,6 +19,8 @@ const ICONS = {
 const CONTACT_NOTICE_VERSION = 'v1';
 
 Page({
+  ...practiceShare.pageShareHandlers,
+
   data: {
     calendarLoading: true,
     calendarError: '',
@@ -114,7 +117,9 @@ Page({
     }
   },
 
-  onLoad() {
+  onLoad(options = {}) {
+    practiceShare.showShareMenu();
+    practiceShare.redirectTimelineEntryToPractice(options);
     runtimeErrors.recordEvent('page', 'journal_load');
     this._olderTimelineRecords = [];
     this._timelineLoadedKeys = [];

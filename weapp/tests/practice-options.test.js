@@ -65,3 +65,13 @@ test('读取今日练习人数公开接口', async () => {
   assert.equal(result, 39);
   assert.equal(requestCount, 1);
 });
+test('今日人数五分钟内复用缓存，用户主动点击时可以强制刷新', async () => {
+  const first = await options.getTodayPracticeCount();
+  const cached = await options.getTodayPracticeCount();
+  const refreshed = await options.getTodayPracticeCount({ force: true });
+
+  assert.equal(first, 39);
+  assert.equal(cached, 39);
+  assert.equal(refreshed, 39);
+  assert.equal(requestCount, 2);
+});

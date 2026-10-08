@@ -74,9 +74,19 @@ test('所有会员限制复用网页版底部权益 Sheet，不再使用系统�
   assert.doesNotMatch(journalSource, /onMembershipLimit\(event\)[\s\S]{0,220}wx\.showModal/);
   assert.match(membershipPromptTemplate, /PRO 会员/);
   assert.match(membershipPromptSource, /每条记录照片/);
-  assert.match(membershipPromptTemplate, /小程序支付后自动开通/);
+  assert.doesNotMatch(membershipPromptTemplate, /小程序支付后自动开通/);
   assert.match(membershipPromptStyle, /linear-gradient\(135deg, #C1A268, #D4AF37\)/);
   assert.doesNotMatch(membershipPromptTemplate, /激活码/);
+});
+
+test('会员升级与付款按钮都保持单行且使用跨平台支付文案', () => {
+  assert.match(membershipPromptTemplate, /upgrade-title-row[\s\S]*开通 Pro 会员/);
+  assert.doesNotMatch(membershipPromptTemplate, /upgrade-copy/);
+  assert.match(membershipPromptStyle, /\.upgrade-title-row[^}]*white-space: nowrap/);
+
+  assert.match(profileTemplate, /确认支付 ¥/);
+  assert.doesNotMatch(profileTemplate, /微信支付 ¥/);
+  assert.match(profileStyle, /\.purchase-button \{[^}]*white-space: nowrap/);
 });
 
 test('限制触发原因覆盖六项权益，升级入口打开我的会员页', () => {

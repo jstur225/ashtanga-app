@@ -16,6 +16,44 @@ const { commitHash, commitDate, branch } = getGitVersion()
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // 录屏脚本通过 127.0.0.1 访问绑定在 0.0.0.0 的开发服务器。
+  allowedDevOrigins: ['127.0.0.1'],
+  // 自动录屏不应包含 Next.js 左下角的开发模式标记；错误覆盖层仍会保留。
+  devIndicators: false,
+  async headers() {
+    return [
+      {
+        source: '/audio/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+          {
+            key: 'Accept-Ranges',
+            value: 'bytes',
+          },
+        ],
+      },
+      {
+        source: '/fonts/:path*',
+        headers: [
+          {
+            key: 'Access-Control-Allow-Origin',
+            value: '*',
+          },
+          {
+            key: 'Cross-Origin-Resource-Policy',
+            value: 'cross-origin',
+          },
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+    ]
+  },
   async redirects() {
     return [
       {

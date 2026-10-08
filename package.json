@@ -4,6 +4,9 @@
   "private": true,
   "scripts": {
     "build": "next build",
+    "build:chant-countdown-audio": "node scripts/build-chant-countdown-audio.mjs",
+    "check:weapp-package": "node weapp/scripts/check-package-size.mjs",
+    "check:weapp-release": "npm run check:weapp-package && node weapp/scripts/check-release-config.mjs",
     "dev": "next dev --webpack -H 0.0.0.0",
     "dev:turbo": "next dev --turbo -H 0.0.0.0",
     "lint": "node scripts/lint-check.mjs",

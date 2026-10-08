@@ -37,6 +37,27 @@ test('app launch starts font loading and global WXSS uses the same family', () =
   assert.match(appStyle, /font-family:\s*'Ashtanga Serif'/);
 });
 
+test('Android 字体超时后进入冷却期，不会每次回前台再等待二十秒', () => {
+  const storage = new Map();
+  let callCount = 0;
+  global.wx = {
+    getStorageSync(key) { return storage.get(key); },
+    setStorageSync(key, value) { storage.set(key, value); },
+    removeStorageSync(key) { storage.delete(key); },
+    loadFontFace(options) {
+      callCount += 1;
+      options.fail({ errMsg: 'loadFontFace:fail fail:time out' });
+    }
+  };
+  delete require.cache[servicePath];
+  const customFont = require('../services/custom-font');
+  customFont.loadGlobalFont();
+  customFont.loadGlobalFont();
+  assert.equal(callCount, 1);
+  assert.equal(storage.get(customFont.FONT_FAILURE_KEY).version, customFont.FONT_VERSION);
+  delete global.wx;
+});
+
 test('the hosted font asset is a compact WOFF file', () => {
   const fontPath = path.join(
     __dirname,

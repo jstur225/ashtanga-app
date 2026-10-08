@@ -167,6 +167,29 @@ describe('POST /api/auth/register', () => {
     expect(status).toBe(500)
   })
 
+  it('邮箱大小写和首尾空格统一后再校验验证码与注册', async () => {
+    const { POST } = await import('@/app/api/auth/register/route')
+    supabaseMock.single.mockResolvedValueOnce({ data: makeVerificationRow(), error: null })
+
+    const { status } = await parseResponse(
+      await POST(createPostRequest({
+        email: ' Test@Test.COM ',
+        password: 'Abc12345',
+        verificationCode: '123456',
+      }))
+    )
+
+    expect(status).toBe(200)
+    expect(supabaseMock.eq).toHaveBeenCalledWith('email', 'test@test.com')
+    expect(supabaseMock.auth.signUp).toHaveBeenCalledWith({
+      email: 'test@test.com',
+      password: 'Abc12345',
+    })
+    expect(serviceClientMock.insert).toHaveBeenCalledWith(expect.objectContaining({
+      email: 'test@test.com',
+    }))
+  })
+
   // ── 密码强度 ──
 
   it('rejects password < 8 chars', async () => {
@@ -306,6 +329,18 @@ describe('POST /api/auth/verify-code', () => {
     expect(status).toBe(500)
   })
 
+  it('使用规范化后的邮箱匹配验证码', async () => {
+    const { POST } = await import('@/app/api/auth/verify-code/route')
+    supabaseMock.single.mockResolvedValueOnce({ data: makeVerificationRow(), error: null })
+
+    const { status } = await parseResponse(
+      await POST(createPostRequest({ email: ' Test@Test.COM ', code: '123456' }))
+    )
+
+    expect(status).toBe(200)
+    expect(supabaseMock.eq).toHaveBeenCalledWith('email', 'test@test.com')
+  })
+
   it('idempotent: 第一次验证成功，第二次同验证码失败', async () => {
     const { POST } = await import('@/app/api/auth/verify-code/route')
     const verificationRow = makeVerificationRow()
@@ -337,6 +372,23 @@ describe('POST /api/auth/verify-code', () => {
     // update().eq() 链应该被调用过
     expect(supabaseMock.update).toHaveBeenCalledWith({ used: true })
     expect(supabaseMock.eq).toHaveBeenCalledWith('id', verificationRow.id)
+  })
+
+  it('忘记密码预验证不提前消费验证码', async () => {
+    const { POST } = await import('@/app/api/auth/verify-code/route')
+    const verificationRow = makeVerificationRow({ type: 'reset_password' })
+    supabaseMock.single.mockResolvedValueOnce({ data: verificationRow, error: null })
+
+    const response = await parseResponse(
+      await POST(createPostRequest({
+        email: 'test@test.com',
+        code: '123456',
+        type: 'reset_password',
+      }))
+    )
+
+    expect(response.status).toBe(200)
+    expect(supabaseMock.update).not.toHaveBeenCalled()
   })
 })
 
@@ -418,6 +470,45 @@ describe('POST /api/auth/reset-password', () => {
     expect(status).toBe(500)
   })
 
+  it('大小写不同仍能匹配验证码和 Supabase 账号并重置密码', async () => {
+    const { POST } = await import('@/app/api/auth/reset-password/route')
+    const updateUserById = vi.fn().mockResolvedValue({ error: null })
+    const listUsers = vi.fn().mockResolvedValue({
+      data: { users: [{ id: 'user-1', email: 'test@test.com' }] },
+      error: null,
+    })
+    createClientMock.mockReturnValue({
+      auth: {
+        admin: {
+          listUsers,
+          updateUserById,
+        },
+      },
+      from: vi.fn(() => supabaseMock),
+    })
+    supabaseMock.single.mockResolvedValueOnce({
+      data: makeVerificationRow({ type: 'reset_password' }),
+      error: null,
+    })
+    supabaseMock.maybeSingle.mockResolvedValueOnce({
+      data: { id: 'vc-1' },
+      error: null,
+    })
+
+    const { status } = await parseResponse(
+      await POST(createPostRequest({
+        email: ' Test@Test.COM ',
+        newPassword: 'NewPass123',
+        code: '123456',
+      }))
+    )
+
+    expect(status).toBe(200)
+    expect(supabaseMock.eq).toHaveBeenCalledWith('email', 'test@test.com')
+    expect(listUsers).toHaveBeenCalledWith({ page: 1, perPage: 1000 })
+    expect(updateUserById).toHaveBeenCalledWith('user-1', { password: 'NewPass123' })
+  })
+
   // ── VERIFIES FIX：验证码消费使重置密码幂等 ──
 
   it('VERIFIES FIX: 同一验证码第二次调用失败（已被消费）', async () => {
@@ -451,6 +542,7 @@ describe('POST /api/auth/reset-password', () => {
 
     // 第一次：验证码有效 → 重置成功
     supabaseMock.single.mockResolvedValueOnce({ data: resetVerificationRow, error: null })
+    supabaseMock.maybeSingle.mockResolvedValueOnce({ data: { id: resetVerificationRow.id }, error: null })
     const first = await parseResponse(await POST(createPostRequest(payload)))
     expect(first.status).toBe(200)
     expect(first.body.success).toBe(true)
@@ -566,6 +658,73 @@ describe('POST /api/auth/send-verification-code', () => {
 
       // insert 应只被调用 1 次（仅第一次生成验证码）
       expect(supabaseMock.insert).toHaveBeenCalledTimes(1)
+    } finally {
+      global.fetch = originalFetch
+      if (originalKey === undefined) delete process.env.RESEND_API_KEY
+      else process.env.RESEND_API_KEY = originalKey
+    }
+  })
+
+  it('邮件服务拒绝发送时删除本次验证码并返回可诊断错误', async () => {
+    const { POST } = await import('@/app/api/auth/send-verification-code/route')
+    const originalFetch = global.fetch
+    const originalKey = process.env.RESEND_API_KEY
+    process.env.RESEND_API_KEY = 'test-key'
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 422,
+      text: async () => JSON.stringify({ message: 'sender domain is not verified' }),
+    }) as any
+    supabaseMock.maybeSingle.mockResolvedValueOnce({ data: null, error: null })
+
+    try {
+      const result = await parseResponse(
+        await POST(createPostRequest({
+          email: 'NewUser@Test.com ',
+          type: 'email_verification',
+        }))
+      )
+
+      expect(result.status).toBe(502)
+      expect(result.body.error).toBe('邮件服务拒绝发送（Resend 422）')
+      expect(supabaseMock.insert).toHaveBeenCalledWith(expect.objectContaining({
+        email: 'newuser@test.com',
+      }))
+      expect(supabaseMock.delete).toHaveBeenCalled()
+    } finally {
+      global.fetch = originalFetch
+      if (originalKey === undefined) delete process.env.RESEND_API_KEY
+      else process.env.RESEND_API_KEY = originalKey
+    }
+  })
+
+  it('验证码查询和写入统一使用 Service Role 客户端', async () => {
+    vi.resetModules()
+    const { POST } = await import('@/app/api/auth/send-verification-code/route')
+    const originalFetch = global.fetch
+    const originalKey = process.env.RESEND_API_KEY
+    process.env.RESEND_API_KEY = 'test-key'
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      text: async () => JSON.stringify({ id: 'reset-email-id' }),
+    }) as any
+    supabaseMock.maybeSingle.mockResolvedValueOnce({ data: null, error: null })
+
+    try {
+      const result = await parseResponse(
+        await POST(createPostRequest({
+          email: 'test@test.com',
+          type: 'reset_password',
+        }))
+      )
+
+      expect(result.status).toBe(200)
+      expect(result.body.delivery_id).toBe('reset-email-id')
+      expect(createClientMock).toHaveBeenCalled()
+      expect(supabaseMock.insert).toHaveBeenCalledWith(expect.objectContaining({
+        email: 'test@test.com',
+        type: 'reset_password',
+      }))
     } finally {
       global.fetch = originalFetch
       if (originalKey === undefined) delete process.env.RESEND_API_KEY

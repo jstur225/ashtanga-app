@@ -21,7 +21,7 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.SUP
 export async function POST(request: NextRequest) {
   try {
     // 1. 验证 OSS 配置
-    if (!OSS_ACCESS_KEY_ID || !OSS_ACCESS_KEY_SECRET || !OSS_BUCKET) {
+    if (!OSS_ACCESS_KEY_ID || !OSS_ACCESS_KEY_SECRET || !OSS_BUCKET || !OSS_ENDPOINT) {
       console.error('[OSS Signature] 配置缺失')
       return NextResponse.json(
         { success: false, error: 'OSS_CONFIG_MISSING' },

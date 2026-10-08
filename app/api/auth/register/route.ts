@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase, getSupabaseServiceClient } from '@/lib/supabase'
 import { ensureProfileAndGetId } from '@/lib/membership-utils'
+import { normalizeAuthEmail } from '@/lib/auth-email'
 
 /**
  * 服务端注册 API
@@ -8,7 +9,8 @@ import { ensureProfileAndGetId } from '@/lib/membership-utils'
  */
 export async function POST(request: NextRequest) {
   try {
-    const { email, password, verificationCode } = await request.json()
+    const { email: rawEmail, password, verificationCode } = await request.json()
+    const email = normalizeAuthEmail(rawEmail)
 
     // 1. 参数验证
     if (!email || !password || !verificationCode) {
@@ -107,8 +109,9 @@ export async function POST(request: NextRequest) {
           })
         }
       }
-    } catch {
-      // 赠送失败不影响注册流程
+    } catch (membershipError) {
+      // 赠送失败不影响账号创建，但必须留下可检索日志，避免静默漏发。
+      console.error('[Registration] 31-day trial grant failed', membershipError)
     }
 
     // 6. 标记验证码为已使用

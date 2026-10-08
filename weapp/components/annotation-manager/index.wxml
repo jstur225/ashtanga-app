@@ -1,0 +1,198 @@
+<view wx:if="{{show}}" class="ann-mask" bindtap="handleClose">
+  <view class="ann-sheet" catchtap="stopPropagation">
+
+    <!-- ===== 主界面（类型网格 + 日历） ===== -->
+    <view wx:if="{{showMode === 'main'}}">
+      <!-- Header -->
+      <view class="ann-header">
+        <view class="ann-header-left">
+          <text class="ann-title">日历标注</text>
+          <text class="ann-subtitle">单击选择</text>
+        </view>
+        <view class="ann-close-btn" bindtap="handleClose">
+          <view class="ann-close-line ann-close-line-a"></view>
+          <view class="ann-close-line ann-close-line-b"></view>
+        </view>
+      </view>
+
+      <scroll-view class="ann-scroll" scroll-y>
+        <!-- 类型网格 -->
+        <view class="ann-type-grid">
+          <view
+            wx:for="{{displayTypes}}"
+            wx:key="id"
+            class="ann-type-cell {{selectedTypeId === item.id ? 'ann-type-selected' : ''}} {{item.membershipLocked ? 'membership-locked' : ''}}"
+            data-type-id="{{item.id}}"
+            bindtap="handleTypeTap"
+          >
+            <image wx:if="{{item.membershipLocked}}" class="ann-lock-icon" src="/images/icons/membership-lock.svg" mode="aspectFit" />
+            <view
+              class="ann-type-dot"
+              style="background-color: {{item.color}};{{selectedTypeId === item.id ? 'box-shadow: 0 0 12rpx ' + item.color + ';' : ''}}"
+            ></view>
+            <text class="ann-type-label">{{item.label}}</text>
+          </view>
+
+          <!-- 添加按钮 -->
+          <view class="ann-type-cell ann-type-add" bindtap="openCreateForm">
+            <view class="ann-add-icon">+</view>
+            <text class="ann-type-label">添加</text>
+          </view>
+        </view>
+
+        <!-- 日历区域 -->
+        <view class="ann-cal-section">
+          <view class="ann-cal-nav">
+            <view class="ann-cal-arrow" bindtap="onPrevMonth">
+              <view class="ann-chevron ann-chevron-left"></view>
+            </view>
+            <text class="ann-cal-title">{{viewYear}}年{{viewMonth + 1}}月</text>
+            <view class="ann-cal-arrow" bindtap="onNextMonth">
+              <view class="ann-chevron ann-chevron-right"></view>
+            </view>
+          </view>
+
+          <view class="ann-cal-weekdays">
+            <text wx:for="{{weekDays}}" wx:key="*this" class="ann-cal-weekday">{{item}}</text>
+          </view>
+
+          <view class="ann-cal-grid">
+            <view wx:for="{{calendarDays}}" wx:key="key" class="ann-cal-slot">
+              <view wx:if="{{!item.empty}}" class="ann-cal-day {{selectedTypeId ? 'ann-cal-day-active' : ''}}" data-day="{{item.day}}" bindtap="handleDateClick">
+                <text class="ann-cal-day-num">{{item.day}}</text>
+                <view wx:if="{{item.annotationColors && item.annotationColors.length > 0}}" class="ann-cal-dots">
+                  <view
+                    wx:for="{{item.previewAnnotationColors}}"
+                    wx:key="index"
+                    class="ann-cal-dot"
+                    style="background-color: {{item.color}}; opacity: {{item.isCurrentType ? 1 : 0.35}};"
+                  ></view>
+                  <text wx:if="{{item.extraAnnotationCount > 0}}" class="ann-cal-dot-more">+{{item.extraAnnotationCount}}</text>
+                </view>
+              </view>
+            </view>
+          </view>
+
+          <!-- 保存按钮 -->
+          <view wx:if="{{hasPendingChanges}}" class="ann-save-btn" bindtap="handleSave">
+            <text>{{isSaving ? '保存中...' : '保存'}}</text>
+          </view>
+        </view>
+      </scroll-view>
+    </view>
+
+    <!-- ===== 新建类型表单 ===== -->
+    <view wx:elif="{{showMode === 'create'}}" class="ann-form-container">
+      <view class="ann-form-header-inline">
+        <text class="ann-form-title-inline">新建标注</text>
+        <view class="ann-close-btn" bindtap="backToMain">
+          <view class="ann-close-line ann-close-line-a"></view>
+          <view class="ann-close-line ann-close-line-b"></view>
+        </view>
+      </view>
+
+      <scroll-view class="ann-form-scroll" scroll-y>
+        <view class="ann-form-field">
+          <text class="ann-form-label">名称</text>
+          <input class="ann-form-input" type="text" value="{{formLabel}}" bindinput="onFormLabelInput" placeholder="例如：生理期、旅行..." maxlength="10" auto-focus />
+        </view>
+
+        <view class="ann-form-field">
+          <text class="ann-form-label">颜色</text>
+          <view class="ann-color-grid">
+            <view
+              wx:for="{{palette}}"
+              wx:key="*this"
+              class="ann-color-item {{formColor === item ? 'ann-color-selected' : ''}}"
+              style="background-color: {{item}}"
+              data-color="{{item}}"
+              bindtap="selectColor"
+            >
+              <text wx:if="{{formColor === item}}" class="ann-color-check">✓</text>
+            </view>
+          </view>
+        </view>
+
+        <view class="ann-form-actions-single">
+          <view class="ann-form-btn ann-form-btn-save" bindtap="confirmCreate">
+            <text wx:if="{{isSaving}}">保存中...</text>
+            <text wx:else>创建</text>
+          </view>
+        </view>
+      </scroll-view>
+    </view>
+
+    <!-- ===== 编辑类型表单 ===== -->
+    <view wx:elif="{{showMode === 'edit'}}" class="ann-form-container">
+      <view class="ann-form-header-inline">
+        <text class="ann-form-title-inline">编辑标注</text>
+        <view class="ann-close-btn" bindtap="backToMain">
+          <view class="ann-close-line ann-close-line-a"></view>
+          <view class="ann-close-line ann-close-line-b"></view>
+        </view>
+      </view>
+
+      <scroll-view class="ann-form-scroll" scroll-y>
+        <view class="ann-form-field">
+          <text class="ann-form-label">名称</text>
+          <input class="ann-form-input" type="text" value="{{formLabel}}" bindinput="onFormLabelInput" placeholder="例如：生理期、旅行..." maxlength="10" auto-focus />
+        </view>
+
+        <view class="ann-form-field">
+          <text class="ann-form-label">颜色</text>
+          <view class="ann-color-grid">
+            <view
+              wx:for="{{palette}}"
+              wx:key="*this"
+              class="ann-color-item {{formColor === item ? 'ann-color-selected' : ''}}"
+              style="background-color: {{item}}"
+              data-color="{{item}}"
+              bindtap="selectColor"
+            >
+              <text wx:if="{{formColor === item}}" class="ann-color-check">✓</text>
+            </view>
+          </view>
+        </view>
+
+        <view class="ann-form-actions">
+          <view class="ann-form-btn ann-form-btn-delete" bindtap="handleDelete">删除</view>
+          <view class="ann-form-btn ann-form-btn-save" bindtap="confirmEdit">
+            <text wx:if="{{isSaving}}">保存中...</text>
+            <text wx:else>保存</text>
+          </view>
+        </view>
+      </scroll-view>
+    </view>
+
+    <!-- ===== 类型已满提示 ===== -->
+    <view wx:elif="{{showMode === 'full'}}" class="ann-form-container">
+      <view class="ann-form-header-inline">
+        <text class="ann-form-title-inline">提示</text>
+        <view class="ann-close-btn" bindtap="backToMain">
+          <view class="ann-close-line ann-close-line-a"></view>
+          <view class="ann-close-line ann-close-line-b"></view>
+        </view>
+      </view>
+      <view class="ann-form-full-msg">
+        <text class="ann-form-full-text">{{isPro ? '标注已满（最多 9 个）' : '免费用户只能创建 1 个标注类型'}}</text>
+        <text class="ann-form-full-text">{{isPro ? '请编辑已有标注或删除后添加' : 'Pro 会员最多可创建 9 个标注类型'}}</text>
+      </view>
+      <view class="ann-form-actions-single">
+        <view class="ann-form-btn ann-form-btn-save" bindtap="backToMain">返回</view>
+      </view>
+    </view>
+
+    <!-- 删除确认弹窗（覆盖在所有模式之上） -->
+    <view wx:if="{{showDeleteConfirm}}" class="ann-delete-confirm-mask" bindtap="cancelDelete">
+      <view class="ann-delete-confirm" catchtap="stopPropagation">
+        <text class="ann-delete-title">确认删除标注？</text>
+        <text wx:if="{{editingType}}" class="ann-delete-desc">删除「{{editingType.label}}」后，所有日期上的这个标注都会被清空。</text>
+        <view class="ann-delete-buttons">
+          <view class="ann-delete-btn ann-delete-btn-cancel" bindtap="cancelDelete">取消</view>
+          <view class="ann-delete-btn ann-delete-btn-confirm" bindtap="confirmDelete">删除</view>
+        </view>
+      </view>
+    </view>
+
+  </view>
+</view>

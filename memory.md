@@ -18,6 +18,37 @@
 ## 技能配置
 - **frontend-design** - 创建 distinctive、production-grade 前端界面
 - **vercel-react-best-practices** - React 和 Next.js 性能优化指南
+
+## 小程序 Tab2 觉察日记功能迁移 (2026-07-10)
+- **通知功能**: 新增 `weapp/components/xiaohongshu-invite/` 组件，实现小红书群邀请弹窗
+  - 复制按钮使用 `wx.setClipboardData`
+  - 红点逻辑：`xhs_invite_version` vs `INVITE_VERSION`
+- **同步动画**: sync 按钮点击旋转 360° 动画（`syncing` class + CSS keyframes）
+- **日历标注**: 新增 `weapp/services/annotations.js` 服务层 + `weapp/components/annotation-manager/` 组件
+  - 本地 Storage CRUD（Storage keys: `weapp_annotation_types_v1`, `weapp_annotations_v1`）
+  - 标注类型网格（5列）、创建/编辑表单、颜色选择器、删除确认
+  - 月历（可翻月），选中类型后点击日期标注/取消
+  - 日历日期底部分显示标注圆点（最多3个 + "+N"）
+  - 保存按钮仅在有变更时显示
+- **数据层**: `data-repository.js` 添加 annotation proxy 方法
+- **状态管理**: `journal.js` 新增 `showXiaohongshuModal`, `hasNewXhsMessage`, `showAnnotationManager`, `annotationTypes`, `annotationDates`, `annotationMap`, `syncing`
+
+## 小程序标注管理器乐观更新修复尝试 (2026-07-10)
+- **问题**: 创建标注类型后类型网格不显示，无法选择类型点击日期标注
+- **已尝试的修复方案**（全部失败）:
+  1. `types` 属性观测器
+  2. `selectComponent` 回调
+  3. `saveVersion` 属性观测器（parent async → property increment → observer）
+  4. 乐观更新（optimistic update）：组件直接修改本地 types，不依赖父级异步回调
+- **最终决定**: 放弃修复。根因是 `triggerEvent` → parent async handler 与 WeChat 组件 property binding 之间不可靠的时序问题
+- **乐观更新改动**:
+  - `confirmCreate/Edit/Delete` 直接操作组件 data.types
+  - 移除 `saveVersion` property、observer、journal 中所有递增逻辑
+  - CSS 修复：`.ann-color-grid` padding 4rpx→8rpx，`.ann-form-scroll` padding 40rpx→32rpx
+  - 新增 `weapp/tests/annotations.test.js`（12项测试）
+- **测试**: 59项全部通过（含12项新增标注测试 + 已有47项测试）
+
+## 小程序 Tab2 觉察日记功能迁移 (2026-07-10)
 - **notebooklm** - NotebookLM 集成，查询笔记本知识库
 - **better-auth-best-practices** - TypeScript 认证框架集成指南（2026-02-02 安装）
 - **social-push** - 社交媒体自动发布工具（2026-03-05 安装）
@@ -2702,5 +2733,43 @@ useEffect(() => {
   - 按月分组，每月左侧显示月份标签
   - 所有月份统一 16 列，dot 尺寸一致
   - 颜色深度基于练习分钟数（0/1/30/60/90 五级）
+
+---
+
+## 小程序（weapp/）音频服务模式
+
+### 唱诵音频 (`weapp/services/chant-playback.js`)
+- 使用 `wx.createInnerAudioContext()` 播放 `/audio/opening-chant.mp3`
+- `obeyMuteSwitch = false` 防止微信静音开关静音
+- 支持：`play/stop/startCountdown/skipCountdown/release`
+- 音频文件 1.1MB，很快加载
+
+### 口令跟练 (`weapp/services/guided-audio.js`)
+- 使用 `wx.createInnerAudioContext()` 播放 `/audio/guruji-led-primary.m4a`
+- `obeyMuteSwitch = false` 防止微信静音开关静音
+- 支持：`load/play/pause/seek(direction, step)/retry/releaseAudio`
+- 音频文件 44MB，首次加载约 10 秒，后续微信内部缓存加快
+- 对应 WebApp `hooks/useGuidedAudio.ts`
+
+### 练习会话 (`weapp/services/practice-session.js`)
+- `start(option, now, initiallyPaused = false)` — 支持口令模式下创建暂停会话
+- 口令模式：`initiallyPaused = true`，加载期间不计入练习时长
+- `onReady` 回调中调用 `practiceSession.resume()` 恢复计时
+
+### 唱诵和口令互斥
+- 唱诵和口令跟练不可同时使用（网页版限制已保留）
+
+### 小程序文件组织（WebApp 映射）
+- WebApp hooks → 小程序 `services/`（同层抽象，无状态函数 + 回调）
+- WebApp components → 小程序 `components/` + 页面内 WXML 片段
+- 当前结构正确，无需大规模重构
   - 文件：`app/practice/page.tsx`（仅 StatsTab 内改动）
+
+## 2026-09-04 · Sharath 口令线上不可播放
+
+- 根因：`public/audio/sharath-jois-led-primary-v1.m4a` 被 `.gitattributes` 标记为 Git LFS；本机 checkout 会自动还原音频，但 Vercel 实际发布了 133 字节 LFS 指针，小程序后台播放器因此报“当前无法播放”。
+- 证据：故障响应 `Content-Range: bytes 0-132/133`，正文以 `version https://git-lfs.github.com/spec/v1` 开头；老掌门人音频正常。
+- 修复：生产 Git 对象改为真实 32,273,838 字节 M4A，移除该 LFS 规则；小程序缓存版本升级到 `20260904-v2`，最小有效大小按完整 32MB 版本调整为 30MB。
+- 防复发：发布门禁同时检查静态文件大小、`ftyp` 文件头和 `.gitattributes`，不能只检查本机工作树文件。
+- 线上验收：生产下载 SHA-256 为 `88d0c8c96ecc611567f3d97a7e53ab00a76598402133fed8b4dd188d62811b1d`，AAC 双声道，时长 5380.806 秒。
 

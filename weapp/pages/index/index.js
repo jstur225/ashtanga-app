@@ -1,8 +1,13 @@
 const auth = require('../../services/auth');
+const localData = require('../../services/local-data');
+const dataRepository = require('../../services/data-repository');
+const practiceShare = require('../../utils/practice-share');
 const { getAgreement } = require('../../content/agreements');
 const GUEST_MODE_KEY = 'weapp_guest_mode_enabled';
 
 Page({
+  ...practiceShare.pageShareHandlers,
+
   data: {
     authLoading: true,
     submitLoading: false,
@@ -11,7 +16,14 @@ Page({
     mode: 'login',
     email: '',
     password: '',
+    passwordLengthValid: false,
+    passwordLetterValid: false,
+    passwordNumberValid: false,
     verificationCode: '',
+    forgotStep: 'email',
+    newPassword: '',
+    confirmNewPassword: '',
+    resendCountdown: 0,
     hasAgreed: false,
     agreementVisible: false,
     agreement: getAgreement('privacy'),
@@ -21,14 +33,21 @@ Page({
   },
 
   onLoad(options = {}) {
+    practiceShare.showShareMenu();
+    practiceShare.redirectTimelineEntryToPractice(options);
     this.forceAccount = options.account === '1';
     this.restoreSession();
   },
 
   onShow() {
+    this.resumeCountdown();
     if (!this.data.authLoading && this.data.isLoggedIn) {
       this.restoreSession();
     }
+  },
+
+  onUnload() {
+    this.clearCountdown(true);
   },
 
   async restoreSession() {
@@ -37,6 +56,10 @@ Page({
       const user = await auth.getCurrentUser();
       this.setAuthState(user);
       if (user) {
+        if (this.forceAccount) {
+          wx.removeStorageSync(GUEST_MODE_KEY);
+          wx.setStorageSync('weapp_account_mode_enabled', true);
+        }
         this.enterApp();
       } else if (!this.forceAccount && wx.getStorageSync(GUEST_MODE_KEY)) {
         this.enterGuest();
@@ -56,6 +79,9 @@ Page({
     const app = getApp();
     app.globalData.isLoggedIn = Boolean(user);
     app.globalData.userInfo = user || null;
+    app.globalData.dataMode = user && wx.getStorageSync('weapp_account_mode_enabled') && !wx.getStorageSync(GUEST_MODE_KEY)
+      ? 'cloud'
+      : 'guest';
     this.setData({
       authLoading: false,
       isLoggedIn: Boolean(user),
@@ -70,16 +96,40 @@ Page({
     this.setData({
       mode,
       message: '',
-      verificationCode: ''
+      verificationCode: '',
+      forgotStep: 'email',
+      newPassword: '',
+      confirmNewPassword: ''
     });
   },
 
+  openForgotPassword() {
+    this.setData({
+      mode: 'forgot-password',
+      forgotStep: 'email',
+      verificationCode: '',
+      newPassword: '',
+      confirmNewPassword: '',
+      message: ''
+    });
+  },
+
+  backToLogin() {
+    this.setData({ mode: 'login', forgotStep: 'email', message: '', verificationCode: '' });
+  },
+
   onEmailInput(event) {
-    this.setData({ email: event.detail.value.trim() });
+    this.setData({ email: auth.normalizeEmail(event.detail.value) });
   },
 
   onPasswordInput(event) {
-    this.setData({ password: event.detail.value });
+    const password = event.detail.value;
+    this.setData({
+      password,
+      passwordLengthValid: password.length >= 8,
+      passwordLetterValid: /[a-zA-Z]/.test(password),
+      passwordNumberValid: /\d/.test(password)
+    });
   },
 
   onCodeInput(event) {
@@ -88,13 +138,30 @@ Page({
     });
   },
 
+  onNewPasswordInput(event) {
+    this.setData({ newPassword: event.detail.value, message: '' });
+  },
+
+  onConfirmNewPasswordInput(event) {
+    this.setData({ confirmNewPassword: event.detail.value, message: '' });
+  },
+
+  validatePassword(password) {
+    if (password.length < 8) return '密码至少需要 8 位';
+    if (!/[a-zA-Z]/.test(password)) return '密码必须包含字母';
+    if (!/\d/.test(password)) return '密码必须包含数字';
+    if (['12345678', 'password', 'qwerty123', 'abc12345', '11111111'].includes(password.toLowerCase())) {
+      return '密码过于简单，请使用更强的密码';
+    }
+    return '';
+  },
+
   validateCredentials(requireCode = false) {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.data.email)) {
       return '请输入正确的邮箱地址';
     }
-    if (this.data.password.length < 8) {
-      return '密码至少需要 8 位';
-    }
+    const passwordError = this.validatePassword(this.data.password);
+    if (passwordError) return passwordError;
     if (requireCode && this.data.verificationCode.length !== 6) {
       return '请输入 6 位邮箱验证码';
     }
@@ -119,6 +186,105 @@ Page({
       this.showMessage(this.translateError(error), 'error');
     } finally {
       this.setData({ codeLoading: false });
+    }
+  },
+
+  async sendResetCode() {
+    if (this.data.resendCountdown > 0) {
+      this.showMessage(`请等待 ${this.data.resendCountdown} 秒后重新发送`, 'info');
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.data.email)) {
+      this.showMessage('请输入正确的邮箱地址', 'error');
+      return;
+    }
+    this.setData({ codeLoading: true, message: '' });
+    try {
+      await auth.sendResetCode(this.data.email);
+      this.setData({ forgotStep: 'verify', verificationCode: '' });
+      this.startCountdown(60);
+      this.showMessage(`验证码已发送到 ${this.data.email}`, 'success');
+    } catch (error) {
+      this.showMessage(this.translateError(error), 'error');
+    } finally {
+      this.setData({ codeLoading: false });
+    }
+  },
+
+  async verifyForgotCode() {
+    if (this.data.verificationCode.length !== 6) {
+      this.showMessage('请输入 6 位邮箱验证码', 'error');
+      return;
+    }
+    this.setData({ submitLoading: true, message: '' });
+    try {
+      await auth.verifyResetCode(this.data.email, this.data.verificationCode);
+      this.setData({ forgotStep: 'new-password' });
+      this.showMessage('验证成功，请设置新密码', 'success');
+    } catch (error) {
+      this.showMessage(this.translateError(error), 'error');
+    } finally {
+      this.setData({ submitLoading: false });
+    }
+  },
+
+  async submitNewPassword() {
+    const passwordError = this.validatePassword(this.data.newPassword);
+    if (passwordError) {
+      this.showMessage(passwordError, 'error');
+      return;
+    }
+    if (this.data.newPassword !== this.data.confirmNewPassword) {
+      this.showMessage('两次输入的密码不一致', 'error');
+      return;
+    }
+    this.setData({ submitLoading: true, message: '' });
+    try {
+      await auth.resetPassword(this.data.email, this.data.newPassword, this.data.verificationCode);
+      this.setData({
+        mode: 'login',
+        forgotStep: 'email',
+        password: '',
+        newPassword: '',
+        confirmNewPassword: '',
+        verificationCode: ''
+      });
+      this.clearCountdown(true);
+      this.showMessage('密码修改成功，请使用新密码登录', 'success');
+    } catch (error) {
+      this.showMessage(this.translateError(error), 'error');
+    } finally {
+      this.setData({ submitLoading: false });
+    }
+  },
+
+  startCountdown(seconds) {
+    this.clearCountdown(false);
+    this.countdownDeadline = Date.now() + Math.max(0, Number(seconds) || 0) * 1000;
+    this.resumeCountdown();
+  },
+
+  resumeCountdown() {
+    this.clearCountdown(false);
+    if (!this.countdownDeadline) {
+      if (this.data.resendCountdown) this.setData({ resendCountdown: 0 });
+      return;
+    }
+    const update = () => {
+      const next = Math.max(0, Math.ceil((this.countdownDeadline - Date.now()) / 1000));
+      if (next !== this.data.resendCountdown) this.setData({ resendCountdown: next });
+      if (!next) this.clearCountdown(true);
+    };
+    update();
+    if (this.countdownDeadline) this.countdownTimer = setInterval(update, 1000);
+  },
+
+  clearCountdown(reset = false) {
+    if (this.countdownTimer) clearInterval(this.countdownTimer);
+    this.countdownTimer = null;
+    if (reset) {
+      this.countdownDeadline = 0;
+      if (this.data.resendCountdown) this.setData({ resendCountdown: 0 });
     }
   },
 
@@ -152,6 +318,8 @@ Page({
       });
       wx.removeStorageSync(GUEST_MODE_KEY);
       wx.setStorageSync('weapp_account_mode_enabled', true);
+      getApp().globalData.dataMode = 'cloud';
+      if (isRegister) dataRepository.ensureAccountTutorialFromGuest();
       this.setAuthState(session.user);
       this.setData({ password: '', verificationCode: '' });
       this.enterApp();
@@ -174,6 +342,7 @@ Page({
     app.globalData.userInfo = null;
     app.globalData.dataMode = 'guest';
     wx.setStorageSync(GUEST_MODE_KEY, true);
+    localData.ensureTutorialRecord();
     this.enterApp();
   },
 

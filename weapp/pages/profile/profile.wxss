@@ -1488,6 +1488,14 @@ button::after {
   border-color: #C1A268;
 }
 
+.purchase-button {
+  flex-wrap: nowrap;
+  min-width: 0;
+  overflow: hidden;
+  padding: 0 24rpx;
+  white-space: nowrap;
+}
+
 .purchase-button[disabled] { opacity: 0.5; }
 
 .modal-close {
@@ -1776,4 +1784,3 @@ button::after {
   line-height: 1;
   margin-top: 8rpx;
 }
-

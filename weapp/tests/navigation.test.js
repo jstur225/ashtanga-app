@@ -82,6 +82,10 @@ const guidedAudioSource = fs.readFileSync(
   path.join(__dirname, '../services/guided-audio.js'),
   'utf8'
 );
+const guidedAudioVariantsSource = fs.readFileSync(
+  path.join(__dirname, '../services/guided-audio-variants.js'),
+  'utf8'
+);
 const annotationManagerSource = fs.readFileSync(
   path.join(__dirname, '../components/annotation-manager/index.js'),
   'utf8'
@@ -210,7 +214,8 @@ test('今日练习音频显示不在 WXML 中调用页面方法，口令音频�
   assert.doesNotMatch(practiceTemplate, /\{\{formatAudioTime\(/);
   assert.match(practiceTemplate, /\{\{guidedAudioCurrentText\}\}/);
   assert.match(practiceTemplate, /\{\{guidedAudioDurationText\}\}/);
-  assert.match(guidedAudioSource, /guidedAudioCache\.AUDIO_URL/);
+  assert.match(guidedAudioSource, /currentVariant\.audioUrl/);
+  assert.match(guidedAudioVariantsSource, /https:\/\/ash\.ashtangalife\.online\/audio/);
   assert.equal(
     fs.existsSync(path.join(__dirname, '../audio/guruji-led-primary.m4a')),
     false,
@@ -251,7 +256,7 @@ test('唱诵和口令跟练在按钮状态层互斥，口令选中时提前预�
   assert.match(practiceSource, /口令包含唱诵，不能同时开启/);
   assert.match(practiceSource, /nextData\.chantEnabled = false/);
   assert.match(practiceSource, /guidedAudio\.preload\(\)/);
-  assert.match(guidedAudioSource, /function preload\(\)/);
+  assert.match(guidedAudioSource, /function preload\(variantId\)/);
   assert.match(guidedAudioSource, /audioContext\.autoplay = false/);
   assert.match(guidedAudioSource, /shouldPlayOnReady = true/);
 });

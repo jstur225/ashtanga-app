@@ -1,4 +1,5 @@
 const { POSE_SECTIONS, POSES } = require('../../services/pose-data');
+const practiceShare = require('../../../utils/practice-share');
 
 const NAV_ITEMS = [
   {
@@ -46,6 +47,8 @@ function createDetailSteps(pose) {
 }
 
 Page({
+  ...practiceShare.pageShareHandlers,
+
   data: {
     sections: POSE_SECTIONS,
     activeSection: 'surya-a',
@@ -56,6 +59,11 @@ Page({
     detailHasAsana: false,
     detailImageLoaded: false,
     navItems: NAV_ITEMS
+  },
+
+  onLoad(options = {}) {
+    practiceShare.showShareMenu();
+    practiceShare.redirectTimelineEntryToPractice(options);
   },
 
   onShow() {

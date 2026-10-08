@@ -55,7 +55,7 @@ interface UsePracticeCommandsArgs {
 }
 
 export function normalizeOptionColorLevel(isPro: boolean, colorLevel?: number) {
-  return !isPro && (colorLevel === 1 || colorLevel === 4) ? 3 : (colorLevel ?? 3)
+  return !isPro && colorLevel !== 3 ? 3 : (colorLevel ?? 3)
 }
 
 export function getPracticeOptionRules(practiceOptions: PracticeOption[], isPro: boolean) {

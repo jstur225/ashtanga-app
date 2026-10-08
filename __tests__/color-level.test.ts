@@ -31,8 +31,8 @@ describe('getEffectiveOptionColor', () => {
     expect(getEffectiveOptionColor(mockOptions, '高级', false)).toBe(3)
   })
 
-  it('免费用户 → level 2 → 2（不变）', () => {
-    expect(getEffectiveOptionColor(mockOptions, '半序列', false)).toBe(2)
+  it('免费用户 → level 2 → 3（自动降级）', () => {
+    expect(getEffectiveOptionColor(mockOptions, '半序列', false)).toBe(3)
   })
 
   it('免费用户 → level 3 → 3（不变）', () => {

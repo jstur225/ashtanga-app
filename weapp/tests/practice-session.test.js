@@ -29,6 +29,19 @@ test('重新读取持久化 session 后仍能恢复计时', () => {
   assert.equal(session.getElapsedSeconds(restored, 71000), 61);
 });
 
+test('口令练习会把所选版本固定在活动 session 中', () => {
+  session.start({
+    id: 'guided_audio',
+    label: '一序列',
+    notes: 'Sharath Jois版口令',
+    guidedAudioVariantId: 'sharath-jois-led-primary'
+  }, 10000, true);
+  const restored = session.getSession();
+  assert.equal(restored.guidedAudioVariantId, 'sharath-jois-led-primary');
+  assert.equal(restored.notes, 'Sharath Jois版口令');
+  assert.equal(restored.paused, true);
+});
+
 test('结束返回最终时长并清理活动 session', () => {
   session.start({ id: 'one', label: '一序列' }, 0);
   const result = session.finish(90500);

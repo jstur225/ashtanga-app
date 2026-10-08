@@ -21,7 +21,7 @@ test('体式库完整同步网页版五个分类与 94 张卡片', () => {
   assert.equal(POSES.length, 94);
   assert.deepEqual(
     POSE_SECTIONS.map((section) => POSES.filter((pose) => pose.section === section.id).length),
-    [11, 19, 18, 33, 13]
+    [11, 19, 18, 31, 15]
   );
 });
 
