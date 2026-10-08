@@ -1,7 +1,7 @@
 import React, { type ComponentProps } from "react"
 import { cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { PracticeSessionView } from "@/components/practice/PracticeSessionView"
+import { getComfortLoadingProgress, PracticeSessionView } from "@/components/practice/PracticeSessionView"
 
 vi.mock("framer-motion", () => ({
   AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
@@ -92,6 +92,23 @@ describe("PracticeSessionView", () => {
     expect(screen.getByRole("button", { name: "暂停" })).toBeTruthy()
     fireEvent.click(screen.getByRole("button", { name: "重试" }))
     expect(onRetryAudio).toHaveBeenCalledTimes(1)
+  })
+
+  it("口令加载时展示持续增长但不超过 99% 的安抚进度", () => {
+    expect(getComfortLoadingProgress(0)).toBe(8)
+    expect(getComfortLoadingProgress(5_000)).toBeGreaterThan(8)
+    expect(getComfortLoadingProgress(5_000)).toBeLessThanOrEqual(99)
+    expect(getComfortLoadingProgress(60_000)).toBe(99)
+
+    const { rerender } = render(
+      <PracticeSessionView {...createProps({ activeOptionId: "guided_audio", isAudioLoading: true })} />,
+    )
+    const progress = screen.getByRole("progressbar", { name: "口令音频加载进度" })
+    expect(progress.getAttribute("aria-valuenow")).toBe("8")
+    expect(progress.getAttribute("aria-valuemax")).toBe("99")
+
+    rerender(<PracticeSessionView {...createProps({ activeOptionId: "guided_audio", isAudioLoaded: true })} />)
+    expect(screen.queryByRole("progressbar", { name: "口令音频加载进度" })).toBeNull()
   })
 
   it("口令就绪后展示进度、步长与前后跳转", () => {
