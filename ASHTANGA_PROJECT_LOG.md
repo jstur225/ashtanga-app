@@ -1,5 +1,13 @@
 # 阿斯汤加打卡 app - 项目记录
 
+## 2026-10-22: 体式详情梵文名点读喇叭占位（两端 + master 同步）
+
+体式详情页大标题（梵文名）右侧新增喇叭图标，作为后续梵文点读功能的 UI 占位。点击暂不播放音频，统一提示「点读功能开发中，敬请期待~」。网页 `components/PosesTab.tsx` 大标题行改为 flex，加 lucide `Volume2` 圆形按钮（品牌绿浅底），点击 sonner `toast()`。小程序 `weapp/pose-package/pages/poses/` 三个文件：wxml 标题行加 `pronunciation-button`（复用现有 `/images/icons/practice-volume.png`），wxss 加 56rpx 圆形按钮样式，js 新增 `onPronunciationTap` 调 `wx.showToast({ icon: 'none' })`。
+
+master2 提交 `9b91baa2`（UI）+ `1b8a82ca`（网页文案）+ `bbcd7380`（小程序文案）。master 同步只 cherry-pick 网页版改动（`77def77e` + `65ab1cf4`）— master 上没有 `weapp/pose-package/` 体式库分包，小程序三个文件冲突按删除处理。本地 master 落后 origin/master 10 个提交（引导音频迭代、auth 修复、社区弹窗简化），merge 干净无冲突后推送 `5ba1dc25`。本地 master 被旧 worktree `C:/tmp/ashtanga-photo-release-20260717`（7/17 遗留）占用，所有 master 操作都在该 worktree 中执行，主 worktree 始终留在 master2。
+
+验证：小程序自动化 261/261，网页 vitest 6/6，lint 通过；master worktree typecheck 通过。注意 master2 顶层 `__tests__/guided-audio-variants.test.ts` 含未清干净的合并冲突标记（10/8 合并遗留，stash 验证与本次无关），待单独修复。下一步等梵文音频到位后，把两端「开发中」提示替换为真实播放逻辑（小程序 `wx.createInnerAudioContext`、网页 `Audio`），音频 URL 挂到 pose-data 字段上。
+
 ## 2026-10-08: 体式库结束分组按传统序列重排 + git 历史分叉修复
 
 体式库按传统 Ashtanga 结束序列排法调整：轮式（Urdhva Dhanurasana）与轮式后收功（Paschimattanasana 收功）从「坐立体式」末尾移入「结束体式」分组开头（order 1/2），肩立式顺延为第 3 式，原 13 个结束体式顺延至 3-15，坐立体式变为 31 个。小程序 `weapp/pose-package/services/pose-data.js`（含 id 前缀改为 finishing-）与网页 `lib/pose-data.ts` 同步修改，`weapp/tests/pose-library.test.js` 分组数量断言改为 [11, 19, 18, 31, 15]。验证：小程序测试 5/5 通过，网页无依赖旧分组数量的代码（图片路径不变，仍留在 seated/ 目录）。
