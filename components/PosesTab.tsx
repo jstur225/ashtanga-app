@@ -142,7 +142,7 @@ export function PosesTab({ onDetailOpen, onDetailClose }: PosesTabProps) {
                   {selectedPose.name}
                   <button
                     type="button"
-                    onClick={() => toast('点读功能开发中')}
+                    onClick={() => toast('点读功能开发中，敬请期待~')}
                     aria-label={`播放 ${selectedPose.name} 梵文发音`}
                     className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#5B7553]/10 text-[#4D6647] active:scale-95"
                   >
