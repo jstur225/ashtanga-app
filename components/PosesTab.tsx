@@ -2,7 +2,8 @@
 
 import React, { useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Volume2 } from 'lucide-react'
+import { toast } from 'sonner'
 import { POSE_SECTIONS, POSES, type Pose, type PoseSectionId } from '@/lib/pose-data'
 
 interface PosesTabProps {
@@ -137,8 +138,16 @@ export function PosesTab({ onDetailOpen, onDetailClose }: PosesTabProps) {
               </div>
 
               <div className="px-6 pb-8 pt-5">
-                <h2 className="text-xl font-medium font-serif text-stone-800">
+                <h2 className="flex items-center gap-2 text-xl font-medium font-serif text-stone-800">
                   {selectedPose.name}
+                  <button
+                    type="button"
+                    onClick={() => toast('点读功能开发中')}
+                    aria-label={`播放 ${selectedPose.name} 梵文发音`}
+                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#5B7553]/10 text-[#4D6647] active:scale-95"
+                  >
+                    <Volume2 className="h-4 w-4" />
+                  </button>
                 </h2>
                 {selectedPose.cueName ? (
                   <>
