@@ -57,6 +57,7 @@ afterEach(() => {
   cleanup()
   vi.clearAllMocks()
   vi.stubGlobal("fetch", undefined)
+  delete window.__ashtangaRuntimeDiagnostic
 })
 
 // ==================== Helpers ====================
@@ -259,17 +260,37 @@ describe("AuthModal — 登录提交", () => {
     expect(props.onAuthSuccess).not.toHaveBeenCalled()
   })
 
-  it("登录网络错误 → 显示「网络连接失败...」", async () => {
-    signInMock.mockRejectedValueOnce(new Error("Failed to fetch"))
+  it("Safari Load failed → 显示明确网络提示并可重试登录", async () => {
+    const runtimeDiagnostic = vi.fn()
+    window.__ashtangaRuntimeDiagnostic = runtimeDiagnostic
+    signInMock
+      .mockRejectedValueOnce(new TypeError("Load failed"))
+      .mockResolvedValueOnce({ error: null })
 
-    render(<AuthModal {...defaultProps()} mode="login" />)
+    const props = defaultProps()
+    render(<AuthModal {...props} mode="login" />)
     fillLogin("test@test.com", "Abcd1234")
 
     await act(async () => {
       fireEvent.click(screen.getByText("登录"))
     })
 
-    expect(screen.getByText(/网络连接失败/)).toBeTruthy()
+    expect(screen.getByText("网络连接失败，登录请求未能连接服务器。请检查网络后点击“重新尝试登录”。")).toBeTruthy()
+    expect(screen.getByText("重新尝试登录")).toBeTruthy()
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("重新尝试登录"))
+    })
+
+    expect(signInMock).toHaveBeenCalledTimes(2)
+    expect(props.onAuthSuccess).toHaveBeenCalledTimes(1)
+    expect(props.onClose).toHaveBeenCalledTimes(1)
+    expect(runtimeDiagnostic).toHaveBeenCalledWith("auth_sign_in_failed", expect.objectContaining({
+      networkError: true,
+      errorMessage: "Load failed",
+    }))
+    expect(JSON.stringify(runtimeDiagnostic.mock.calls)).not.toContain("test@test.com")
+    expect(JSON.stringify(runtimeDiagnostic.mock.calls)).not.toContain("Abcd1234")
   })
 })
 

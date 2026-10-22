@@ -1,6 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { supabase } from '@/lib/supabase'
+import { normalizeAuthEmail } from '@/lib/auth-email'
+
+export const dynamic = 'force-dynamic'
+
+const NO_STORE_HEADERS = {
+  'Cache-Control': 'no-store, no-cache, must-revalidate, private',
+  Pragma: 'no-cache',
+}
+
+function json(body: Record<string, unknown>, status: number) {
+  return NextResponse.json(body, { status, headers: NO_STORE_HEADERS })
+}
 
 /**
  * 重置密码 API（忘记密码功能）
@@ -15,34 +26,26 @@ export async function POST(request: NextRequest) {
   )
 
   try {
-    const { email, newPassword, code } = await request.json()
+    const { email: rawEmail, newPassword, code } = await request.json()
+    const email = normalizeAuthEmail(rawEmail)
 
     // 验证输入
     if (!email || !newPassword || !code) {
-      return NextResponse.json(
-        { error: '请提供邮箱、新密码和验证码' },
-        { status: 400 }
-      )
+      return json({ error: '请提供邮箱、新密码和验证码' }, 400)
     }
 
     // 验证密码强度
     if (newPassword.length < 8) {
-      return NextResponse.json(
-        { error: '密码至少需要8位字符' },
-        { status: 400 }
-      )
+      return json({ error: '密码至少需要8位字符' }, 400)
     }
 
     if (!/[a-zA-Z]/.test(newPassword) || !/\d/.test(newPassword)) {
-      return NextResponse.json(
-        { error: '密码必须包含字母和数字' },
-        { status: 400 }
-      )
+      return json({ error: '密码必须包含字母和数字' }, 400)
     }
 
     // 步骤2: 验证验证码（单次消费）
     const now = new Date().toISOString()
-    const { data: verificationData, error: verificationError } = await supabase
+    const { data: verificationData, error: verificationError } = await supabaseAdmin
       .from('verification_codes')
       .select('*')
       .eq('email', email)
@@ -55,28 +58,37 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (verificationError || !verificationData) {
-      return NextResponse.json(
-        { error: '验证码错误或已过期' },
-        { status: 400 }
-      )
+      return json({ error: '验证码错误或已过期' }, 400)
     }
-    const { data: { users }, error: listUsersError } = await supabaseAdmin.auth.admin.listUsers()
+    // Admin listUsers 默认只返回第一页。必须显式覆盖完整用户量，
+    // 否则排在前 50 个之后的老账号会被误判成“未注册”。
+    const { data: { users }, error: listUsersError } = await supabaseAdmin.auth.admin.listUsers({
+      page: 1,
+      perPage: 1000,
+    })
 
     if (listUsersError) {
-      return NextResponse.json(
-        { error: '查询用户失败' },
-        { status: 500 }
-      )
+      return json({ error: '查询用户失败' }, 500)
     }
 
     // 找到匹配的用户
-    const targetUser = users.find((u: any) => u.email === email)
+    const targetUser = users.find((u: any) => normalizeAuthEmail(u.email) === email)
 
     if (!targetUser) {
-      return NextResponse.json(
-        { error: '该邮箱未注册' },
-        { status: 404 }
-      )
+      return json({ error: '该邮箱未注册' }, 404)
+    }
+
+    // 原子占用验证码，避免同一个验证码并发修改两次密码。
+    const { data: consumedCode, error: consumeError } = await supabaseAdmin
+      .from('verification_codes')
+      .update({ used: true })
+      .eq('id', verificationData.id)
+      .eq('used', false)
+      .select('id')
+      .maybeSingle()
+
+    if (consumeError || !consumedCode) {
+      return json({ error: '验证码错误或已过期' }, 400)
     }
 
     // 步骤4: 使用 Admin API 更新密码
@@ -86,27 +98,20 @@ export async function POST(request: NextRequest) {
     )
 
     if (updateError) {
-      return NextResponse.json(
-        { error: '密码更新失败，请重试' },
-        { status: 500 }
-      )
+      // 密码更新失败时释放验证码，用户无需重新收邮件即可重试。
+      await supabaseAdmin
+        .from('verification_codes')
+        .update({ used: false })
+        .eq('id', verificationData.id)
+      return json({ error: '密码更新失败，请重试' }, 500)
     }
 
-    // 步骤5: 标记验证码为已使用（单次消费）
-    await supabase
-      .from('verification_codes')
-      .update({ used: true })
-      .eq('id', verificationData.id)
-
-    return NextResponse.json({
+    return json({
       success: true,
       message: '密码重置成功',
-    })
+    }, 200)
 
   } catch {
-    return NextResponse.json(
-      { error: '重置密码失败，请重试' },
-      { status: 500 }
-    )
+    return json({ error: '重置密码失败，请重试' }, 500)
   }
 }

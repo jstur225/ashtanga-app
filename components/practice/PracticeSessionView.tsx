@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import { AlertCircle, Pause, Play, SkipBack, SkipForward } from "lucide-react"
 import { formatAudioTime, shouldShowPracticeControls } from "@/hooks/useGuidedAudio"
@@ -36,6 +37,12 @@ interface PracticeSessionViewProps {
   onDiscardEnd: () => void
 }
 
+export function getComfortLoadingProgress(elapsedMs: number) {
+  const safeElapsedMs = Math.max(0, elapsedMs)
+  const easedProgress = 99 * (1 - Math.exp(-safeElapsedMs / 2600))
+  return Math.min(99, Math.max(8, Math.round(easedProgress)))
+}
+
 export function PracticeSessionView({
   elapsedTime,
   isPaused,
@@ -66,6 +73,25 @@ export function PracticeSessionView({
   onDiscardEnd,
 }: PracticeSessionViewProps) {
   const showGuidedAudioProgress = activeOptionId === "guided_audio" && isAudioLoaded && !isAudioLoading && !audioError
+  const showGuidedAudioLoading = activeOptionId === "guided_audio" && isAudioLoading
+  const [loadingComfortProgress, setLoadingComfortProgress] = useState(8)
+
+  useEffect(() => {
+    if (!showGuidedAudioLoading) {
+      setLoadingComfortProgress(8)
+      return
+    }
+
+    const startedAt = Date.now()
+    setLoadingComfortProgress(getComfortLoadingProgress(0))
+    const intervalId = setInterval(() => {
+      setLoadingComfortProgress(getComfortLoadingProgress(Date.now() - startedAt))
+    }, 180)
+
+    return () => clearInterval(intervalId)
+  }, [showGuidedAudioLoading])
+
+  const displayedLoadingProgress = loadingComfortProgress
 
   return (
     <motion.div
@@ -161,16 +187,34 @@ export function PracticeSessionView({
       )}
 
       <div className="px-6 pb-32">
-        {activeOptionId === "guided_audio" && isAudioLoading && (
+        {showGuidedAudioLoading && (
           <motion.div
             role="status"
             aria-label="正在加载口令音频"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex flex-col items-center justify-center py-3 bg-white/20 backdrop-blur-[8px] rounded-2xl border border-white/30"
+            className="flex flex-col items-center justify-center px-5 py-4 bg-white/20 backdrop-blur-[8px] rounded-2xl border border-white/30"
           >
-            <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-            <p className="text-sm text-foreground/70 mt-4 font-serif">{isUsingCache ? "从缓存读取..." : "加载音频中..."}</p>
+            <div className="w-full flex items-center justify-between gap-4 mb-3">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin flex-shrink-0" />
+                <p className="text-sm text-foreground/70 font-serif truncate">{isUsingCache ? "从缓存读取..." : "加载音频中..."}</p>
+              </div>
+              <span className="text-xs tabular-nums text-foreground/55 font-mono">{displayedLoadingProgress}%</span>
+            </div>
+            <div
+              role="progressbar"
+              aria-label="口令音频加载进度"
+              aria-valuemin={0}
+              aria-valuemax={99}
+              aria-valuenow={displayedLoadingProgress}
+              className="relative w-full h-2 overflow-hidden rounded-full bg-white/25 border border-white/20"
+            >
+              <div
+                className="absolute inset-y-0 left-0 rounded-full green-gradient transition-[width] duration-300 ease-out shadow-[0_0_12px_rgba(45,90,39,0.3)]"
+                style={{ width: `${loadingComfortProgress}%` }}
+              />
+            </div>
           </motion.div>
         )}
 

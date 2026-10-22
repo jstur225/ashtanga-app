@@ -2,8 +2,27 @@ export type AuthMode = 'login' | 'register' | 'forgot-password'
 export type ForgotPasswordStep = 'email' | 'verify' | 'new-password'
 export type RegisterStep = 'form' | 'verify'
 
+export const AUTH_NETWORK_ERROR_MESSAGE = '网络连接失败，登录请求未能连接服务器。请检查网络后点击“重新尝试登录”。'
+
+export function isAuthNetworkError(message: string | undefined): boolean {
+  if (!message) return false
+
+  return [
+    'AuthRetryableFetchError',
+    'Failed to fetch',
+    'Load failed',
+    'Network request failed',
+    'NetworkError',
+    'ERR_NETWORK',
+    'ERR_INTERNET_DISCONNECTED',
+    'The network connection was lost',
+  ].some((pattern) => message.toLowerCase().includes(pattern.toLowerCase()))
+}
+
 export function translateAuthError(message: string | undefined): string {
   if (!message) return '操作失败，请重试'
+
+  if (isAuthNetworkError(message)) return AUTH_NETWORK_ERROR_MESSAGE
 
   const errorMap: Record<string, string> = {
     'New password should be different from the old password.': '新密码不能与原密码相同',
@@ -15,8 +34,6 @@ export function translateAuthError(message: string | undefined): string {
     'Signups not allowed': '暂不允许注册',
     'Email rate limit exceeded': '发送邮件过于频繁，请稍后再试',
     'User not found': '用户不存在',
-    'AuthRetryableFetchError': '网络请求失败，请检查网络连接后重试',
-    'Failed to fetch': '网络连接失败，请检查网络或尝试刷新页面',
     'Gateway Timeout': '服务器响应超时，可能正在发送确认邮件，请稍后尝试登录',
     '504': '服务器响应超时，可能正在发送确认邮件，请稍后尝试登录',
     '注册请求超时': '注册请求超时，可能正在发送确认邮件，请稍后尝试登录',

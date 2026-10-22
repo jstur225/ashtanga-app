@@ -6,8 +6,6 @@ import Image from 'next/image'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
-// 版本号 - 每次更新文案时修改此版本号
-const XIAOHONGSHU_GROUP_TEXT = '9【一键复制，小红书等你】 9月4日前有效，"🆓熬汤日记App交流群"邀你一起聊 UA4409 :/#p🐨🥖🐡🐧🐟🤔😜🥯🍈😚🍖🌭'
 const WECHAT_ID = 'xiao519216978'
 
 interface XiaohongshuInviteModalProps {
@@ -16,38 +14,25 @@ interface XiaohongshuInviteModalProps {
 }
 
 export function XiaohongshuInviteModal({ isOpen, onClose }: XiaohongshuInviteModalProps) {
-  const [copiedXhs, setCopiedXhs] = useState(false)
   const [copiedWx, setCopiedWx] = useState(false)
 
-  const copyToClipboard = async (text: string, type: 'xhs' | 'wx') => {
+  const copyWechatId = async () => {
     try {
-      await navigator.clipboard.writeText(text)
-      if (type === 'xhs') {
-        setCopiedXhs(true)
-        toast.success('小红书群链接已复制')
-        setTimeout(() => setCopiedXhs(false), 2000)
-      } else {
-        setCopiedWx(true)
-        toast.success('微信号已复制')
-        setTimeout(() => setCopiedWx(false), 2000)
-      }
+      await navigator.clipboard.writeText(WECHAT_ID)
+      setCopiedWx(true)
+      toast.success('微信号已复制')
+      setTimeout(() => setCopiedWx(false), 2000)
     } catch {
       // fallback
       const textarea = document.createElement('textarea')
-      textarea.value = text
+      textarea.value = WECHAT_ID
       document.body.appendChild(textarea)
       textarea.select()
       document.execCommand('copy')
       document.body.removeChild(textarea)
-      if (type === 'xhs') {
-        setCopiedXhs(true)
-        toast.success('小红书群链接已复制')
-        setTimeout(() => setCopiedXhs(false), 2000)
-      } else {
-        setCopiedWx(true)
-        toast.success('微信号已复制')
-        setTimeout(() => setCopiedWx(false), 2000)
-      }
+      setCopiedWx(true)
+      toast.success('微信号已复制')
+      setTimeout(() => setCopiedWx(false), 2000)
     }
   }
 
@@ -107,18 +92,11 @@ export function XiaohongshuInviteModal({ isOpen, onClose }: XiaohongshuInviteMod
                   🐸{WECHAT_ID}
                 </p>
 
-                {/* 双按钮 */}
-                <div className="flex gap-3 pt-2">
+                {/* 联系按钮 */}
+                <div className="pt-2">
                   <button
-                    onClick={() => copyToClipboard(XIAOHONGSHU_GROUP_TEXT, 'xhs')}
-                    className="flex-1 py-3 px-2 rounded-full bg-[#FF2442] text-white font-serif text-xs transition-all hover:opacity-90 active:scale-[0.98] flex items-center justify-center gap-1.5 whitespace-nowrap"
-                  >
-                    {copiedXhs ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                    {copiedXhs ? '已复制' : '复制小红书群链接'}
-                  </button>
-                  <button
-                    onClick={() => copyToClipboard(WECHAT_ID, 'wx')}
-                    className="flex-1 py-3 px-2 rounded-full bg-[#07C160] text-white font-serif text-xs transition-all hover:opacity-90 active:scale-[0.98] flex items-center justify-center gap-1.5 whitespace-nowrap"
+                    onClick={copyWechatId}
+                    className="w-full py-3 px-4 rounded-full bg-[#07C160] text-white font-serif text-sm transition-all hover:opacity-90 active:scale-[0.98] flex items-center justify-center gap-2"
                   >
                     {copiedWx ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                     {copiedWx ? '已复制' : '复制微信号'}

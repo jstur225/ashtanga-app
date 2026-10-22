@@ -7,7 +7,7 @@ import { ForgotPasswordForm, LoginForm, RegisterForm } from '@/components/AuthMo
 import { useAuth } from '@/hooks/useAuth'
 import { useForgotPasswordFlow } from '@/hooks/useForgotPasswordFlow'
 import { useRegisterFlow } from '@/hooks/useRegisterFlow'
-import { translateAuthError, type AuthMode } from '@/lib/auth-modal-utils'
+import { isAuthNetworkError, translateAuthError, type AuthMode } from '@/lib/auth-modal-utils'
 
 interface AuthModalProps {
   isOpen: boolean
@@ -23,6 +23,7 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [canRetryLogin, setCanRetryLogin] = useState(false)
   const forgotPasswordFlow = useForgotPasswordFlow()
   const registerFlow = useRegisterFlow()
   const {
@@ -57,6 +58,7 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
     resetRegisterFlow()
     resetForgotPasswordFlow()
     setError('')
+    setCanRetryLogin(false)
   }, [mode, resetForgotPasswordFlow, resetRegisterFlow])
 
   // ==================== Esc 键关闭弹窗 ====================
@@ -72,6 +74,69 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
   }, [isOpen, loading, onClose])
 
   // ==================== 提交处理 ====================
+  const attemptLogin = async () => {
+    setError('')
+    setCanRetryLogin(false)
+    setLoading(true)
+    const attemptId = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
+    const startedAt = Date.now()
+    const connection = (navigator as Navigator & { connection?: Record<string, unknown> }).connection
+    const diagnosticContext = {
+      attemptId,
+      path: window.location.pathname,
+      online: navigator.onLine,
+      visibilityState: document.visibilityState,
+      displayMode: typeof window.matchMedia === 'function'
+        && window.matchMedia('(display-mode: standalone)').matches
+        ? 'standalone'
+        : 'browser',
+      targetOrigin: (() => {
+        try {
+          return process.env.NEXT_PUBLIC_SUPABASE_URL
+            ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).origin
+            : null
+        } catch {
+          return null
+        }
+      })(),
+      connection: connection ? {
+        effectiveType: connection.effectiveType,
+        downlink: connection.downlink,
+        rtt: connection.rtt,
+        saveData: connection.saveData,
+      } : 'Not supported',
+    }
+    window.__ashtangaRuntimeDiagnostic?.('auth_sign_in_started', diagnosticContext)
+
+    try {
+      const { error: signInError } = await signIn(email, password) as any
+      if (signInError) throw signInError
+      window.__ashtangaRuntimeDiagnostic?.('auth_sign_in_succeeded', {
+        ...diagnosticContext,
+        elapsedMs: Date.now() - startedAt,
+      })
+      onAuthSuccess()
+      onClose()
+    } catch (caughtError: unknown) {
+      const authError = caughtError as { message?: string; name?: string; code?: string; status?: number }
+      const message = authError?.message || String(caughtError)
+      const networkError = isAuthNetworkError(message)
+      setCanRetryLogin(networkError)
+      setError(translateAuthError(message) || '操作失败，请重试')
+      window.__ashtangaRuntimeDiagnostic?.('auth_sign_in_failed', {
+        ...diagnosticContext,
+        elapsedMs: Date.now() - startedAt,
+        networkError,
+        errorName: authError?.name || null,
+        errorCode: authError?.code || null,
+        httpStatus: authError?.status || null,
+        errorMessage: message.slice(0, 500),
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
@@ -87,20 +152,7 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
       return
     }
 
-    setLoading(true)
-    try {
-      if (mode === 'login') {
-        const { error } = await signIn(email, password) as any
-        if (error) throw error
-        onAuthSuccess()
-        onClose()
-        return
-      }
-    } catch (err: any) {
-      setError(translateAuthError(err.message) || '操作失败，请重试')
-    } finally {
-      setLoading(false)
-    }
+    await attemptLogin()
   }
 
   const handleSendVerificationCode = () => {
@@ -214,6 +266,16 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
                       setError('')
                     }}
                   />
+                )}
+                {mode === 'login' && canRetryLogin && (
+                  <button
+                    type="button"
+                    onClick={() => void attemptLogin()}
+                    disabled={loading}
+                    className="w-full px-4 py-3 bg-secondary text-primary rounded-xl border border-primary/30 hover:bg-secondary/80 transition-all disabled:opacity-50 font-serif"
+                  >
+                    {loading ? '重新连接中...' : '重新尝试登录'}
+                  </button>
                 )}
               </form>
             )}
