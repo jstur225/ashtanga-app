@@ -110,6 +110,10 @@ Page({
     this.setData({ detailImageLoaded: true });
   },
 
+  onPronunciationTap() {
+    wx.showToast({ title: '点读功能开发中', icon: 'none' });
+  },
+
   navigatePose(event) {
     const direction = event.currentTarget.dataset.direction;
     const count = this.data.visiblePoses.length;

@@ -47,7 +47,12 @@
       </view>
 
       <view class="detail-copy">
-        <text class="detail-title">{{selectedPose.name}}</text>
+        <view class="detail-title-row">
+          <text class="detail-title">{{selectedPose.name}}</text>
+          <view class="pronunciation-button" bindtap="onPronunciationTap" aria-label="播放梵文发音">
+            <image src="/images/icons/practice-volume.png" mode="aspectFit" />
+          </view>
+        </view>
         <block wx:if="{{selectedPose.cueName}}">
           <text class="detail-subtitle">{{selectedPose.cueName}}</text>
 

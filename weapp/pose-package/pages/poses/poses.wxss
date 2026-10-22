@@ -166,12 +166,38 @@ page {
   padding: 40rpx 48rpx 64rpx;
 }
 
+.detail-title-row {
+  align-items: center;
+  display: flex;
+  gap: 16rpx;
+}
+
 .detail-title {
   color: #292524;
   display: block;
   font-size: 40rpx;
   font-weight: 500;
   line-height: 1.35;
+}
+
+.pronunciation-button {
+  align-items: center;
+  background: rgba(91, 117, 83, 0.10);
+  border-radius: 50%;
+  display: flex;
+  flex-shrink: 0;
+  height: 56rpx;
+  justify-content: center;
+  width: 56rpx;
+}
+
+.pronunciation-button image {
+  height: 32rpx;
+  width: 32rpx;
+}
+
+.pronunciation-button-pressed {
+  background: rgba(91, 117, 83, 0.22);
 }
 
 .detail-subtitle {
