@@ -111,7 +111,7 @@ Page({
   },
 
   onPronunciationTap() {
-    wx.showToast({ title: '点读功能开发中', icon: 'none' });
+    wx.showToast({ title: '点读功能开发中，敬请期待~', icon: 'none' });
   },
 
   navigatePose(event) {
