@@ -1,5 +1,19 @@
 # 阿斯汤加打卡 app - 项目记录
 
+## 2026-11-09: 修复自定义课程名被英文转中文迁移劫持为「一序列」（用户反馈）
+
+用户反馈（debug log 2026-11-08，iPhone Safari PWA）：自定义课程「一序列Led」保存成功后，下次打开变成「一序列」，多次复现；改名「Led」就正常。用户猜测是字数截断，实际不是——是网页 `hooks/usePracticeData.ts` 里一段「英文选项转中文」的历史数据迁移逻辑在劫持：每次打开页面 useEffect 都会跑一遍，触发条件是 localStorage 里任何 label/notes 含 `Mysore/Led/Led Class/Half/Rest`，命中后按模糊规则改写——label 含「一序列/first/1/primary」强制改为「一序列」、「二序列/second/2」改「二序列」、「半序列/half」改「半序列」、「休息日/rest」改「休息日」。「一序列Led」既触发迁移又命中改写规则，「Led」触发但不命中所以幸存。受影响的命名远不止「一序列Led」——任何名字里带数字 1/2、含「half/rest」等都会中招。
+
+修复在迁移 map 入口加一行守卫 `if (opt.is_custom) return opt;`，自定义选项直接跳过，预设项保持原行为不动存量用户。提交 `0874d2d3`（master2）→ cherry-pick `b30462dd`（master）→ push 触发 Vercel 部署 → 线上 chunk `528f1219844d279a.js` 已确认包含 minified 守卫代码。小程序端 `weapp/` 排查过没有同类迁移逻辑，不受影响，无需改动。注意被劫持过的云端数据（如 `ce5fa6b5-...` 的 label 已是「一序列」）不会被自动恢复，用户已用「Led」绕过，新版上线后可手动改回。
+
+## 2026-11-09: master2 → master 合并对齐 + master2 历史遗留冲突标记清理
+
+用户决定把 master2 长期积累的代码与 master 对齐。实际 web 生产代码差异很小（20 文件、+128/-58 行），但 merge 触发了 5 个文件冲突，且其中 `__tests__/audioCache.test.ts` 与 `__tests__/guided-audio-variants.test.ts` 在 master2 上本身就含 10/8 遗留的 6 个 `<<<<<<<` 冲突标记（导致 tsc 全量一直报 TS1185）。先在 master2 上清理这两个测试的冲突标记（按 master2 侧保留，含 `clearAllCaches` 方法与 Sharath 音频 LFS URL 断言，提交 `3015394e` 并推送）——这一并修复了 master2 全量 typecheck 长期失败的问题。
+
+随后在 master worktree（`C:/tmp/ashtanga-photo-release-20260717`，master 分支被它占用）执行 merge：3 个真实冲突全部取 master2 侧（`AuthModal.tsx` 完整接入 `normalizeAuthEmail` 客户端规范化、`practice-debug-log.ts` 纯格式、`next.config.mjs` 增加 `/audio/:path*` 缓存头与录屏开发配置），merge commit `c79afbc2`。合并后 `__tests__/font-optimization.test.ts` 4 个用例失败——master2 已把字体从 `next/font/google` 切换为 `globals.css` 中 `@font-face Ashtanga Serif`（v2 woff 自托管，为解决手机 Chrome 字体回退），但测试还在按旧实现断言。同步更新 4 个断言匹配现实（提交 `ba57e899`），8/8 通过。
+
+最终验证：typecheck 全过、vitest 全量 **627/627**（合并前 master 是 603，合并后带上 master2 新增的 24 个测试）。push `b30462dd..ba57e899` 触发 Vercel 部署，线上 CSS 已确认含 `font-family:"Ashtanga Serif","Songti SC","STSong","SimSun","Noto Serif CJK SC",serif`，新字体方案生效。**副作用提示**：线上字体加载方式由 `next/font/google` 切到直接 `@font-face`，建议手机浏览器复验一次宋体渲染。中途误执行 `git stash pop` 弹出旧 stash，已用 `git stash store` 恢复，无内容丢失；stash 列表现多一条同名重复待手动 drop。
+
 ## 2026-10-22: 体式详情梵文名点读喇叭占位（两端 + master 同步）
 
 体式详情页大标题（梵文名）右侧新增喇叭图标，作为后续梵文点读功能的 UI 占位。点击暂不播放音频，统一提示「点读功能开发中，敬请期待~」。网页 `components/PosesTab.tsx` 大标题行改为 flex，加 lucide `Volume2` 圆形按钮（品牌绿浅底），点击 sonner `toast()`。小程序 `weapp/pose-package/pages/poses/` 三个文件：wxml 标题行加 `pronunciation-button`（复用现有 `/images/icons/practice-volume.png`），wxss 加 56rpx 圆形按钮样式，js 新增 `onPronunciationTap` 调 `wx.showToast({ icon: 'none' })`。
