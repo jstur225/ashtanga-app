@@ -112,6 +112,8 @@ export const usePracticeData = () => {
         if (hasEnglishLabels) {
           console.log('🔄 [数据迁移] 检测到旧版本英文选项，自动转换为中文...');
           const migratedOptions = parsedOptions.map(opt => {
+            // ⭐ 用户自定义选项不参与迁移，避免「一序列Led」等名字被改写为「一序列」
+            if (opt.is_custom) return opt;
             // 只转换 label 为中文，保留原有的 notes 不变
             const label = opt.label?.toLowerCase() || '';
             const notes = opt.notes || '';
