@@ -17,17 +17,17 @@ describe('字体优化', () => {
     expect(layoutContent).not.toContain('Playfair_Display')
   })
 
-  it('使用 next/font/google 自托管 Noto Serif SC', () => {
-    expect(layoutContent).toContain('next/font/google')
-    expect(layoutContent).toContain('Noto_Serif_SC')
-    expect(layoutContent).toContain("variable: '--font-noto-serif-sc'")
+  it('通过 globals.css @font-face 自托管 Ashtanga Serif（Noto Serif SC 子集）', () => {
+    expect(layoutContent).not.toContain('next/font/google')
+    expect(cssContent).toContain("font-family: 'Ashtanga Serif'")
+    expect(cssContent).toContain("url('/fonts/ashtanga-noto-serif-sc-ui-v2.woff')")
     expect(pageContent).not.toContain('next/font/google')
   })
 
   it('全局字体优先使用自托管宋体并保留系统回退', () => {
-    expect(cssContent).toContain("--font-sans: var(--font-noto-serif-sc), 'Songti SC'")
-    expect(cssContent).toContain("--font-serif: var(--font-noto-serif-sc), 'Songti SC'")
-    expect(cssContent).toContain("--font-playfair: var(--font-noto-serif-sc), 'Songti SC'")
+    expect(cssContent).toContain("--font-sans: 'Ashtanga Serif', 'Songti SC'")
+    expect(cssContent).toContain("--font-serif: 'Ashtanga Serif', 'Songti SC'")
+    expect(cssContent).toContain("--font-playfair: 'Ashtanga Serif', 'Songti SC'")
   })
 
   it('app/page.tsx 不导入 Playfair_Display', () => {
@@ -38,14 +38,14 @@ describe('字体优化', () => {
     expect(layoutContent).not.toContain('jetbrainsMono')
   })
 
-  it('body className 注入 Noto Serif SC 字体变量', () => {
-    expect(layoutContent).toContain('notoSerifSC.variable')
+  it('body className 统一走 font-serif（不再注入字体 variable）', () => {
+    expect(layoutContent).toContain('font-serif antialiased')
     expect(layoutContent).not.toContain('inter.variable')
   })
 
   it('globals.css font-mono 也遵循全站宋体要求', () => {
     expect(cssContent).not.toContain('jetbrains-mono')
     expect(cssContent).not.toContain('JetBrains Mono')
-    expect(cssContent).toContain("--font-mono: var(--font-noto-serif-sc), 'Songti SC'")
+    expect(cssContent).toContain("--font-mono: 'Ashtanga Serif', 'Songti SC'")
   })
 })
