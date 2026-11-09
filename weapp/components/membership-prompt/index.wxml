@@ -1,0 +1,55 @@
+<view wx:if="{{show}}" class="membership-mask" bindtap="close">
+  <view class="membership-sheet" catchtap="stopPropagation">
+    <scroll-view class="membership-scroll" scroll-y>
+      <view class="membership-card">
+        <view class="membership-header">
+          <view class="membership-heading">
+            <view class="membership-title-row">
+              <view class="crown-box">
+                <image class="crown-icon" src="/images/icons/membership-crown.svg" mode="aspectFit" />
+              </view>
+              <text class="membership-title">PRO 会员</text>
+            </view>
+            <text class="membership-subtitle">{{subtitle}}</text>
+          </view>
+          <view class="membership-close" bindtap="close" aria-label="关闭会员提示">
+            <view class="close-line close-line-a"></view>
+            <view class="close-line close-line-b"></view>
+          </view>
+        </view>
+
+        <view class="benefit-section">
+          <view class="benefit-table">
+            <view class="benefit-row benefit-head">
+              <text class="benefit-cell benefit-first-cell">权益</text><text class="benefit-cell">普通</text><text class="benefit-cell benefit-pro">Pro</text>
+            </view>
+            <view wx:for="{{benefits}}" wx:key="feature" class="benefit-row">
+              <text class="benefit-cell benefit-first-cell">{{item.feature}}</text><text class="benefit-cell">{{item.free}}</text><text class="benefit-cell benefit-pro">{{item.pro}}</text>
+            </view>
+          </view>
+        </view>
+
+        <view class="price-grid">
+          <view class="price-card">
+            <view class="price-value"><text class="price-symbol">¥</text><text>19.8</text></view>
+            <text class="price-name">季卡</text>
+            <text class="price-days">90 天</text>
+          </view>
+          <view class="price-card recommended">
+            <text class="recommend-label">推荐</text>
+            <view class="price-value price-value-pro"><text class="price-symbol">¥</text><text>69.8</text></view>
+            <text class="price-name">年卡</text>
+            <text class="price-days">365 天</text>
+          </view>
+        </view>
+
+        <view class="upgrade-button" bindtap="upgrade">
+          <view class="upgrade-title-row">
+            <image class="upgrade-crown" src="/images/icons/membership-crown.svg" mode="aspectFit" />
+            <text>开通 Pro 会员</text>
+          </view>
+        </view>
+      </view>
+    </scroll-view>
+  </view>
+</view>

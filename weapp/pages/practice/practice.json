@@ -1,6 +1,7 @@
 {
   "navigationBarTitleText": "今日练习",
   "usingComponents": {
-    "practice-record-form": "../../components/practice-record-form/index"
+    "practice-record-form": "../../components/practice-record-form/index",
+    "membership-prompt": "../../components/membership-prompt/index"
   }
 }

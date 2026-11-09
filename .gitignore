@@ -36,4 +36,12 @@ nul
 /playwright/report/
 /playwright/.cache/
 /test-results/
+
+# Pose library source masters live in the external asset workspace.
+# Never traverse or commit the optional local junction that used to be mounted here.
+/output/
+
+# Rebuildable Xiaohongshu mini-tool artifacts.
+/xhs-tool/dist/
+/xhs-tool/release/
 .claude/skills/gstack.bak/

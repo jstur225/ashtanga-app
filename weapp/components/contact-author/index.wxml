@@ -1,0 +1,16 @@
+<view wx:if="{{show}}" class="contact-mask" bindtap="onClose">
+  <view class="contact-modal" catchtap="stopPropagation">
+    <view class="contact-close" bindtap="onClose">
+      <view class="contact-close-line contact-close-line-a"></view>
+      <view class="contact-close-line contact-close-line-b"></view>
+    </view>
+    <view class="contact-body">
+      <text class="contact-intro">✋汤友你好</text>
+      <text class="contact-desc">如果使用过程中有任何问题（功能建议、Bug、会员开通等），都可以加作者微信沟通。</text>
+      <text class="contact-wechat">🐸{{wechatId}}</text>
+      <view class="contact-btn" bindtap="copyWx">
+        <text>{{copiedWx ? '已复制' : '复制微信号'}}</text>
+      </view>
+    </view>
+  </view>
+</view>

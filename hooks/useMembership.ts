@@ -16,7 +16,7 @@ export const PRO_BENEFITS = [
   { feature: '单张照片大小', free: '5 MB', pro: '30 MB' },
   { feature: '练习选项', free: '3 个', pro: '11 个' },
   { feature: '日历标注', free: '1 种', pro: '9 种' },
-  { feature: '日历颜色', free: '2 种', pro: '4 种' },
+  { feature: '日历颜色', free: '1 种', pro: '4 种' },
   { feature: '唱诵倒计时', free: '1 分钟', pro: '自定义' },
 ] as const
 

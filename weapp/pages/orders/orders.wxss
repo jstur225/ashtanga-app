@@ -1,0 +1,167 @@
+.orders-page {
+  box-sizing: border-box;
+  min-height: 100vh;
+  padding: 32rpx 40rpx calc(48rpx + env(safe-area-inset-bottom));
+}
+.orders-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+  margin-bottom: 28rpx;
+}
+.orders-title {
+  color: #2A4B3C;
+  font-family: 'Ashtanga Serif', 'Songti SC', STSong, serif;
+  font-size: 38rpx;
+  font-weight: 600;
+}
+.orders-subtitle {
+  color: #8A918D;
+  font-family: 'Ashtanga Serif', 'Songti SC', STSong, serif;
+  font-size: 23rpx;
+}
+.orders-loading,
+.orders-error,
+.orders-empty {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 14rpx;
+  padding: 120rpx 32rpx;
+  text-align: center;
+}
+.orders-spinner {
+  animation: orders-spin 0.9s linear infinite;
+  color: #2A4B3C;
+  font-size: 44rpx;
+  line-height: 1;
+}
+@keyframes orders-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.orders-error-title,
+.orders-empty-title {
+  color: #2A4B3C;
+  font-family: 'Ashtanga Serif', 'Songti SC', STSong, serif;
+  font-size: 28rpx;
+  font-weight: 600;
+}
+.orders-error-copy,
+.orders-empty-copy {
+  color: #8A918D;
+  font-family: 'Ashtanga Serif', 'Songti SC', STSong, serif;
+  font-size: 23rpx;
+  line-height: 1.5;
+}
+.orders-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+.order-card {
+  background: #FFFFFF;
+  border: 1rpx solid #E7E2D8;
+  border-radius: 28rpx;
+  box-shadow: 0 8rpx 24rpx rgba(42, 75, 60, 0.06);
+  box-sizing: border-box;
+  padding: 28rpx 28rpx 26rpx;
+}
+.order-card-head {
+  align-items: flex-start;
+  display: flex;
+  justify-content: space-between;
+}
+.order-plan-line {
+  align-items: center;
+  display: flex;
+  gap: 12rpx;
+}
+.order-plan {
+  color: #2A4B3C;
+  font-family: 'Ashtanga Serif', 'Songti SC', STSong, serif;
+  font-size: 27rpx;
+  font-weight: 600;
+}
+.order-sandbox-badge {
+  background: #F5F2EC;
+  border-radius: 999rpx;
+  color: #8A918D;
+  font-size: 18rpx;
+  padding: 4rpx 12rpx;
+}
+.order-time {
+  color: #A3A9A5;
+  display: block;
+  font-family: 'Ashtanga Serif', 'Songti SC', STSong, serif;
+  font-size: 20rpx;
+  margin-top: 8rpx;
+}
+.order-status {
+  border-radius: 999rpx;
+  flex-shrink: 0;
+  font-size: 20rpx;
+  padding: 6rpx 16rpx;
+}
+.order-status.paid { background: #EAF4EC; color: #2D7A45; }
+.order-status.refunded { background: #F0F1F0; color: #6B7280; }
+.order-status.failed { background: #FEF2F2; color: #B94A48; }
+.order-status.closed { background: #F5F2EC; color: #8A918D; }
+.order-status.pending { background: #FFF7ED; color: #B45309; }
+.order-card-body {
+  border-top: 1rpx dashed #E7E2D8;
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+  margin-top: 20rpx;
+  padding-top: 18rpx;
+}
+.order-row {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+.order-row text {
+  color: #8A918D;
+  font-family: 'Ashtanga Serif', 'Songti SC', STSong, serif;
+  font-size: 22rpx;
+}
+.order-value {
+  color: #2A4B3C;
+  font-weight: 600;
+}
+.order-value.amount {
+  color: #A34837;
+  font-size: 26rpx;
+}
+.order-number {
+  align-items: center;
+  color: #A3A9A5;
+  display: flex;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 19rpx;
+  gap: 12rpx;
+  justify-content: space-between;
+  margin-top: 4rpx;
+}
+.order-number text:last-child {
+  color: #6B7280;
+  max-width: 70%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.order-refresh-button {
+  background: #F5F2EC;
+  border: 1rpx solid #E7E2D8;
+  border-radius: 999rpx;
+  color: #2A4B3C;
+  font-family: 'Ashtanga Serif', 'Songti SC', STSong, serif;
+  font-size: 23rpx;
+  line-height: 1;
+  margin: 22rpx 0 0;
+  min-height: 68rpx;
+  padding: 0 30rpx;
+  width: auto;
+}
+.order-refresh-button[disabled] { opacity: 0.55; }

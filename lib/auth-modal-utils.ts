@@ -1,3 +1,5 @@
+import { normalizeAuthEmail } from '@/lib/auth-email'
+
 export type AuthMode = 'login' | 'register' | 'forgot-password'
 export type ForgotPasswordStep = 'email' | 'verify' | 'new-password'
 export type RegisterStep = 'form' | 'verify'
@@ -73,5 +75,6 @@ export async function postAuthJson<T = any>(url: string, body: Record<string, un
 }
 
 export async function sendAuthVerificationCode(email: string, type?: 'email_verification' | 'reset_password') {
-  return postAuthJson('/api/auth/send-verification-code', type ? { email, type } : { email })
+  const normalizedEmail = normalizeAuthEmail(email)
+  return postAuthJson('/api/auth/send-verification-code', type ? { email: normalizedEmail, type } : { email: normalizedEmail })
 }

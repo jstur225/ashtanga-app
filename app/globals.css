@@ -1,6 +1,14 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
+@font-face {
+  font-family: 'Ashtanga Serif';
+  src: url('/fonts/ashtanga-noto-serif-sc-ui-v2.woff') format('woff');
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 :root {
@@ -75,11 +83,11 @@
 }
 
 @theme inline {
-  /* 全站统一宋体；保留 Tailwind 字体工具名，避免局部类名绕过全局字体。 */
-  --font-sans: var(--font-noto-serif-sc), 'Songti SC', 'STSong', 'SimSun', 'Noto Serif CJK SC', serif;
-  --font-serif: var(--font-noto-serif-sc), 'Songti SC', 'STSong', 'SimSun', 'Noto Serif CJK SC', serif;
-  --font-playfair: var(--font-noto-serif-sc), 'Songti SC', 'STSong', 'SimSun', 'Noto Serif CJK SC', serif;
-  --font-mono: var(--font-noto-serif-sc), 'Songti SC', 'STSong', 'SimSun', 'Noto Serif CJK SC', serif;
+  /* 全站统一使用项目内置宋体；保留工具名，避免局部类绕过全局字体。 */
+  --font-sans: 'Ashtanga Serif', 'Songti SC', 'STSong', 'SimSun', 'Noto Serif CJK SC', serif;
+  --font-serif: 'Ashtanga Serif', 'Songti SC', 'STSong', 'SimSun', 'Noto Serif CJK SC', serif;
+  --font-playfair: 'Ashtanga Serif', 'Songti SC', 'STSong', 'SimSun', 'Noto Serif CJK SC', serif;
+  --font-mono: 'Ashtanga Serif', 'Songti SC', 'STSong', 'SimSun', 'Noto Serif CJK SC', serif;
 
   /* Classic/Retro Palette */
   --color-cream: #F9F7F2;
@@ -131,7 +139,7 @@ button,
 input,
 textarea,
 select {
-  font-family: var(--font-noto-serif-sc), 'Songti SC', 'STSong', 'SimSun', 'Noto Serif CJK SC', serif;
+  font-family: 'Ashtanga Serif', 'Songti SC', 'STSong', 'SimSun', 'Noto Serif CJK SC', serif;
 }
 
 @utility bg-paper-pattern {

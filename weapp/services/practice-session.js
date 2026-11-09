@@ -23,17 +23,32 @@ function getElapsedSeconds(session, now = Date.now()) {
   return accumulated + Math.max(0, Math.floor((now - session.runningSince) / 1000));
 }
 
-function start(option, now = Date.now()) {
+function start(option, now = Date.now(), initiallyPaused = false) {
   return save({
     active: true,
     optionId: option.id,
     label: option.label,
     notes: option.notes || '',
+    guidedAudioVariantId: option.guidedAudioVariantId || undefined,
     color_level: Number(option.color_level) || 3,
     startedAt: now,
-    runningSince: now,
+    runningSince: initiallyPaused ? null : now,
     accumulatedSeconds: 0,
-    paused: false
+    paused: initiallyPaused
+  });
+}
+
+/**
+ * ⭐ 唱诵完成后重置计时起点，丢弃倒计时和唱诵期间的耗时
+ * 对应 WebApp restartPracticeTimer
+ */
+function restartTimer(now = Date.now()) {
+  const session = getSession();
+  if (!session || session.paused) return session;
+  return save({
+    ...session,
+    runningSince: now,
+    accumulatedSeconds: 0
   });
 }
 
@@ -95,6 +110,7 @@ module.exports = {
   getPendingCompletion,
   getElapsedSeconds,
   start,
+  restartTimer,
   pause,
   resume,
   finish,

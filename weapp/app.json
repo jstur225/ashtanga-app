@@ -5,17 +5,27 @@
     "pages/journal/journal",
     "pages/profile/profile",
     "pages/index/index",
-    "pages/privacy/privacy"
+    "pages/privacy/privacy",
+    "pages/orders/orders"
+  ],
+  "subPackages": [
+    {
+      "root": "pose-package",
+      "pages": [
+        "pages/poses/poses"
+      ]
+    }
   ],
   "window": {
     "navigationBarBackgroundColor": "#2A4B3C",
     "navigationBarTitleText": "熬汤日记",
     "navigationBarTextStyle": "white",
-    "backgroundColor": "#F9F7F2",
+    "backgroundColor": "#F9F8F6",
     "backgroundTextStyle": "light"
   },
   "sitemapLocation": "sitemap.json",
   "style": "v2",
+  "lazyCodeLoading": "requiredComponents",
   "requiredBackgroundModes": ["audio"],
   "tabBar": {
     "custom": true,

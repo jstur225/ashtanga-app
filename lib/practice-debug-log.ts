@@ -226,7 +226,10 @@ async function collectConnectionProbes(fetcher: ConnectionProbeFetcher = fetch) 
 
   const [sameOrigin, supabaseAuth] = await Promise.all([sameOriginProbe, supabaseAuthProbe])
 
-  return { sameOrigin, supabaseAuth }
+  return {
+    sameOrigin,
+    supabaseAuth,
+  }
 }
 
 async function runConnectionProbe(

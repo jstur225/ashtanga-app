@@ -8,6 +8,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useForgotPasswordFlow } from '@/hooks/useForgotPasswordFlow'
 import { useRegisterFlow } from '@/hooks/useRegisterFlow'
 import { isAuthNetworkError, translateAuthError, type AuthMode } from '@/lib/auth-modal-utils'
+import { normalizeAuthEmail } from '@/lib/auth-email'
 
 interface AuthModalProps {
   isOpen: boolean
@@ -24,6 +25,7 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [canRetryLogin, setCanRetryLogin] = useState(false)
+  const setNormalizedEmail = (value: string) => setEmail(normalizeAuthEmail(value))
   const forgotPasswordFlow = useForgotPasswordFlow()
   const registerFlow = useRegisterFlow()
   const {
@@ -216,7 +218,7 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
               <ForgotPasswordForm
                 fpStep={fpStep}
                 email={email}
-                setEmail={setEmail}
+                setEmail={setNormalizedEmail}
                 verifyCode={verifyCode}
                 setVerifyCode={setVerifyCode}
                 newPassword={newPassword}
@@ -237,7 +239,7 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
                   <RegisterForm
                     registerStep={registerStep}
                     email={email}
-                    setEmail={setEmail}
+                    setEmail={setNormalizedEmail}
                     password={password}
                     setPassword={setPassword}
                     registerVerifyCode={registerVerifyCode}
@@ -254,7 +256,7 @@ export function AuthModal({ isOpen, onClose, mode, onAuthSuccess, onModeChange }
                 ) : (
                   <LoginForm
                     email={email}
-                    setEmail={setEmail}
+                    setEmail={setNormalizedEmail}
                     password={password}
                     setPassword={setPassword}
                     loading={loading}

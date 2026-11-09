@@ -33,7 +33,9 @@
   <view class="color-row">
     <text class="field-label color-label">日历颜色</text>
     <view class="color-options">
-      <view wx:for="{{colorLevels}}" wx:key="*this" class="color-dot green-gradient-{{item}} {{value.color_level === item ? 'active' : ''}}" data-level="{{item}}" bindtap="selectColor"></view>
+      <view wx:for="{{colorLevelOptions}}" wx:key="level" class="color-dot green-gradient-{{item.level}} {{value.color_level === item.level ? 'active' : ''}} {{item.locked ? 'membership-locked' : ''}}" data-level="{{item.level}}" bindtap="selectColor">
+        <image wx:if="{{item.locked}}" class="color-lock-icon" src="/images/icons/membership-lock-white.svg" mode="aspectFit" />
+      </view>
     </view>
   </view>
 
@@ -45,7 +47,7 @@
     <view class="notes-box">
       <textarea class="notes-input" value="{{value.notes}}" maxlength="2000" placeholder="今天练习感受如何？有什么觉察？" data-field="notes" bindinput="onFieldInput" auto-height />
       <view class="notes-actions">
-        <view class="notes-action-button green-gradient" bindtap="choosePhoto">
+        <view class="notes-action-button green-gradient {{uploadingPhotos ? 'is-disabled' : ''}}" bindtap="choosePhoto">
           <image class="notes-action-icon" src="{{cameraIcon}}" mode="aspectFit" />
         </view>
         <view class="notes-action-button green-gradient" bindtap="openFullscreenNotes">
@@ -56,19 +58,33 @@
   </view>
 
   <view wx:if="{{value.photos.length}}" class="photo-section">
-    <view wx:if="{{value.photos.length}}" class="photo-grid">
-      <view wx:for="{{value.photos}}" wx:key="*this" class="photo-thumb">
-        <image class="photo-image" src="{{item}}" mode="aspectFill" />
-        <view class="photo-remove" data-index="{{index}}" catchtap="removePhoto">×</view>
-      </view>
-      <view wx:if="{{value.photos.length < 9}}" class="photo-add-tile" bindtap="choosePhoto">
-        <text class="photo-add-plus">＋</text>
-        <text class="photo-add-copy">添加</text>
+    <view wx:if="{{value.photos.length <= 3}}" class="photo-grid">
+      <view wx:for="{{photoItems}}" wx:key="src" class="photo-thumb">
+        <image class="photo-image" src="{{item.src}}" mode="aspectFill" />
+        <view wx:if="{{item.status !== 'success'}}" class="photo-sync-overlay {{item.status === 'error' ? 'error' : ''}}" data-src="{{item.src}}" catchtap="retryPhoto">
+          <view wx:if="{{item.status === 'reading' || item.status === 'uploading'}}" class="photo-sync-spinner"></view>
+          <text class="photo-status-copy">{{item.statusText}}</text>
+        </view>
+        <view wx:if="{{item.status === 'success' || item.status === 'error'}}" class="photo-remove" data-index="{{index}}" catchtap="removePhoto">×</view>
       </view>
     </view>
+    <scroll-view wx:else class="photo-scroll" scroll-x enhanced show-scrollbar="{{false}}">
+      <view class="photo-scroll-track">
+        <view wx:for="{{photoItems}}" wx:key="src" class="photo-thumb photo-thumb-scroll">
+          <image class="photo-image" src="{{item.src}}" mode="aspectFill" />
+          <view wx:if="{{item.status !== 'success'}}" class="photo-sync-overlay {{item.status === 'error' ? 'error' : ''}}" data-src="{{item.src}}" catchtap="retryPhoto">
+            <view wx:if="{{item.status === 'reading' || item.status === 'uploading'}}" class="photo-sync-spinner"></view>
+            <text class="photo-status-copy">{{item.statusText}}</text>
+          </view>
+          <view wx:if="{{item.status === 'success' || item.status === 'error'}}" class="photo-remove" data-index="{{index}}" catchtap="removePhoto">×</view>
+        </view>
+      </view>
+    </scroll-view>
   </view>
 
-  <view class="save-button green-gradient" bindtap="submit">{{saveText}}</view>
+  <view class="save-button green-gradient {{uploadingPhotos || hasIncompletePhotos ? 'is-disabled' : ''}}" bindtap="submit">
+    {{uploadingPhotos ? '照片上传中…' : (hasIncompletePhotos ? '请重试或移除失败照片' : saveText)}}
+  </view>
   <view wx:if="{{showDelete}}" class="delete-button" bindtap="requestDelete">删除记录</view>
 </view>
 
@@ -116,7 +132,8 @@
   <view class="picker-sheet type-sheet" catchtap="stopPropagation">
     <view class="picker-header"><text class="picker-title">选择练习类型</text><text class="picker-close" bindtap="closeTypePicker">×</text></view>
     <view class="type-grid">
-      <view wx:for="{{typeOptions}}" wx:key="id" class="type-card {{item.selected ? 'selected' : ''}}" data-option="{{item}}" bindtap="selectType">
+      <view wx:for="{{typeOptions}}" wx:key="id" class="type-card {{item.selected ? 'selected' : ''}} {{item.membershipLocked ? 'membership-locked' : ''}}" data-option="{{item}}" bindtap="selectType">
+        <image wx:if="{{item.membershipLocked}}" class="type-lock-icon" src="/images/icons/membership-lock.svg" mode="aspectFit" />
         <text class="type-name">{{item.label}}</text>
         <text wx:if="{{item.notes}}" class="type-notes">{{item.notes}}</text>
       </view>

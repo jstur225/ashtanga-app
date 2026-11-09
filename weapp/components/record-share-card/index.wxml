@@ -1,0 +1,68 @@
+<view wx:if="{{show}}" class="share-mask" bindtap="handleClose" catchtouchmove="preventBackgroundScroll">
+  <view class="share-modal" catchtap="stopPropagation">
+    <scroll-view class="share-preview-scroll" scroll-y enhanced bounces="{{false}}" show-scrollbar="{{false}}">
+      <view id="recordSharePreview" class="record-share-preview">
+            <view class="preview-header">
+              <text class="preview-meta">{{cardData.formattedDate}} / {{cardData.type}}</text>
+              <view class="preview-duration-row">
+                <text class="preview-duration">{{cardData.durationMinutes}}</text>
+                <text class="preview-duration-unit">分钟</text>
+              </view>
+              <view wx:if="{{cardData.breakthrough}}" class="preview-breakthrough">
+                <text class="preview-breakthrough-icon">✦</text>
+                <text>{{cardData.breakthrough}}</text>
+              </view>
+            </view>
+
+            <view class="preview-body">
+              <text class="preview-notes">{{cardData.notes || '今日练习完成'}}</text>
+              <view wx:if="{{cardData.photos.length}}" class="preview-photos">
+                <view wx:for="{{cardData.photos}}" wx:key="*this" class="preview-photo-wrap">
+                  <image class="preview-photo" src="{{item}}" mode="widthFix" lazy-load />
+                </view>
+              </view>
+            </view>
+
+            <view class="preview-footer">
+              <view class="preview-stats">
+                <view class="preview-stat">
+                  <view><text class="preview-stat-value">{{cardData.thisMonthDays}}</text><text class="preview-stat-unit">天</text></view>
+                  <text class="preview-stat-label">本月练习</text>
+                </view>
+                <view class="preview-stat">
+                  <view><text class="preview-stat-value">{{cardData.totalPracticeCount}}</text><text class="preview-stat-unit">次</text></view>
+                  <text class="preview-stat-label">累计练习</text>
+                </view>
+                <view class="preview-stat">
+                  <view><text class="preview-stat-value">{{cardData.totalHours}}</text><text class="preview-stat-unit">小时</text></view>
+                  <text class="preview-stat-label">累计时长</text>
+                </view>
+              </view>
+
+              <view class="preview-profile">
+                <view class="preview-avatar">
+                  <image wx:if="{{cardData.profileAvatar}}" class="preview-avatar-image" src="{{cardData.profileAvatar}}" mode="aspectFill" />
+                  <image wx:else class="preview-avatar-default" src="/images/icons/profile-user.png" mode="aspectFit" />
+                </view>
+                <view class="preview-profile-copy">
+                  <text class="preview-profile-name">{{cardData.profileName || '阿斯汤加习练者'}}</text>
+                  <view class="preview-signature-row">
+                    <text class="preview-signature">{{cardData.profileSignature || '练习、练习，一切随之而来。'}}</text>
+                    <text class="preview-brand">熬汤日记</text>
+                  </view>
+                </view>
+              </view>
+            </view>
+      </view>
+    </scroll-view>
+
+    <view class="share-actions">
+      <view class="share-button secondary" bindtap="handleClose">返回</view>
+      <view class="share-button primary {{saving ? 'disabled' : ''}}" bindtap="saveImage">
+        <text>{{saving ? '生成并保存中...' : '保存图片'}}</text>
+      </view>
+    </view>
+
+    <canvas id="recordShareCanvas" type="2d" class="export-canvas"></canvas>
+  </view>
+</view>

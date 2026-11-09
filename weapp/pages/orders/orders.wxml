@@ -1,0 +1,50 @@
+<view class="orders-page">
+  <view class="orders-header">
+    <text class="orders-title">订单记录</text>
+    <text class="orders-subtitle">当前登录账号的 Pro 会员购买记录</text>
+  </view>
+
+  <view wx:if="{{orderLoading}}" class="orders-loading">
+    <text class="orders-spinner">◌</text>
+    <text>正在读取订单…</text>
+  </view>
+
+  <view wx:elif="{{errorMessage}}" class="orders-error">
+    <text class="orders-error-title">{{errorMessage}}</text>
+    <text class="orders-error-copy">登录后可在「我的」页查看会员订单。</text>
+  </view>
+
+  <view wx:elif="{{paymentOrders.length === 0}}" class="orders-empty">
+    <text class="orders-empty-title">还没有订单</text>
+    <text class="orders-empty-copy">购买 Pro 会员后，订单会显示在这里。</text>
+  </view>
+
+  <view wx:else class="orders-list">
+    <view wx:for="{{paymentOrders}}" wx:key="id" class="order-card">
+      <view class="order-card-head">
+        <view>
+          <view class="order-plan-line">
+            <text class="order-plan">{{item.planName}}</text>
+            <text wx:if="{{item.isSandbox}}" class="order-sandbox-badge">测试订单</text>
+          </view>
+          <text class="order-time">{{item.createdAtText}}</text>
+        </view>
+        <text class="order-status {{item.statusClass}}">{{item.statusLabel}}</text>
+      </view>
+      <view class="order-card-body">
+        <view class="order-row"><text>金额</text><text class="order-value amount">{{item.amountText}}</text></view>
+        <view class="order-row"><text>会员时长</text><text class="order-value">{{item.duration_days}} 天</text></view>
+        <view wx:if="{{item.paidAtText}}" class="order-row"><text>到账时间</text><text class="order-value">{{item.paidAtText}}</text></view>
+        <view class="order-number"><text>订单号</text><text user-select="true">{{item.out_trade_no}}</text></view>
+      </view>
+      <button
+        wx:if="{{item.canRefresh}}"
+        class="order-refresh-button"
+        data-order-id="{{item.id}}"
+        bindtap="refreshOrder"
+        loading="{{orderRefreshingId === item.id}}"
+        disabled="{{orderRefreshingId !== ''}}"
+      >刷新状态</button>
+    </view>
+  </view>
+</view>

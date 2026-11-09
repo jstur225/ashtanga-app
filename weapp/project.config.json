@@ -1,11 +1,24 @@
 {
   "description": "熬汤日记小程序",
   "packOptions": {
-    "ignore": [],
+    "ignore": [
+      {
+        "type": "folder",
+        "value": "tests"
+      },
+      {
+        "type": "folder",
+        "value": "scripts"
+      },
+      {
+        "type": "file",
+        "value": "WECHAT_DEV_LOG.md"
+      }
+    ],
     "include": []
   },
   "setting": {
-    "urlCheck": false,
+    "urlCheck": true,
     "es6": true,
     "enhance": true,
     "postcss": true,
@@ -14,7 +27,7 @@
     "coverView": true,
     "autoAudits": false,
     "showShadowRootInWxmlPanel": true,
-    "scopeDataCheck": false,
+    "scopeDataCheck": true,
     "uglifyFileName": false,
     "checkInvalidKey": true,
     "checkSiteMap": true,
@@ -43,7 +56,7 @@
   },
   "compileType": "miniprogram",
   "libVersion": "3.6.3",
-  "appid": "wx7c2db098856e4ac4",
+  "appid": "wx36f4826bc022d43f",
   "projectname": "阿斯汤加-熬汤日记",
   "condition": {},
   "editorSetting": {

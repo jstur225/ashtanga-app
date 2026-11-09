@@ -1,6 +1,9 @@
 const STORAGE_KEY = 'has_seen_landing';
+const practiceShare = require('../../utils/practice-share');
 
 Page({
+  ...practiceShare.pageShareHandlers,
+
   data: {
     isNavigating: false,
     ampersand: '&',
@@ -20,7 +23,9 @@ Page({
     }
   },
 
-  onLoad() {
+  onLoad(options = {}) {
+    practiceShare.showShareMenu();
+    practiceShare.redirectTimelineEntryToPractice(options);
     if (wx.getStorageSync(STORAGE_KEY)) {
       wx.switchTab({
         url: '/pages/practice/practice'

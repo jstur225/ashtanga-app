@@ -2,7 +2,7 @@
   <view class="brand-header">
     <image
       class="brand-logo"
-      src="https://ash.ashtangalife.online/icon.png"
+      src="/images/icon.png"
       mode="aspectFill"
     />
     <view class="brand-copy">
@@ -28,12 +28,11 @@
       <view
         wx:for="{{practiceOptions}}"
         wx:key="id"
-        class="option-card
-          {{selectedOptionId === item.id || (item.id === 'chant_switch' && chantEnabled) ? 'selected' : ''}}
-          {{item.isCustomButton ? 'custom' : ''}}"
+        class="option-card {{selectedOptionId === item.id || (item.id === 'chant_switch' && chantEnabled) ? 'selected' : ''}} {{item.isCustomButton ? 'custom' : ''}} {{item.membershipLocked ? 'membership-locked' : ''}}"
         data-option="{{item}}"
         bindtap="onOptionTap"
       >
+        <image wx:if="{{item.membershipLocked}}" class="option-lock-icon" src="/images/icons/membership-lock.svg" mode="aspectFit" />
         <view class="option-label-row">
           <text class="option-label {{item.isCount ? 'count' : ''}}">{{item.label}}</text>
           <image
@@ -47,7 +46,7 @@
       </view>
     </view>
 
-    <text class="option-tip">单击选择 · 双击编辑</text>
+    <text class="option-tip">单击选择 · 双击设置</text>
 
     <view class="start-area">
       <view
@@ -56,9 +55,7 @@
       >
         <image
           class="start-icon"
-          src="{{selectedOptionId
-            ? 'https://ash.ashtangalife.online/icon-light.png'
-            : 'https://ash.ashtangalife.online/icon-green.png'}}"
+          src="{{selectedOptionId ? '/images/icon-light.png' : '/images/icon-green.png'}}"
           mode="aspectFit"
         />
       </view>
@@ -72,25 +69,25 @@
 <view wx:if="{{showCustomOption}}" class="practice-mask completion-mask" bindtap="closeCustomOption">
   <view class="custom-option-sheet" catchtap="preventBubble">
     <view class="sheet-handle"></view>
-    <text class="custom-option-title">添加练习类型</text>
+    <text class="custom-option-title">自定义练习</text>
     <view class="completion-field">
-      <text class="completion-label">练习名称</text>
+      <text class="completion-label">练习名称（最多10字）</text>
       <input
         class="completion-input"
         value="{{customOptionLabel}}"
         placeholder="例如：二序列"
-        maxlength="12"
+        maxlength="10"
         data-field="customOptionLabel"
         bindinput="onCustomOptionInput"
       />
     </view>
     <view class="completion-field">
-      <text class="completion-label">简短说明</text>
+      <text class="completion-label">备注（最多14字）</text>
       <input
         class="completion-input"
         value="{{customOptionNotes}}"
         placeholder="例如：Mysore"
-        maxlength="20"
+        maxlength="14"
         data-field="customOptionNotes"
         bindinput="onCustomOptionInput"
       />
@@ -99,24 +96,126 @@
       <text class="completion-label">日历颜色</text>
       <view class="completion-colors">
         <view
-          wx:for="{{colorLevels}}"
-          wx:key="*this"
-          class="completion-color green-gradient-{{item}} {{customOptionColorLevel === item ? 'active' : ''}}"
-          data-level="{{item}}"
+          wx:for="{{colorLevelOptions}}"
+          wx:key="level"
+          class="completion-color green-gradient-{{item.level}} {{customOptionColorLevel === item.level ? 'active' : ''}} {{item.locked ? 'membership-locked' : ''}}"
+          data-level="{{item.level}}"
           bindtap="selectCustomOptionColor"
-        ></view>
+        ><image wx:if="{{item.locked}}" class="color-lock-icon" src="/images/icons/membership-lock-white.svg" mode="aspectFit" /></view>
+      </view>
+    </view>
+    <view
+      class="completion-save green-gradient {{savingCustomOption || !customOptionLabel ? 'is-disabled' : ''}}"
+      bindtap="saveCustomOption"
+    >{{savingCustomOption ? '正在添加…' : '添加选项'}}</view>
+  </view>
+</view>
+
+<view wx:if="{{showEditOption}}" class="practice-mask completion-mask" bindtap="closeEditOption">
+  <view class="custom-option-sheet" catchtap="preventBubble">
+    <view class="sheet-handle"></view>
+    <text class="custom-option-title">编辑选项</text>
+    <view class="completion-field">
+      <text class="completion-label">名称（最多10字）</text>
+      <input
+        class="completion-input"
+        value="{{editOptionLabel}}"
+        placeholder="练习名称"
+        maxlength="10"
+        data-field="editOptionLabel"
+        bindinput="onEditOptionInput"
+      />
+    </view>
+    <view class="completion-field">
+      <text class="completion-label">备注（最多14字）</text>
+      <input
+        class="completion-input"
+        value="{{editOptionNotes}}"
+        placeholder="简短描述..."
+        maxlength="14"
+        data-field="editOptionNotes"
+        bindinput="onEditOptionInput"
+      />
+    </view>
+    <view class="completion-field">
+      <text class="completion-label">日历颜色（练习日显示的深浅）</text>
+      <view class="completion-colors">
+        <view
+          wx:for="{{colorLevelOptions}}"
+          wx:key="level"
+          class="completion-color green-gradient-{{item.level}} {{editOptionColorLevel === item.level ? 'active' : ''}} {{item.locked ? 'membership-locked' : ''}}"
+          data-level="{{item.level}}"
+          bindtap="selectEditOptionColor"
+        ><image wx:if="{{item.locked}}" class="color-lock-icon" src="/images/icons/membership-lock-white.svg" mode="aspectFit" /></view>
       </view>
     </view>
     <button
       class="completion-save green-gradient"
-      bindtap="saveCustomOption"
-      loading="{{savingCustomOption}}"
-      disabled="{{savingCustomOption}}"
-    >保存练习类型</button>
+      bindtap="saveEditOption"
+      loading="{{savingEditOption}}"
+      disabled="{{savingEditOption}}"
+    >保存</button>
+    <view class="edit-delete-row" bindtap="deleteEditOption">
+      <text class="edit-delete-text">删除选项</text>
+    </view>
+  </view>
+</view>
+
+<view wx:if="{{showGuidedAudioVersions}}" class="practice-mask completion-mask" bindtap="closeGuidedAudioVersions">
+  <view class="guided-version-sheet" catchtap="preventBubble">
+    <view class="sheet-handle"></view>
+    <view class="guided-version-header">
+      <view>
+        <text class="guided-version-title">选择口令版本</text>
+        <text class="guided-version-subtitle">一序列完整口令</text>
+      </view>
+      <view class="guided-version-close" bindtap="closeGuidedAudioVersions" aria-label="关闭口令版本">
+        <view class="guided-version-close-line guided-version-close-a"></view>
+        <view class="guided-version-close-line guided-version-close-b"></view>
+      </view>
+    </view>
+    <scroll-view class="guided-version-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+      <view
+        wx:for="{{guidedAudioVariants}}"
+        wx:key="id"
+        class="guided-version-option {{selectedGuidedAudioVariantId === item.id ? 'selected' : ''}}"
+        data-id="{{item.id}}"
+        bindtap="onSelectGuidedAudioVariant"
+        aria-label="{{item.note}} {{item.durationLabel}}"
+      >
+        <view class="guided-version-icon {{selectedGuidedAudioVariantId === item.id ? 'selected' : ''}}">
+          <image src="{{selectedGuidedAudioVariantId === item.id ? '/images/icons/practice-volume-selected.png' : '/images/icons/practice-volume.png'}}" mode="aspectFit" />
+        </view>
+        <view class="guided-version-copy">
+          <text class="guided-version-teacher">{{item.teacher}}</text>
+          <text class="guided-version-note">{{item.note}} · {{item.durationLabel}}</text>
+        </view>
+        <view class="guided-version-check {{selectedGuidedAudioVariantId === item.id ? 'selected' : ''}}">
+          <text wx:if="{{selectedGuidedAudioVariantId === item.id}}">✓</text>
+        </view>
+      </view>
+    </scroll-view>
   </view>
 </view>
 
 <view wx:if="{{isPracticing}}" class="session-page">
+  <!-- 唱诵倒计时遮罩 -->
+  <view wx:if="{{chantCountdown > 0}}" class="chant-countdown-mask">
+    <view class="chant-countdown-main">
+      <view class="chant-countdown-circle">
+        <text class="chant-countdown-number">{{chantCountdown}}</text>
+      </view>
+    </view>
+    <view class="chant-skip-area">
+      <view class="chant-skip-button" bindtap="onSkipChantCountdown">跳过</view>
+    </view>
+  </view>
+
+  <!-- 唱诵中标签 -->
+  <view wx:if="{{isChantPlaying}}" class="chant-badge">
+    <text class="chant-badge-text">唱诵中...</text>
+  </view>
+
   <view class="session-main">
     <view class="breath-ripple ripple-one {{isPaused ? 'paused' : ''}}"></view>
     <view class="breath-ripple ripple-two {{isPaused ? 'paused' : ''}}"></view>
@@ -133,6 +232,32 @@
     </view>
   </view>
 
+  <!-- 口令跟练：加载中 -->
+  <view wx:if="{{activePractice.optionId === 'guided_audio' && guidedAudioLoading}}" class="audio-loading-card">
+    <view class="audio-spinner"></view>
+    <text class="audio-loading-text">{{guidedAudioLoadingText}}</text>
+    <view class="audio-loading-progress-track">
+      <view class="audio-loading-progress-fill" style="width: {{guidedAudioComfortProgress}}%"></view>
+    </view>
+  </view>
+
+  <!-- 口令跟练：加载失败 -->
+  <view wx:if="{{activePractice.optionId === 'guided_audio' && guidedAudioError}}" class="audio-error-card">
+    <text class="audio-error-text">{{guidedAudioError}}</text>
+    <view class="audio-retry-button green-gradient" bindtap="onRetryGuidedAudio">重试</view>
+  </view>
+
+  <!-- 口令跟练：进度条 -->
+  <view wx:if="{{activePractice.optionId === 'guided_audio' && guidedAudioLoaded}}" class="audio-progress-area">
+    <view class="audio-progress-track">
+      <view class="audio-progress-fill" style="width: {{guidedAudioProgress}}%"></view>
+    </view>
+    <view class="audio-time-row">
+      <text class="audio-time-label">{{guidedAudioCurrentText}}</text>
+      <text class="audio-time-label">{{guidedAudioDurationText}}</text>
+    </view>
+  </view>
+
   <view class="session-controls">
     <view class="session-secondary-button" bindtap="togglePause">
       <view class="{{isPaused ? 'play-icon' : 'pause-icon'}}">
@@ -142,6 +267,23 @@
       <text>{{isPaused ? '继续' : '暂停'}}</text>
     </view>
     <view class="session-end-button green-gradient" bindtap="requestEndPractice">结束</view>
+  </view>
+
+  <!-- 口令跟练：进退控制 -->
+  <view wx:if="{{activePractice.optionId === 'guided_audio' && guidedAudioLoaded}}" class="audio-seek-row">
+    <view class="audio-seek-button" bindtap="onAudioSeek" data-direction="backward">
+      <text class="audio-seek-icon">‹</text>
+    </view>
+    <view class="audio-seek-steps">
+      <view wx:for="{{[10, 15, 30]}}" wx:key="*this"
+        class="audio-seek-step {{guidedAudioSeekStep === item ? 'active' : ''}}"
+        data-step="{{item}}"
+        bindtap="onSeekStepChange"
+      >{{item}}秒</view>
+    </view>
+    <view class="audio-seek-button" bindtap="onAudioSeek" data-direction="forward">
+      <text class="audio-seek-icon">›</text>
+    </view>
   </view>
 </view>
 
@@ -157,6 +299,55 @@
   </view>
 </view>
 
+<view wx:if="{{showChantSettings}}" class="practice-mask completion-mask" bindtap="closeChantSettings">
+  <view class="chant-settings-sheet" catchtap="preventBubble">
+    <view class="chant-settings-header">
+      <text class="chant-settings-title">唱诵设置</text>
+      <view class="chant-settings-close" bindtap="closeChantSettings" aria-label="保存并关闭唱诵设置">
+        <view class="chant-close-line chant-close-line-a"></view>
+        <view class="chant-close-line chant-close-line-b"></view>
+      </view>
+    </view>
+
+    <block wx:if="{{isPro}}">
+      <text class="chant-settings-label">倒计时时长</text>
+      <view class="chant-time-picker">
+        <view class="chant-number-column">
+          <view class="chant-step-button" data-field="minutes" data-delta="1" bindtap="onChantStep"><view class="chant-chevron up"></view></view>
+          <input class="chant-number-input" value="{{chantSettingsMins}}" type="number" maxlength="3" bindinput="onChantMinsInput" aria-label="倒计时分钟" />
+          <view class="chant-step-button" data-field="minutes" data-delta="-1" bindtap="onChantStep"><view class="chant-chevron down"></view></view>
+        </view>
+        <text class="chant-time-unit">分</text>
+        <view class="chant-number-column">
+          <view class="chant-step-button" data-field="seconds" data-delta="1" bindtap="onChantStep"><view class="chant-chevron up"></view></view>
+          <input class="chant-number-input" value="{{chantSettingsSecs}}" type="number" maxlength="2" bindinput="onChantSecsInput" aria-label="倒计时秒数" />
+          <view class="chant-step-button" data-field="seconds" data-delta="-1" bindtap="onChantStep"><view class="chant-chevron down"></view></view>
+        </view>
+        <text class="chant-time-unit">秒</text>
+      </view>
+      <text class="chant-current-copy">当前：{{chantSettingsMins}}分{{chantSettingsSecs < 10 ? '0' + chantSettingsSecs : chantSettingsSecs}}秒（最少5秒，最长3小时）</text>
+    </block>
+
+    <block wx:else>
+      <view class="chant-pro-row"><image class="chant-lock-icon" src="/images/icons/auth-lock.svg" mode="aspectFit" /><text>Pro 功能</text></view>
+      <text class="chant-settings-label">倒计时时长</text>
+      <view class="chant-time-picker chant-time-picker-locked">
+        <view class="chant-static-number"><text>1</text></view><text class="chant-time-unit">分</text>
+        <view class="chant-static-number"><text>00</text></view><text class="chant-time-unit">秒</text>
+      </view>
+      <text class="chant-help-copy">点击开始后倒计时会立即进入后台音频，倒计时期间即可锁屏；静音结束后自动播放唱诵并开始练习计时。</text>
+      <view class="chant-upgrade-button" bindtap="onChantUpgrade">♛　升级 Pro 解锁自定义时长</view>
+    </block>
+  </view>
+</view>
+
+<membership-prompt
+  show="{{showMembershipPrompt}}"
+  reason="{{membershipPromptReason}}"
+  bind:close="closeMembershipPrompt"
+  bind:upgrade="openMembershipSettings"
+/>
+
 <view wx:if="{{showCompletion}}" class="practice-mask completion-mask">
   <view class="completion-sheet">
     <view class="sheet-handle"></view>
@@ -168,9 +359,14 @@
         options="{{practiceOptions}}"
         records="{{formRecords}}"
         show-delete="{{false}}"
+        is-pro="{{isPro}}"
+        photo-enabled="{{photoEnabled}}"
+        max-photos="{{maxPhotos}}"
         save-text="保存练习"
         bind:change="onCompletionFormChange"
         bind:save="saveCompletion"
+        bind:uploadState="onCompletionPhotoUploadState"
+        bind:membershipLimit="onMembershipLimit"
       />
     </scroll-view>
   </view>

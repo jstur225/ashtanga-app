@@ -3,7 +3,7 @@
   min-height: 100vh;
   background-color: #F9F7F2;
   color: #2A4B3C;
-  font-family: 'Songti SC', STSong, serif;
+  font-family: 'Ashtanga Serif', 'Songti SC', STSong, serif;
   overflow-x: hidden;
   padding-bottom: 48rpx;
 }
@@ -113,7 +113,7 @@
 
 .navbar-btn-text {
   font-size: 24rpx;
-  font-family: serif;
+  font-family: 'Ashtanga Serif', serif;
   letter-spacing: 4rpx;
   color: #C1A268;
   line-height: 1;
@@ -341,7 +341,7 @@
 .features-title {
   font-size: 48rpx;
   color: #F9F7F2;
-  font-family: serif;
+  font-family: 'Ashtanga Serif', serif;
 }
 
 .features-divider {
@@ -667,7 +667,7 @@
 
 .cta-text {
   font-size: 36rpx;
-  font-family: serif;
+  font-family: 'Ashtanga Serif', serif;
   letter-spacing: 8rpx;
   white-space: nowrap;
 }

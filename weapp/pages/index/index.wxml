@@ -1,5 +1,6 @@
 <view class="container">
   <view class="header">
+    <image class="auth-logo" src="/images/icon-green.png" mode="aspectFit" />
     <text class="eyebrow">ASHTANGA JOURNAL</text>
     <text class="title">熬汤日记</text>
     <text class="subtitle">阿斯汤加练习记录工具</text>
@@ -16,6 +17,7 @@
   </view>
 
   <view wx:else class="panel auth-panel">
+    <block wx:if="{{mode !== 'forgot-password'}}">
     <view class="tabs">
       <view
         class="tab {{mode === 'login' ? 'active' : ''}}"
@@ -39,25 +41,27 @@
     </text>
 
     <view class="field">
-      <text class="label">邮箱</text>
-      <input
-        class="input"
-        type="text"
-        placeholder="你的邮箱地址"
-        value="{{email}}"
-        bindinput="onEmailInput"
-      />
+      <text class="label">邮箱地址</text>
+      <view class="field-input-wrap">
+        <image class="field-icon" src="/images/icons/auth-mail.svg" mode="aspectFit" />
+        <input class="input icon-input" type="text" placeholder="your@email.com" value="{{email}}" bindinput="onEmailInput" />
+      </view>
     </view>
 
     <view class="field">
       <text class="label">密码</text>
-      <input
-        class="input"
-        password
-        placeholder="至少 8 位，包含字母和数字"
-        value="{{password}}"
-        bindinput="onPasswordInput"
-      />
+      <view class="field-input-wrap">
+        <image class="field-icon" src="/images/icons/auth-lock.svg" mode="aspectFit" />
+        <input class="input icon-input" password placeholder="至少 8 位，包含字母和数字" value="{{password}}" bindinput="onPasswordInput" />
+      </view>
+      <text wx:if="{{mode === 'login'}}" class="forgot-link" bindtap="openForgotPassword">忘记密码？</text>
+    </view>
+
+    <view wx:if="{{mode === 'register' && password}}" class="password-requirements">
+      <text>密码要求：</text>
+      <text class="{{passwordLengthValid ? 'valid' : 'invalid'}}">{{passwordLengthValid ? '✓' : '✗'}} 至少 8 位字符</text>
+      <text class="{{passwordLetterValid ? 'valid' : 'invalid'}}">{{passwordLetterValid ? '✓' : '✗'}} 包含字母</text>
+      <text class="{{passwordNumberValid ? 'valid' : 'invalid'}}">{{passwordNumberValid ? '✓' : '✗'}} 包含数字</text>
     </view>
 
     <view wx:if="{{mode === 'register'}}" class="field">
@@ -122,6 +126,53 @@
         >《隐私政策》</text>
       </view>
     </checkbox-group>
+    </block>
+
+    <block wx:else>
+      <view class="forgot-header">
+        <text class="panel-title">🔑 忘记密码</text>
+        <text class="back-login" bindtap="backToLogin">返回登录</text>
+      </view>
+
+      <block wx:if="{{forgotStep === 'email'}}">
+        <view class="field">
+          <text class="label">邮箱地址</text>
+          <view class="field-input-wrap">
+            <image class="field-icon" src="/images/icons/auth-mail.svg" mode="aspectFit" />
+            <input class="input icon-input" type="text" placeholder="your@email.com" value="{{email}}" bindinput="onEmailInput" />
+          </view>
+        </view>
+        <button class="btn-primary rounded-button" bindtap="sendResetCode" loading="{{codeLoading}}" disabled="{{codeLoading || resendCountdown > 0}}">{{codeLoading ? '发送中...' : resendCountdown > 0 ? '重新发送（' + resendCountdown + 's）' : '发送验证码'}}</button>
+      </block>
+
+      <block wx:elif="{{forgotStep === 'verify'}}">
+        <view class="verification-notice">
+          <text>验证码已发送到：</text>
+          <text>{{email}}</text>
+        </view>
+        <view class="field">
+          <text class="label">请输入 6 位验证码</text>
+          <input class="input verify-input" type="number" maxlength="6" placeholder="______" value="{{verificationCode}}" bindinput="onCodeInput" />
+        </view>
+        <button class="btn-primary rounded-button" bindtap="verifyForgotCode" loading="{{submitLoading}}" disabled="{{submitLoading || verificationCode.length !== 6}}">下一步</button>
+        <text class="resend-link {{resendCountdown > 0 ? 'disabled' : ''}}" bindtap="sendResetCode">{{resendCountdown > 0 ? '重新发送（' + resendCountdown + 's）' : '重新发送验证码'}}</text>
+      </block>
+
+      <block wx:else>
+        <view class="verification-success"><text>✓ 验证成功，请设置新密码</text></view>
+        <view class="field">
+          <text class="label">新密码</text>
+          <view class="field-input-wrap"><image class="field-icon" src="/images/icons/auth-lock.svg" mode="aspectFit" /><input class="input icon-input" password placeholder="至少 8 位，包含字母和数字" value="{{newPassword}}" bindinput="onNewPasswordInput" /></view>
+        </view>
+        <view class="field">
+          <text class="label">确认新密码</text>
+          <view class="field-input-wrap"><image class="field-icon" src="/images/icons/auth-lock.svg" mode="aspectFit" /><input class="input icon-input" password placeholder="再次输入新密码" value="{{confirmNewPassword}}" bindinput="onConfirmNewPasswordInput" /></view>
+        </view>
+        <button class="btn-primary rounded-button" bindtap="submitNewPassword" loading="{{submitLoading}}" disabled="{{submitLoading}}">确认修改</button>
+      </block>
+
+      <view wx:if="{{message}}" class="message {{messageType}}">{{message}}</view>
+    </block>
   </view>
 </view>
 

@@ -1,6 +1,14 @@
 {
   "navigationBarTitleText": "觉察日记",
   "usingComponents": {
-    "practice-record-form": "../../components/practice-record-form/index"
+    "practice-record-form": "../../components/practice-record-form/index",
+    "contact-author": "../../components/contact-author/index",
+    "annotation-manager": "../../components/annotation-manager/index",
+    "monthly-stats-share-card": "../../components/monthly-stats-share-card/index",
+    "record-share-card": "../../components/record-share-card/index",
+    "auth-modal": "../../components/auth-modal/index",
+    "change-password-modal": "../../components/change-password-modal/index",
+    "account-guest-panel": "../../components/account-guest-panel/index",
+    "membership-prompt": "../../components/membership-prompt/index"
   }
 }

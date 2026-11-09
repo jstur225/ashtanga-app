@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
+import { normalizeAuthEmail } from '@/lib/auth-email'
 import type { User } from '@supabase/supabase-js'
 
 // ==================== useAuth Hook ====================
@@ -49,6 +50,7 @@ export function useAuth() {
 
   // ==================== 注册 ====================
   const signUp = async (email: string, password: string) => {
+    const normalizedEmail = normalizeAuthEmail(email)
 
     // 先检测网络连接
     try {
@@ -68,7 +70,7 @@ export function useAuth() {
       })
 
       const signUpPromise = supabase.auth.signUp({
-        email,
+        email: normalizedEmail,
         password,
       })
 
@@ -129,7 +131,7 @@ export function useAuth() {
   const signIn = async (email: string, password: string) => {
     // 1. Supabase 验证密码
     const { data, error } = await supabase.auth.signInWithPassword({
-      email,
+      email: normalizeAuthEmail(email),
       password,
     })
 

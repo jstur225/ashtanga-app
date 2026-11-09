@@ -26,7 +26,7 @@ function ColorLevelPicker({
       </label>
       <div className="flex gap-3 justify-center">
         {[1, 2, 3, 4].map((level) => {
-          const locked = !membership?.is_active && (level === 1 || level === 4)
+          const locked = !membership?.is_active && level !== 3
           const selected = value === level
           return (
             <button
@@ -162,7 +162,7 @@ export function EditOptionModal({
     setName(option.label)
     setNotes(option.notes || "")
     const rawColor = option.color_level ?? 3
-    setColorLevel(!membership?.is_active && (rawColor === 1 || rawColor === 4) ? 3 : rawColor)
+    setColorLevel(!membership?.is_active && rawColor !== 3 ? 3 : rawColor)
     setShowDeleteConfirm(false)
   }, [option, membership?.is_active])
 

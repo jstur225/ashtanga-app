@@ -1,0 +1,28 @@
+<view class="account-guest-panel">
+  <view class="local-storage-notice">
+    <text class="local-storage-title">📱 当前数据仅保存在本机</text>
+    <text class="local-storage-copy">如删除小程序或清除本地缓存，数据可能无法找回，建议开启云端同步功能。</text>
+    <view class="notice-divider-row">
+      <image class="notice-divider-icon" src="/images/icons/account-lock.svg" mode="aspectFit" />
+      <text>开启云同步后，数据仅供您个人跨设备访问。</text>
+    </view>
+    <view class="notice-status-row">
+      <view class="sync-status-dot"></view>
+      <text>未开启云同步</text>
+    </view>
+  </view>
+  <view class="account-button-stack">
+    <view class="account-primary" role="button" bindtap="openRegister">
+      <image class="account-button-icon" src="/images/icons/account-mail-white.svg" mode="aspectFit" />
+      <text class="account-button-text">去绑定邮箱</text>
+    </view>
+    <view class="account-secondary" role="button" bindtap="keepLocal">
+      <image class="account-button-icon" src="/images/icons/account-smartphone.svg" mode="aspectFit" />
+      <text class="account-button-text">继续使用本地存储</text>
+    </view>
+  </view>
+  <view class="account-inline-login">
+    <text>已有账号？</text>
+    <text class="account-text-link" bindtap="openLogin">点击登录</text>
+  </view>
+</view>

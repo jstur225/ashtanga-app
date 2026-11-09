@@ -11,27 +11,29 @@
 
 .tab-pill {
   align-items: center;
-  background: rgba(255, 255, 255, 0.35);
-  border: 1rpx solid rgba(255, 255, 255, 0.3);
-  border-radius: 56rpx;
+  -webkit-backdrop-filter: blur(16rpx) saturate(120%);
+  backdrop-filter: blur(16rpx) saturate(120%);
+  background: rgba(255, 255, 255, 0.88);
+  border: 1rpx solid rgba(255, 255, 255, 0.78);
+  border-radius: 72rpx;
   box-shadow: 0 8rpx 34rpx rgba(42, 75, 60, 0.13);
   display: flex;
   justify-content: space-between;
   margin: 0 auto;
-  max-width: 380rpx;
-  padding: 8rpx;
+  max-width: 650rpx;
+  padding: 10rpx;
   pointer-events: auto;
 }
 
 .tab-item {
   align-items: center;
-  border-radius: 44rpx;
+  border-radius: 60rpx;
   color: #868C88;
   display: flex;
   flex: 1;
   flex-direction: column;
   justify-content: center;
-  min-height: 78rpx;
+  min-height: 104rpx;
   transition: background-color 160ms ease, color 160ms ease;
 }
 
@@ -43,13 +45,13 @@
 
 .tab-icon {
   display: block;
-  height: 27rpx;
-  width: 27rpx;
+  height: 40rpx;
+  width: 40rpx;
 }
 
 .tab-text {
-  font-size: 18rpx;
+  font-size: 20rpx;
   line-height: 1;
-  margin-top: 7rpx;
+  margin-top: 8rpx;
   white-space: nowrap;
 }

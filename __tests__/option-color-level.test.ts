@@ -40,8 +40,8 @@ describe('getEffectiveOptionColor', () => {
     expect(getEffectiveOptionColor(baseOptions, '口令课', false)).toBe(3)
   })
 
-  it('Free: level 2 → 2（保留）', () => {
-    expect(getEffectiveOptionColor(baseOptions, '二序列', false)).toBe(2)
+  it('Free: level 2 → 3（自动降级）', () => {
+    expect(getEffectiveOptionColor(baseOptions, '二序列', false)).toBe(3)
   })
 
   it('Free: level 3 → 3（保留）', () => {

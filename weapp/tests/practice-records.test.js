@@ -10,7 +10,8 @@ global.wx = {
     assert.equal(options.header.apikey.length > 0, true);
 
     if (options.method === 'POST') {
-      assert.equal(options.header.Prefer, 'return=representation');
+      assert.equal(options.header.Prefer, 'resolution=merge-duplicates,return=representation');
+      assert.match(options.url, /on_conflict=id/);
       assert.equal(options.data.user_id, 'user-1');
       options.success({ statusCode: 201, data: [options.data] });
       return;
@@ -89,6 +90,7 @@ test('按日期范围读取月历记录', async () => {
 
 test('创建记录时写入当前用户、色阶和返回数据', async () => {
   const result = await records.createRecord({
+    id: 'client-record-id',
     date: '2026-07-09',
     type: '一序列',
     duration: 3600,
@@ -96,6 +98,7 @@ test('创建记录时写入当前用户、色阶和返回数据', async () => {
     color_level: 4
   });
   assert.equal(result.user_id, 'user-1');
+  assert.equal(result.id, 'client-record-id');
   assert.equal(result.type, '一序列');
   assert.equal(result.color_level, 4);
 });

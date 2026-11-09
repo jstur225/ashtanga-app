@@ -1,3 +1,8 @@
 {
-  "navigationBarTitleText": "我的"
+  "navigationBarTitleText": "我的",
+  "usingComponents": {
+    "auth-modal": "../../components/auth-modal/index",
+    "change-password-modal": "../../components/change-password-modal/index",
+    "account-guest-panel": "../../components/account-guest-panel/index"
+  }
 }

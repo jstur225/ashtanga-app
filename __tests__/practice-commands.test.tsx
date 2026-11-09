@@ -87,7 +87,7 @@ describe("practice command rules", () => {
   it("免费色阶锁定值降为默认色阶，Pro 保留原值", () => {
     expect(normalizeOptionColorLevel(false, 1)).toBe(3)
     expect(normalizeOptionColorLevel(false, 4)).toBe(3)
-    expect(normalizeOptionColorLevel(false, 2)).toBe(2)
+    expect(normalizeOptionColorLevel(false, 2)).toBe(3)
     expect(normalizeOptionColorLevel(true, 4)).toBe(4)
   })
 

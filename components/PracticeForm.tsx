@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils'
 import { supabase, type PracticeRecord, type PracticeOption, type Photo } from '@/lib/supabase'
 import { PhotoPreviewList, PhotoPreview } from './PhotoUpload/PhotoPreview'
 import { toast } from 'sonner'
+import { checkText } from '@/lib/content-filter'
 import { Expand, Camera, ChevronDown, Lock } from 'lucide-react'
 import { useMembership } from '@/hooks/useMembership'
 import { getColorClass } from '@/lib/sync-utils'
@@ -399,6 +400,13 @@ export function PracticeForm({
     // 1. 先执行待删除照片的批量删除
     await executePendingDeletions()
 
+    const noteCheck = checkText(notes)
+    const btCheck = breakthroughEnabled && breakthroughText ? checkText(breakthroughText) : null
+    if (!noteCheck.ok || (btCheck && !btCheck.ok)) {
+      toast.error('内容包含不当词汇，请修改后重试')
+      return
+    }
+
     // 2. 保存记录
     onSave({
       date,
@@ -566,7 +574,7 @@ export function PracticeForm({
           {showColorPicker ? (
             <div className="flex gap-2 items-center">
               {[1, 2, 3, 4].map((level) => {
-                const locked = !isPro && (level === 1 || level === 4)
+                const locked = !isPro && level !== 3
                 const selected = colorLevel === level
                 return (
                   <button
