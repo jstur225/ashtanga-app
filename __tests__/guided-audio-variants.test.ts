@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest"
-<<<<<<< HEAD
-=======
 import { validateAudioPayload } from "@/lib/audioCache"
->>>>>>> origin/master2
 import {
   DEFAULT_GUIDED_AUDIO_VARIANT,
   GUIDED_AUDIO_VARIANTS,
@@ -14,9 +11,6 @@ describe("guided audio variants", () => {
     expect(DEFAULT_GUIDED_AUDIO_VARIANT.id).toBe("guruji-led-primary")
     expect(GUIDED_AUDIO_VARIANTS).toHaveLength(2)
     expect(getGuidedAudioVariant("sharath-jois-led-primary").audioSrc)
-<<<<<<< HEAD
-      .toBe("/audio/sharath-jois-led-primary-v1.m4a")
-=======
       .toBe("https://media.githubusercontent.com/media/jstur225/ashtanga-app/4ba630f90d9e53106a807511df748afb66595411/public/audio/sharath-jois-led-primary-v1.m4a")
   })
 
@@ -34,7 +28,6 @@ describe("guided audio variants", () => {
     expect(() => validateAudioPayload(m4aPayload, "audio/mp4")).not.toThrow()
     expect(() => validateAudioPayload(lfsPointer, "text/plain")).toThrow(/Git LFS/)
     expect(() => validateAudioPayload(loginPage, "text/html")).toThrow(/有效音频/)
->>>>>>> origin/master2
   })
 
   it("未知或旧会话缺失版本时安全回退老掌门人", () => {

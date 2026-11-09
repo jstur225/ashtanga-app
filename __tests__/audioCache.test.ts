@@ -24,8 +24,6 @@ class MockAudioCache {
   async clearCache(audioKey: string): Promise<void> {
     this.data.delete(audioKey)
     localStorage.removeItem(`audio-cache-version:${audioKey}`)
-<<<<<<< HEAD
-=======
   }
 
   async clearAllCaches(): Promise<void> {
@@ -36,7 +34,6 @@ class MockAudioCache {
         localStorage.removeItem(key)
       }
     }
->>>>>>> origin/master2
   }
 
   async downloadAndCache(
@@ -136,8 +133,6 @@ describe('audioCache', () => {
 
       expect(await cache.isCacheValid('guruji', '1.0')).toBe(true)
       expect(await cache.isCacheValid('sharath', '1.0')).toBe(false)
-<<<<<<< HEAD
-=======
     })
 
     it('清理全部口令版本和版本标记', async () => {
@@ -152,7 +147,6 @@ describe('audioCache', () => {
       expect(localStorage.getItem('audio-cache-version:guruji')).toBeNull()
       expect(localStorage.getItem('audio-cache-version:sharath')).toBeNull()
       expect(localStorage.getItem('audio-cache-version')).toBeNull()
->>>>>>> origin/master2
     })
   })
 
